@@ -1,6 +1,10 @@
+
+
+
+
 // "use client";
 
-// import { useEffect, useMemo, useState } from "react";
+//  import { useEffect, useMemo, useState } from "react";
 
 // import {
 //   ArrowLeft,
@@ -11,6 +15,7 @@
 //   HelpCircle,
 //   Loader2,
 //   Target,
+//   Coins,
 // } from "lucide-react";
 
 // import {
@@ -29,6 +34,7 @@
 //   type PracticeMode,
 // } from "@/lib/api/practice";
 
+
 // /* ============================================================
 //    TYPES
 //    ============================================================ */
@@ -38,6 +44,8 @@
 //   name: string;
 //   description: string;
 //   icon: React.ElementType;
+//   secondsPerQuestion: number;
+//   pointsPerCorrect: number;
 // }
 
 // interface StoredPracticeConfig {
@@ -45,11 +53,40 @@
 //   mode: PracticeMode;
 //   questionCount: number;
 //   duration: number;
+//   secondsPerQuestion: number;
+//   pointsPerCorrect: number;
 //   examType: string;
 // }
 
 // const PRACTICE_CONFIG_KEY =
 //   "jamb-league-active-practice-config";
+
+// /* ============================================================
+//    PRACTICE RULES
+//    ============================================================ */
+
+// const PRACTICE_RULES: Record<
+//   PracticeMode,
+//   {
+//     secondsPerQuestion: number;
+//     pointsPerCorrect: number;
+//   }
+// > = {
+//   quick: {
+//     secondsPerQuestion: 25,
+//     pointsPerCorrect: 0.02,
+//   },
+
+//   standard: {
+//     secondsPerQuestion: 35,
+//     pointsPerCorrect: 0.0015,
+//   },
+
+//   timed: {
+//     secondsPerQuestion: 45,
+//     pointsPerCorrect: 0.001,
+//   },
+// };
 
 // /* ============================================================
 //    MODES
@@ -60,24 +97,30 @@
 //     id: "quick",
 //     name: "Quick Practice",
 //     description:
-//       "Answer a small set of questions for quick revision.",
+//       "Answer quickly and earn the highest CBT points for every correct answer.",
 //     icon: Target,
+//     secondsPerQuestion: 25,
+//     pointsPerCorrect: 0.02,
 //   },
 
 //   {
 //     id: "standard",
 //     name: "Standard Practice",
 //     description:
-//       "Practice a normal set of questions at your own pace.",
+//       "Practice at a balanced pace while earning CBT points for correct answers.",
 //     icon: BookOpen,
+//     secondsPerQuestion: 35,
+//     pointsPerCorrect: 0.0015,
 //   },
 
 //   {
 //     id: "timed",
 //     name: "Timed Practice",
 //     description:
-//       "Practice under a time limit to improve your speed.",
+//       "Practice under a longer time limit and earn CBT points for correct answers.",
 //     icon: Clock3,
+//     secondsPerQuestion: 45,
+//     pointsPerCorrect: 0.001,
 //   },
 // ];
 
@@ -91,37 +134,6 @@
 //   30,
 //   40,
 //   50,
-// ];
-
-// /* ============================================================
-//    DURATIONS
-//    ============================================================ */
-
-// const durations = [
-//   {
-//     value: 10,
-//     label: "10 minutes",
-//   },
-
-//   {
-//     value: 20,
-//     label: "20 minutes",
-//   },
-
-//   {
-//     value: 30,
-//     label: "30 minutes",
-//   },
-
-//   {
-//     value: 40,
-//     label: "40 minutes",
-//   },
-
-//   {
-//     value: 60,
-//     label: "60 minutes",
-//   },
 // ];
 
 // /* ============================================================
@@ -141,6 +153,46 @@
 // }
 
 // /* ============================================================
+//    FORMAT DURATION
+//    ============================================================ */
+
+// function formatDuration(
+//   totalSeconds: number,
+// ) {
+//   const minutes = Math.floor(
+//     totalSeconds / 60,
+//   );
+
+//   const seconds =
+//     totalSeconds % 60;
+
+//   if (minutes === 0) {
+//     return `${seconds} sec`;
+//   }
+
+//   if (seconds === 0) {
+//     return `${minutes} min`;
+//   }
+
+//   return `${minutes} min ${seconds} sec`;
+// }
+
+// /* ============================================================
+//    FORMAT POINTS
+//    ============================================================ */
+
+// function formatPoints(
+//   points: number,
+// ) {
+//   return points.toLocaleString(
+//     "en-US",
+//     {
+//       maximumFractionDigits: 4,
+//     },
+//   );
+// }
+
+// /* ============================================================
 //    CONFIG COMPARISON
 //    ============================================================ */
 
@@ -153,12 +205,19 @@
 //   }
 
 //   return (
-//     first.subjectId === second.subjectId &&
+//     first.subjectId ===
+//       second.subjectId &&
 //     first.mode === second.mode &&
 //     first.questionCount ===
 //       second.questionCount &&
-//     first.duration === second.duration &&
-//     first.examType === second.examType
+//     first.duration ===
+//       second.duration &&
+//     first.secondsPerQuestion ===
+//       second.secondsPerQuestion &&
+//     first.pointsPerCorrect ===
+//       second.pointsPerCorrect &&
+//     first.examType ===
+//       second.examType
 //   );
 // }
 
@@ -242,6 +301,7 @@
 //   const router = useRouter();
 
 //   const params = useParams();
+
 //   const searchParams =
 //     useSearchParams();
 
@@ -356,11 +416,6 @@
 //   ] = useState(20);
 
 //   const [
-//     duration,
-//     setDurationValue,
-//   ] = useState(20);
-
-//   const [
 //     isStarting,
 //     setIsStarting,
 //   ] = useState(false);
@@ -398,6 +453,49 @@
 //     examType.toUpperCase();
 
 //   /* ==========================================================
+//      SELECTED MODE RULES
+//      ========================================================== */
+
+//   const selectedModeRules =
+//     PRACTICE_RULES[
+//       selectedMode
+//     ];
+
+//   const secondsPerQuestion =
+//     selectedModeRules.secondsPerQuestion;
+
+//   const pointsPerCorrect =
+//     selectedModeRules.pointsPerCorrect;
+
+//   /*
+//    * Duration is automatically calculated.
+//    *
+//    * Example:
+//    *
+//    * 20 questions × 25 seconds
+//    * = 500 seconds
+//    * = 8 min 20 sec
+//    */
+
+//   const totalDurationSeconds =
+//     questionCount *
+//     secondsPerQuestion;
+
+//   const totalDurationMinutes =
+//     Math.ceil(
+//       totalDurationSeconds / 60,
+//     );
+
+//   /*
+//    * Maximum possible points if every
+//    * question is answered correctly.
+//    */
+
+//   const maximumPossiblePoints =
+//     questionCount *
+//     pointsPerCorrect;
+
+//   /* ==========================================================
 //      CURRENT CONFIGURATION
 //      ========================================================== */
 
@@ -407,14 +505,27 @@
 //         subjectId,
 //         mode: selectedMode,
 //         questionCount,
-//         duration,
+
+//         /*
+//          * Store duration in minutes because
+//          * your existing API/store currently
+//          * works with duration.
+//          */
+//         duration:
+//           totalDurationMinutes,
+
+//         secondsPerQuestion,
+//         pointsPerCorrect,
+
 //         examType,
 //       }),
 //       [
 //         subjectId,
 //         selectedMode,
 //         questionCount,
-//         duration,
+//         totalDurationMinutes,
+//         secondsPerQuestion,
+//         pointsPerCorrect,
 //         examType,
 //       ],
 //     );
@@ -433,6 +544,7 @@
 //     if (!subjectId) {
 //       setIsCheckingSession(false);
 //       setHasMatchingActiveSession(false);
+
 //       return;
 //     }
 
@@ -445,7 +557,7 @@
 //      * 1. CBT has started
 //      * 2. CBT has NOT been submitted
 //      * 3. Questions exist
-//      * 4. The saved configuration matches
+//      * 4. Saved configuration matches
 //      *    the current configuration
 //      */
 
@@ -515,6 +627,21 @@
 //       );
 
 //       console.log(
+//         "Practice mode:",
+//         selectedMode,
+//       );
+
+//       console.log(
+//         "Seconds per question:",
+//         secondsPerQuestion,
+//       );
+
+//       console.log(
+//         "Points per correct:",
+//         pointsPerCorrect,
+//       );
+
+//       console.log(
 //         "========================================",
 //       );
 //     }
@@ -522,7 +649,9 @@
 //     subjectId,
 //     selectedMode,
 //     questionCount,
-//     duration,
+//     totalDurationMinutes,
+//     secondsPerQuestion,
+//     pointsPerCorrect,
 //     examType,
 //     currentConfig,
 //     isStarted,
@@ -585,13 +714,7 @@
 
 //       /*
 //        * --------------------------------------------------------
-//        * IMPORTANT
-//        *
-//        * If the current configuration matches an active
-//        * session, we NEVER call the backend.
-//        *
-//        * This protects the student's cached questions
-//        * and answers.
+//        * ACTIVE SESSION
 //        * --------------------------------------------------------
 //        */
 
@@ -599,6 +722,7 @@
 //         hasMatchingActiveSession
 //       ) {
 //         handleResumePractice();
+
 //         return;
 //       }
 
@@ -606,7 +730,7 @@
 
 //       try {
 //         /* ======================================================
-//            THIS IS A NEW PRACTICE
+//            DEBUG
 //            ====================================================== */
 
 //         console.log(
@@ -628,6 +752,41 @@
 //         );
 
 //         console.log(
+//           "Practice mode:",
+//           selectedMode,
+//         );
+
+//         console.log(
+//           "Questions:",
+//           questionCount,
+//         );
+
+//         console.log(
+//           "Seconds per question:",
+//           secondsPerQuestion,
+//         );
+
+//         console.log(
+//           "Total duration seconds:",
+//           totalDurationSeconds,
+//         );
+
+//         console.log(
+//           "Total duration minutes:",
+//           totalDurationMinutes,
+//         );
+
+//         console.log(
+//           "Points per correct:",
+//           pointsPerCorrect,
+//         );
+
+//         console.log(
+//           "Maximum possible points:",
+//           maximumPossiblePoints,
+//         );
+
+//         console.log(
 //           "Request configuration:",
 //           currentConfig,
 //         );
@@ -644,9 +803,23 @@
 //           subjectId,
 //           mode: selectedMode,
 //           questionCount,
-//           duration,
+
+//           /*
+//            * Existing API receives duration.
+//            *
+//            * This is now automatically derived
+//            * from the selected mode.
+//            */
+//           duration:
+//             totalDurationMinutes,
+
 //           examType,
 //         };
+
+//         console.log(
+//           "Practice session payload:",
+//           payload,
+//         );
 
 //         /* ======================================================
 //            CREATE NEW BACKEND SESSION
@@ -737,7 +910,7 @@
 
 //               /*
 //                * These fields are stored in Zustand
-//                * for result calculation.
+//                * for frontend result calculation.
 //                *
 //                * They should NOT be displayed
 //                * while the student is answering.
@@ -825,12 +998,19 @@
 //            STORE TIMER
 //            ====================================================== */
 
+//         /*
+//          * Use the backend duration when available.
+//          *
+//          * Otherwise use our calculated duration.
+//          */
+
 //         setDuration(
-//           practiceData.duration,
+//           practiceData.duration ??
+//             totalDurationMinutes,
 //         );
 
 //         /* ======================================================
-//            SAVE CONFIGURATION
+//            SAVE PRACTICE CONFIGURATION
 //            ====================================================== */
 
 //         savePracticeConfig(
@@ -861,8 +1041,29 @@
 //         );
 
 //         console.log(
+//           "Practice mode:",
+//           selectedMode,
+//         );
+
+//         console.log(
+//           "Seconds per question:",
+//           secondsPerQuestion,
+//         );
+
+//         console.log(
 //           "Duration:",
-//           practiceData.duration,
+//           totalDurationMinutes,
+//           "minutes",
+//         );
+
+//         console.log(
+//           "Points per correct:",
+//           pointsPerCorrect,
+//         );
+
+//         console.log(
+//           "Maximum possible points:",
+//           maximumPossiblePoints,
 //         );
 
 //         console.log(
@@ -902,7 +1103,7 @@
 //     };
 
 //   /* ==========================================================
-//      HANDLE CONFIGURATION CHANGE
+//      HANDLE MODE CHANGE
 //      ========================================================== */
 
 //   const handleModeChange = (
@@ -910,32 +1111,37 @@
 //   ) => {
 //     setSelectedMode(mode);
 
-//     /*
-//      * If the student changes configuration,
-//      * this is no longer the same practice.
-//      *
-//      * Therefore the Start Practice button
-//      * will create a new backend session.
-//      */
+//     setHasMatchingActiveSession(
+//       false,
+//     );
 
-//     setHasMatchingActiveSession(false);
+//     setError(null);
 //   };
 
-//   const handleQuestionCountChange = (
-//     count: number,
-//   ) => {
-//     setQuestionCount(count);
+//   /* ==========================================================
+//      HANDLE QUESTION COUNT CHANGE
+//      ========================================================== */
 
-//     setHasMatchingActiveSession(false);
-//   };
+//   const handleQuestionCountChange =
+//     (count: number) => {
+//       setQuestionCount(count);
 
-//   const handleDurationChange = (
-//     value: number,
-//   ) => {
-//     setDurationValue(value);
+//       setHasMatchingActiveSession(
+//         false,
+//       );
 
-//     setHasMatchingActiveSession(false);
-//   };
+//       setError(null);
+//     };
+
+//   /* ==========================================================
+//      SELECTED MODE OBJECT
+//      ========================================================== */
+
+//   const selectedModeInfo =
+//     modes.find(
+//       (mode) =>
+//         mode.id === selectedMode,
+//     );
 
 //   /* ==========================================================
 //      RENDER
@@ -975,8 +1181,11 @@
 //           </h1>
 
 //           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-//             Configure your practice
-//             session before you begin.
+//             Choose your practice mode
+//             and number of questions.
+//             Your time and CBT point
+//             rate are automatically
+//             determined by the mode.
 //           </p>
 //         </section>
 
@@ -989,6 +1198,7 @@
 //             <section className="mb-8">
 //               <Card className="border-emerald-200 bg-emerald-50 p-6">
 //                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
 //                   <div className="flex items-start gap-4">
 //                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
 //                       <CheckCircle2 className="h-6 w-6" />
@@ -1008,14 +1218,17 @@
 
 //                       <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-emerald-700">
 //                         <span>
-//                           {questions.length}{" "}
+//                           {
+//                             questions.length
+//                           }{" "}
 //                           questions
 //                         </span>
 
 //                         <span>
 //                           {
 //                             Object.keys(
-//                               answers ?? {},
+//                               answers ??
+//                                 {},
 //                             ).length
 //                           }{" "}
 //                           answered
@@ -1084,65 +1297,101 @@
 //               </h2>
 
 //               <p className="text-sm text-slate-500">
-//                 Select how you want to
-//                 practise.
+//                 Your mode determines
+//                 your time per question
+//                 and CBT point reward.
 //               </p>
 //             </div>
 //           </div>
 
 //           <div className="grid gap-4 md:grid-cols-3">
-//             {modes.map((mode) => {
-//               const Icon = mode.icon;
+//             {modes.map(
+//               (mode) => {
+//                 const Icon =
+//                   mode.icon;
 
-//               const selected =
-//                 selectedMode ===
-//                 mode.id;
+//                 const selected =
+//                   selectedMode ===
+//                   mode.id;
 
-//               return (
-//                 <button
-//                   key={mode.id}
-//                   type="button"
-//                   onClick={() =>
-//                     handleModeChange(
-//                       mode.id,
-//                     )
-//                   }
-//                   className={[
-//                     "relative rounded-2xl border-2 bg-white p-5 text-left transition-all",
-//                     "hover:-translate-y-0.5 hover:shadow-md",
-//                     "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-//                     selected
-//                       ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-//                       : "border-slate-200",
-//                   ].join(" ")}
-//                 >
-//                   {selected && (
-//                     <div className="absolute right-4 top-4">
-//                       <CheckCircle2 className="h-5 w-5 text-blue-600" />
-//                     </div>
-//                   )}
-
-//                   <div
+//                 return (
+//                   <button
+//                     key={mode.id}
+//                     type="button"
+//                     onClick={() =>
+//                       handleModeChange(
+//                         mode.id,
+//                       )
+//                     }
 //                     className={[
-//                       "flex h-12 w-12 items-center justify-center rounded-xl",
+//                       "relative rounded-2xl border-2 bg-white p-5 text-left transition-all",
+//                       "hover:-translate-y-0.5 hover:shadow-md",
+//                       "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
 //                       selected
-//                         ? "bg-blue-600 text-white"
-//                         : "bg-slate-100 text-slate-600",
+//                         ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+//                         : "border-slate-200",
 //                     ].join(" ")}
 //                   >
-//                     <Icon className="h-6 w-6" />
-//                   </div>
+//                     {selected && (
+//                       <div className="absolute right-4 top-4">
+//                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
+//                       </div>
+//                     )}
 
-//                   <h3 className="mt-4 font-black text-slate-900">
-//                     {mode.name}
-//                   </h3>
+//                     <div
+//                       className={[
+//                         "flex h-12 w-12 items-center justify-center rounded-xl",
+//                         selected
+//                           ? "bg-blue-600 text-white"
+//                           : "bg-slate-100 text-slate-600",
+//                       ].join(" ")}
+//                     >
+//                       <Icon className="h-6 w-6" />
+//                     </div>
 
-//                   <p className="mt-2 text-sm leading-6 text-slate-500">
-//                     {mode.description}
-//                   </p>
-//                 </button>
-//               );
-//             })}
+//                     <h3 className="mt-4 font-black text-slate-900">
+//                       {mode.name}
+//                     </h3>
+
+//                     <p className="mt-2 text-sm leading-6 text-slate-500">
+//                       {
+//                         mode.description
+//                       }
+//                     </p>
+
+//                     {/* MODE RULES */}
+
+//                     <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
+//                       <div className="flex items-center justify-between text-sm">
+//                         <span className="text-slate-500">
+//                           Time/question
+//                         </span>
+
+//                         <span className="font-black text-slate-900">
+//                           {
+//                             mode.secondsPerQuestion
+//                           }{" "}
+//                           sec
+//                         </span>
+//                       </div>
+
+//                       <div className="flex items-center justify-between text-sm">
+//                         <span className="text-slate-500">
+//                           Correct answer
+//                         </span>
+
+//                         <span className="font-black text-blue-700">
+//                           +
+//                           {
+//                             mode.pointsPerCorrect
+//                           }
+//                         </span>
+//                       </div>
+//                     </div>
+//                   </button>
+//                 );
+//               },
+//             )}
 //           </div>
 //         </section>
 
@@ -1202,7 +1451,7 @@
 //         </section>
 
 //         {/* ====================================================
-//             STEP 3 — DURATION
+//             STEP 3 — AUTOMATIC TIME & REWARD
 //            ==================================================== */}
 
 //         <section className="mb-8">
@@ -1213,45 +1462,119 @@
 
 //             <div>
 //               <h2 className="text-xl font-black text-slate-900">
-//                 Practice Duration
+//                 Practice Rules
 //               </h2>
 
 //               <p className="text-sm text-slate-500">
-//                 Set the time available
-//                 for this session.
+//                 Your selected mode
+//                 automatically determines
+//                 the time and reward.
 //               </p>
 //             </div>
 //           </div>
 
-//           <Card className="p-5">
-//             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-//               {durations.map(
-//                 (item) => {
-//                   const selected =
-//                     duration ===
-//                     item.value;
+//           <Card className="border-blue-200 bg-white p-6">
+//             <div className="grid gap-4 sm:grid-cols-3">
 
-//                   return (
-//                     <button
-//                       key={item.value}
-//                       type="button"
-//                       onClick={() =>
-//                         handleDurationChange(
-//                           item.value,
+//               {/* TIME PER QUESTION */}
+
+//               <div className="rounded-2xl bg-slate-50 p-5">
+//                 <div className="flex items-center gap-3">
+//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+//                     <Clock3 className="h-5 w-5" />
+//                   </div>
+
+//                   <div>
+//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+//                       Time / Question
+//                     </p>
+
+//                     <p className="mt-1 text-2xl font-black text-slate-900">
+//                       {
+//                         secondsPerQuestion
+//                       }{" "}
+//                       sec
+//                     </p>
+//                   </div>
+//                 </div>
+//               </div>
+
+//               {/* TOTAL TIME */}
+
+//               <div className="rounded-2xl bg-slate-50 p-5">
+//                 <div className="flex items-center gap-3">
+//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+//                     <Clock3 className="h-5 w-5" />
+//                   </div>
+
+//                   <div>
+//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+//                       Total Time
+//                     </p>
+
+//                     <p className="mt-1 text-2xl font-black text-slate-900">
+//                       {formatDuration(
+//                         totalDurationSeconds,
+//                       )}
+//                     </p>
+//                   </div>
+//                 </div>
+//               </div>
+
+//               {/* REWARD */}
+
+//               <div className="rounded-2xl bg-slate-50 p-5">
+//                 <div className="flex items-center gap-3">
+//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+//                     <Coins className="h-5 w-5" />
+//                   </div>
+
+//                   <div>
+//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+//                       Correct Answer
+//                     </p>
+
+//                     <p className="mt-1 text-2xl font-black text-emerald-700">
+//                       +
+//                       {
+//                         pointsPerCorrect
+//                       }
+//                     </p>
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* MAXIMUM REWARD */}
+
+//             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+//               <div className="flex items-start gap-3">
+//                 <Coins className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+//                 <div>
+//                   <p className="font-black text-emerald-950">
+//                     Maximum CBT Points
+//                   </p>
+
+//                   <p className="mt-1 text-sm leading-6 text-emerald-800">
+//                     If you answer all{" "}
+//                     <strong>
+//                       {questionCount}
+//                     </strong>{" "}
+//                     questions correctly,
+//                     you can earn up to{" "}
+//                     <strong>
+//                       {
+//                         formatPoints(
+//                           maximumPossiblePoints,
 //                         )
 //                       }
-//                       className={[
-//                         "rounded-xl border-2 px-4 py-4 text-center font-bold transition",
-//                         selected
-//                           ? "border-blue-500 bg-blue-50 text-blue-700"
-//                           : "border-slate-200 bg-white text-slate-600 hover:border-blue-300",
-//                       ].join(" ")}
-//                     >
-//                       {item.label}
-//                     </button>
-//                   );
-//                 },
-//               )}
+//                     </strong>{" "}
+//                     CBT points in this
+//                     practice session.
+//                   </p>
+//                 </div>
+//               </div>
 //             </div>
 //           </Card>
 //         </section>
@@ -1267,12 +1590,13 @@
 //                 <HelpCircle className="h-6 w-6" />
 //               </div>
 
-//               <div>
+//               <div className="min-w-0">
 //                 <h2 className="font-black text-slate-900">
 //                   Session Summary
 //                 </h2>
 
 //                 <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+
 //                   <p>
 //                     <strong>
 //                       Exam:
@@ -1292,11 +1616,7 @@
 //                       Mode:
 //                     </strong>{" "}
 //                     {
-//                       modes.find(
-//                         (mode) =>
-//                           mode.id ===
-//                           selectedMode,
-//                       )?.name
+//                       selectedModeInfo?.name
 //                     }
 //                   </p>
 
@@ -1309,12 +1629,51 @@
 
 //                   <p>
 //                     <strong>
-//                       Duration:
+//                       Time/question:
 //                     </strong>{" "}
-//                     {duration} minutes
+//                     {
+//                       secondsPerQuestion
+//                     }{" "}
+//                     seconds
 //                   </p>
 
 //                   <p>
+//                     <strong>
+//                       Total duration:
+//                     </strong>{" "}
+//                     {formatDuration(
+//                       totalDurationSeconds,
+//                     )}
+//                   </p>
+
+//                   <p>
+//                     <strong>
+//                       Correct answer:
+//                     </strong>{" "}
+//                     <span className="font-black text-emerald-700">
+//                       +
+//                       {
+//                         pointsPerCorrect
+//                       }{" "}
+//                       CBT points
+//                     </span>
+//                   </p>
+
+//                   <p>
+//                     <strong>
+//                       Maximum reward:
+//                     </strong>{" "}
+//                     <span className="font-black text-emerald-700">
+//                       {
+//                         formatPoints(
+//                           maximumPossiblePoints,
+//                         )
+//                       }{" "}
+//                       points
+//                     </span>
+//                   </p>
+
+//                   {/* <p className="sm:col-span-2">
 //                     <strong>
 //                       Subject ID:
 //                     </strong>{" "}
@@ -1322,7 +1681,8 @@
 //                       {subjectId ||
 //                         "Missing"}
 //                     </span>
-//                   </p>
+//                   </p> */}
+
 //                 </div>
 //               </div>
 //             </div>
@@ -1376,27 +1736,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -1407,10 +1746,11 @@ import {
   BookOpen,
   CheckCircle2,
   Clock3,
+  Coins,
   HelpCircle,
   Loader2,
   Target,
-  Coins,
+  type LucideIcon,
 } from "lucide-react";
 
 import {
@@ -1429,15 +1769,32 @@ import {
   type PracticeMode,
 } from "@/lib/api/practice";
 
+import {
+  getAllPracticeModes,
+} from "@/lib/api/practice-modes";
+
 /* ============================================================
    TYPES
    ============================================================ */
 
-interface ModeOption {
-  id: PracticeMode;
+interface BackendPracticeMode {
+  _id: string;
   name: string;
   description: string;
-  icon: React.ElementType;
+  timePerQuestion: number;
+  awardedPointPerCorrectAnswer: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+}
+
+interface ModeOption {
+  id: PracticeMode;
+  backendId: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
   secondsPerQuestion: number;
   pointsPerCorrect: number;
 }
@@ -1456,93 +1813,70 @@ const PRACTICE_CONFIG_KEY =
   "jamb-league-active-practice-config";
 
 /* ============================================================
-   PRACTICE RULES
+   MODE ICON
    ============================================================ */
 
-const PRACTICE_RULES: Record<
-  PracticeMode,
-  {
-    secondsPerQuestion: number;
-    pointsPerCorrect: number;
+function getModeIcon(
+  modeName: string,
+): LucideIcon {
+  const name =
+    modeName.toLowerCase();
+
+  if (name.includes("quick")) {
+    return Target;
   }
-> = {
-  quick: {
-    secondsPerQuestion: 25,
-    pointsPerCorrect: 0.02,
-  },
 
-  standard: {
-    secondsPerQuestion: 35,
-    pointsPerCorrect: 0.0015,
-  },
+  if (name.includes("timed")) {
+    return Clock3;
+  }
 
-  timed: {
-    secondsPerQuestion: 45,
-    pointsPerCorrect: 0.001,
-  },
-};
+  return BookOpen;
+}
 
 /* ============================================================
-   MODES
+   MODE ID
    ============================================================ */
 
-const modes: ModeOption[] = [
-  {
-    id: "quick",
-    name: "Quick Practice",
-    description:
-      "Answer quickly and earn the highest CBT points for every correct answer.",
-    icon: Target,
-    secondsPerQuestion: 25,
-    pointsPerCorrect: 0.02,
-  },
+function getModeId(
+  modeName: string,
+): PracticeMode | null {
+  const name =
+    modeName
+      .toLowerCase()
+      .trim();
 
-  {
-    id: "standard",
-    name: "Standard Practice",
-    description:
-      "Practice at a balanced pace while earning CBT points for correct answers.",
-    icon: BookOpen,
-    secondsPerQuestion: 35,
-    pointsPerCorrect: 0.0015,
-  },
+  if (name.includes("quick")) {
+    return "quick";
+  }
 
-  {
-    id: "timed",
-    name: "Timed Practice",
-    description:
-      "Practice under a longer time limit and earn CBT points for correct answers.",
-    icon: Clock3,
-    secondsPerQuestion: 45,
-    pointsPerCorrect: 0.001,
-  },
-];
+  if (name.includes("standard")) {
+    return "standard";
+  }
+
+  if (name.includes("timed")) {
+    return "timed";
+  }
+
+  return null;
+}
 
 /* ============================================================
-   QUESTION COUNTS
+   FORMAT SUBJECT NAME
    ============================================================ */
 
-const questionCounts = [
-  10,
-  20,
-  30,
-  40,
-  50,
-];
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-
-function formatSubjectName(subject: string) {
+function formatSubjectName(
+  subject: string,
+) {
   if (!subject) {
     return "Practice";
   }
 
   return subject
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase(),
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase(),
     );
 }
 
@@ -1553,12 +1887,21 @@ function formatSubjectName(subject: string) {
 function formatDuration(
   totalSeconds: number,
 ) {
-  const minutes = Math.floor(
-    totalSeconds / 60,
-  );
+  const safeSeconds =
+    Number.isFinite(totalSeconds)
+      ? Math.max(
+          0,
+          Math.round(totalSeconds),
+        )
+      : 0;
+
+  const minutes =
+    Math.floor(
+      safeSeconds / 60,
+    );
 
   const seconds =
-    totalSeconds % 60;
+    safeSeconds % 60;
 
   if (minutes === 0) {
     return `${seconds} sec`;
@@ -1572,18 +1915,54 @@ function formatDuration(
 }
 
 /* ============================================================
-   FORMAT POINTS
+   FORMAT CBT POINTS
+   ============================================================
+
+   IMPORTANT:
+
+   Backend values can be:
+
+   0.02
+   0.0015
+   0.001
+
+   We deliberately preserve the decimal portion so
+   these values never appear as "0".
    ============================================================ */
 
 function formatPoints(
   points: number,
 ) {
-  return points.toLocaleString(
-    "en-US",
-    {
-      maximumFractionDigits: 4,
-    },
-  );
+  const numericPoints =
+    Number(points);
+
+  if (
+    !Number.isFinite(
+      numericPoints,
+    )
+  ) {
+    return "0";
+  }
+
+  if (numericPoints === 0) {
+    return "0";
+  }
+
+  /*
+   * Keep enough decimal places for
+   * small CBT point values.
+   *
+   * Examples:
+   *
+   * 0.02   -> 0.02
+   * 0.0015 -> 0.0015
+   * 0.001  -> 0.001
+   * 0.4    -> 0.4
+   * 2      -> 2
+   */
+  return numericPoints
+    .toFixed(4)
+    .replace(/\.?0+$/, "");
 }
 
 /* ============================================================
@@ -1601,7 +1980,8 @@ function configsMatch(
   return (
     first.subjectId ===
       second.subjectId &&
-    first.mode === second.mode &&
+    first.mode ===
+      second.mode &&
     first.questionCount ===
       second.questionCount &&
     first.duration ===
@@ -1765,29 +2145,37 @@ export default function PracticeConfigurationPage() {
     .trim()
     .toLowerCase();
 
-  /*
-   * Real MongoDB subject ID.
-   *
-   * Example:
-   *
-   * ?subjectId=69bd417a74676c09ac65bc56
-   */
-
   const subjectId =
     searchParams
       .get("subjectId")
       ?.trim() ?? "";
 
-  /*
-   * Optional mode.
-   *
-   * Example:
-   *
-   * ?subjectId=xxx&mode=quick
-   */
-
   const initialMode =
-    searchParams.get("mode");
+    searchParams
+      .get("mode")
+      ?.trim()
+      .toLowerCase();
+
+  /* ==========================================================
+     BACKEND MODES
+     ========================================================== */
+
+  const [
+    modes,
+    setModes,
+  ] = useState<ModeOption[]>([]);
+
+  const [
+    isLoadingModes,
+    setIsLoadingModes,
+  ] = useState(true);
+
+  const [
+    modesError,
+    setModesError,
+  ] = useState<string | null>(
+    null,
+  );
 
   /* ==========================================================
      STATE
@@ -1832,6 +2220,252 @@ export default function PracticeConfigurationPage() {
   ] = useState(false);
 
   /* ==========================================================
+     FETCH PRACTICE MODES
+     ========================================================== */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadModes =
+      async () => {
+        setIsLoadingModes(true);
+        setModesError(null);
+
+        try {
+          console.log(
+            "========================================",
+          );
+
+          console.log(
+            "FETCHING PRACTICE MODES",
+          );
+
+          const response =
+            await getAllPracticeModes();
+
+          console.log(
+            "Practice modes response:",
+            response,
+          );
+
+          console.log(
+            "Practice modes response JSON:",
+            JSON.stringify(
+              response,
+              null,
+              2,
+            ),
+          );
+
+          if (!response?.success) {
+            throw new Error(
+              response?.message ||
+                "Failed to load practice modes.",
+            );
+          }
+
+          const backendModes: BackendPracticeMode[] =
+            Array.isArray(
+              response.data,
+            )
+              ? response.data
+              : [];
+
+          /*
+           * IMPORTANT:
+           *
+           * We build the array without returning null
+           * from map().
+           *
+           * This completely removes the:
+           *
+           * "Type 'null' is not assignable to ModeOption"
+           *
+           * problem.
+           */
+
+          const mappedModes: ModeOption[] =
+            backendModes.reduce<
+              ModeOption[]
+            >(
+              (
+                result,
+                mode,
+              ) => {
+                if (
+                  mode.isActive ===
+                  false
+                ) {
+                  return result;
+                }
+
+                const modeId =
+                  getModeId(
+                    mode.name,
+                  );
+
+                if (!modeId) {
+                  console.warn(
+                    "Ignoring unknown practice mode:",
+                    mode.name,
+                  );
+
+                  return result;
+                }
+
+                const seconds =
+                  Number(
+                    mode.timePerQuestion,
+                  );
+
+                const points =
+                  Number(
+                    mode.awardedPointPerCorrectAnswer,
+                  );
+
+                const normalizedSeconds =
+                  Number.isFinite(
+                    seconds,
+                  )
+                    ? seconds
+                    : 0;
+
+                const normalizedPoints =
+                  Number.isFinite(
+                    points,
+                  )
+                    ? points
+                    : 0;
+
+                const mappedMode: ModeOption =
+                  {
+                    id: modeId,
+
+                    backendId:
+                      mode._id,
+
+                    name:
+                      mode.name
+                        .replace(
+                          /\b\w/g,
+                          (letter) =>
+                            letter.toUpperCase(),
+                        ),
+
+                    description:
+                      mode.description,
+
+                    icon:
+                      getModeIcon(
+                        mode.name,
+                      ),
+
+                    secondsPerQuestion:
+                      normalizedSeconds,
+
+                    pointsPerCorrect:
+                      normalizedPoints,
+                  };
+
+                result.push(
+                  mappedMode,
+                );
+
+                return result;
+              },
+              [],
+            );
+
+          console.log(
+            "Mapped backend modes:",
+            mappedModes,
+          );
+
+          console.log(
+            "Mapped CBT point values:",
+            mappedModes.map(
+              (mode) => ({
+                name:
+                  mode.name,
+
+                backendId:
+                  mode.backendId,
+
+                pointsPerCorrect:
+                  mode.pointsPerCorrect,
+
+                formatted:
+                  formatPoints(
+                    mode.pointsPerCorrect,
+                  ),
+              }),
+            ),
+          );
+
+          if (!cancelled) {
+            setModes(
+              mappedModes,
+            );
+
+            /*
+             * If the current selected mode
+             * exists in the backend, keep it.
+             *
+             * Otherwise select the first
+             * backend mode.
+             */
+
+            const requestedMode =
+              mappedModes.find(
+                (mode) =>
+                  mode.id ===
+                  selectedMode,
+              );
+
+            if (
+              !requestedMode &&
+              mappedModes.length >
+                0
+            ) {
+              setSelectedMode(
+                mappedModes[0].id,
+              );
+            }
+          }
+
+          console.log(
+            "========================================",
+          );
+        } catch (err) {
+          console.error(
+            "Failed to load practice modes:",
+            err,
+          );
+
+          if (!cancelled) {
+            setModesError(
+              err instanceof Error
+                ? err.message
+                : "Failed to load practice modes.",
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoadingModes(
+              false,
+            );
+          }
+        }
+      };
+
+    void loadModes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMode]);
+
+  /* ==========================================================
      DISPLAY
      ========================================================== */
 
@@ -1847,29 +2481,40 @@ export default function PracticeConfigurationPage() {
     examType.toUpperCase();
 
   /* ==========================================================
-     SELECTED MODE RULES
+     SELECTED BACKEND MODE
      ========================================================== */
 
-  const selectedModeRules =
-    PRACTICE_RULES[
-      selectedMode
-    ];
+  const selectedModeInfo =
+    useMemo<ModeOption | undefined>(
+      () =>
+        modes.find(
+          (mode) =>
+            mode.id ===
+            selectedMode,
+        ),
+      [
+        modes,
+        selectedMode,
+      ],
+    );
+
+  /* ==========================================================
+     BACKEND VALUES
+     ========================================================== */
 
   const secondsPerQuestion =
-    selectedModeRules.secondsPerQuestion;
+    selectedModeInfo
+      ?.secondsPerQuestion ??
+    0;
 
   const pointsPerCorrect =
-    selectedModeRules.pointsPerCorrect;
+    selectedModeInfo
+      ?.pointsPerCorrect ??
+    0;
 
-  /*
-   * Duration is automatically calculated.
-   *
-   * Example:
-   *
-   * 20 questions × 25 seconds
-   * = 500 seconds
-   * = 8 min 20 sec
-   */
+  /* ==========================================================
+     AUTOMATIC TIME
+     ========================================================== */
 
   const totalDurationSeconds =
     questionCount *
@@ -1880,10 +2525,9 @@ export default function PracticeConfigurationPage() {
       totalDurationSeconds / 60,
     );
 
-  /*
-   * Maximum possible points if every
-   * question is answered correctly.
-   */
+  /* ==========================================================
+     MAXIMUM REWARD
+     ========================================================== */
 
   const maximumPossiblePoints =
     questionCount *
@@ -1900,11 +2544,6 @@ export default function PracticeConfigurationPage() {
         mode: selectedMode,
         questionCount,
 
-        /*
-         * Store duration in minutes because
-         * your existing API/store currently
-         * works with duration.
-         */
         duration:
           totalDurationMinutes,
 
@@ -1929,31 +2568,24 @@ export default function PracticeConfigurationPage() {
      ========================================================== */
 
   useEffect(() => {
-    /*
-     * We only check for an active session
-     * after the component has mounted because
-     * localStorage is browser-only.
-     */
+    if (
+      isLoadingModes
+    ) {
+      return;
+    }
 
     if (!subjectId) {
       setIsCheckingSession(false);
-      setHasMatchingActiveSession(false);
+
+      setHasMatchingActiveSession(
+        false,
+      );
 
       return;
     }
 
     const storedConfig =
       getStoredPracticeConfig();
-
-    /*
-     * An active session means:
-     *
-     * 1. CBT has started
-     * 2. CBT has NOT been submitted
-     * 3. Questions exist
-     * 4. Saved configuration matches
-     *    the current configuration
-     */
 
     const activeSession =
       Boolean(
@@ -1975,17 +2607,6 @@ export default function PracticeConfigurationPage() {
     );
 
     setIsCheckingSession(false);
-
-    /*
-     * IMPORTANT:
-     *
-     * If an active session exists,
-     * DO NOT call the backend.
-     *
-     * The questions, answers, timer,
-     * current question and flags remain
-     * inside Zustand.
-     */
 
     if (activeSession) {
       console.log(
@@ -2026,13 +2647,20 @@ export default function PracticeConfigurationPage() {
       );
 
       console.log(
-        "Seconds per question:",
+        "Backend seconds/question:",
         secondsPerQuestion,
       );
 
       console.log(
-        "Points per correct:",
+        "Backend points/correct:",
         pointsPerCorrect,
+      );
+
+      console.log(
+        "Formatted points:",
+        formatPoints(
+          pointsPerCorrect,
+        ),
       );
 
       console.log(
@@ -2048,6 +2676,7 @@ export default function PracticeConfigurationPage() {
     pointsPerCorrect,
     examType,
     currentConfig,
+    isLoadingModes,
     isStarted,
     isSubmitted,
     questions,
@@ -2057,7 +2686,7 @@ export default function PracticeConfigurationPage() {
   ]);
 
   /* ==========================================================
-     RESUME ACTIVE SESSION
+     RESUME
      ========================================================== */
 
   const handleResumePractice =
@@ -2087,16 +2716,12 @@ export default function PracticeConfigurationPage() {
     };
 
   /* ==========================================================
-     START NEW PRACTICE
+     START PRACTICE
      ========================================================== */
 
   const handleStartPractice =
     async () => {
       setError(null);
-
-      /* --------------------------------------------------------
-         VALIDATE SUBJECT ID
-         -------------------------------------------------------- */
 
       if (!subjectId) {
         setError(
@@ -2107,10 +2732,21 @@ export default function PracticeConfigurationPage() {
       }
 
       /*
-       * --------------------------------------------------------
-       * ACTIVE SESSION
-       * --------------------------------------------------------
+       * TypeScript now knows that this is
+       * ModeOption | undefined.
+       *
+       * We explicitly check it before using it.
        */
+
+      if (
+        !selectedModeInfo
+      ) {
+        setError(
+          "Practice mode information is not available yet.",
+        );
+
+        return;
+      }
 
       if (
         hasMatchingActiveSession
@@ -2123,10 +2759,6 @@ export default function PracticeConfigurationPage() {
       setIsStarting(true);
 
       try {
-        /* ======================================================
-           DEBUG
-           ====================================================== */
-
         console.log(
           "========================================",
         );
@@ -2136,18 +2768,13 @@ export default function PracticeConfigurationPage() {
         );
 
         console.log(
-          "Previous session:",
-          sessionId,
-        );
-
-        console.log(
-          "Previous submitted:",
-          isSubmitted,
-        );
-
-        console.log(
           "Practice mode:",
           selectedMode,
+        );
+
+        console.log(
+          "Backend mode ID:",
+          selectedModeInfo.backendId,
         );
 
         console.log(
@@ -2156,8 +2783,20 @@ export default function PracticeConfigurationPage() {
         );
 
         console.log(
-          "Seconds per question:",
+          "Backend seconds/question:",
           secondsPerQuestion,
+        );
+
+        console.log(
+          "Backend points/correct:",
+          pointsPerCorrect,
+        );
+
+        console.log(
+          "Formatted backend points:",
+          formatPoints(
+            pointsPerCorrect,
+          ),
         );
 
         console.log(
@@ -2171,13 +2810,15 @@ export default function PracticeConfigurationPage() {
         );
 
         console.log(
-          "Points per correct:",
-          pointsPerCorrect,
+          "Maximum possible points:",
+          maximumPossiblePoints,
         );
 
         console.log(
-          "Maximum possible points:",
-          maximumPossiblePoints,
+          "Formatted maximum points:",
+          formatPoints(
+            maximumPossiblePoints,
+          ),
         );
 
         console.log(
@@ -2197,16 +2838,8 @@ export default function PracticeConfigurationPage() {
           subjectId,
           mode: selectedMode,
           questionCount,
-
-          /*
-           * Existing API receives duration.
-           *
-           * This is now automatically derived
-           * from the selected mode.
-           */
           duration:
             totalDurationMinutes,
-
           examType,
         };
 
@@ -2216,17 +2849,13 @@ export default function PracticeConfigurationPage() {
         );
 
         /* ======================================================
-           CREATE NEW BACKEND SESSION
+           CREATE BACKEND SESSION
            ====================================================== */
 
         const response =
           await createPracticeSession(
             payload,
           );
-
-        /* ======================================================
-           DEBUG RESPONSE
-           ====================================================== */
 
         console.log(
           "Practice session response:",
@@ -2282,13 +2911,14 @@ export default function PracticeConfigurationPage() {
         }
 
         /* ======================================================
-           CONVERT API QUESTIONS → CBT QUESTIONS
+           CONVERT QUESTIONS
            ====================================================== */
 
         const cbtQuestions =
           practiceData.questions.map(
             (question) => ({
-              _id: question._id,
+              _id:
+                question._id,
 
               question:
                 question.question,
@@ -2301,14 +2931,6 @@ export default function PracticeConfigurationPage() {
 
               difficulty:
                 question.difficulty,
-
-              /*
-               * These fields are stored in Zustand
-               * for frontend result calculation.
-               *
-               * They should NOT be displayed
-               * while the student is answering.
-               */
 
               answer:
                 question.answer,
@@ -2364,7 +2986,7 @@ export default function PracticeConfigurationPage() {
           );
 
         /* ======================================================
-           STORE NEW QUESTIONS
+           STORE QUESTIONS
            ====================================================== */
 
         setQuestions(
@@ -2392,19 +3014,13 @@ export default function PracticeConfigurationPage() {
            STORE TIMER
            ====================================================== */
 
-        /*
-         * Use the backend duration when available.
-         *
-         * Otherwise use our calculated duration.
-         */
-
         setDuration(
           practiceData.duration ??
             totalDurationMinutes,
         );
 
         /* ======================================================
-           SAVE PRACTICE CONFIGURATION
+           SAVE CONFIG
            ====================================================== */
 
         savePracticeConfig(
@@ -2416,10 +3032,6 @@ export default function PracticeConfigurationPage() {
            ====================================================== */
 
         startExam();
-
-        /* ======================================================
-           DEBUG
-           ====================================================== */
 
         console.log(
           "========================================",
@@ -2440,29 +3052,25 @@ export default function PracticeConfigurationPage() {
         );
 
         console.log(
-          "Seconds per question:",
+          "Backend seconds/question:",
           secondsPerQuestion,
         );
 
         console.log(
-          "Duration:",
-          totalDurationMinutes,
-          "minutes",
+          "Backend points/correct:",
+          pointsPerCorrect,
         );
 
         console.log(
-          "Points per correct:",
-          pointsPerCorrect,
+          "Formatted points:",
+          formatPoints(
+            pointsPerCorrect,
+          ),
         );
 
         console.log(
           "Maximum possible points:",
           maximumPossiblePoints,
-        );
-
-        console.log(
-          "Configuration:",
-          currentConfig,
         );
 
         console.log(
@@ -2472,10 +3080,6 @@ export default function PracticeConfigurationPage() {
         console.log(
           "========================================",
         );
-
-        /* ======================================================
-           NAVIGATE
-           ====================================================== */
 
         router.push(
           "/student/practice/cbtsubjects/session",
@@ -2497,7 +3101,7 @@ export default function PracticeConfigurationPage() {
     };
 
   /* ==========================================================
-     HANDLE MODE CHANGE
+     MODE CHANGE
      ========================================================== */
 
   const handleModeChange = (
@@ -2513,7 +3117,7 @@ export default function PracticeConfigurationPage() {
   };
 
   /* ==========================================================
-     HANDLE QUESTION COUNT CHANGE
+     QUESTION COUNT CHANGE
      ========================================================== */
 
   const handleQuestionCountChange =
@@ -2526,16 +3130,6 @@ export default function PracticeConfigurationPage() {
 
       setError(null);
     };
-
-  /* ==========================================================
-     SELECTED MODE OBJECT
-     ========================================================== */
-
-  const selectedModeInfo =
-    modes.find(
-      (mode) =>
-        mode.id === selectedMode,
-    );
 
   /* ==========================================================
      RENDER
@@ -2557,7 +3151,6 @@ export default function PracticeConfigurationPage() {
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-blue-600"
         >
           <ArrowLeft className="h-4 w-4" />
-
           Back
         </button>
 
@@ -2577,11 +3170,37 @@ export default function PracticeConfigurationPage() {
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
             Choose your practice mode
             and number of questions.
-            Your time and CBT point
-            rate are automatically
-            determined by the mode.
+            Time and CBT point rewards
+            are controlled by the
+            backend.
           </p>
         </section>
+
+        {/* ====================================================
+            LOADING MODES
+           ==================================================== */}
+
+        {isLoadingModes && (
+          <Card className="mb-8 border-blue-200 bg-blue-50 p-6">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+
+              <span className="text-sm font-semibold text-blue-800">
+                Loading practice modes...
+              </span>
+            </div>
+          </Card>
+        )}
+
+        {/* ====================================================
+            MODE ERROR
+           ==================================================== */}
+
+        {modesError && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+            {modesError}
+          </div>
+        )}
 
         {/* ====================================================
             ACTIVE SESSION
@@ -2654,7 +3273,7 @@ export default function PracticeConfigurationPage() {
           )}
 
         {/* ====================================================
-            SUBJECT ID WARNING
+            SUBJECT WARNING
            ==================================================== */}
 
         {!subjectId && (
@@ -2691,9 +3310,9 @@ export default function PracticeConfigurationPage() {
               </h2>
 
               <p className="text-sm text-slate-500">
-                Your mode determines
-                your time per question
-                and CBT point reward.
+                These values come
+                directly from the
+                backend.
               </p>
             </div>
           </div>
@@ -2710,7 +3329,9 @@ export default function PracticeConfigurationPage() {
 
                 return (
                   <button
-                    key={mode.id}
+                    key={
+                      mode.backendId
+                    }
                     type="button"
                     onClick={() =>
                       handleModeChange(
@@ -2753,9 +3374,10 @@ export default function PracticeConfigurationPage() {
                       }
                     </p>
 
-                    {/* MODE RULES */}
+                    {/* BACKEND RULES */}
 
                     <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
+
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-500">
                           Time/question
@@ -2776,11 +3398,12 @@ export default function PracticeConfigurationPage() {
 
                         <span className="font-black text-blue-700">
                           +
-                          {
-                            mode.pointsPerCorrect
-                          }
+                          {formatPoints(
+                            mode.pointsPerCorrect,
+                          )}
                         </span>
                       </div>
+
                     </div>
                   </button>
                 );
@@ -2805,15 +3428,22 @@ export default function PracticeConfigurationPage() {
               </h2>
 
               <p className="text-sm text-slate-500">
-                Choose how many questions
-                you want to answer.
+                Choose how many
+                questions you want to
+                answer.
               </p>
             </div>
           </div>
 
           <Card className="p-5">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {questionCounts.map(
+              {[
+                10,
+                20,
+                30,
+                40,
+                50,
+              ].map(
                 (count) => {
                   const selected =
                     questionCount ===
@@ -2845,7 +3475,7 @@ export default function PracticeConfigurationPage() {
         </section>
 
         {/* ====================================================
-            STEP 3 — AUTOMATIC TIME & REWARD
+            STEP 3 — RULES
            ==================================================== */}
 
         <section className="mb-8">
@@ -2860,9 +3490,8 @@ export default function PracticeConfigurationPage() {
               </h2>
 
               <p className="text-sm text-slate-500">
-                Your selected mode
-                automatically determines
-                the time and reward.
+                Automatically loaded
+                from the backend.
               </p>
             </div>
           </div>
@@ -2930,9 +3559,9 @@ export default function PracticeConfigurationPage() {
 
                     <p className="mt-1 text-2xl font-black text-emerald-700">
                       +
-                      {
-                        pointsPerCorrect
-                      }
+                      {formatPoints(
+                        pointsPerCorrect,
+                      )}
                     </p>
                   </div>
                 </div>
@@ -2958,11 +3587,9 @@ export default function PracticeConfigurationPage() {
                     questions correctly,
                     you can earn up to{" "}
                     <strong>
-                      {
-                        formatPoints(
-                          maximumPossiblePoints,
-                        )
-                      }
+                      {formatPoints(
+                        maximumPossiblePoints,
+                      )}
                     </strong>{" "}
                     CBT points in this
                     practice session.
@@ -2980,6 +3607,7 @@ export default function PracticeConfigurationPage() {
         <section className="mb-8">
           <Card className="border-blue-200 bg-blue-50 p-6">
             <div className="flex items-start gap-4">
+
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
                 <HelpCircle className="h-6 w-6" />
               </div>
@@ -3009,9 +3637,8 @@ export default function PracticeConfigurationPage() {
                     <strong>
                       Mode:
                     </strong>{" "}
-                    {
-                      selectedModeInfo?.name
-                    }
+                    {selectedModeInfo?.name ??
+                      "Loading..."}
                   </p>
 
                   <p>
@@ -3046,9 +3673,9 @@ export default function PracticeConfigurationPage() {
                     </strong>{" "}
                     <span className="font-black text-emerald-700">
                       +
-                      {
-                        pointsPerCorrect
-                      }{" "}
+                      {formatPoints(
+                        pointsPerCorrect,
+                      )}{" "}
                       CBT points
                     </span>
                   </p>
@@ -3058,24 +3685,12 @@ export default function PracticeConfigurationPage() {
                       Maximum reward:
                     </strong>{" "}
                     <span className="font-black text-emerald-700">
-                      {
-                        formatPoints(
-                          maximumPossiblePoints,
-                        )
-                      }{" "}
+                      {formatPoints(
+                        maximumPossiblePoints,
+                      )}{" "}
                       points
                     </span>
                   </p>
-
-                  {/* <p className="sm:col-span-2">
-                    <strong>
-                      Subject ID:
-                    </strong>{" "}
-                    <span className="break-all">
-                      {subjectId ||
-                        "Missing"}
-                    </span>
-                  </p> */}
 
                 </div>
               </div>
@@ -3094,7 +3709,9 @@ export default function PracticeConfigurationPage() {
             disabled={
               isStarting ||
               isCheckingSession ||
-              !subjectId
+              isLoadingModes ||
+              !subjectId ||
+              !selectedModeInfo
             }
             onClick={
               hasMatchingActiveSession
@@ -3103,6 +3720,7 @@ export default function PracticeConfigurationPage() {
             }
             rightIcon={
               isCheckingSession ||
+              isLoadingModes ||
               isStarting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
@@ -3110,16 +3728,20 @@ export default function PracticeConfigurationPage() {
               )
             }
           >
-            {isCheckingSession
-              ? "Checking Practice..."
-              : isStarting
-                ? "Starting Practice..."
-                : hasMatchingActiveSession
-                  ? "Resume Practice"
-                  : "Start Practice"}
+            {isLoadingModes
+              ? "Loading Practice Modes..."
+              : isCheckingSession
+                ? "Checking Practice..."
+                : isStarting
+                  ? "Starting Practice..."
+                  : hasMatchingActiveSession
+                    ? "Resume Practice"
+                    : "Start Practice"}
           </Button>
         </section>
+
       </div>
     </main>
   );
 }
+

@@ -63,6 +63,12 @@ export default function AdminDashboardPage() {
       href: "/admin/questions",
       icon: "book",
     },
+     {
+      title: "Solve n Win ",
+      description: "Manage Solve and Win questions",
+      href: "/admin/solveandwin",
+      icon: "book",
+    },
     {
       title: "Payments",
       description: "Review transactions",

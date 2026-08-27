@@ -44,31 +44,3 @@ export async function getAllPracticeModes(): Promise<
 }
 
 
-
-// import { axiosInstance } from "./axios";
-
-// export interface PracticeMode {
-//   _id: string;
-//   name: string;
-//   description: string;
-//   timePerQuestion: number;
-//   awardedPointPerCorrectAnswer: number;
-//   isActive: boolean;
-//   createdAt?: string;
-//   updatedAt?: string;
-// }
-
-// interface GetPracticeModesResponse {
-//   success: boolean;
-//   message: string;
-//   data: PracticeMode[];
-// }
-
-// export async function getAllPracticeModes(): Promise<PracticeMode[]> {
-//   const response =
-//     await axiosInstance.get<GetPracticeModesResponse>(
-//       "/practice-modes/get-all-practice-modes",
-//     );
-
-//   return response.data?.data ?? [];
-// }

@@ -324,10 +324,10 @@ export default function ReferralsPage() {
     }
 
     const shareData = {
-      title: "Join Klazik Exams",
+      title: "Join Learnyfi Exams",
 
       text:
-        "Join me on Klazik Exams and prepare smarter for your exams.",
+        "Join me on Learnyfi Exams and prepare smarter for your exams.",
 
       url: referralLink,
     };
@@ -421,7 +421,7 @@ export default function ReferralsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-            Invite other students to Klazik
+            Invite other students to Learnyfi
             Exams using your personal referral
             link and track your referral network.
           </p>

@@ -38,7 +38,7 @@ export default function WalletQuickActions() {
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Invite other students to Klazik Exams and earn rewards
+              Invite other students to Learnyfi Exams and earn rewards
               when your referrals complete qualifying activities.
             </p>
 

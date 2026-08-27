@@ -2,1735 +2,6 @@
 
 
 
-// "use client";
-
-//  import { useEffect, useMemo, useState } from "react";
-
-// import {
-//   ArrowLeft,
-//   ArrowRight,
-//   BookOpen,
-//   CheckCircle2,
-//   Clock3,
-//   HelpCircle,
-//   Loader2,
-//   Target,
-//   Coins,
-// } from "lucide-react";
-
-// import {
-//   useParams,
-//   useRouter,
-//   useSearchParams,
-// } from "next/navigation";
-
-// import { useCbtStore } from "@/stores/cbtStore";
-
-// import { Card } from "@/components/ui/card";
-// import { Button } from "@/components/ui/button";
-
-// import {
-//   createPracticeSession,
-//   type PracticeMode,
-// } from "@/lib/api/practice";
-
-
-// /* ============================================================
-//    TYPES
-//    ============================================================ */
-
-// interface ModeOption {
-//   id: PracticeMode;
-//   name: string;
-//   description: string;
-//   icon: React.ElementType;
-//   secondsPerQuestion: number;
-//   pointsPerCorrect: number;
-// }
-
-// interface StoredPracticeConfig {
-//   subjectId: string;
-//   mode: PracticeMode;
-//   questionCount: number;
-//   duration: number;
-//   secondsPerQuestion: number;
-//   pointsPerCorrect: number;
-//   examType: string;
-// }
-
-// const PRACTICE_CONFIG_KEY =
-//   "jamb-league-active-practice-config";
-
-// /* ============================================================
-//    PRACTICE RULES
-//    ============================================================ */
-
-// const PRACTICE_RULES: Record<
-//   PracticeMode,
-//   {
-//     secondsPerQuestion: number;
-//     pointsPerCorrect: number;
-//   }
-// > = {
-//   quick: {
-//     secondsPerQuestion: 25,
-//     pointsPerCorrect: 0.02,
-//   },
-
-//   standard: {
-//     secondsPerQuestion: 35,
-//     pointsPerCorrect: 0.0015,
-//   },
-
-//   timed: {
-//     secondsPerQuestion: 45,
-//     pointsPerCorrect: 0.001,
-//   },
-// };
-
-// /* ============================================================
-//    MODES
-//    ============================================================ */
-
-// const modes: ModeOption[] = [
-//   {
-//     id: "quick",
-//     name: "Quick Practice",
-//     description:
-//       "Answer quickly and earn the highest CBT points for every correct answer.",
-//     icon: Target,
-//     secondsPerQuestion: 25,
-//     pointsPerCorrect: 0.02,
-//   },
-
-//   {
-//     id: "standard",
-//     name: "Standard Practice",
-//     description:
-//       "Practice at a balanced pace while earning CBT points for correct answers.",
-//     icon: BookOpen,
-//     secondsPerQuestion: 35,
-//     pointsPerCorrect: 0.0015,
-//   },
-
-//   {
-//     id: "timed",
-//     name: "Timed Practice",
-//     description:
-//       "Practice under a longer time limit and earn CBT points for correct answers.",
-//     icon: Clock3,
-//     secondsPerQuestion: 45,
-//     pointsPerCorrect: 0.001,
-//   },
-// ];
-
-// /* ============================================================
-//    QUESTION COUNTS
-//    ============================================================ */
-
-// const questionCounts = [
-//   10,
-//   20,
-//   30,
-//   40,
-//   50,
-// ];
-
-// /* ============================================================
-//    HELPERS
-//    ============================================================ */
-
-// function formatSubjectName(subject: string) {
-//   if (!subject) {
-//     return "Practice";
-//   }
-
-//   return subject
-//     .replace(/-/g, " ")
-//     .replace(/\b\w/g, (letter) =>
-//       letter.toUpperCase(),
-//     );
-// }
-
-// /* ============================================================
-//    FORMAT DURATION
-//    ============================================================ */
-
-// function formatDuration(
-//   totalSeconds: number,
-// ) {
-//   const minutes = Math.floor(
-//     totalSeconds / 60,
-//   );
-
-//   const seconds =
-//     totalSeconds % 60;
-
-//   if (minutes === 0) {
-//     return `${seconds} sec`;
-//   }
-
-//   if (seconds === 0) {
-//     return `${minutes} min`;
-//   }
-
-//   return `${minutes} min ${seconds} sec`;
-// }
-
-// /* ============================================================
-//    FORMAT POINTS
-//    ============================================================ */
-
-// function formatPoints(
-//   points: number,
-// ) {
-//   return points.toLocaleString(
-//     "en-US",
-//     {
-//       maximumFractionDigits: 4,
-//     },
-//   );
-// }
-
-// /* ============================================================
-//    CONFIG COMPARISON
-//    ============================================================ */
-
-// function configsMatch(
-//   first: StoredPracticeConfig | null,
-//   second: StoredPracticeConfig,
-// ) {
-//   if (!first) {
-//     return false;
-//   }
-
-//   return (
-//     first.subjectId ===
-//       second.subjectId &&
-//     first.mode === second.mode &&
-//     first.questionCount ===
-//       second.questionCount &&
-//     first.duration ===
-//       second.duration &&
-//     first.secondsPerQuestion ===
-//       second.secondsPerQuestion &&
-//     first.pointsPerCorrect ===
-//       second.pointsPerCorrect &&
-//     first.examType ===
-//       second.examType
-//   );
-// }
-
-// /* ============================================================
-//    LOAD SAVED CONFIG
-//    ============================================================ */
-
-// function getStoredPracticeConfig():
-//   | StoredPracticeConfig
-//   | null {
-//   if (
-//     typeof window ===
-//     "undefined"
-//   ) {
-//     return null;
-//   }
-
-//   try {
-//     const raw =
-//       window.localStorage.getItem(
-//         PRACTICE_CONFIG_KEY,
-//       );
-
-//     if (!raw) {
-//       return null;
-//     }
-
-//     const parsed =
-//       JSON.parse(raw);
-
-//     if (
-//       !parsed ||
-//       typeof parsed !== "object"
-//     ) {
-//       return null;
-//     }
-
-//     return parsed as StoredPracticeConfig;
-//   } catch (error) {
-//     console.error(
-//       "Failed to read saved practice configuration:",
-//       error,
-//     );
-
-//     return null;
-//   }
-// }
-
-// /* ============================================================
-//    SAVE CONFIG
-//    ============================================================ */
-
-// function savePracticeConfig(
-//   config: StoredPracticeConfig,
-// ) {
-//   if (
-//     typeof window ===
-//     "undefined"
-//   ) {
-//     return;
-//   }
-
-//   try {
-//     window.localStorage.setItem(
-//       PRACTICE_CONFIG_KEY,
-//       JSON.stringify(config),
-//     );
-//   } catch (error) {
-//     console.error(
-//       "Failed to save practice configuration:",
-//       error,
-//     );
-//   }
-// }
-
-// /* ============================================================
-//    PAGE
-//    ============================================================ */
-
-// export default function PracticeConfigurationPage() {
-//   const router = useRouter();
-
-//   const params = useParams();
-
-//   const searchParams =
-//     useSearchParams();
-
-//   /* ==========================================================
-//      CBT STORE
-//      ========================================================== */
-
-//   const questions = useCbtStore(
-//     (state) => state.questions,
-//   );
-
-//   const answers = useCbtStore(
-//     (state) => state.answers,
-//   );
-
-//   const isStarted = useCbtStore(
-//     (state) => state.isStarted,
-//   );
-
-//   const isSubmitted = useCbtStore(
-//     (state) => state.isSubmitted,
-//   );
-
-//   const sessionId = useCbtStore(
-//     (state) => state.sessionId,
-//   );
-
-//   const timeRemainingSeconds =
-//     useCbtStore(
-//       (state) =>
-//         state.timeRemainingSeconds,
-//     );
-
-//   const setQuestions =
-//     useCbtStore(
-//       (state) => state.setQuestions,
-//     );
-
-//   const setSubjects =
-//     useCbtStore(
-//       (state) => state.setSubjects,
-//     );
-
-//   const setDuration =
-//     useCbtStore(
-//       (state) => state.setDuration,
-//     );
-
-//   const startExam =
-//     useCbtStore(
-//       (state) => state.startExam,
-//     );
-
-//   /* ==========================================================
-//      URL VALUES
-//      ========================================================== */
-
-//   const examType = String(
-//     params.examType ?? "jamb",
-//   )
-//     .trim()
-//     .toLowerCase();
-
-//   const subjectSlug = String(
-//     params.subject ?? "",
-//   )
-//     .trim()
-//     .toLowerCase();
-
-//   /*
-//    * Real MongoDB subject ID.
-//    *
-//    * Example:
-//    *
-//    * ?subjectId=69bd417a74676c09ac65bc56
-//    */
-
-//   const subjectId =
-//     searchParams
-//       .get("subjectId")
-//       ?.trim() ?? "";
-
-//   /*
-//    * Optional mode.
-//    *
-//    * Example:
-//    *
-//    * ?subjectId=xxx&mode=quick
-//    */
-
-//   const initialMode =
-//     searchParams.get("mode");
-
-//   /* ==========================================================
-//      STATE
-//      ========================================================== */
-
-//   const [
-//     selectedMode,
-//     setSelectedMode,
-//   ] = useState<PracticeMode>(
-//     initialMode === "quick"
-//       ? "quick"
-//       : initialMode === "timed"
-//         ? "timed"
-//         : "standard",
-//   );
-
-//   const [
-//     questionCount,
-//     setQuestionCount,
-//   ] = useState(20);
-
-//   const [
-//     isStarting,
-//     setIsStarting,
-//   ] = useState(false);
-
-//   const [
-//     error,
-//     setError,
-//   ] = useState<string | null>(
-//     null,
-//   );
-
-//   const [
-//     isCheckingSession,
-//     setIsCheckingSession,
-//   ] = useState(true);
-
-//   const [
-//     hasMatchingActiveSession,
-//     setHasMatchingActiveSession,
-//   ] = useState(false);
-
-//   /* ==========================================================
-//      DISPLAY
-//      ========================================================== */
-
-//   const subjectName = useMemo(
-//     () =>
-//       formatSubjectName(
-//         subjectSlug,
-//       ),
-//     [subjectSlug],
-//   );
-
-//   const examName =
-//     examType.toUpperCase();
-
-//   /* ==========================================================
-//      SELECTED MODE RULES
-//      ========================================================== */
-
-//   const selectedModeRules =
-//     PRACTICE_RULES[
-//       selectedMode
-//     ];
-
-//   const secondsPerQuestion =
-//     selectedModeRules.secondsPerQuestion;
-
-//   const pointsPerCorrect =
-//     selectedModeRules.pointsPerCorrect;
-
-//   /*
-//    * Duration is automatically calculated.
-//    *
-//    * Example:
-//    *
-//    * 20 questions × 25 seconds
-//    * = 500 seconds
-//    * = 8 min 20 sec
-//    */
-
-//   const totalDurationSeconds =
-//     questionCount *
-//     secondsPerQuestion;
-
-//   const totalDurationMinutes =
-//     Math.ceil(
-//       totalDurationSeconds / 60,
-//     );
-
-//   /*
-//    * Maximum possible points if every
-//    * question is answered correctly.
-//    */
-
-//   const maximumPossiblePoints =
-//     questionCount *
-//     pointsPerCorrect;
-
-//   /* ==========================================================
-//      CURRENT CONFIGURATION
-//      ========================================================== */
-
-//   const currentConfig =
-//     useMemo<StoredPracticeConfig>(
-//       () => ({
-//         subjectId,
-//         mode: selectedMode,
-//         questionCount,
-
-//         /*
-//          * Store duration in minutes because
-//          * your existing API/store currently
-//          * works with duration.
-//          */
-//         duration:
-//           totalDurationMinutes,
-
-//         secondsPerQuestion,
-//         pointsPerCorrect,
-
-//         examType,
-//       }),
-//       [
-//         subjectId,
-//         selectedMode,
-//         questionCount,
-//         totalDurationMinutes,
-//         secondsPerQuestion,
-//         pointsPerCorrect,
-//         examType,
-//       ],
-//     );
-
-//   /* ==========================================================
-//      CHECK ACTIVE SESSION
-//      ========================================================== */
-
-//   useEffect(() => {
-//     /*
-//      * We only check for an active session
-//      * after the component has mounted because
-//      * localStorage is browser-only.
-//      */
-
-//     if (!subjectId) {
-//       setIsCheckingSession(false);
-//       setHasMatchingActiveSession(false);
-
-//       return;
-//     }
-
-//     const storedConfig =
-//       getStoredPracticeConfig();
-
-//     /*
-//      * An active session means:
-//      *
-//      * 1. CBT has started
-//      * 2. CBT has NOT been submitted
-//      * 3. Questions exist
-//      * 4. Saved configuration matches
-//      *    the current configuration
-//      */
-
-//     const activeSession =
-//       Boolean(
-//         isStarted &&
-//           !isSubmitted &&
-//           Array.isArray(
-//             questions,
-//           ) &&
-//           questions.length > 0 &&
-//           storedConfig &&
-//           configsMatch(
-//             storedConfig,
-//             currentConfig,
-//           ),
-//       );
-
-//     setHasMatchingActiveSession(
-//       activeSession,
-//     );
-
-//     setIsCheckingSession(false);
-
-//     /*
-//      * IMPORTANT:
-//      *
-//      * If an active session exists,
-//      * DO NOT call the backend.
-//      *
-//      * The questions, answers, timer,
-//      * current question and flags remain
-//      * inside Zustand.
-//      */
-
-//     if (activeSession) {
-//       console.log(
-//         "========================================",
-//       );
-
-//       console.log(
-//         "ACTIVE PRACTICE SESSION FOUND",
-//       );
-
-//       console.log(
-//         "No backend request will be made.",
-//       );
-
-//       console.log(
-//         "Questions:",
-//         questions.length,
-//       );
-
-//       console.log(
-//         "Answers:",
-//         answers,
-//       );
-
-//       console.log(
-//         "Session ID:",
-//         sessionId,
-//       );
-
-//       console.log(
-//         "Time remaining:",
-//         timeRemainingSeconds,
-//       );
-
-//       console.log(
-//         "Practice mode:",
-//         selectedMode,
-//       );
-
-//       console.log(
-//         "Seconds per question:",
-//         secondsPerQuestion,
-//       );
-
-//       console.log(
-//         "Points per correct:",
-//         pointsPerCorrect,
-//       );
-
-//       console.log(
-//         "========================================",
-//       );
-//     }
-//   }, [
-//     subjectId,
-//     selectedMode,
-//     questionCount,
-//     totalDurationMinutes,
-//     secondsPerQuestion,
-//     pointsPerCorrect,
-//     examType,
-//     currentConfig,
-//     isStarted,
-//     isSubmitted,
-//     questions,
-//     answers,
-//     sessionId,
-//     timeRemainingSeconds,
-//   ]);
-
-//   /* ==========================================================
-//      RESUME ACTIVE SESSION
-//      ========================================================== */
-
-//   const handleResumePractice =
-//     () => {
-//       console.log(
-//         "Resuming cached practice session.",
-//       );
-
-//       console.log(
-//         "Session ID:",
-//         sessionId,
-//       );
-
-//       console.log(
-//         "Questions:",
-//         questions.length,
-//       );
-
-//       console.log(
-//         "Answers:",
-//         answers,
-//       );
-
-//       router.push(
-//         "/student/practice/cbtsubjects/session",
-//       );
-//     };
-
-//   /* ==========================================================
-//      START NEW PRACTICE
-//      ========================================================== */
-
-//   const handleStartPractice =
-//     async () => {
-//       setError(null);
-
-//       /* --------------------------------------------------------
-//          VALIDATE SUBJECT ID
-//          -------------------------------------------------------- */
-
-//       if (!subjectId) {
-//         setError(
-//           "Subject ID is missing. Please go back and select the subject again.",
-//         );
-
-//         return;
-//       }
-
-//       /*
-//        * --------------------------------------------------------
-//        * ACTIVE SESSION
-//        * --------------------------------------------------------
-//        */
-
-//       if (
-//         hasMatchingActiveSession
-//       ) {
-//         handleResumePractice();
-
-//         return;
-//       }
-
-//       setIsStarting(true);
-
-//       try {
-//         /* ======================================================
-//            DEBUG
-//            ====================================================== */
-
-//         console.log(
-//           "========================================",
-//         );
-
-//         console.log(
-//           "STARTING NEW PRACTICE SESSION",
-//         );
-
-//         console.log(
-//           "Previous session:",
-//           sessionId,
-//         );
-
-//         console.log(
-//           "Previous submitted:",
-//           isSubmitted,
-//         );
-
-//         console.log(
-//           "Practice mode:",
-//           selectedMode,
-//         );
-
-//         console.log(
-//           "Questions:",
-//           questionCount,
-//         );
-
-//         console.log(
-//           "Seconds per question:",
-//           secondsPerQuestion,
-//         );
-
-//         console.log(
-//           "Total duration seconds:",
-//           totalDurationSeconds,
-//         );
-
-//         console.log(
-//           "Total duration minutes:",
-//           totalDurationMinutes,
-//         );
-
-//         console.log(
-//           "Points per correct:",
-//           pointsPerCorrect,
-//         );
-
-//         console.log(
-//           "Maximum possible points:",
-//           maximumPossiblePoints,
-//         );
-
-//         console.log(
-//           "Request configuration:",
-//           currentConfig,
-//         );
-
-//         console.log(
-//           "========================================",
-//         );
-
-//         /* ======================================================
-//            REQUEST PAYLOAD
-//            ====================================================== */
-
-//         const payload = {
-//           subjectId,
-//           mode: selectedMode,
-//           questionCount,
-
-//           /*
-//            * Existing API receives duration.
-//            *
-//            * This is now automatically derived
-//            * from the selected mode.
-//            */
-//           duration:
-//             totalDurationMinutes,
-
-//           examType,
-//         };
-
-//         console.log(
-//           "Practice session payload:",
-//           payload,
-//         );
-
-//         /* ======================================================
-//            CREATE NEW BACKEND SESSION
-//            ====================================================== */
-
-//         const response =
-//           await createPracticeSession(
-//             payload,
-//           );
-
-//         /* ======================================================
-//            DEBUG RESPONSE
-//            ====================================================== */
-
-//         console.log(
-//           "Practice session response:",
-//           response,
-//         );
-
-//         console.log(
-//           "Response JSON:",
-//           JSON.stringify(
-//             response,
-//             null,
-//             2,
-//           ),
-//         );
-
-//         /* ======================================================
-//            VALIDATE RESPONSE
-//            ====================================================== */
-
-//         if (!response.success) {
-//           throw new Error(
-//             response.message ||
-//               "Failed to create practice session.",
-//           );
-//         }
-
-//         const practiceData =
-//           response.data;
-
-//         if (!practiceData) {
-//           throw new Error(
-//             "The server did not return practice session data.",
-//           );
-//         }
-
-//         if (
-//           !Array.isArray(
-//             practiceData.questions,
-//           )
-//         ) {
-//           throw new Error(
-//             "The server did not return practice questions.",
-//           );
-//         }
-
-//         if (
-//           practiceData.questions.length ===
-//           0
-//         ) {
-//           throw new Error(
-//             "No questions were returned for this practice session.",
-//           );
-//         }
-
-//         /* ======================================================
-//            CONVERT API QUESTIONS → CBT QUESTIONS
-//            ====================================================== */
-
-//         const cbtQuestions =
-//           practiceData.questions.map(
-//             (question) => ({
-//               _id: question._id,
-
-//               question:
-//                 question.question,
-
-//               options:
-//                 question.options,
-
-//               questionType:
-//                 question.questionType,
-
-//               difficulty:
-//                 question.difficulty,
-
-//               /*
-//                * These fields are stored in Zustand
-//                * for frontend result calculation.
-//                *
-//                * They should NOT be displayed
-//                * while the student is answering.
-//                */
-
-//               answer:
-//                 question.answer,
-
-//               correctAnswers:
-//                 question.correctAnswers,
-
-//               explanation:
-//                 question.explanation,
-
-//               solution:
-//                 question.solution,
-
-//               examType:
-//                 question.examType,
-
-//               examYear:
-//                 question.examYear,
-
-//               apiQuestionId:
-//                 question.apiQuestionId,
-
-//               imageId:
-//                 question.imageId,
-
-//               passageId:
-//                 question.passageId,
-
-//               media:
-//                 question.media,
-
-//               content:
-//                 question.content,
-
-//               isMultipleAnswer:
-//                 question.isMultipleAnswer,
-
-//               marks:
-//                 question.marks,
-
-//               topic:
-//                 question.topic,
-
-//               section:
-//                 question.section,
-
-//               plan:
-//                 question.plan,
-
-//               subject:
-//                 question.subject,
-//             }),
-//           );
-
-//         /* ======================================================
-//            STORE NEW QUESTIONS
-//            ====================================================== */
-
-//         setQuestions(
-//           cbtQuestions,
-//         );
-
-//         /* ======================================================
-//            STORE SUBJECT
-//            ====================================================== */
-
-//         setSubjects([
-//           {
-//             _id:
-//               practiceData.subjectId,
-
-//             name:
-//               subjectName,
-
-//             slug:
-//               subjectSlug,
-//           },
-//         ]);
-
-//         /* ======================================================
-//            STORE TIMER
-//            ====================================================== */
-
-//         /*
-//          * Use the backend duration when available.
-//          *
-//          * Otherwise use our calculated duration.
-//          */
-
-//         setDuration(
-//           practiceData.duration ??
-//             totalDurationMinutes,
-//         );
-
-//         /* ======================================================
-//            SAVE PRACTICE CONFIGURATION
-//            ====================================================== */
-
-//         savePracticeConfig(
-//           currentConfig,
-//         );
-
-//         /* ======================================================
-//            START CBT
-//            ====================================================== */
-
-//         startExam();
-
-//         /* ======================================================
-//            DEBUG
-//            ====================================================== */
-
-//         console.log(
-//           "========================================",
-//         );
-
-//         console.log(
-//           "NEW PRACTICE READY",
-//         );
-
-//         console.log(
-//           "Questions stored:",
-//           cbtQuestions.length,
-//         );
-
-//         console.log(
-//           "Practice mode:",
-//           selectedMode,
-//         );
-
-//         console.log(
-//           "Seconds per question:",
-//           secondsPerQuestion,
-//         );
-
-//         console.log(
-//           "Duration:",
-//           totalDurationMinutes,
-//           "minutes",
-//         );
-
-//         console.log(
-//           "Points per correct:",
-//           pointsPerCorrect,
-//         );
-
-//         console.log(
-//           "Maximum possible points:",
-//           maximumPossiblePoints,
-//         );
-
-//         console.log(
-//           "Configuration:",
-//           currentConfig,
-//         );
-
-//         console.log(
-//           "Navigating to CBT session...",
-//         );
-
-//         console.log(
-//           "========================================",
-//         );
-
-//         /* ======================================================
-//            NAVIGATE
-//            ====================================================== */
-
-//         router.push(
-//           "/student/practice/cbtsubjects/session",
-//         );
-//       } catch (err) {
-//         console.error(
-//           "Failed to start practice:",
-//           err,
-//         );
-
-//         setError(
-//           err instanceof Error
-//             ? err.message
-//             : "Failed to start practice.",
-//         );
-//       } finally {
-//         setIsStarting(false);
-//       }
-//     };
-
-//   /* ==========================================================
-//      HANDLE MODE CHANGE
-//      ========================================================== */
-
-//   const handleModeChange = (
-//     mode: PracticeMode,
-//   ) => {
-//     setSelectedMode(mode);
-
-//     setHasMatchingActiveSession(
-//       false,
-//     );
-
-//     setError(null);
-//   };
-
-//   /* ==========================================================
-//      HANDLE QUESTION COUNT CHANGE
-//      ========================================================== */
-
-//   const handleQuestionCountChange =
-//     (count: number) => {
-//       setQuestionCount(count);
-
-//       setHasMatchingActiveSession(
-//         false,
-//       );
-
-//       setError(null);
-//     };
-
-//   /* ==========================================================
-//      SELECTED MODE OBJECT
-//      ========================================================== */
-
-//   const selectedModeInfo =
-//     modes.find(
-//       (mode) =>
-//         mode.id === selectedMode,
-//     );
-
-//   /* ==========================================================
-//      RENDER
-//      ========================================================== */
-
-//   return (
-//     <main className="min-h-screen bg-slate-50">
-//       <div className="container mx-auto max-w-5xl px-4 py-8 sm:py-10">
-
-//         {/* ====================================================
-//             BACK
-//            ==================================================== */}
-
-//         <button
-//           type="button"
-//           onClick={() =>
-//             router.back()
-//           }
-//           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-blue-600"
-//         >
-//           <ArrowLeft className="h-4 w-4" />
-
-//           Back
-//         </button>
-
-//         {/* ====================================================
-//             HEADER
-//            ==================================================== */}
-
-//         <section className="mb-8">
-//           <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-xs font-bold uppercase tracking-wide text-blue-700">
-//             {examName} Practice
-//           </div>
-
-//           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-//             {subjectName} Practice
-//           </h1>
-
-//           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-//             Choose your practice mode
-//             and number of questions.
-//             Your time and CBT point
-//             rate are automatically
-//             determined by the mode.
-//           </p>
-//         </section>
-
-//         {/* ====================================================
-//             ACTIVE SESSION
-//            ==================================================== */}
-
-//         {!isCheckingSession &&
-//           hasMatchingActiveSession && (
-//             <section className="mb-8">
-//               <Card className="border-emerald-200 bg-emerald-50 p-6">
-//                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-//                   <div className="flex items-start gap-4">
-//                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
-//                       <CheckCircle2 className="h-6 w-6" />
-//                     </div>
-
-//                     <div>
-//                       <h2 className="font-black text-emerald-950">
-//                         Practice in Progress
-//                       </h2>
-
-//                       <p className="mt-1 text-sm leading-6 text-emerald-800">
-//                         You already have an
-//                         unfinished practice
-//                         session for this
-//                         configuration.
-//                       </p>
-
-//                       <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-emerald-700">
-//                         <span>
-//                           {
-//                             questions.length
-//                           }{" "}
-//                           questions
-//                         </span>
-
-//                         <span>
-//                           {
-//                             Object.keys(
-//                               answers ??
-//                                 {},
-//                             ).length
-//                           }{" "}
-//                           answered
-//                         </span>
-
-//                         {sessionId && (
-//                           <span>
-//                             Session active
-//                           </span>
-//                         )}
-//                       </div>
-//                     </div>
-//                   </div>
-
-//                   <Button
-//                     size="lg"
-//                     onClick={
-//                       handleResumePractice
-//                     }
-//                     rightIcon={
-//                       <ArrowRight className="h-5 w-5" />
-//                     }
-//                   >
-//                     Resume Practice
-//                   </Button>
-//                 </div>
-//               </Card>
-//             </section>
-//           )}
-
-//         {/* ====================================================
-//             SUBJECT ID WARNING
-//            ==================================================== */}
-
-//         {!subjectId && (
-//           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800">
-//             Subject ID is missing from
-//             the URL. Please go back and
-//             select the subject again.
-//           </div>
-//         )}
-
-//         {/* ====================================================
-//             ERROR
-//            ==================================================== */}
-
-//         {error && (
-//           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
-//             {error}
-//           </div>
-//         )}
-
-//         {/* ====================================================
-//             STEP 1 — MODE
-//            ==================================================== */}
-
-//         <section className="mb-8">
-//           <div className="mb-5 flex items-center gap-3">
-//             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-//               1
-//             </span>
-
-//             <div>
-//               <h2 className="text-xl font-black text-slate-900">
-//                 Choose Practice Mode
-//               </h2>
-
-//               <p className="text-sm text-slate-500">
-//                 Your mode determines
-//                 your time per question
-//                 and CBT point reward.
-//               </p>
-//             </div>
-//           </div>
-
-//           <div className="grid gap-4 md:grid-cols-3">
-//             {modes.map(
-//               (mode) => {
-//                 const Icon =
-//                   mode.icon;
-
-//                 const selected =
-//                   selectedMode ===
-//                   mode.id;
-
-//                 return (
-//                   <button
-//                     key={mode.id}
-//                     type="button"
-//                     onClick={() =>
-//                       handleModeChange(
-//                         mode.id,
-//                       )
-//                     }
-//                     className={[
-//                       "relative rounded-2xl border-2 bg-white p-5 text-left transition-all",
-//                       "hover:-translate-y-0.5 hover:shadow-md",
-//                       "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-//                       selected
-//                         ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-//                         : "border-slate-200",
-//                     ].join(" ")}
-//                   >
-//                     {selected && (
-//                       <div className="absolute right-4 top-4">
-//                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
-//                       </div>
-//                     )}
-
-//                     <div
-//                       className={[
-//                         "flex h-12 w-12 items-center justify-center rounded-xl",
-//                         selected
-//                           ? "bg-blue-600 text-white"
-//                           : "bg-slate-100 text-slate-600",
-//                       ].join(" ")}
-//                     >
-//                       <Icon className="h-6 w-6" />
-//                     </div>
-
-//                     <h3 className="mt-4 font-black text-slate-900">
-//                       {mode.name}
-//                     </h3>
-
-//                     <p className="mt-2 text-sm leading-6 text-slate-500">
-//                       {
-//                         mode.description
-//                       }
-//                     </p>
-
-//                     {/* MODE RULES */}
-
-//                     <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
-//                       <div className="flex items-center justify-between text-sm">
-//                         <span className="text-slate-500">
-//                           Time/question
-//                         </span>
-
-//                         <span className="font-black text-slate-900">
-//                           {
-//                             mode.secondsPerQuestion
-//                           }{" "}
-//                           sec
-//                         </span>
-//                       </div>
-
-//                       <div className="flex items-center justify-between text-sm">
-//                         <span className="text-slate-500">
-//                           Correct answer
-//                         </span>
-
-//                         <span className="font-black text-blue-700">
-//                           +
-//                           {
-//                             mode.pointsPerCorrect
-//                           }
-//                         </span>
-//                       </div>
-//                     </div>
-//                   </button>
-//                 );
-//               },
-//             )}
-//           </div>
-//         </section>
-
-//         {/* ====================================================
-//             STEP 2 — QUESTIONS
-//            ==================================================== */}
-
-//         <section className="mb-8">
-//           <div className="mb-5 flex items-center gap-3">
-//             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-//               2
-//             </span>
-
-//             <div>
-//               <h2 className="text-xl font-black text-slate-900">
-//                 Number of Questions
-//               </h2>
-
-//               <p className="text-sm text-slate-500">
-//                 Choose how many questions
-//                 you want to answer.
-//               </p>
-//             </div>
-//           </div>
-
-//           <Card className="p-5">
-//             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-//               {questionCounts.map(
-//                 (count) => {
-//                   const selected =
-//                     questionCount ===
-//                     count;
-
-//                   return (
-//                     <button
-//                       key={count}
-//                       type="button"
-//                       onClick={() =>
-//                         handleQuestionCountChange(
-//                           count,
-//                         )
-//                       }
-//                       className={[
-//                         "rounded-xl border-2 px-4 py-4 text-center font-bold transition",
-//                         selected
-//                           ? "border-blue-500 bg-blue-50 text-blue-700"
-//                           : "border-slate-200 bg-white text-slate-600 hover:border-blue-300",
-//                       ].join(" ")}
-//                     >
-//                       {count}
-//                     </button>
-//                   );
-//                 },
-//               )}
-//             </div>
-//           </Card>
-//         </section>
-
-//         {/* ====================================================
-//             STEP 3 — AUTOMATIC TIME & REWARD
-//            ==================================================== */}
-
-//         <section className="mb-8">
-//           <div className="mb-5 flex items-center gap-3">
-//             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-//               3
-//             </span>
-
-//             <div>
-//               <h2 className="text-xl font-black text-slate-900">
-//                 Practice Rules
-//               </h2>
-
-//               <p className="text-sm text-slate-500">
-//                 Your selected mode
-//                 automatically determines
-//                 the time and reward.
-//               </p>
-//             </div>
-//           </div>
-
-//           <Card className="border-blue-200 bg-white p-6">
-//             <div className="grid gap-4 sm:grid-cols-3">
-
-//               {/* TIME PER QUESTION */}
-
-//               <div className="rounded-2xl bg-slate-50 p-5">
-//                 <div className="flex items-center gap-3">
-//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-//                     <Clock3 className="h-5 w-5" />
-//                   </div>
-
-//                   <div>
-//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-//                       Time / Question
-//                     </p>
-
-//                     <p className="mt-1 text-2xl font-black text-slate-900">
-//                       {
-//                         secondsPerQuestion
-//                       }{" "}
-//                       sec
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* TOTAL TIME */}
-
-//               <div className="rounded-2xl bg-slate-50 p-5">
-//                 <div className="flex items-center gap-3">
-//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-//                     <Clock3 className="h-5 w-5" />
-//                   </div>
-
-//                   <div>
-//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-//                       Total Time
-//                     </p>
-
-//                     <p className="mt-1 text-2xl font-black text-slate-900">
-//                       {formatDuration(
-//                         totalDurationSeconds,
-//                       )}
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* REWARD */}
-
-//               <div className="rounded-2xl bg-slate-50 p-5">
-//                 <div className="flex items-center gap-3">
-//                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-//                     <Coins className="h-5 w-5" />
-//                   </div>
-
-//                   <div>
-//                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-//                       Correct Answer
-//                     </p>
-
-//                     <p className="mt-1 text-2xl font-black text-emerald-700">
-//                       +
-//                       {
-//                         pointsPerCorrect
-//                       }
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* MAXIMUM REWARD */}
-
-//             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-//               <div className="flex items-start gap-3">
-//                 <Coins className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-
-//                 <div>
-//                   <p className="font-black text-emerald-950">
-//                     Maximum CBT Points
-//                   </p>
-
-//                   <p className="mt-1 text-sm leading-6 text-emerald-800">
-//                     If you answer all{" "}
-//                     <strong>
-//                       {questionCount}
-//                     </strong>{" "}
-//                     questions correctly,
-//                     you can earn up to{" "}
-//                     <strong>
-//                       {
-//                         formatPoints(
-//                           maximumPossiblePoints,
-//                         )
-//                       }
-//                     </strong>{" "}
-//                     CBT points in this
-//                     practice session.
-//                   </p>
-//                 </div>
-//               </div>
-//             </div>
-//           </Card>
-//         </section>
-
-//         {/* ====================================================
-//             SESSION SUMMARY
-//            ==================================================== */}
-
-//         <section className="mb-8">
-//           <Card className="border-blue-200 bg-blue-50 p-6">
-//             <div className="flex items-start gap-4">
-//               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-//                 <HelpCircle className="h-6 w-6" />
-//               </div>
-
-//               <div className="min-w-0">
-//                 <h2 className="font-black text-slate-900">
-//                   Session Summary
-//                 </h2>
-
-//                 <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-
-//                   <p>
-//                     <strong>
-//                       Exam:
-//                     </strong>{" "}
-//                     {examName}
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Subject:
-//                     </strong>{" "}
-//                     {subjectName}
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Mode:
-//                     </strong>{" "}
-//                     {
-//                       selectedModeInfo?.name
-//                     }
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Questions:
-//                     </strong>{" "}
-//                     {questionCount}
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Time/question:
-//                     </strong>{" "}
-//                     {
-//                       secondsPerQuestion
-//                     }{" "}
-//                     seconds
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Total duration:
-//                     </strong>{" "}
-//                     {formatDuration(
-//                       totalDurationSeconds,
-//                     )}
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Correct answer:
-//                     </strong>{" "}
-//                     <span className="font-black text-emerald-700">
-//                       +
-//                       {
-//                         pointsPerCorrect
-//                       }{" "}
-//                       CBT points
-//                     </span>
-//                   </p>
-
-//                   <p>
-//                     <strong>
-//                       Maximum reward:
-//                     </strong>{" "}
-//                     <span className="font-black text-emerald-700">
-//                       {
-//                         formatPoints(
-//                           maximumPossiblePoints,
-//                         )
-//                       }{" "}
-//                       points
-//                     </span>
-//                   </p>
-
-//                   {/* <p className="sm:col-span-2">
-//                     <strong>
-//                       Subject ID:
-//                     </strong>{" "}
-//                     <span className="break-all">
-//                       {subjectId ||
-//                         "Missing"}
-//                     </span>
-//                   </p> */}
-
-//                 </div>
-//               </div>
-//             </div>
-//           </Card>
-//         </section>
-
-//         {/* ====================================================
-//             START / RESUME
-//            ==================================================== */}
-
-//         <section>
-//           <Button
-//             size="lg"
-//             fullWidth
-//             disabled={
-//               isStarting ||
-//               isCheckingSession ||
-//               !subjectId
-//             }
-//             onClick={
-//               hasMatchingActiveSession
-//                 ? handleResumePractice
-//                 : handleStartPractice
-//             }
-//             rightIcon={
-//               isCheckingSession ||
-//               isStarting ? (
-//                 <Loader2 className="h-5 w-5 animate-spin" />
-//               ) : (
-//                 <ArrowRight className="h-5 w-5" />
-//               )
-//             }
-//           >
-//             {isCheckingSession
-//               ? "Checking Practice..."
-//               : isStarting
-//                 ? "Starting Practice..."
-//                 : hasMatchingActiveSession
-//                   ? "Resume Practice"
-//                   : "Start Practice"}
-//           </Button>
-//         </section>
-//       </div>
-//     </main>
-//   );
-// }
-
-
 
 
 
@@ -1819,8 +90,7 @@ const PRACTICE_CONFIG_KEY =
 function getModeIcon(
   modeName: string,
 ): LucideIcon {
-  const name =
-    modeName.toLowerCase();
+  const name = modeName.toLowerCase();
 
   if (name.includes("quick")) {
     return Target;
@@ -1840,21 +110,20 @@ function getModeIcon(
 function getModeId(
   modeName: string,
 ): PracticeMode | null {
-  const name =
-    modeName
-      .toLowerCase()
-      .trim();
+  const name = modeName
+    .toLowerCase()
+    .trim();
 
   if (name.includes("quick")) {
-    return "quick";
+    return "quick practice";
   }
 
   if (name.includes("standard")) {
-    return "standard";
+    return "standard practice";
   }
 
   if (name.includes("timed")) {
-    return "timed";
+    return "timed practice";
   }
 
   return null;
@@ -1916,18 +185,6 @@ function formatDuration(
 
 /* ============================================================
    FORMAT CBT POINTS
-   ============================================================
-
-   IMPORTANT:
-
-   Backend values can be:
-
-   0.02
-   0.0015
-   0.001
-
-   We deliberately preserve the decimal portion so
-   these values never appear as "0".
    ============================================================ */
 
 function formatPoints(
@@ -1948,18 +205,6 @@ function formatPoints(
     return "0";
   }
 
-  /*
-   * Keep enough decimal places for
-   * small CBT point values.
-   *
-   * Examples:
-   *
-   * 0.02   -> 0.02
-   * 0.0015 -> 0.0015
-   * 0.001  -> 0.001
-   * 0.4    -> 0.4
-   * 2      -> 2
-   */
   return numericPoints
     .toFixed(4)
     .replace(/\.?0+$/, "");
@@ -2103,6 +348,10 @@ export default function PracticeConfigurationPage() {
     (state) => state.sessionId,
   );
 
+  const practiceId = useCbtStore(
+    (state) => state.practiceId,
+  );
+
   const timeRemainingSeconds =
     useCbtStore(
       (state) =>
@@ -2113,6 +362,16 @@ export default function PracticeConfigurationPage() {
     useCbtStore(
       (state) => state.setQuestions,
     );
+
+  const setPracticeId =
+    useCbtStore(
+      (state) => state.setPracticeId,
+    );
+
+
+  const setPracticeConfig = useCbtStore(
+  (state) => state.setPracticeConfig,
+);
 
   const setSubjects =
     useCbtStore(
@@ -2185,11 +444,13 @@ export default function PracticeConfigurationPage() {
     selectedMode,
     setSelectedMode,
   ] = useState<PracticeMode>(
-    initialMode === "quick"
-      ? "quick"
-      : initialMode === "timed"
-        ? "timed"
-        : "standard",
+    initialMode ===
+      "quick practice"
+      ? "quick practice"
+      : initialMode ===
+          "timed practice"
+        ? "timed practice"
+        : "standard practice",
   );
 
   const [
@@ -2271,19 +532,6 @@ export default function PracticeConfigurationPage() {
               ? response.data
               : [];
 
-          /*
-           * IMPORTANT:
-           *
-           * We build the array without returning null
-           * from map().
-           *
-           * This completely removes the:
-           *
-           * "Type 'null' is not assignable to ModeOption"
-           *
-           * problem.
-           */
-
           const mappedModes: ModeOption[] =
             backendModes.reduce<
               ModeOption[]
@@ -2345,12 +593,11 @@ export default function PracticeConfigurationPage() {
                       mode._id,
 
                     name:
-                      mode.name
-                        .replace(
-                          /\b\w/g,
-                          (letter) =>
-                            letter.toUpperCase(),
-                        ),
+                      mode.name.replace(
+                        /\b\w/g,
+                        (letter) =>
+                          letter.toUpperCase(),
+                      ),
 
                     description:
                       mode.description,
@@ -2406,14 +653,6 @@ export default function PracticeConfigurationPage() {
             setModes(
               mappedModes,
             );
-
-            /*
-             * If the current selected mode
-             * exists in the backend, keep it.
-             *
-             * Otherwise select the first
-             * backend mode.
-             */
 
             const requestedMode =
               mappedModes.find(
@@ -2520,11 +759,6 @@ export default function PracticeConfigurationPage() {
     questionCount *
     secondsPerQuestion;
 
-  const totalDurationMinutes =
-    Math.ceil(
-      totalDurationSeconds / 60,
-    );
-
   /* ==========================================================
      MAXIMUM REWARD
      ========================================================== */
@@ -2543,20 +777,17 @@ export default function PracticeConfigurationPage() {
         subjectId,
         mode: selectedMode,
         questionCount,
-
         duration:
-          totalDurationMinutes,
-
+          totalDurationSeconds,
         secondsPerQuestion,
         pointsPerCorrect,
-
         examType,
       }),
       [
         subjectId,
         selectedMode,
         questionCount,
-        totalDurationMinutes,
+        totalDurationSeconds,
         secondsPerQuestion,
         pointsPerCorrect,
         examType,
@@ -2568,39 +799,34 @@ export default function PracticeConfigurationPage() {
      ========================================================== */
 
   useEffect(() => {
-    if (
-      isLoadingModes
-    ) {
+    if (isLoadingModes) {
       return;
     }
 
     if (!subjectId) {
       setIsCheckingSession(false);
-
       setHasMatchingActiveSession(
         false,
       );
-
       return;
     }
 
     const storedConfig =
       getStoredPracticeConfig();
 
-    const activeSession =
-      Boolean(
-        isStarted &&
-          !isSubmitted &&
-          Array.isArray(
-            questions,
-          ) &&
-          questions.length > 0 &&
-          storedConfig &&
-          configsMatch(
-            storedConfig,
-            currentConfig,
-          ),
-      );
+   const activeSession =
+  Boolean(
+    isStarted &&
+      !isSubmitted &&
+      practiceId &&
+      Array.isArray(questions) &&
+      questions.length > 0 &&
+      storedConfig &&
+      configsMatch(
+        storedConfig,
+        currentConfig,
+      ),
+  );
 
     setHasMatchingActiveSession(
       activeSession,
@@ -2634,6 +860,11 @@ export default function PracticeConfigurationPage() {
       console.log(
         "Session ID:",
         sessionId,
+      );
+
+      console.log(
+        "Practice ID:",
+        practiceId,
       );
 
       console.log(
@@ -2671,7 +902,7 @@ export default function PracticeConfigurationPage() {
     subjectId,
     selectedMode,
     questionCount,
-    totalDurationMinutes,
+    totalDurationSeconds,
     secondsPerQuestion,
     pointsPerCorrect,
     examType,
@@ -2682,6 +913,7 @@ export default function PracticeConfigurationPage() {
     questions,
     answers,
     sessionId,
+    practiceId,
     timeRemainingSeconds,
   ]);
 
@@ -2698,6 +930,11 @@ export default function PracticeConfigurationPage() {
       console.log(
         "Session ID:",
         sessionId,
+      );
+
+      console.log(
+        "Practice ID:",
+        practiceId,
       );
 
       console.log(
@@ -2731,16 +968,7 @@ export default function PracticeConfigurationPage() {
         return;
       }
 
-      /*
-       * TypeScript now knows that this is
-       * ModeOption | undefined.
-       *
-       * We explicitly check it before using it.
-       */
-
-      if (
-        !selectedModeInfo
-      ) {
+      if (!selectedModeInfo) {
         setError(
           "Practice mode information is not available yet.",
         );
@@ -2752,7 +980,6 @@ export default function PracticeConfigurationPage() {
         hasMatchingActiveSession
       ) {
         handleResumePractice();
-
         return;
       }
 
@@ -2805,11 +1032,6 @@ export default function PracticeConfigurationPage() {
         );
 
         console.log(
-          "Total duration minutes:",
-          totalDurationMinutes,
-        );
-
-        console.log(
           "Maximum possible points:",
           maximumPossiblePoints,
         );
@@ -2839,7 +1061,7 @@ export default function PracticeConfigurationPage() {
           mode: selectedMode,
           questionCount,
           duration:
-            totalDurationMinutes,
+            totalDurationSeconds,
           examType,
         };
 
@@ -2847,6 +1069,9 @@ export default function PracticeConfigurationPage() {
           "Practice session payload:",
           payload,
         );
+
+
+        
 
         /* ======================================================
            CREATE BACKEND SESSION
@@ -2870,6 +1095,29 @@ export default function PracticeConfigurationPage() {
             2,
           ),
         );
+
+        console.log("========== RAW PRACTICE RESPONSE ==========");
+console.log("response:", response);
+console.log("response.data:", response?.data);
+
+const rawData = response?.data as any;
+
+console.log("data.practiceId:", rawData?.practiceId);
+console.log("data._id:", rawData?._id);
+console.log("data.id:", rawData?.id);
+console.log(
+  "data.sessionId:",
+  rawData?.sessionId,
+);
+
+console.log(
+  "data keys:",
+  rawData && typeof rawData === "object"
+    ? Object.keys(rawData)
+    : [],
+);
+
+console.log("============================================");
 
         /* ======================================================
            VALIDATE RESPONSE
@@ -2910,6 +1158,128 @@ export default function PracticeConfigurationPage() {
           );
         }
 
+        /* ======================================================
+           GET BACKEND PRACTICE ID
+           ====================================================== */
+
+        /*
+         * The backend-created practice record ID.
+         *
+         * We intentionally read this from the backend response
+         * rather than generating an ID on the frontend.
+         */
+
+        // const returnedPracticeId =
+        //   (
+        //     practiceData as {
+        //       practiceId?: string;
+        //     }
+        //   ).practiceId;
+
+
+        console.log(
+  "========== PRACTICE ID DEBUG ==========",
+);
+
+console.log(
+  "Full practiceData:",
+  practiceData,
+);
+
+console.log(
+  "practiceData.practiceId:",
+  (practiceData as any).practiceId,
+);
+
+console.log(
+  "practiceData._id:",
+  (practiceData as any)._id,
+);
+
+console.log(
+  "practiceData.id:",
+  (practiceData as any).id,
+);
+
+console.log(
+  "=======================================",
+);
+
+const returnedPracticeId =
+  (practiceData as any).practiceId ??
+  (practiceData as any)._id ??
+  (practiceData as any).id;
+
+        if (!returnedPracticeId) {
+          throw new Error(
+            "The server did not return a practice ID.",
+          );
+        }
+
+        console.log(
+          "Backend Practice ID:",
+          returnedPracticeId,
+        );
+
+       /* ======================================================
+   STORE PRACTICE ID
+   ====================================================== */
+
+setPracticeId(
+  returnedPracticeId,
+);
+
+console.log(
+  "Practice ID stored in CBT store:",
+  returnedPracticeId,
+);
+
+/* ======================================================
+   STORE PRACTICE CONFIGURATION
+   ====================================================== */
+
+setPracticeConfig({
+  subjectId:
+    practiceData.subjectId,
+
+  mode:
+  selectedMode === "quick practice"
+    ? "quick"
+    : selectedMode === "standard practice"
+      ? "standard"
+      : "timed",
+
+  questionCount:
+    practiceData.questionCount,
+
+  duration:
+    practiceData.duration,
+
+  examType:
+    examType,
+});
+
+console.log(
+  "Practice configuration stored in CBT store:",
+  {
+    subjectId:
+      practiceData.subjectId,
+
+    mode:
+      selectedMode,
+
+    questionCount:
+      practiceData.questionCount,
+
+    duration:
+      practiceData.duration,
+
+    examType:
+      examType,
+  },
+);
+
+        
         /* ======================================================
            CONVERT QUESTIONS
            ====================================================== */
@@ -3016,7 +1386,7 @@ export default function PracticeConfigurationPage() {
 
         setDuration(
           practiceData.duration ??
-            totalDurationMinutes,
+            totalDurationSeconds,
         );
 
         /* ======================================================
@@ -3027,63 +1397,80 @@ export default function PracticeConfigurationPage() {
           currentConfig,
         );
 
-        /* ======================================================
-           START CBT
-           ====================================================== */
+    /* ======================================================
+   START CBT
+   ====================================================== */
 
-        startExam();
+console.log(
+  "PRACTICE ID BEFORE startExam:",
+  useCbtStore.getState().practiceId,
+);
 
-        console.log(
-          "========================================",
-        );
+startExam();
 
-        console.log(
-          "NEW PRACTICE READY",
-        );
+console.log(
+  "PRACTICE ID AFTER startExam:",
+  useCbtStore.getState().practiceId,
+);
 
-        console.log(
-          "Questions stored:",
-          cbtQuestions.length,
-        );
+console.log(
+  "========================================",
+);
 
-        console.log(
-          "Practice mode:",
-          selectedMode,
-        );
+console.log(
+  "NEW PRACTICE READY",
+);
 
-        console.log(
-          "Backend seconds/question:",
-          secondsPerQuestion,
-        );
+console.log(
+  "Practice ID:",
+  returnedPracticeId,
+);
 
-        console.log(
-          "Backend points/correct:",
-          pointsPerCorrect,
-        );
+console.log(
+  "Questions stored:",
+  cbtQuestions.length,
+);
 
-        console.log(
-          "Formatted points:",
-          formatPoints(
-            pointsPerCorrect,
-          ),
-        );
+console.log(
+  "Practice mode:",
+  selectedMode,
+);
 
-        console.log(
-          "Maximum possible points:",
-          maximumPossiblePoints,
-        );
+console.log(
+  "Backend seconds/question:",
+  secondsPerQuestion,
+);
 
-        console.log(
-          "Navigating to CBT session...",
-        );
+console.log(
+  "Backend points/correct:",
+  pointsPerCorrect,
+);
 
-        console.log(
-          "========================================",
-        );
+console.log(
+  "Formatted points:",
+  formatPoints(
+    pointsPerCorrect,
+  ),
+);
 
-        router.push(
-          "/student/practice/cbtsubjects/session",
-        );
+console.log(
+  "Maximum possible points:",
+  maximumPossiblePoints,
+);
+
+console.log(
+  "Navigating to CBT session...",
+);
+
+console.log(
+  "========================================",
+);
+
+router.push(
+  "/student/practice/cbtsubjects/session",
+);
+
+
       } catch (err) {
         console.error(
           "Failed to start practice:",
@@ -3213,6 +1600,7 @@ export default function PracticeConfigurationPage() {
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
                   <div className="flex items-start gap-4">
+
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
@@ -3230,6 +1618,7 @@ export default function PracticeConfigurationPage() {
                       </p>
 
                       <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-emerald-700">
+
                         <span>
                           {
                             questions.length
@@ -3252,6 +1641,13 @@ export default function PracticeConfigurationPage() {
                             Session active
                           </span>
                         )}
+
+                        {practiceId && (
+                          <span>
+                            Practice active
+                          </span>
+                        )}
+
                       </div>
                     </div>
                   </div>
@@ -3267,6 +1663,7 @@ export default function PracticeConfigurationPage() {
                   >
                     Resume Practice
                   </Button>
+
                 </div>
               </Card>
             </section>
@@ -3300,6 +1697,7 @@ export default function PracticeConfigurationPage() {
 
         <section className="mb-8">
           <div className="mb-5 flex items-center gap-3">
+
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
               1
             </span>
@@ -3315,9 +1713,11 @@ export default function PracticeConfigurationPage() {
                 backend.
               </p>
             </div>
+
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
+
             {modes.map(
               (mode) => {
                 const Icon =
@@ -3347,6 +1747,7 @@ export default function PracticeConfigurationPage() {
                         : "border-slate-200",
                     ].join(" ")}
                   >
+
                     {selected && (
                       <div className="absolute right-4 top-4">
                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
@@ -3374,11 +1775,10 @@ export default function PracticeConfigurationPage() {
                       }
                     </p>
 
-                    {/* BACKEND RULES */}
-
                     <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
 
                       <div className="flex items-center justify-between text-sm">
+
                         <span className="text-slate-500">
                           Time/question
                         </span>
@@ -3389,9 +1789,11 @@ export default function PracticeConfigurationPage() {
                           }{" "}
                           sec
                         </span>
+
                       </div>
 
                       <div className="flex items-center justify-between text-sm">
+
                         <span className="text-slate-500">
                           Correct answer
                         </span>
@@ -3402,6 +1804,7 @@ export default function PracticeConfigurationPage() {
                             mode.pointsPerCorrect,
                           )}
                         </span>
+
                       </div>
 
                     </div>
@@ -3409,6 +1812,7 @@ export default function PracticeConfigurationPage() {
                 );
               },
             )}
+
           </div>
         </section>
 
@@ -3418,6 +1822,7 @@ export default function PracticeConfigurationPage() {
 
         <section className="mb-8">
           <div className="mb-5 flex items-center gap-3">
+
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
               2
             </span>
@@ -3433,10 +1838,12 @@ export default function PracticeConfigurationPage() {
                 answer.
               </p>
             </div>
+
           </div>
 
           <Card className="p-5">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+
               {[
                 10,
                 20,
@@ -3470,6 +1877,7 @@ export default function PracticeConfigurationPage() {
                   );
                 },
               )}
+
             </div>
           </Card>
         </section>
@@ -3480,6 +1888,7 @@ export default function PracticeConfigurationPage() {
 
         <section className="mb-8">
           <div className="mb-5 flex items-center gap-3">
+
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
               3
             </span>
@@ -3494,20 +1903,25 @@ export default function PracticeConfigurationPage() {
                 from the backend.
               </p>
             </div>
+
           </div>
 
           <Card className="border-blue-200 bg-white p-6">
+
             <div className="grid gap-4 sm:grid-cols-3">
 
               {/* TIME PER QUESTION */}
 
               <div className="rounded-2xl bg-slate-50 p-5">
+
                 <div className="flex items-center gap-3">
+
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                     <Clock3 className="h-5 w-5" />
                   </div>
 
                   <div>
+
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                       Time / Question
                     </p>
@@ -3518,19 +1932,25 @@ export default function PracticeConfigurationPage() {
                       }{" "}
                       sec
                     </p>
+
                   </div>
+
                 </div>
+
               </div>
 
               {/* TOTAL TIME */}
 
               <div className="rounded-2xl bg-slate-50 p-5">
+
                 <div className="flex items-center gap-3">
+
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                     <Clock3 className="h-5 w-5" />
                   </div>
 
                   <div>
+
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                       Total Time
                     </p>
@@ -3540,19 +1960,25 @@ export default function PracticeConfigurationPage() {
                         totalDurationSeconds,
                       )}
                     </p>
+
                   </div>
+
                 </div>
+
               </div>
 
               {/* REWARD */}
 
               <div className="rounded-2xl bg-slate-50 p-5">
+
                 <div className="flex items-center gap-3">
+
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                     <Coins className="h-5 w-5" />
                   </div>
 
                   <div>
+
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                       Correct Answer
                     </p>
@@ -3563,18 +1989,25 @@ export default function PracticeConfigurationPage() {
                         pointsPerCorrect,
                       )}
                     </p>
+
                   </div>
+
                 </div>
+
               </div>
+
             </div>
 
             {/* MAXIMUM REWARD */}
 
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+
               <div className="flex items-start gap-3">
+
                 <Coins className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
 
                 <div>
+
                   <p className="font-black text-emerald-950">
                     Maximum CBT Points
                   </p>
@@ -3594,9 +2027,13 @@ export default function PracticeConfigurationPage() {
                     CBT points in this
                     practice session.
                   </p>
+
                 </div>
+
               </div>
+
             </div>
+
           </Card>
         </section>
 
@@ -3605,7 +2042,9 @@ export default function PracticeConfigurationPage() {
            ==================================================== */}
 
         <section className="mb-8">
+
           <Card className="border-blue-200 bg-blue-50 p-6">
+
             <div className="flex items-start gap-4">
 
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
@@ -3613,6 +2052,7 @@ export default function PracticeConfigurationPage() {
               </div>
 
               <div className="min-w-0">
+
                 <h2 className="font-black text-slate-900">
                   Session Summary
                 </h2>
@@ -3693,9 +2133,13 @@ export default function PracticeConfigurationPage() {
                   </p>
 
                 </div>
+
               </div>
+
             </div>
+
           </Card>
+
         </section>
 
         {/* ====================================================
@@ -3703,6 +2147,7 @@ export default function PracticeConfigurationPage() {
            ==================================================== */}
 
         <section>
+
           <Button
             size="lg"
             fullWidth
@@ -3738,10 +2183,10 @@ export default function PracticeConfigurationPage() {
                     ? "Resume Practice"
                     : "Start Practice"}
           </Button>
+
         </section>
 
       </div>
     </main>
   );
 }
-

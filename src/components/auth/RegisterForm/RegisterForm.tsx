@@ -128,7 +128,7 @@ export default function RegisterForm() {
     <AuthCard>
       <AuthHeader
         title="Create Account"
-        subtitle="Join KLAZIK Learning today"
+        subtitle="Join Learnyfi today"
       />
 
       <motion.form

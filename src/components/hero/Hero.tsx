@@ -151,10 +151,11 @@ export default function Hero() {
               </Link>
 
               <Link
-                href="/competitions"
+                href="/auth/login"
                 className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/15"
               >
-                Explore Competitions
+                Login
+                
               </Link>
             </div>
 

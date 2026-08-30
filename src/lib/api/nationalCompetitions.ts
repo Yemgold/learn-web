@@ -79,7 +79,7 @@ export async function createNationalCompetition(
 ): Promise<CreateNationalCompetitionResponse> {
   const response =
     await axiosInstance.post<CreateNationalCompetitionResponse>(
-      "/national-competitions",
+      "/nationalcompetitions",
       payload,
     );
 
@@ -101,7 +101,7 @@ export async function getNationalCompetitionById(
 
   const response =
     await axiosInstance.get<GetNationalCompetitionResponse>(
-      `/national-competitions/${encodeURIComponent(
+      `/nationalcompetitions/${encodeURIComponent(
         competitionId,
       )}`,
     );
@@ -129,7 +129,7 @@ export async function updateNationalCompetitionSubjects(
 
   const response =
     await axiosInstance.patch<GetNationalCompetitionResponse>(
-      `/national-competitions/${encodeURIComponent(
+      `/nationalcompetitions/${encodeURIComponent(
         competitionId,
       )}/subjects`,
       payload,

@@ -54,16 +54,18 @@ export const studentNavigation: NavigationSection[] = [
         href: "/student/competitions",
         icon: Trophy,
       },
+      
+    ],
+  },
+
+   {
+    title: "Team",
+    items: [
       {
-        label: "Leaderboard",
-        href: "/student/competitions/leaderboard",
-        icon: Medal,
-      },
-      {
-        label: "Competition Calendar",
-        href: "/student/competitions/calendar",
-        icon: CalendarDays,
-        disabled: true,
+        label: "My Team",
+        href: "/student/competitions/${competitionId}/team",
+      
+        icon: Users,
       },
     ],
   },
@@ -121,16 +123,6 @@ export const studentNavigation: NavigationSection[] = [
   ],
 },
 
-  {
-    title: "Team",
-    items: [
-      {
-        label: "My Team",
-        href: "/student/team",
-        icon: Users,
-      },
-    ],
-  },
 
   {
     title: "Account",

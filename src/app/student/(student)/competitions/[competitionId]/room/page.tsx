@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 import Link from "next/link";
 import {
   Clock3,
@@ -201,7 +205,7 @@ export default async function WaitingRoomPage({
               </Button>
             </Card>
 
-            <Link href={`/competitions/${competitionId}`}>
+            <Link href={`/student/competitions`}>
               <Button
                 variant="outline"
                 fullWidth
@@ -209,6 +213,7 @@ export default async function WaitingRoomPage({
               >
                 Back to Competition
               </Button>
+
             </Link>
           </div>
         </div>
@@ -276,3 +281,5 @@ function Instruction({
     </div>
   );
 }
+
+

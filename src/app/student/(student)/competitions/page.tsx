@@ -145,7 +145,7 @@ export default function StudentCompetitionsPage() {
 
                 <div className="flex flex-col gap-4">
                   <Link
-                    href={`/competitions/${competition.id}`}
+                    href={`/student/competitions/${competition.id}`}
                   >
                     <Button
                       fullWidth
@@ -159,18 +159,19 @@ export default function StudentCompetitionsPage() {
 
                   {competition.joined ? (
                     <Link
-                      href={`/competitions/${competition.id}/room`}
+                      href={`/student/competitions/${competition.id}/room`}
                     >
                       <Button
                         fullWidth
                         variant="outline"
                       >
-                        Enter Waiting Room
+                        Enter Waiting Room 
                       </Button>
                     </Link>
                   ) : (
                     <Link
-                      href={`/competitions/${competition.id}/register`}
+                      
+                      href={`/student/competitions/${competition.id}/team/create`}
                     >
                       <Button
                         fullWidth

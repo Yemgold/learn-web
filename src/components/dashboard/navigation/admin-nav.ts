@@ -55,7 +55,7 @@ export const adminNavigation: AdminNavSection[] = [
     },
     {
       label: "National Competitions",
-      href: "/admin/secondary/national-competitions",
+      href: "/admin/secondary/nationalcompetitions",
       icon: Trophy,
     },
   ],
@@ -71,7 +71,7 @@ export const adminNavigation: AdminNavSection[] = [
     },
     {
       label: "National Competitions",
-      href: "/admin/tertiary/national-competitions",
+      href: "/admin/tertiary/nationalcompetitions",
       icon: Trophy,
     },
   ],
@@ -87,7 +87,7 @@ export const adminNavigation: AdminNavSection[] = [
     },
     {
       label: "National Competitions",
-      href: "/admin/professional/national-competitions",
+      href: "/admin/professional/nationalcompetitions",
       icon: Trophy,
     },
   ],

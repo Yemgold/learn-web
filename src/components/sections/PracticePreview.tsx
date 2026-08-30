@@ -195,7 +195,7 @@ export default function PracticePreview() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
 
               <Link
-                href="/student/arena"
+                href="/auth/register"
                 className={cn(
                   "group",
                   "inline-flex",
@@ -226,7 +226,7 @@ export default function PracticePreview() {
               </Link>
 
               <Link
-                href="/practice"
+               href="/auth/register"
                 className={cn(
                   "inline-flex",
                   "min-h-12",

@@ -113,7 +113,7 @@ export default function HomePage() {
               maxTeams={1000}
               prize="₦1,000,000 Prize Pool"
               entryFee="Free"
-              joinHref="/competitions/2027/auth/register"
+              joinHref="/auth/register"
             />
           </div>
         </div>
@@ -350,7 +350,7 @@ export default function HomePage() {
 
         {/* Primary CTA */}
         <a
-          href="/competitions/2027/auth/register"
+          href="/auth/register"
           className="group inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-7 text-sm font-bold text-slate-950 shadow-xl shadow-yellow-500/20 transition-all duration-300 hover:-translate-y-1 hover:bg-yellow-300 hover:shadow-2xl hover:shadow-yellow-400/20 sm:w-auto"
         >
           Join the Competition
@@ -363,7 +363,7 @@ export default function HomePage() {
 
         {/* Secondary CTA */}
         <a
-          href="/practice"
+          href="/auth/login"
           className="inline-flex min-h-13 w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-7 text-sm font-semibold text-white shadow-lg backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/15 sm:w-auto"
         >
           Start Practicing

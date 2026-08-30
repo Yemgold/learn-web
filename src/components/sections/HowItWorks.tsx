@@ -312,7 +312,7 @@ export default function HowItWorks() {
 
 
             <a
-              href="/competitions"
+              href="/auth/register"
               className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-blue-700"
             >
               Explore Competitions

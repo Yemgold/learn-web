@@ -9,6 +9,7 @@ import "./globals.css";
 
 import AppProviders from "@/providers/AppProviders";
 
+
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",

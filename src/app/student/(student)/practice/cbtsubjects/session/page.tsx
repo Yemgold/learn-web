@@ -24,6 +24,7 @@ import {
   useCbtStore,
   selectCurrentQuestion,
   selectCurrentSubject,
+  type CbtQuestion,
 } from "@/stores/cbtStore";
 
 import {
@@ -105,13 +106,17 @@ function normalizeAnswer(
   return normalized || null;
 }
 
+
 /* ============================================================
    GET CORRECT ANSWER
 ============================================================ */
 
 function getCorrectAnswer(
-  question: Record<string, unknown>,
+  question: CbtQuestion,
 ): string | null {
+  /*
+   * Primary correct answer
+   */
   const answer =
     normalizeAnswer(
       question.answer,
@@ -121,6 +126,10 @@ function getCorrectAnswer(
     return answer;
   }
 
+  /*
+   * Some questions may use
+   * correctAnswers instead.
+   */
   if (
     Array.isArray(
       question.correctAnswers,
@@ -139,6 +148,9 @@ function getCorrectAnswer(
     }
   }
 
+  /*
+   * Alternative correct answer
+   */
   const correctAnswer =
     normalizeAnswer(
       question.correctAnswer,
@@ -148,33 +160,19 @@ function getCorrectAnswer(
     return correctAnswer;
   }
 
-  const correctOption =
-    normalizeAnswer(
-      question.correctOption,
-    );
-
-  if (correctOption) {
-    return correctOption;
-  }
-
-  const correct =
-    normalizeAnswer(
-      question.correct,
-    );
-
-  if (correct) {
-    return correct;
-  }
-
   return null;
 }
+
+
+
+
 
 /* ============================================================
    CONVERT STUDENT ANSWER TO OPTION LABEL
 ============================================================ */
 
 function getStudentAnswerLabel(
-  question: Record<string, unknown>,
+  question: CbtQuestion,
   studentAnswer: unknown,
 ): string | null {
   const normalizedStudentAnswer =
@@ -199,23 +197,9 @@ function getStudentAnswerLabel(
     for (
       const option of options
     ) {
-      if (
-        !option ||
-        typeof option !==
-          "object"
-      ) {
-        continue;
-      }
-
-      const optionRecord =
-        option as Record<
-          string,
-          unknown
-        >;
-
       const label =
         normalizeAnswer(
-          optionRecord.label,
+          option.label,
         );
 
       if (
@@ -233,28 +217,14 @@ function getStudentAnswerLabel(
     for (
       const option of options
     ) {
-      if (
-        !option ||
-        typeof option !==
-          "object"
-      ) {
-        continue;
-      }
-
-      const optionRecord =
-        option as Record<
-          string,
-          unknown
-        >;
-
       const label =
         normalizeAnswer(
-          optionRecord.label,
+          option.label,
         );
 
       const value =
         normalizeAnswer(
-          optionRecord.value,
+          option.value,
         );
 
       if (
@@ -270,18 +240,16 @@ function getStudentAnswerLabel(
   return normalizedStudentAnswer;
 }
 
+
+
+
 /* ============================================================
    CALCULATE LOCAL RESULT
 ============================================================ */
 
 function calculateLocalResult(
-  questions: Array<
-    Record<string, unknown>
-  >,
-  answers: Record<
-    string,
-    string
-  >,
+  questions: CbtQuestion[],
+  answers: Record<string, string>,
 ) {
   let correctAnswers = 0;
 
@@ -302,20 +270,13 @@ function calculateLocalResult(
       questions[index];
 
     const questionId =
-      typeof question._id ===
-      "string"
-        ? question._id
-        : "";
+      question._id;
 
     const rawMarks =
-      Number(
-        question.marks,
-      );
+      Number(question.marks);
 
     const marks =
-      Number.isFinite(
-        rawMarks,
-      ) &&
+      Number.isFinite(rawMarks) &&
       rawMarks > 0
         ? rawMarks
         : 1;
@@ -323,12 +284,17 @@ function calculateLocalResult(
     maximumScore += marks;
 
     const rawStudentAnswer =
-      questionId
-        ? answers[
-            questionId
-          ]
-        : undefined;
+      answers[questionId];
 
+    /*
+     * Convert whatever is stored locally
+     * into the option label expected by
+     * the backend.
+     *
+     * Example:
+     * stored value -> "option text"
+     * backend value -> "c"
+     */
     const studentAnswer =
       getStudentAnswerLabel(
         question,
@@ -336,20 +302,15 @@ function calculateLocalResult(
       );
 
     const correctAnswer =
-      getCorrectAnswer(
-        question,
-      );
+      getCorrectAnswer(question);
 
     if (!studentAnswer) {
-      unansweredQuestions +=
-        1;
-
+      unansweredQuestions += 1;
       continue;
     }
 
     if (!correctAnswer) {
-      incorrectAnswers +=
-        1;
+      incorrectAnswers += 1;
 
       console.warn(
         `QUESTION ${
@@ -365,13 +326,11 @@ function calculateLocalResult(
       studentAnswer ===
       correctAnswer
     ) {
-      correctAnswers +=
-        1;
+      correctAnswers += 1;
 
       totalScore += marks;
     } else {
-      incorrectAnswers +=
-        1;
+      incorrectAnswers += 1;
     }
   }
 
@@ -423,6 +382,11 @@ function calculateLocalResult(
       new Date().toISOString(),
   };
 }
+
+
+
+
+
 
 /* ============================================================
    PAGE
@@ -1122,17 +1086,16 @@ export default function CbtSessionPage() {
   /* ==========================================================
      BUILD QUESTIONS PAYLOAD
      ========================================================== */
+const submissionQuestions =
+  questions.map((question) => ({
+    questionId: question._id,
 
-  const submissionQuestions =
-    questions.map((question) => ({
-      questionId:
-        question._id,
-
-      answer:
-        answers[
-          question._id
-        ] ?? null,
-    }));
+    selectedOption:
+      getStudentAnswerLabel(
+        question,
+        answers[question._id] ?? null,
+      ),
+  }));
 
   console.log(
     "E: Questions prepared for submission:",
@@ -1172,23 +1135,70 @@ export default function CbtSessionPage() {
       );
     }
 
-    /* ========================================================
-       BUILD FINAL RESULT
-       ======================================================== */
+ /* ========================================================
+   BUILD FINAL RESULT
+   ======================================================== */
 
-    const finalResult = {
-      ...backendResult,
+const backendData =
+  backendResult?.data ??
+  backendResult;
 
-      practiceId:
-        currentPracticeId,
+const finalResult = {
+  practiceId:
+    currentPracticeId,
 
-      durationInMinutes,
-    };
+  totalQuestions:
+    backendData.questionCount ??
+    questions.length,
 
-    console.log(
-      "I: finalResult:",
-      finalResult,
-    );
+  correctAnswers:
+    backendData.correctAnswers ??
+    0,
+
+  incorrectAnswers:
+    backendData.wrongAnswers ??
+    0,
+
+  unansweredQuestions:
+    backendData.unansweredQuestions ??
+    0,
+
+  score:
+    backendData.score ??
+    0,
+
+  totalScore:
+    backendData.questionCount ??
+    questions.length,
+
+  percentage:
+    backendData.percentage ??
+    0,
+
+  // CBT points awarded by the backend
+  totalPointsAwarded:
+    Number(backendData.totalPointsAwarded ?? 0),
+
+  durationInMinutes,
+
+  submittedAt:
+    backendData.submittedAt ??
+    new Date().toISOString(),
+
+  passed:
+    (backendData.percentage ?? 0) >= 50,
+
+  grade:
+    (backendData.percentage ?? 0) >= 70
+      ? "A"
+      : (backendData.percentage ?? 0) >= 60
+        ? "B"
+        : (backendData.percentage ?? 0) >= 50
+          ? "C"
+          : (backendData.percentage ?? 0) >= 45
+            ? "D"
+            : "F",
+};
 
     /* ========================================================
        SAVE RESULT TO CBT STORE
@@ -1427,43 +1437,52 @@ export default function CbtSessionPage() {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-5xl px-4 py-8">
-          <CbtExamSummary
-            totalQuestions={
-              result?.totalQuestions ??
-              questions.length
-            }
-            answeredQuestions={
-              result?.totalQuestions !==
-              undefined
-                ? Math.max(
-                    0,
-                    (result.totalQuestions ??
-                      questions.length) -
-                      (result.unansweredQuestions ??
-                        unansweredCount),
-                  )
-                : answeredCount
-            }
-            unansweredQuestions={
-              result?.unansweredQuestions ??
-              unansweredCount
-            }
-            flaggedQuestions={
-              flaggedCount
-            }
-            correctAnswers={
-              result?.correctAnswers ??
-              0
-            }
-            score={
-              result?.score ??
-              0
-            }
-            percentage={
-              result?.percentage ??
-              0
-            }
-          />
+
+
+          
+<CbtExamSummary
+  totalQuestions={
+    result?.totalQuestions ??
+    questions.length
+  }
+  answeredQuestions={
+    result?.totalQuestions !==
+    undefined
+      ? Math.max(
+          0,
+          (result.totalQuestions ??
+            questions.length) -
+            (result.unansweredQuestions ??
+              unansweredCount),
+        )
+      : answeredCount
+  }
+  unansweredQuestions={
+    result?.unansweredQuestions ??
+    unansweredCount
+  }
+  flaggedQuestions={
+    flaggedCount
+  }
+  correctAnswers={
+    result?.correctAnswers ??
+    0
+  }
+  score={
+    result?.score ??
+    0
+  }
+  percentage={
+    result?.percentage ??
+    0
+  }
+  
+totalPointsAwarded={
+  Number(result?.totalPointsAwarded ?? 0)
+}
+
+/>
+
 
           {/* ==================================================
               RESULT DETAILS
@@ -1623,10 +1642,6 @@ export default function CbtSessionPage() {
               Practice in progress
             </span>
 
-            <span className="hidden sm:inline">
-              Your answers are saved
-              locally
-            </span>
           </div>
         </div>
       )}

@@ -1,5 +1,4 @@
 
-
 // // src/lib/api/axios.ts
 
 // import axios, {
@@ -10,10 +9,14 @@
 // import { env } from "@/config";
 // import { API } from "@/constants";
 
-// import { getAccessToken } from "@/lib/auth/token";
-// import { getDeviceId } from "@/lib/auth/device";
+// import {
+//   getAccessToken,
+//   getRefreshToken,
+//   setAccessToken,
+//   clearTokens,
+// } from "@/lib/auth/token";
 
-// import { useAuthStore } from "@/stores";
+// import { getDeviceId } from "@/lib/auth/device";
 
 // /* ============================================================
 //    AXIOS INSTANCE
@@ -21,7 +24,6 @@
 
 // export const axiosInstance = axios.create({
 //   baseURL: env.API_URL,
-
 //   timeout: API.TIMEOUT,
 
 //   headers: {
@@ -33,14 +35,68 @@
 // });
 
 // /* ============================================================
+//    TYPES
+//    ============================================================ */
+
+// interface ApiErrorResponse {
+//   success?: boolean;
+//   message?: string;
+//   error?: string;
+//   errors?: unknown;
+//   status?: number;
+//   data?: unknown;
+// }
+
+// interface RefreshResponse {
+//   success: boolean;
+//   message?: string;
+//   data?: {
+//     accessToken?: string;
+//     refreshToken?: string;
+//   };
+// }
+
+// interface RetryableRequestConfig
+//   extends InternalAxiosRequestConfig {
+//   _retry?: boolean;
+// }
+
+// /* ============================================================
+//    REFRESH STATE
+//    ============================================================ */
+
+// /*
+//  * Prevent multiple API requests from simultaneously
+//  * calling the refresh endpoint.
+//  */
+// let refreshPromise: Promise<string | null> | null =
+//   null;
+
+// /* ============================================================
 //    HELPERS
 //    ============================================================ */
 
-// /**
-//  * Determines whether the failed request is the wallet
-//  * transaction-history endpoint returning the expected
-//  * "no transactions" 404 response.
-//  */
+// function getErrorResponseData(
+//   error: AxiosError,
+// ): ApiErrorResponse | undefined {
+//   if (!error.response?.data) {
+//     return undefined;
+//   }
+
+//   if (
+//     typeof error.response.data === "object" &&
+//     error.response.data !== null
+//   ) {
+//     return error.response.data as ApiErrorResponse;
+//   }
+
+//   return undefined;
+// }
+
+// /* ============================================================
+//    EMPTY TRANSACTION RESPONSE
+//    ============================================================ */
+
 // function isEmptyTransactionsResponse(
 //   error: AxiosError,
 // ): boolean {
@@ -48,13 +104,8 @@
 
 //   const url = error.config?.url ?? "";
 
-//   const responseData = error.response?.data as
-//     | {
-//         message?: string;
-//         success?: boolean;
-//         status?: number;
-//       }
-//     | undefined;
+//   const responseData =
+//     getErrorResponseData(error);
 
 //   const message =
 //     typeof responseData?.message === "string"
@@ -70,7 +121,9 @@
 //     status === 404;
 
 //   const isTransactionsNotFound =
-//     message.includes("transactions not found");
+//     message.includes(
+//       "transactions not found",
+//     );
 
 //   return (
 //     isTransactionEndpoint &&
@@ -80,30 +133,215 @@
 // }
 
 // /* ============================================================
+//    REFRESH ACCESS TOKEN
+//    ============================================================ */
+
+// async function refreshAccessToken(): Promise<
+//   string | null
+// > {
+//   /*
+//    * Reuse an existing refresh request if one is already
+//    * running.
+//    */
+//   if (refreshPromise) {
+//     return refreshPromise;
+//   }
+
+//   refreshPromise = (async () => {
+//     const refreshToken =
+//       getRefreshToken();
+
+//     const deviceId =
+//       getDeviceId();
+
+//     if (!refreshToken) {
+//       console.warn(
+//         "No refresh token available.",
+//       );
+
+//       return null;
+//     }
+
+//     if (!deviceId) {
+//       console.warn(
+//         "No device ID available for token refresh.",
+//       );
+
+//       return null;
+//     }
+
+//     try {
+//       console.log(
+//         "========== TOKEN REFRESH START ==========",
+//       );
+
+//       console.log(
+//         "Has refresh token:",
+//         Boolean(refreshToken),
+//       );
+
+//       console.log(
+//         "Has device ID:",
+//         Boolean(deviceId),
+//       );
+
+//       /*
+//        * IMPORTANT:
+//        *
+//        * Use axios directly instead of axiosInstance.
+//        *
+//        * This prevents the request from going through
+//        * our authentication interceptors and creating a
+//        * refresh loop.
+//        */
+//       const response =
+//         await axios.post<RefreshResponse>(
+//           `${env.API_URL}/auth/request-access-token`,
+//           {},
+//           {
+//             timeout: API.TIMEOUT,
+
+//             headers: {
+//               "Content-Type":
+//                 "application/json",
+
+//               Accept:
+//                 "application/json",
+
+//               "X-Device-Id":
+//                 deviceId,
+
+//               "X-Refresh-Token":
+//                 refreshToken,
+//             },
+
+//             withCredentials: true,
+//           },
+//         );
+
+//       console.log(
+//         "Token refresh response:",
+//         response.data,
+//       );
+
+//       const newAccessToken =
+//         response.data?.data?.accessToken;
+
+//       const newRefreshToken =
+//         response.data?.data?.refreshToken;
+
+//       if (!newAccessToken) {
+//         console.error(
+//           "Token refresh succeeded but no access token was returned.",
+//         );
+
+//         return null;
+//       }
+
+//       /*
+//        * Save the new access token.
+//        */
+//       setAccessToken(
+//         newAccessToken,
+//       );
+
+//       /*
+//        * Some backends rotate the refresh token.
+//        *
+//        * If a new refresh token was returned,
+//        * persist it too.
+//        */
+//       if (newRefreshToken) {
+//         /*
+//          * We intentionally do not import
+//          * setRefreshToken here because the refresh
+//          * token may remain unchanged depending on the
+//          * backend contract.
+//          *
+//          * Add it if your backend rotates refresh tokens.
+//          */
+//       }
+
+//       console.log(
+//         "✅ NEW ACCESS TOKEN STORED",
+//       );
+
+//       console.log(
+//         "=========================================",
+//       );
+
+//       return newAccessToken;
+//     } catch (refreshError) {
+//       console.error(
+//         "========== TOKEN REFRESH FAILED ==========",
+//       );
+
+//       if (
+//         axios.isAxiosError(
+//           refreshError,
+//         )
+//       ) {
+//         console.error(
+//           "Refresh status:",
+//           refreshError.response
+//             ?.status,
+//         );
+
+//         console.error(
+//           "Refresh response:",
+//           refreshError.response
+//             ?.data,
+//         );
+//       } else {
+//         console.error(
+//           refreshError,
+//         );
+//       }
+
+//       console.error(
+//         "==========================================",
+//       );
+
+//       /*
+//        * The refresh token is no longer usable.
+//        *
+//        * Clear local authentication tokens.
+//        *
+//        * We deliberately do not directly redirect
+//        * from Axios. The application's auth guard
+//        * should handle navigation.
+//        */
+//       clearTokens();
+
+//       return null;
+//     } finally {
+//       refreshPromise = null;
+//     }
+//   })();
+
+//   return refreshPromise;
+// }
+
+// /* ============================================================
 //    REQUEST INTERCEPTOR
 //    ============================================================ */
 
 // axiosInstance.interceptors.request.use(
-//   (config: InternalAxiosRequestConfig) => {
-//     /* ========================================================
-//        GET AUTH INFORMATION
-//        ======================================================== */
-
+//   (
+//     config: InternalAxiosRequestConfig,
+//   ) => {
 //     const accessToken =
 //       getAccessToken();
 
 //     const deviceId =
 //       getDeviceId();
 
-//     /*
-//      * Refresh token is stored inside the Zustand auth store.
-//      *
-//      * We read the current state without using the React hook,
-//      * because Axios interceptors run outside React components.
-//      */
-
 //     const refreshToken =
-//       useAuthStore.getState().refreshToken;
+//       getRefreshToken();
+
+//     /* ========================================================
+//        DEBUG
+//        ======================================================== */
 
 //     console.log(
 //       "========== API REQUEST ==========",
@@ -116,7 +354,9 @@
 
 //     console.log(
 //       "Full URL:",
-//       `${config.baseURL ?? ""}${config.url ?? ""}`,
+//       `${config.baseURL ?? ""}${
+//         config.url ?? ""
+//       }`,
 //     );
 
 //     console.log(
@@ -134,24 +374,9 @@
 //       Boolean(refreshToken),
 //     );
 
-//     /*
-//      * Do not print the actual access token.
-//      */
-
 //     console.log(
-//       "Access token preview:",
-//       accessToken
-//         ? `${accessToken.substring(0, 20)}...`
-//         : null,
-//     );
-
-//     /*
-//      * Do not print the actual refresh token.
-//      */
-
-//     console.log(
-//       "Refresh token available:",
-//       Boolean(refreshToken),
+//       "Has device ID:",
+//       Boolean(deviceId),
 //     );
 
 //     /* ========================================================
@@ -162,19 +387,6 @@
 //       config.headers.set(
 //         "Authorization",
 //         `Bearer ${accessToken}`,
-//       );
-
-//       console.log(
-//         "Authorization attached:",
-//         Boolean(
-//           config.headers.get(
-//             "Authorization",
-//           ),
-//         ),
-//       );
-//     } else {
-//       console.log(
-//         "No access token — public request.",
 //       );
 //     }
 
@@ -187,80 +399,69 @@
 //         "X-Device-Id",
 //         deviceId,
 //       );
+//     }
 
-//       console.log(
-//         "Device ID attached:",
-//         true,
+//     /* ========================================================
+//        REFRESH TOKEN
+//        ======================================================== */
+
+//     /*
+//      * ONLY attach the refresh token to the refresh
+//      * endpoint.
+//      */
+//     const isRefreshRequest =
+//       config.url?.includes(
+//         "/auth/request-access-token",
 //       );
-//     } else {
-//       console.warn(
-//         "⚠️ NO DEVICE ID AVAILABLE",
+
+//     if (
+//       isRefreshRequest &&
+//       refreshToken
+//     ) {
+//       config.headers.set(
+//         "X-Refresh-Token",
+//         refreshToken,
 //       );
 //     }
 
-//     // /* ========================================================
-//     //    REFRESH TOKEN
-//     //    ======================================================== */
+//     /* ========================================================
+//        LOGOUT
+//        ======================================================== */
 
-//     // if (refreshToken) {
-//     //   config.headers.set(
-//     //     "X-Refresh-Token",
-//     //     refreshToken,
-//     //   );
+//     const isLogoutRequest =
+//       config.url?.includes(
+//         "/auth/logout",
+//       );
 
-//     //   console.log(
-//     //     "Refresh token attached:",
-//     //     true,
-//     //   );
-//     // } else {
-//     //   console.warn(
-//     //     "⚠️ NO REFRESH TOKEN AVAILABLE",
-//     //   );
-//     // }
-
-
-
-
-//        /* ========================================================
-//    REFRESH TOKEN
-//    ======================================================== */
-
-// const isLogoutRequest =
-//   config.url?.includes("/auth/logout");
-
-// if (isLogoutRequest) {
-//   if (refreshToken) {
-//     config.headers.set(
-//       "X-Refresh-Token",
-//       refreshToken,
-//     );
-
-//     console.log(
-//       "Refresh token attached for logout:",
-//       true,
-//     );
-//   } else {
-//     console.warn(
-//       "⚠️ NO REFRESH TOKEN AVAILABLE FOR LOGOUT",
-//     );
-//   }
-// }
+//     if (
+//       isLogoutRequest &&
+//       refreshToken
+//     ) {
+//       config.headers.set(
+//         "X-Refresh-Token",
+//         refreshToken,
+//       );
+//     }
 
 //     /* ========================================================
-//        FINAL REQUEST HEADERS
+//        FINAL DEBUG
 //        ======================================================== */
 
 //     console.log(
-//       "Authorization header:",
-//       config.headers.get(
-//         "Authorization",
+//       "Authorization attached:",
+//       Boolean(
+//         config.headers.get(
+//           "Authorization",
+//         ),
 //       ),
 //     );
 
 //     console.log(
-//       "X-Device-Id header:",
-//       config.headers.get(
-//         "X-Device-Id",
+//       "X-Device-Id attached:",
+//       Boolean(
+//         config.headers.get(
+//           "X-Device-Id",
+//         ),
 //       ),
 //     );
 
@@ -273,6 +474,15 @@
 //       ),
 //     );
 
+//     console.log(
+//       "Request body:",
+//       config.data,
+//     );
+
+//     console.log(
+//       "=================================",
+//     );
+
 //     return config;
 //   },
 
@@ -281,7 +491,13 @@
 //       "========== REQUEST INTERCEPTOR ERROR ==========",
 //     );
 
-//     console.error(error);
+//     console.error(
+//       error,
+//     );
+
+//     console.error(
+//       "================================================",
+//     );
 
 //     return Promise.reject(error);
 //   },
@@ -312,12 +528,18 @@
 //       response.data,
 //     );
 
+//     console.log(
+//       "==================================",
+//     );
+
 //     return response;
 //   },
 
-//   (error: AxiosError) => {
+//   async (
+//     error: AxiosError,
+//   ) => {
 //     /* ========================================================
-//        EXPECTED EMPTY TRANSACTION RESPONSE
+//        EMPTY TRANSACTIONS
 //        ======================================================== */
 
 //     if (
@@ -332,9 +554,95 @@
 //       return Promise.reject(error);
 //     }
 
+//     const originalRequest =
+//       error.config as
+//         | RetryableRequestConfig
+//         | undefined;
+
 //     /* ========================================================
-//        REAL API ERROR
+//        CHECK 401
 //        ======================================================== */
+
+//     const status =
+//       error.response?.status;
+
+//     const is401 =
+//       status === 401;
+
+//     const requestUrl =
+//       originalRequest?.url ?? "";
+
+//     const isRefreshRequest =
+//       requestUrl.includes(
+//         "/auth/request-access-token",
+//       );
+
+//     /*
+//      * Never attempt to refresh the refresh request
+//      * itself.
+//      */
+//     if (
+//       is401 &&
+//       originalRequest &&
+//       !originalRequest._retry &&
+//       !isRefreshRequest
+//     ) {
+//       originalRequest._retry =
+//         true;
+
+//       console.log(
+//         "========== ACCESS TOKEN EXPIRED ==========",
+//       );
+
+//       console.log(
+//         "Attempting token refresh...",
+//       );
+
+//       const newAccessToken =
+//         await refreshAccessToken();
+
+//       if (newAccessToken) {
+//         console.log(
+//           "✅ RETRYING ORIGINAL REQUEST",
+//         );
+
+//         /*
+//          * Attach the new token to the failed request.
+//          */
+//         originalRequest.headers.set(
+//           "Authorization",
+//           `Bearer ${newAccessToken}`,
+//         );
+
+//         return axiosInstance(
+//           originalRequest,
+//         );
+//       }
+
+//       console.warn(
+//         "❌ TOKEN REFRESH FAILED",
+//       );
+
+//       console.warn(
+//         "Original request will remain failed.",
+//       );
+
+//       console.log(
+//         "==========================================",
+//       );
+//     }
+
+//     /* ========================================================
+//        ERROR INFORMATION
+//        ======================================================== */
+
+//     const responseData =
+//       getErrorResponseData(error);
+
+//     const backendMessage =
+//       responseData?.message ??
+//       responseData?.error ??
+//       null;
 
 //     console.error(
 //       "========== API ERROR ==========",
@@ -348,6 +656,11 @@
 //     console.error(
 //       "Code:",
 //       error.code,
+//     );
+
+//     console.error(
+//       "Status:",
+//       error.response?.status,
 //     );
 
 //     console.error(
@@ -368,13 +681,18 @@
 //     );
 
 //     console.error(
-//       "Status:",
-//       error.response?.status,
+//       "Backend message:",
+//       backendMessage,
 //     );
 
 //     console.error(
-//       "Response:",
+//       "Backend response:",
 //       error.response?.data,
+//     );
+
+//     console.error(
+//       "Request body:",
+//       error.config?.data,
 //     );
 
 //     console.error(
@@ -387,42 +705,18 @@
 //       error.response?.headers,
 //     );
 
+//     console.error(
+//       "Is Axios error:",
+//       axios.isAxiosError(error),
+//     );
+
+//     console.error(
+//       "================================",
+//     );
+
 //     return Promise.reject(error);
 //   },
 // );
-
-
-
-// export interface Subject {
-//   _id: string;
-//   name: string;
-//   createdAt: string;
-//   updatedAt: string;
-//   __v: number;
-//   plans: string[];
-//   hasFreePractice: boolean;
-// }
-
-// export interface SubjectsResponse {
-//   success: boolean;
-//   message: string;
-//   data: {
-//     subjectObj: Subject[];
-//     totalPages: number;
-//     totalCount: number;
-//   };
-// }
-
-// export async function getSubjectsByPlan(
-//   plan: string,
-// ): Promise<SubjectsResponse> {
-//   const response = await api.get(
-//     `/subjects/get-all-subjects-per-category/${encodeURIComponent(plan)}`,
-//   );
-
-//   return response.data;
-// }
-
 
 // /* ============================================================
 //    API ALIAS
@@ -430,18 +724,6 @@
 
 // export const api =
 //   axiosInstance;
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // src/lib/api/axios.ts
@@ -454,10 +736,14 @@ import axios, {
 import { env } from "@/config";
 import { API } from "@/constants";
 
-import { getAccessToken } from "@/lib/auth/token";
-import { getDeviceId } from "@/lib/auth/device";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  clearTokens,
+} from "@/lib/auth/token";
 
-import { useAuthStore } from "@/stores";
+import { getDeviceId } from "@/lib/auth/device";
 
 /* ============================================================
    AXIOS INSTANCE
@@ -488,6 +774,34 @@ interface ApiErrorResponse {
   data?: unknown;
 }
 
+interface RefreshResponse {
+  success: boolean;
+  message?: string;
+
+  data?: {
+    accessToken?: string;
+    refreshToken?: string;
+  };
+}
+
+interface RetryableRequestConfig
+  extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
+/* ============================================================
+   REFRESH STATE
+   ============================================================ */
+
+/*
+ * Only one refresh request is allowed to run at a time.
+ *
+ * If 5 API requests return 401 at the same time,
+ * they will all wait for this same promise instead of
+ * sending 5 refresh requests.
+ */
+let refreshPromise: Promise<string | null> | null = null;
+
 /* ============================================================
    HELPERS
    ============================================================ */
@@ -510,16 +824,9 @@ function getErrorResponseData(
 }
 
 /* ============================================================
-   EMPTY TRANSACTION RESPONSE
+   EMPTY TRANSACTIONS RESPONSE
    ============================================================ */
 
-/**
- * The wallet transaction-history endpoint may return 404
- * when the user simply has no transactions yet.
- *
- * This is expected application behaviour, not a real
- * API failure.
- */
 function isEmptyTransactionsResponse(
   error: AxiosError,
 ): boolean {
@@ -556,31 +863,291 @@ function isEmptyTransactionsResponse(
 }
 
 /* ============================================================
+   AUTH SESSION EXPIRED EVENT
+   ============================================================ */
+
+/*
+ * Axios should not directly import the Zustand auth store.
+ *
+ * Instead, when refresh fails, we dispatch an event.
+ *
+ * AuthProvider listens for this event and clears the
+ * authenticated Zustand state.
+ */
+
+function notifySessionExpired(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("jamb:auth-session-expired"),
+  );
+}
+
+/* ============================================================
+   REFRESH ACCESS TOKEN
+   ============================================================ */
+
+async function refreshAccessToken(): Promise<
+  string | null
+> {
+  /*
+   * If another request is already refreshing,
+   * wait for that request.
+   */
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    const refreshToken =
+      getRefreshToken();
+
+    const deviceId =
+      getDeviceId();
+
+    /* ========================================================
+       VALIDATION
+       ======================================================== */
+
+    if (!refreshToken) {
+      console.warn(
+        "❌ Cannot refresh access token: no refresh token.",
+      );
+
+      return null;
+    }
+
+    if (!deviceId) {
+      console.warn(
+        "❌ Cannot refresh access token: no device ID.",
+      );
+
+      return null;
+    }
+
+    try {
+      console.log(
+        "========== TOKEN REFRESH START ==========",
+      );
+
+      console.log(
+        "Has refresh token:",
+        Boolean(refreshToken),
+      );
+
+      console.log(
+        "Has device ID:",
+        Boolean(deviceId),
+      );
+
+      console.log(
+        "Device ID:",
+        deviceId,
+      );
+
+      console.log(
+        "Refresh endpoint:",
+        `${env.API_URL}/auth/request-access-token`,
+      );
+
+      /*
+       * IMPORTANT:
+       *
+       * Use plain axios here.
+       *
+       * DO NOT use axiosInstance.
+       *
+       * This prevents the refresh request from passing
+       * through the normal Authorization interceptor.
+       */
+      const response =
+        await axios.post<RefreshResponse>(
+          `${env.API_URL}/auth/request-access-token`,
+          {},
+          {
+            timeout: API.TIMEOUT,
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json",
+
+              "X-Device-Id":
+                deviceId,
+
+              "X-Refresh-Token":
+                refreshToken,
+            },
+
+            withCredentials: true,
+          },
+        );
+
+      console.log(
+        "========== TOKEN REFRESH RESPONSE ==========",
+      );
+
+      console.log(
+        "Status:",
+        response.status,
+      );
+
+      console.log(
+        "Success:",
+        response.data?.success,
+      );
+
+      console.log(
+        "Message:",
+        response.data?.message,
+      );
+
+      console.log(
+        "Has new access token:",
+        Boolean(
+          response.data?.data?.accessToken,
+        ),
+      );
+
+      console.log(
+        "Has rotated refresh token:",
+        Boolean(
+          response.data?.data?.refreshToken,
+        ),
+      );
+
+      console.log(
+        "=============================================",
+      );
+
+      /* ======================================================
+         GET NEW ACCESS TOKEN
+         ====================================================== */
+
+      const newAccessToken =
+        response.data?.data?.accessToken;
+
+      if (!newAccessToken) {
+        console.error(
+          "❌ Refresh succeeded but backend returned no access token.",
+        );
+
+        return null;
+      }
+
+      /* ======================================================
+         STORE NEW ACCESS TOKEN
+         ====================================================== */
+
+      setAccessToken(
+        newAccessToken,
+      );
+
+      console.log(
+        "✅ NEW ACCESS TOKEN STORED",
+      );
+
+      /*
+       * If your backend rotates refresh tokens,
+       * it may return a new refresh token.
+       *
+       * We intentionally don't overwrite the existing
+       * refresh token here unless you confirm that your
+       * backend rotates it.
+       */
+
+      console.log(
+        "=========================================",
+      );
+
+      return newAccessToken;
+    } catch (refreshError) {
+      console.error(
+        "========== TOKEN REFRESH FAILED ==========",
+      );
+
+      if (
+        axios.isAxiosError(
+          refreshError,
+        )
+      ) {
+        console.error(
+          "Refresh status:",
+          refreshError.response?.status,
+        );
+
+        console.error(
+          "Refresh response:",
+          refreshError.response?.data,
+        );
+
+        console.error(
+          "Refresh URL:",
+          refreshError.config?.url,
+        );
+
+        console.error(
+          "Refresh method:",
+          refreshError.config?.method,
+        );
+      } else {
+        console.error(
+          refreshError,
+        );
+      }
+
+      console.error(
+        "==========================================",
+      );
+
+      /*
+       * The refresh token is no longer usable.
+       *
+       * Clear the local token storage.
+       */
+      clearTokens();
+
+      /*
+       * Tell AuthProvider/Zustand that the session
+       * has expired.
+       */
+      notifySessionExpired();
+
+      return null;
+    } finally {
+      /*
+       * Allow another refresh operation later.
+       */
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+/* ============================================================
    REQUEST INTERCEPTOR
    ============================================================ */
 
 axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    /* ========================================================
-       AUTH INFORMATION
-       ======================================================== */
-
+  (
+    config: InternalAxiosRequestConfig,
+  ) => {
     const accessToken =
       getAccessToken();
 
     const deviceId =
       getDeviceId();
 
-    /*
-     * Axios runs outside React, so we must access Zustand
-     * through getState().
-     */
-
     const refreshToken =
-      useAuthStore.getState().refreshToken;
+      getRefreshToken();
 
     /* ========================================================
-       REQUEST DEBUG
+       DEBUG
        ======================================================== */
 
     console.log(
@@ -594,7 +1161,9 @@ axiosInstance.interceptors.request.use(
 
     console.log(
       "Full URL:",
-      `${config.baseURL ?? ""}${config.url ?? ""}`,
+      `${config.baseURL ?? ""}${
+        config.url ?? ""
+      }`,
     );
 
     console.log(
@@ -644,12 +1213,38 @@ axiosInstance.interceptors.request.use(
        ======================================================== */
 
     /*
-     * Your current backend flow only requires the refresh
-     * token on logout, so we preserve that behaviour.
+     * The normal API should NOT receive the refresh token.
      *
-     * If your backend refresh endpoint also requires
-     * X-Refresh-Token, add that endpoint here.
+     * Only explicitly attach it to the refresh endpoint.
      */
+    const isRefreshRequest =
+      config.url?.includes(
+        "/auth/request-access-token",
+      );
+
+    if (
+      isRefreshRequest &&
+      refreshToken
+    ) {
+      config.headers.set(
+        "X-Refresh-Token",
+        refreshToken,
+      );
+
+      /*
+       * Remove Authorization from the refresh request.
+       *
+       * This is important because the access token may
+       * already be expired.
+       */
+      config.headers.delete(
+        "Authorization",
+      );
+    }
+
+    /* ========================================================
+       LOGOUT
+       ======================================================== */
 
     const isLogoutRequest =
       config.url?.includes(
@@ -667,7 +1262,7 @@ axiosInstance.interceptors.request.use(
     }
 
     /* ========================================================
-       FINAL HEADERS DEBUG
+       FINAL DEBUG
        ======================================================== */
 
     console.log(
@@ -715,7 +1310,6 @@ axiosInstance.interceptors.request.use(
     );
 
     console.error(
-      "Request interceptor error:",
       error,
     );
 
@@ -759,9 +1353,11 @@ axiosInstance.interceptors.response.use(
     return response;
   },
 
-  (error: AxiosError) => {
+  async (
+    error: AxiosError,
+  ) => {
     /* ========================================================
-       EXPECTED EMPTY TRANSACTION RESPONSE
+       EMPTY TRANSACTIONS
        ======================================================== */
 
     if (
@@ -777,7 +1373,113 @@ axiosInstance.interceptors.response.use(
     }
 
     /* ========================================================
-       EXTRACT BACKEND ERROR
+       ORIGINAL REQUEST
+       ======================================================== */
+
+    const originalRequest =
+      error.config as
+        | RetryableRequestConfig
+        | undefined;
+
+    /* ========================================================
+       ERROR STATUS
+       ======================================================== */
+
+    const status =
+      error.response?.status;
+
+    const is401 =
+      status === 401;
+
+    const requestUrl =
+      originalRequest?.url ?? "";
+
+    const isRefreshRequest =
+      requestUrl.includes(
+        "/auth/request-access-token",
+      );
+
+    /* ========================================================
+       ACCESS TOKEN EXPIRED
+       ======================================================== */
+
+    /*
+     * Only attempt refresh for a normal API request.
+     *
+     * Never refresh the refresh endpoint itself.
+     */
+    if (
+      is401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isRefreshRequest
+    ) {
+      originalRequest._retry =
+        true;
+
+      console.log(
+        "========== ACCESS TOKEN EXPIRED ==========",
+      );
+
+      console.log(
+        "Attempting token refresh...",
+      );
+
+      const newAccessToken =
+        await refreshAccessToken();
+
+      /* ======================================================
+         REFRESH SUCCESS
+         ====================================================== */
+
+      if (newAccessToken) {
+        console.log(
+          "✅ TOKEN REFRESH SUCCESSFUL",
+        );
+
+        console.log(
+          "✅ RETRYING ORIGINAL REQUEST",
+        );
+
+        /*
+         * Attach the new access token.
+         */
+        originalRequest.headers.set(
+          "Authorization",
+          `Bearer ${newAccessToken}`,
+        );
+
+        console.log(
+          "==========================================",
+        );
+
+        /*
+         * Retry the exact request that failed.
+         */
+        return axiosInstance(
+          originalRequest,
+        );
+      }
+
+      /* ======================================================
+         REFRESH FAILED
+         ====================================================== */
+
+      console.warn(
+        "❌ TOKEN REFRESH FAILED",
+      );
+
+      console.warn(
+        "Session has been cleared.",
+      );
+
+      console.log(
+        "==========================================",
+      );
+    }
+
+    /* ========================================================
+       ERROR INFORMATION
        ======================================================== */
 
     const responseData =
@@ -787,10 +1489,6 @@ axiosInstance.interceptors.response.use(
       responseData?.message ??
       responseData?.error ??
       null;
-
-    /* ========================================================
-       API ERROR
-       ======================================================== */
 
     console.error(
       "========== API ERROR ==========",
@@ -872,45 +1570,3 @@ axiosInstance.interceptors.response.use(
 
 export const api =
   axiosInstance;
-
-/* ============================================================
-   SUBJECT TYPES
-   ============================================================ */
-
-export interface Subject {
-  _id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-  plans: string[];
-  hasFreePractice: boolean;
-}
-
-export interface SubjectsResponse {
-  success: boolean;
-  message: string;
-
-  data: {
-    subjectObj: Subject[];
-    totalPages: number;
-    totalCount: number;
-  };
-}
-
-/* ============================================================
-   SUBJECT API
-   ============================================================ */
-
-export async function getSubjectsByPlan(
-  plan: string,
-): Promise<SubjectsResponse> {
-  const response =
-    await api.get(
-      `/subjects/get-all-subjects-per-category/${encodeURIComponent(
-        plan,
-      )}`,
-    );
-
-  return response.data;
-}

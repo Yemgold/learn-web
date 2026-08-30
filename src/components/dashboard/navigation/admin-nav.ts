@@ -44,42 +44,57 @@ export const adminNavigation: AdminNavSection[] = [
     ],
   },
 
-  {
-    title: "Competition",
-    items: [
-      {
-        label: "Competitions",
-        href: "/admin/competitions",
-        icon: Trophy,
-      },
-      {
-        label: "Questions",
-        href: "/admin/questions",
-        icon: FileQuestion,
-      },
-      {
-        label: "Results",
-        href: "/admin/results",
-        icon: ClipboardList,
-      },
-    ],
-  },
 
-  {
-    title: "Users",
-    items: [
-      {
-        label: "Students",
-        href: "/admin/students",
-        icon: Users,
-      },
-      {
-        label: "Teams",
-        href: "/admin/teams",
-        icon: UserRound,
-      },
-    ],
-  },
+{
+  title: "Competition — Secondary Plan",
+  items: [
+    {
+      label: "Solve & Win Competitions",
+      href: "/admin/secondary/solveandwin",
+      icon: Trophy,
+    },
+    {
+      label: "National Competitions",
+      href: "/admin/secondary/national-competitions",
+      icon: Trophy,
+    },
+  ],
+},
+
+{
+  title: "Competition — Tertiary Plan",
+  items: [
+    {
+      label: "Solve & Win Competitions",
+      href: "/admin/tertiary/solveandwin",
+      icon: Trophy,
+    },
+    {
+      label: "National Competitions",
+      href: "/admin/tertiary/national-competitions",
+      icon: Trophy,
+    },
+  ],
+},
+
+{
+  title: "Competition — Professional Plan",
+  items: [
+    {
+      label: "Solve & Win Competitions",
+      href: "/admin/professional/solveandwin",
+      icon: Trophy,
+    },
+    {
+      label: "National Competitions",
+      href: "/admin/professional/national-competitions",
+      icon: Trophy,
+    },
+  ],
+},
+
+
+
 
   {
     title: "Finance",

@@ -1,111 +1,112 @@
 
 
-// C:\Users\Lara Spellman\Jamb\jamb-league\src\lib\api\auth.ts
+// // C:\Users\Lara Spellman\Jamb\jamb-league\src\lib\api\auth.ts
 
 
 
-import { axiosInstance as api } from "./axios";
-import { getDeviceId } from "@/lib/auth/device";
+// import { axiosInstance as api } from "./axios";
+// import { getDeviceId } from "@/lib/auth/device";
 
-import { setAccessToken } from "@/lib/auth/token";
+// import { setAccessToken } from "@/lib/auth/token";
 
-/* ============================================================
-   REGISTER
-   ============================================================ */
+// /* ============================================================
+//    REGISTER
+//    ============================================================ */
 
-export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  password: string;
-}
+// export interface RegisterRequest {
+//   firstName: string;
+//   lastName: string;
+//   email: string;
+//   phone?: string;
+//   password: string;
+// }
 
-export const registerUser = async (
-  data: RegisterRequest
-) => {
-  const response = await api.post(
-    "/auth/register",
-    data
-  );
+// export const registerUser = async (
+//   data: RegisterRequest
+// ) => {
+//   const response = await api.post(
+//     "/auth/register",
+//     data
+//   );
 
-  return response.data;
-};
-
-
+//   return response.data;
+// };
 
 
 
 
-/* ============================================================
-   LOGIN
-   ============================================================ */
 
-export type BackendUserRole =
-  | "USER"
-  | "STUDENT"
-  | "ADMIN"
-  | "ORGANIZER";
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-  deviceId: string;
-  deviceName: string;
-}
+// /* ============================================================
+//    LOGIN
+//    ============================================================ */
 
-/* ============================================================
-   USER WALLET
-   ============================================================ */
+// export type BackendUserRole =
+//   | "USER"
+//   | "STUDENT"
+//   | "ADMIN"
+//   | "ORGANIZER";
 
-export interface UserWallet {
-  _id: string;
-  userId: string;
-  balance: number;
-  createdAt: string;
-  updatedAt: string;
-  __v?: number;
-}
+// export interface LoginRequest {
+//   email: string;
+//   password: string;
+//   deviceId: string;
+//   deviceName: string;
+// }
 
-/* ============================================================
-   LOGIN USER
-   ============================================================ */
+// /* ============================================================
+//    USER WALLET
+//    ============================================================ */
 
-export interface LoginUser {
-  _id: string;
+// export interface UserWallet {
+//   _id: string;
+//   userId: string;
+//   balance: number;
+//   createdAt: string;
+//   updatedAt: string;
+//   __v?: number;
+// }
 
-  email: string;
+// /* ============================================================
+//    LOGIN USER
+//    ============================================================ */
 
-  role: BackendUserRole;
+// export interface LoginUser {
+//   _id: string;
 
-  firstName: string;
+//   email: string;
 
-  lastName: string;
+//   role: BackendUserRole;
 
-  phoneNumber?: string;
+//   firstName: string;
 
-  referralCode?: string;
+//   lastName: string;
 
-  referredBy?: string | null;
+//   phoneNumber?: string;
 
-  referralChain?: string[];
+//   referralCode?: string;
 
-  isVerified: boolean;
+//   referredBy?: string | null;
 
-  hasPaid: boolean;
+//   referralChain?: string[];
 
-  plans: unknown[];
+//   isVerified: boolean;
 
-  device?: unknown | null;
+//   hasPaid: boolean;
 
-  userWallet?: UserWallet;
+//   plans: unknown[];
 
-  createdAt: string;
+//   device?: unknown | null;
 
-  updatedAt: string;
+//   userWallet?: UserWallet;
 
-  __v?: number;
-}
+//   createdAt: string;
+
+//   updatedAt: string;
+
+//   __v?: number;
+// }
+
 
 // /* ============================================================
 //    LOGIN SESSION
@@ -150,8 +151,6 @@ export interface LoginUser {
 //     user: LoginUser;
 //   };
 // }
-
-
 
 // /* ============================================================
 //    DEVICE NAME
@@ -218,18 +217,13 @@ export interface LoginUser {
 // }
 
 // /* ============================================================
-//    LOGIN API
+//    NORMAL LOGIN API
 //    ============================================================ */
 
 // export const loginUser = async (
 //   data: LoginRequest,
 // ): Promise<LoginResponse> => {
 //   try {
-
-    
-
-
-
 //     /* ========================================================
 //        BUILD FINAL PAYLOAD
 //        ======================================================== */
@@ -275,48 +269,54 @@ export interface LoginUser {
 //         "/auth/login",
 //         payload,
 //       );
-// /* ========================================================
-//    LOGIN SUCCESS
-//    ======================================================== */
 
-// console.log(
-//   "========== LOGIN SUCCESS ==========",
-// );
+//     /* ========================================================
+//        LOGIN SUCCESS
+//        ======================================================== */
 
-// const loginData = response.data.data;
+//     console.log(
+//       "========== LOGIN SUCCESS ==========",
+//     );
 
-// console.log({
-//   success: response.data.success,
+//     const loginData =
+//       response.data.data;
 
-//   message: response.data.message,
+//     console.log({
+//       success: response.data.success,
 
-//   user: loginData?.user,
+//       message: response.data.message,
 
-//   session: loginData?.session,
+//       user: loginData?.user,
 
-//   hasAccessToken: !!loginData?.accessToken,
+//       session: loginData?.session,
 
-//   hasRefreshToken: !!loginData?.refreshToken,
-// });
+//       hasAccessToken:
+//         !!loginData?.accessToken,
 
-// /* ========================================================
-//    STORE ACCESS TOKEN
-//    ======================================================== */
+//       hasRefreshToken:
+//         !!loginData?.refreshToken,
+//     });
 
-// if (loginData?.accessToken) {
-//   setAccessToken(loginData.accessToken);
+//     /* ========================================================
+//        STORE ACCESS TOKEN
+//        ======================================================== */
 
-//   console.log(
-//     "✅ ACCESS TOKEN STORED:",
-//     true,
-//   );
-// } else {
-//   console.error(
-//     "❌ LOGIN SUCCEEDED BUT NO ACCESS TOKEN WAS RETURNED",
-//   );
-// }
+//     if (loginData?.accessToken) {
+//       setAccessToken(
+//         loginData.accessToken,
+//       );
 
-// return response.data;
+//       console.log(
+//         "✅ ACCESS TOKEN STORED:",
+//         true,
+//       );
+//     } else {
+//       console.error(
+//         "❌ LOGIN SUCCEEDED BUT NO ACCESS TOKEN WAS RETURNED",
+//       );
+//     }
+
+//     return response.data;
 
 //   } catch (error: unknown) {
 
@@ -349,13 +349,16 @@ export interface LoginUser {
 //           status?: number;
 //           data?: unknown;
 //         };
+
 //         config?: {
 //           url?: string;
 //           baseURL?: string;
 //           method?: string;
 //           data?: unknown;
 //         };
+
 //         code?: string;
+
 //         message?: string;
 //       };
 
@@ -432,6 +435,252 @@ export interface LoginUser {
 //                 parsed?.deviceName,
 //             },
 //           );
+
+//         } catch {
+//           console.error(
+//             "Request payload could not be parsed.",
+//           );
+//         }
+//       }
+
+//     } else if (error instanceof Error) {
+
+//       console.error(
+//         "Non-Axios error:",
+//         error.message,
+//       );
+
+//       console.error(
+//         "Stack:",
+//         error.stack,
+//       );
+
+//     } else {
+
+//       console.error(
+//         "Unknown error:",
+//         error,
+//       );
+//     }
+
+//     throw error;
+//   }
+// };
+
+// /* ============================================================
+//    FORCE SWITCH DEVICE API
+//    ============================================================ */
+
+// export const forceSwitch = async (
+//   data: LoginRequest,
+// ): Promise<LoginResponse> => {
+//   try {
+//     /* ========================================================
+//        BUILD FINAL PAYLOAD
+//        ======================================================== */
+
+//     const payload: LoginRequest = {
+//       email: data.email.trim().toLowerCase(),
+
+//       password: data.password,
+
+//       deviceId:
+//         data.deviceId || getDeviceId(),
+
+//       deviceName:
+//         data.deviceName || getDeviceName(),
+//     };
+
+//     /* ========================================================
+//        FORCE SWITCH REQUEST LOG
+//        ======================================================== */
+
+//     console.log(
+//       "========== FORCE SWITCH REQUEST ==========",
+//     );
+
+//     console.log({
+//       email: payload.email,
+
+//       password: payload.password
+//         ? "[PROVIDED]"
+//         : "[MISSING]",
+
+//       deviceId: payload.deviceId,
+
+//       deviceName: payload.deviceName,
+//     });
+
+//     /* ========================================================
+//        API REQUEST
+//        ======================================================== */
+
+//     const response =
+//       await api.post<LoginResponse>(
+//         "/auth/force-switch",
+//         payload,
+//       );
+
+//     /* ========================================================
+//        FORCE SWITCH SUCCESS
+//        ======================================================== */
+
+//     console.log(
+//       "========== FORCE SWITCH SUCCESS ==========",
+//     );
+
+//     const switchData =
+//       response.data.data;
+
+//     console.log({
+//       success: response.data.success,
+
+//       message: response.data.message,
+
+//       user: switchData?.user,
+
+//       session: switchData?.session,
+
+//       hasAccessToken:
+//         !!switchData?.accessToken,
+
+//       hasRefreshToken:
+//         !!switchData?.refreshToken,
+//     });
+
+//     /* ========================================================
+//        STORE ACCESS TOKEN
+//        ======================================================== */
+
+//     if (switchData?.accessToken) {
+//       setAccessToken(
+//         switchData.accessToken,
+//       );
+
+//       console.log(
+//         "✅ FORCE SWITCH ACCESS TOKEN STORED:",
+//         true,
+//       );
+//     } else {
+//       console.error(
+//         "❌ FORCE SWITCH SUCCEEDED BUT NO ACCESS TOKEN WAS RETURNED",
+//       );
+//     }
+
+//     return response.data;
+
+//   } catch (error: unknown) {
+
+//     /* ========================================================
+//        FORCE SWITCH ERROR
+//        ======================================================== */
+
+//     console.error(
+//       "========== FORCE SWITCH ERROR ==========",
+//     );
+
+//     console.error(
+//       "RAW ERROR:",
+//       error,
+//     );
+
+//     if (
+//       typeof error === "object" &&
+//       error !== null &&
+//       "response" in error
+//     ) {
+//       const axiosError = error as {
+//         response?: {
+//           status?: number;
+//           data?: unknown;
+//         };
+
+//         config?: {
+//           url?: string;
+//           baseURL?: string;
+//           method?: string;
+//           data?: unknown;
+//         };
+
+//         code?: string;
+
+//         message?: string;
+//       };
+
+//       console.error(
+//         "Status:",
+//         axiosError.response?.status,
+//       );
+
+//       console.error(
+//         "Backend response:",
+//         axiosError.response?.data,
+//       );
+
+//       console.error(
+//         "Request URL:",
+//         axiosError.config?.url,
+//       );
+
+//       console.error(
+//         "Base URL:",
+//         axiosError.config?.baseURL,
+//       );
+
+//       console.error(
+//         "Full URL:",
+//         `${axiosError.config?.baseURL ?? ""}${
+//           axiosError.config?.url ?? ""
+//         }`,
+//       );
+
+//       console.error(
+//         "Method:",
+//         axiosError.config?.method,
+//       );
+
+//       console.error(
+//         "Error code:",
+//         axiosError.code,
+//       );
+
+//       console.error(
+//         "Error message:",
+//         axiosError.message,
+//       );
+
+//       /* ======================================================
+//          REQUEST PAYLOAD DEBUG
+//          ====================================================== */
+
+//       const requestData =
+//         axiosError.config?.data;
+
+//       if (requestData) {
+//         try {
+//           const parsed =
+//             typeof requestData === "string"
+//               ? JSON.parse(requestData)
+//               : requestData;
+
+//           console.error(
+//             "Request payload:",
+//             {
+//               email: parsed?.email,
+
+//               password:
+//                 parsed?.password
+//                   ? "[PROVIDED]"
+//                   : "[MISSING]",
+
+//               deviceId:
+//                 parsed?.deviceId,
+
+//               deviceName:
+//                 parsed?.deviceName,
+//             },
+//           );
+
 //         } catch {
 //           console.error(
 //             "Request payload could not be parsed.",
@@ -464,7 +713,338 @@ export interface LoginUser {
 // };
 
 
+// /* ============================================================
+//    REQUEST NEW ACCESS TOKEN
+//    ============================================================ */
 
+// export interface RequestAccessTokenResponse {
+//   success: boolean;
+//   message: string;
+
+//   data: {
+//     accessToken: string;
+//   };
+// }
+
+// export async function requestAccessToken(
+//   refreshToken: string,
+// ): Promise<RequestAccessTokenResponse> {
+//   console.log(
+//     "========== REQUEST ACCESS TOKEN ==========",
+//   );
+
+//   console.log(
+//     "Refresh token exists:",
+//     Boolean(refreshToken),
+//   );
+
+//   console.log(
+//     "Refresh token preview:",
+//     refreshToken
+//       ? `${refreshToken.substring(0, 20)}...`
+//       : null,
+//   );
+
+//   console.log(
+//     "==========================================",
+//   );
+
+//   const response =
+//     await api.post<RequestAccessTokenResponse>(
+//       "/auth/request-access-token",
+//       {},
+//       {
+//         headers: {
+//           "X-Refresh-Token": refreshToken,
+//         },
+//       },
+//     );
+
+//   return response.data;
+// }
+
+
+
+
+
+
+
+// /* ============================================================
+//    LOGOUT API
+//    ============================================================ */
+
+// export interface LogoutResponse {
+//   success: boolean;
+
+//   message: string;
+
+//   data?: null;
+// }
+
+// export const logoutUser = async (): Promise<LogoutResponse> => {
+//   try {
+//     /* ========================================================
+//        LOGOUT REQUEST
+//        ======================================================== */
+
+//     console.log(
+//       "========== LOGOUT REQUEST ==========",
+//     );
+
+//     console.log({
+//       endpoint: "/auth/logout",
+//       method: "POST",
+//     });
+
+//     /* ========================================================
+//        API REQUEST
+//        ======================================================== */
+
+//     const response =
+//       await api.post<LogoutResponse>(
+//         "/auth/logout",
+//       );
+
+//     /* ========================================================
+//        LOGOUT SUCCESS
+//        ======================================================== */
+
+//     console.log(
+//       "========== LOGOUT SUCCESS ==========",
+//     );
+
+//     console.log({
+//       success:
+//         response.data.success,
+
+//       message:
+//         response.data.message,
+//     });
+
+//     return response.data;
+
+//   } catch (error: unknown) {
+
+//     /* ========================================================
+//        LOGOUT ERROR
+//        ======================================================== */
+
+//     console.error(
+//       "========== LOGOUT ERROR ==========",
+//     );
+
+//     console.error(
+//       "RAW ERROR:",
+//       error,
+//     );
+
+//     if (
+//       typeof error === "object" &&
+//       error !== null &&
+//       "response" in error
+//     ) {
+//       const axiosError = error as {
+//         response?: {
+//           status?: number;
+//           data?: unknown;
+//         };
+
+//         config?: {
+//           url?: string;
+//           baseURL?: string;
+//           method?: string;
+//         };
+
+//         code?: string;
+
+//         message?: string;
+//       };
+
+//       console.error(
+//         "Status:",
+//         axiosError.response?.status,
+//       );
+
+//       console.error(
+//         "Backend response:",
+//         axiosError.response?.data,
+//       );
+
+//       console.error(
+//         "Request URL:",
+//         axiosError.config?.url,
+//       );
+
+//       console.error(
+//         "Base URL:",
+//         axiosError.config?.baseURL,
+//       );
+
+//       console.error(
+//         "Full URL:",
+//         `${axiosError.config?.baseURL ?? ""}${
+//           axiosError.config?.url ?? ""
+//         }`,
+//       );
+
+//       console.error(
+//         "Method:",
+//         axiosError.config?.method,
+//       );
+
+//       console.error(
+//         "Error code:",
+//         axiosError.code,
+//       );
+
+//       console.error(
+//         "Error message:",
+//         axiosError.message,
+//       );
+
+//     } else if (error instanceof Error) {
+
+//       console.error(
+//         "Non-Axios error:",
+//         error.message,
+//       );
+
+//       console.error(
+//         "Stack:",
+//         error.stack,
+//       );
+
+//     } else {
+
+//       console.error(
+//         "Unknown error:",
+//         error,
+//       );
+//     }
+
+//     throw error;
+//   }
+// };
+
+
+
+
+
+
+
+
+
+
+// src/lib/api/auth.ts
+
+import axios from "axios";
+
+import { API } from "@/constants";
+
+import { axiosInstance as api } from "./axios";
+
+import { env } from "@/config";
+
+import { getDeviceId } from "@/lib/auth/device";
+
+import {
+  setAccessToken,
+  setRefreshToken,
+} from "@/lib/auth/token";
+
+/* ============================================================
+   REGISTER
+   ============================================================ */
+
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  password: string;
+}
+
+export const registerUser = async (
+  data: RegisterRequest,
+) => {
+  const response =
+    await api.post(
+      "/auth/register",
+      data,
+    );
+
+  return response.data;
+};
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+
+export type BackendUserRole =
+  | "USER"
+  | "STUDENT"
+  | "ADMIN"
+  | "ORGANIZER";
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  deviceId: string;
+  deviceName: string;
+}
+
+/* ============================================================
+   USER WALLET
+   ============================================================ */
+
+export interface UserWallet {
+  _id: string;
+  userId: string;
+  balance: number;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+}
+
+/* ============================================================
+   LOGIN USER
+   ============================================================ */
+
+export interface LoginUser {
+  _id: string;
+
+  email: string;
+
+  role: BackendUserRole;
+
+  firstName: string;
+
+  lastName: string;
+
+  phoneNumber?: string;
+
+  referralCode?: string;
+
+  referredBy?: string | null;
+
+  referralChain?: string[];
+
+  isVerified: boolean;
+
+  hasPaid: boolean;
+
+  plans: unknown[];
+
+  device?: unknown | null;
+
+  userWallet?: UserWallet;
+
+  createdAt: string;
+
+  updatedAt: string;
+
+  __v?: number;
+}
 
 /* ============================================================
    LOGIN SESSION
@@ -515,7 +1095,9 @@ export interface LoginResponse {
    ============================================================ */
 
 function getDeviceName(): string {
-  if (typeof navigator === "undefined") {
+  if (
+    typeof navigator === "undefined"
+  ) {
     return "Web Browser";
   }
 
@@ -523,25 +1105,31 @@ function getDeviceName(): string {
     navigator.userAgent.toLowerCase();
 
   /*
-   * IMPORTANT:
-   *
    * Edge contains "Chrome" in its user agent,
    * therefore Edge must be checked first.
    */
 
-  if (userAgent.includes("edg")) {
+  if (
+    userAgent.includes("edg")
+  ) {
     return "Microsoft Edge";
   }
 
-  if (userAgent.includes("chrome")) {
+  if (
+    userAgent.includes("chrome")
+  ) {
     return "Google Chrome";
   }
 
-  if (userAgent.includes("firefox")) {
+  if (
+    userAgent.includes("firefox")
+  ) {
     return "Mozilla Firefox";
   }
 
-  if (userAgent.includes("safari")) {
+  if (
+    userAgent.includes("safari")
+  ) {
     return "Safari";
   }
 
@@ -564,18 +1152,23 @@ export function buildLoginRequest(
   password: string,
 ): LoginRequest {
   return {
-    email: email.trim().toLowerCase(),
+    email:
+      email
+        .trim()
+        .toLowerCase(),
 
     password,
 
-    deviceId: getDeviceId(),
+    deviceId:
+      getDeviceId(),
 
-    deviceName: getDeviceName(),
+    deviceName:
+      getDeviceName(),
   };
 }
 
 /* ============================================================
-   NORMAL LOGIN API
+   LOGIN USER
    ============================================================ */
 
 export const loginUser = async (
@@ -587,15 +1180,21 @@ export const loginUser = async (
        ======================================================== */
 
     const payload: LoginRequest = {
-      email: data.email.trim().toLowerCase(),
+      email:
+        data.email
+          .trim()
+          .toLowerCase(),
 
-      password: data.password,
+      password:
+        data.password,
 
       deviceId:
-        data.deviceId || getDeviceId(),
+        data.deviceId ||
+        getDeviceId(),
 
       deviceName:
-        data.deviceName || getDeviceName(),
+        data.deviceName ||
+        getDeviceName(),
     };
 
     /* ========================================================
@@ -607,15 +1206,19 @@ export const loginUser = async (
     );
 
     console.log({
-      email: payload.email,
+      email:
+        payload.email,
 
-      password: payload.password
-        ? "[PROVIDED]"
-        : "[MISSING]",
+      password:
+        payload.password
+          ? "[PROVIDED]"
+          : "[MISSING]",
 
-      deviceId: payload.deviceId,
+      deviceId:
+        payload.deviceId,
 
-      deviceName: payload.deviceName,
+      deviceName:
+        payload.deviceName,
     });
 
     /* ========================================================
@@ -640,26 +1243,36 @@ export const loginUser = async (
       response.data.data;
 
     console.log({
-      success: response.data.success,
+      success:
+        response.data.success,
 
-      message: response.data.message,
+      message:
+        response.data.message,
 
-      user: loginData?.user,
+      user:
+        loginData?.user,
 
-      session: loginData?.session,
+      session:
+        loginData?.session,
 
       hasAccessToken:
-        !!loginData?.accessToken,
+        Boolean(
+          loginData?.accessToken,
+        ),
 
       hasRefreshToken:
-        !!loginData?.refreshToken,
+        Boolean(
+          loginData?.refreshToken,
+        ),
     });
 
     /* ========================================================
        STORE ACCESS TOKEN
        ======================================================== */
 
-    if (loginData?.accessToken) {
+    if (
+      loginData?.accessToken
+    ) {
       setAccessToken(
         loginData.accessToken,
       );
@@ -674,10 +1287,33 @@ export const loginUser = async (
       );
     }
 
+    /* ========================================================
+       STORE REFRESH TOKEN
+       ======================================================== */
+
+    if (
+      loginData?.refreshToken
+    ) {
+      setRefreshToken(
+        loginData.refreshToken,
+      );
+
+      console.log(
+        "✅ REFRESH TOKEN STORED:",
+        true,
+      );
+    } else {
+      console.error(
+        "❌ LOGIN SUCCEEDED BUT NO REFRESH TOKEN WAS RETURNED",
+      );
+    }
+
+    console.log(
+      "=================================",
+    );
+
     return response.data;
-
   } catch (error: unknown) {
-
     /* ========================================================
        LOGIN ERROR
        ======================================================== */
@@ -691,34 +1327,29 @@ export const loginUser = async (
       error,
     );
 
-    /*
-     * Axios errors have a response/config object.
-     * We avoid axios.isAxiosError() here so you don't need
-     * another axios import in this file.
-     */
-
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error
     ) {
-      const axiosError = error as {
-        response?: {
-          status?: number;
-          data?: unknown;
+      const axiosError =
+        error as {
+          response?: {
+            status?: number;
+            data?: unknown;
+          };
+
+          config?: {
+            url?: string;
+            baseURL?: string;
+            method?: string;
+            data?: unknown;
+          };
+
+          code?: string;
+
+          message?: string;
         };
-
-        config?: {
-          url?: string;
-          baseURL?: string;
-          method?: string;
-          data?: unknown;
-        };
-
-        code?: string;
-
-        message?: string;
-      };
 
       console.error(
         "Status:",
@@ -762,24 +1393,24 @@ export const loginUser = async (
         axiosError.message,
       );
 
-      /* ======================================================
-         REQUEST PAYLOAD DEBUG
-         ====================================================== */
-
       const requestData =
         axiosError.config?.data;
 
       if (requestData) {
         try {
           const parsed =
-            typeof requestData === "string"
-              ? JSON.parse(requestData)
+            typeof requestData ===
+            "string"
+              ? JSON.parse(
+                  requestData,
+                )
               : requestData;
 
           console.error(
             "Request payload:",
             {
-              email: parsed?.email,
+              email:
+                parsed?.email,
 
               password:
                 parsed?.password
@@ -793,16 +1424,15 @@ export const loginUser = async (
                 parsed?.deviceName,
             },
           );
-
         } catch {
           console.error(
             "Request payload could not be parsed.",
           );
         }
       }
-
-    } else if (error instanceof Error) {
-
+    } else if (
+      error instanceof Error
+    ) {
       console.error(
         "Non-Axios error:",
         error.message,
@@ -812,14 +1442,16 @@ export const loginUser = async (
         "Stack:",
         error.stack,
       );
-
     } else {
-
       console.error(
         "Unknown error:",
         error,
       );
     }
+
+    console.error(
+      "=================================",
+    );
 
     throw error;
   }
@@ -838,19 +1470,25 @@ export const forceSwitch = async (
        ======================================================== */
 
     const payload: LoginRequest = {
-      email: data.email.trim().toLowerCase(),
+      email:
+        data.email
+          .trim()
+          .toLowerCase(),
 
-      password: data.password,
+      password:
+        data.password,
 
       deviceId:
-        data.deviceId || getDeviceId(),
+        data.deviceId ||
+        getDeviceId(),
 
       deviceName:
-        data.deviceName || getDeviceName(),
+        data.deviceName ||
+        getDeviceName(),
     };
 
     /* ========================================================
-       FORCE SWITCH REQUEST LOG
+       FORCE SWITCH REQUEST
        ======================================================== */
 
     console.log(
@@ -858,15 +1496,19 @@ export const forceSwitch = async (
     );
 
     console.log({
-      email: payload.email,
+      email:
+        payload.email,
 
-      password: payload.password
-        ? "[PROVIDED]"
-        : "[MISSING]",
+      password:
+        payload.password
+          ? "[PROVIDED]"
+          : "[MISSING]",
 
-      deviceId: payload.deviceId,
+      deviceId:
+        payload.deviceId,
 
-      deviceName: payload.deviceName,
+      deviceName:
+        payload.deviceName,
     });
 
     /* ========================================================
@@ -891,26 +1533,36 @@ export const forceSwitch = async (
       response.data.data;
 
     console.log({
-      success: response.data.success,
+      success:
+        response.data.success,
 
-      message: response.data.message,
+      message:
+        response.data.message,
 
-      user: switchData?.user,
+      user:
+        switchData?.user,
 
-      session: switchData?.session,
+      session:
+        switchData?.session,
 
       hasAccessToken:
-        !!switchData?.accessToken,
+        Boolean(
+          switchData?.accessToken,
+        ),
 
       hasRefreshToken:
-        !!switchData?.refreshToken,
+        Boolean(
+          switchData?.refreshToken,
+        ),
     });
 
     /* ========================================================
        STORE ACCESS TOKEN
        ======================================================== */
 
-    if (switchData?.accessToken) {
+    if (
+      switchData?.accessToken
+    ) {
       setAccessToken(
         switchData.accessToken,
       );
@@ -925,10 +1577,33 @@ export const forceSwitch = async (
       );
     }
 
+    /* ========================================================
+       STORE REFRESH TOKEN
+       ======================================================== */
+
+    if (
+      switchData?.refreshToken
+    ) {
+      setRefreshToken(
+        switchData.refreshToken,
+      );
+
+      console.log(
+        "✅ FORCE SWITCH REFRESH TOKEN STORED:",
+        true,
+      );
+    } else {
+      console.error(
+        "❌ FORCE SWITCH SUCCEEDED BUT NO REFRESH TOKEN WAS RETURNED",
+      );
+    }
+
+    console.log(
+      "==========================================",
+    );
+
     return response.data;
-
   } catch (error: unknown) {
-
     /* ========================================================
        FORCE SWITCH ERROR
        ======================================================== */
@@ -947,23 +1622,24 @@ export const forceSwitch = async (
       error !== null &&
       "response" in error
     ) {
-      const axiosError = error as {
-        response?: {
-          status?: number;
-          data?: unknown;
+      const axiosError =
+        error as {
+          response?: {
+            status?: number;
+            data?: unknown;
+          };
+
+          config?: {
+            url?: string;
+            baseURL?: string;
+            method?: string;
+            data?: unknown;
+          };
+
+          code?: string;
+
+          message?: string;
         };
-
-        config?: {
-          url?: string;
-          baseURL?: string;
-          method?: string;
-          data?: unknown;
-        };
-
-        code?: string;
-
-        message?: string;
-      };
 
       console.error(
         "Status:",
@@ -1006,48 +1682,9 @@ export const forceSwitch = async (
         "Error message:",
         axiosError.message,
       );
-
-      /* ======================================================
-         REQUEST PAYLOAD DEBUG
-         ====================================================== */
-
-      const requestData =
-        axiosError.config?.data;
-
-      if (requestData) {
-        try {
-          const parsed =
-            typeof requestData === "string"
-              ? JSON.parse(requestData)
-              : requestData;
-
-          console.error(
-            "Request payload:",
-            {
-              email: parsed?.email,
-
-              password:
-                parsed?.password
-                  ? "[PROVIDED]"
-                  : "[MISSING]",
-
-              deviceId:
-                parsed?.deviceId,
-
-              deviceName:
-                parsed?.deviceName,
-            },
-          );
-
-        } catch {
-          console.error(
-            "Request payload could not be parsed.",
-          );
-        }
-      }
-
-    } else if (error instanceof Error) {
-
+    } else if (
+      error instanceof Error
+    ) {
       console.error(
         "Non-Axios error:",
         error.message,
@@ -1057,18 +1694,102 @@ export const forceSwitch = async (
         "Stack:",
         error.stack,
       );
-
     } else {
-
       console.error(
         "Unknown error:",
         error,
       );
     }
 
+    console.error(
+      "==========================================",
+    );
+
     throw error;
   }
 };
+
+/* ============================================================
+   REQUEST NEW ACCESS TOKEN
+   ============================================================ */
+
+export interface RequestAccessTokenResponse {
+  success: boolean;
+
+  message: string;
+
+  data: {
+    accessToken: string;
+
+    refreshToken?: string;
+  };
+}
+
+/*
+ * This function is kept available for other parts of the
+ * application that may explicitly need to request a token.
+ *
+ * It uses plain Axios so it does NOT trigger the normal
+ * authentication interceptor.
+ */
+export async function requestAccessToken(
+  refreshToken: string,
+): Promise<RequestAccessTokenResponse> {
+  const deviceId =
+    getDeviceId();
+
+  console.log(
+    "========== REQUEST ACCESS TOKEN ==========",
+  );
+
+  console.log(
+    "Has refresh token:",
+    Boolean(refreshToken),
+  );
+
+  console.log(
+    "Has device ID:",
+    Boolean(deviceId),
+  );
+
+  console.log(
+    "Refresh token preview:",
+    refreshToken
+      ? `${refreshToken.substring(0, 20)}...`
+      : null,
+  );
+
+  console.log(
+    "==========================================",
+  );
+
+  const response =
+    await axios.post<RequestAccessTokenResponse>(
+      `${env.API_URL}/auth/request-access-token`,
+      {},
+      {
+        timeout: API.TIMEOUT,
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          Accept:
+            "application/json",
+
+          "X-Refresh-Token":
+            refreshToken,
+
+          "X-Device-Id":
+            deviceId,
+        },
+
+        withCredentials: true,
+      },
+    );
+
+  return response.data;
+}
 
 /* ============================================================
    LOGOUT API
@@ -1082,147 +1803,136 @@ export interface LogoutResponse {
   data?: null;
 }
 
-export const logoutUser = async (): Promise<LogoutResponse> => {
-  try {
-    /* ========================================================
-       LOGOUT REQUEST
-       ======================================================== */
-
-    console.log(
-      "========== LOGOUT REQUEST ==========",
-    );
-
-    console.log({
-      endpoint: "/auth/logout",
-      method: "POST",
-    });
-
-    /* ========================================================
-       API REQUEST
-       ======================================================== */
-
-    const response =
-      await api.post<LogoutResponse>(
-        "/auth/logout",
+export const logoutUser =
+  async (): Promise<LogoutResponse> => {
+    try {
+      console.log(
+        "========== LOGOUT REQUEST ==========",
       );
 
-    /* ========================================================
-       LOGOUT SUCCESS
-       ======================================================== */
+      console.log({
+        endpoint:
+          "/auth/logout",
 
-    console.log(
-      "========== LOGOUT SUCCESS ==========",
-    );
+        method:
+          "POST",
+      });
 
-    console.log({
-      success:
-        response.data.success,
+      const response =
+        await api.post<LogoutResponse>(
+          "/auth/logout",
+        );
 
-      message:
-        response.data.message,
-    });
+      console.log(
+        "========== LOGOUT SUCCESS ==========",
+      );
 
-    return response.data;
+      console.log({
+        success:
+          response.data.success,
 
-  } catch (error: unknown) {
+        message:
+          response.data.message,
+      });
 
-    /* ========================================================
-       LOGOUT ERROR
-       ======================================================== */
-
-    console.error(
-      "========== LOGOUT ERROR ==========",
-    );
-
-    console.error(
-      "RAW ERROR:",
-      error,
-    );
-
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "response" in error
-    ) {
-      const axiosError = error as {
-        response?: {
-          status?: number;
-          data?: unknown;
-        };
-
-        config?: {
-          url?: string;
-          baseURL?: string;
-          method?: string;
-        };
-
-        code?: string;
-
-        message?: string;
-      };
-
+      return response.data;
+    } catch (error: unknown) {
       console.error(
-        "Status:",
-        axiosError.response?.status,
+        "========== LOGOUT ERROR ==========",
       );
 
       console.error(
-        "Backend response:",
-        axiosError.response?.data,
-      );
-
-      console.error(
-        "Request URL:",
-        axiosError.config?.url,
-      );
-
-      console.error(
-        "Base URL:",
-        axiosError.config?.baseURL,
-      );
-
-      console.error(
-        "Full URL:",
-        `${axiosError.config?.baseURL ?? ""}${
-          axiosError.config?.url ?? ""
-        }`,
-      );
-
-      console.error(
-        "Method:",
-        axiosError.config?.method,
-      );
-
-      console.error(
-        "Error code:",
-        axiosError.code,
-      );
-
-      console.error(
-        "Error message:",
-        axiosError.message,
-      );
-
-    } else if (error instanceof Error) {
-
-      console.error(
-        "Non-Axios error:",
-        error.message,
-      );
-
-      console.error(
-        "Stack:",
-        error.stack,
-      );
-
-    } else {
-
-      console.error(
-        "Unknown error:",
+        "RAW ERROR:",
         error,
       );
-    }
 
-    throw error;
-  }
-};
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error
+      ) {
+        const axiosError =
+          error as {
+            response?: {
+              status?: number;
+              data?: unknown;
+            };
+
+            config?: {
+              url?: string;
+              baseURL?: string;
+              method?: string;
+            };
+
+            code?: string;
+
+            message?: string;
+          };
+
+        console.error(
+          "Status:",
+          axiosError.response?.status,
+        );
+
+        console.error(
+          "Backend response:",
+          axiosError.response?.data,
+        );
+
+        console.error(
+          "Request URL:",
+          axiosError.config?.url,
+        );
+
+        console.error(
+          "Base URL:",
+          axiosError.config?.baseURL,
+        );
+
+        console.error(
+          "Full URL:",
+          `${axiosError.config?.baseURL ?? ""}${
+            axiosError.config?.url ?? ""
+          }`,
+        );
+
+        console.error(
+          "Method:",
+          axiosError.config?.method,
+        );
+
+        console.error(
+          "Error code:",
+          axiosError.code,
+        );
+
+        console.error(
+          "Error message:",
+          axiosError.message,
+        );
+      } else if (
+        error instanceof Error
+      ) {
+        console.error(
+          "Non-Axios error:",
+          error.message,
+        );
+
+        console.error(
+          "Stack:",
+          error.stack,
+        );
+      } else {
+        console.error(
+          "Unknown error:",
+          error,
+        );
+      }
+
+      console.error(
+        "=================================",
+      );
+
+      throw error;
+    }
+  };

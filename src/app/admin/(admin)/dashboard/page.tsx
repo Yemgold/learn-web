@@ -3,6 +3,13 @@
 
 
 
+
+
+
+"use client";
+
+import { useState } from "react";
+
 import {
   PerformanceChart,
   QuickActions,
@@ -14,7 +21,35 @@ import {
 import type { StatCardProps } from "@/components/dashboard/widgets/StatCard";
 import type { QuickAction } from "@/components/dashboard/widgets/QuickActions";
 
+/* ============================================================
+   PLAN TYPES
+============================================================ */
+
+type Plan = "secondary" | "tertiary" | "professional";
+
+/* ============================================================
+   PAGE
+============================================================ */
+
 export default function AdminDashboardPage() {
+  /* ==========================================================
+     COLLAPSIBLE PLAN STATE
+
+     Only one plan can be open at a time.
+  ========================================================== */
+
+  const [openPlan, setOpenPlan] = useState<Plan | null>(null);
+
+  const togglePlan = (plan: Plan) => {
+    setOpenPlan((current) =>
+      current === plan ? null : plan,
+    );
+  };
+
+  /* ==========================================================
+     STATISTICS
+  ========================================================== */
+
   const stats: StatCardProps[] = [
     {
       title: "Registered Students",
@@ -44,38 +79,43 @@ export default function AdminDashboardPage() {
     },
   ];
 
+  /* ==========================================================
+     QUICK ACTIONS
+  ========================================================== */
+
   const quickActions: QuickAction[] = [
     {
-      title: "Create Competition",
-      description: "Launch a new competition",
-      href: "/admin/competitions",
-      icon: "trophy",
-    },
-    {
-      title: "Manage Students",
-      description: "View registered students",
-      href: "/admin/students",
-      icon: "users",
-    },
-    {
-      title: "Question Bank",
-      description: "Manage CBT questions",
-      href: "/admin/questions",
+      title: "CBT Practice",
+      description: "Manage CBT Questions",
+      href: "/admin/cbt/practice",
       icon: "book",
     },
-     {
-      title: "Solve n Win ",
-      description: "Manage Solve and Win questions",
-      href: "/admin/solveandwin",
+
+    {
+      title: "Direct Practice",
+      description: "Manage Direct Questions",
+      href: "/admin/practice",
       icon: "book",
     },
+
     {
-      title: "Payments",
-      description: "Review transactions",
-      href: "/admin/payments",
-      icon: "payment",
+      title: "Interactive Lessons",
+      description: "Manage Interactive Lessons",
+      href: "/admin/practice",
+      icon: "book",
+    },
+
+    {
+      title: "Lecture Videos",
+      description: "Manage Lectures on Videos",
+      href: "/admin/practice",
+      icon: "book",
     },
   ];
+
+  /* ==========================================================
+     COMPETITIONS
+  ========================================================== */
 
   const competitions = [
     {
@@ -87,6 +127,7 @@ export default function AdminDashboardPage() {
       status: "Registration Open" as const,
       href: "/admin/competitions/1",
     },
+
     {
       id: "2",
       title: "Science Masters Challenge",
@@ -98,6 +139,10 @@ export default function AdminDashboardPage() {
     },
   ];
 
+  /* ==========================================================
+     PERFORMANCE
+  ========================================================== */
+
   const performanceData = [
     { name: "Jan", score: 1200 },
     { name: "Feb", score: 1800 },
@@ -107,6 +152,10 @@ export default function AdminDashboardPage() {
     { name: "Jun", score: 4700 },
   ];
 
+  /* ==========================================================
+     RECENT ACTIVITIES
+  ========================================================== */
+
   const recentActivities = [
     {
       id: "1",
@@ -115,6 +164,7 @@ export default function AdminDashboardPage() {
       time: "15 minutes ago",
       type: "competition" as const,
     },
+
     {
       id: "2",
       title: "245 students registered",
@@ -122,6 +172,7 @@ export default function AdminDashboardPage() {
       time: "1 hour ago",
       type: "success" as const,
     },
+
     {
       id: "3",
       title: "Question bank updated",
@@ -133,7 +184,10 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome */}
+      {/* ======================================================
+          WELCOME
+      ====================================================== */}
+
       <section>
         <h1 className="text-3xl font-bold text-slate-900">
           Admin Dashboard
@@ -145,16 +199,58 @@ export default function AdminDashboardPage() {
         </p>
       </section>
 
-      {/* Statistics */}
+      {/* ======================================================
+          STATISTICS
+      ====================================================== */}
+
       <StatsGrid stats={stats} />
 
-      {/* Quick Actions */}
-      <QuickActions
-        title="Administrator Actions"
-        actions={quickActions}
-      />
+      {/* ======================================================
+          PLAN ADMINISTRATOR ACTIONS
+      ====================================================== */}
 
-      {/* Charts + Activity */}
+      <section className="space-y-3">
+        {/* ====================================================
+            SECONDARY
+        ==================================================== */}
+
+        <PlanAccordion
+          title="Secondary Plan Administrator Actions"
+          plan="secondary"
+          isOpen={openPlan === "secondary"}
+          onToggle={() => togglePlan("secondary")}
+          actions={quickActions}
+        />
+
+        {/* ====================================================
+            TERTIARY
+        ==================================================== */}
+
+        <PlanAccordion
+          title="Tertiary Plan Administrator Actions"
+          plan="tertiary"
+          isOpen={openPlan === "tertiary"}
+          onToggle={() => togglePlan("tertiary")}
+          actions={quickActions}
+        />
+
+        {/* ====================================================
+            PROFESSIONAL
+        ==================================================== */}
+
+        <PlanAccordion
+          title="Professional Plan Administrator Actions"
+          plan="professional"
+          isOpen={openPlan === "professional"}
+          onToggle={() => togglePlan("professional")}
+          actions={quickActions}
+        />
+      </section>
+
+      {/* ======================================================
+          CHARTS + ACTIVITY
+      ====================================================== */}
+
       <div className="grid gap-6 xl:grid-cols-3">
         <PerformanceChart
           className="xl:col-span-2"
@@ -163,12 +259,13 @@ export default function AdminDashboardPage() {
           data={performanceData}
         />
 
-        <RecentActivity
-          activities={recentActivities}
-        />
+        <RecentActivity activities={recentActivities} />
       </div>
 
-      {/* Upcoming Competitions */}
+      {/* ======================================================
+          UPCOMING COMPETITIONS
+      ====================================================== */}
+
       <UpcomingCompetitions
         title="Upcoming Competitions"
         competitions={competitions}
@@ -176,3 +273,121 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+/* ============================================================
+   PLAN ACCORDION
+============================================================ */
+
+interface PlanAccordionProps {
+  title: string;
+  plan: Plan;
+  isOpen: boolean;
+  onToggle: () => void;
+  actions: QuickAction[];
+}
+
+function PlanAccordion({
+  title,
+  plan,
+  isOpen,
+  onToggle,
+  actions,
+}: PlanAccordionProps) {
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 ${
+        isOpen
+          ? "border-blue-200"
+          : "border-slate-200"
+      }`}
+    >
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`${plan}-plan-actions`}
+        className={`flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition md:px-6 ${
+          isOpen
+            ? "bg-blue-50"
+            : "bg-white hover:bg-slate-50"
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          {/* Indicator */}
+
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition ${
+              isOpen
+                ? "bg-blue-600 text-white"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {isOpen ? "−" : "+"}
+          </div>
+
+          <div className="min-w-0">
+            <h2
+              className={`font-semibold transition ${
+                isOpen
+                  ? "text-blue-900"
+                  : "text-slate-900"
+              }`}
+            >
+              {title}
+            </h2>
+
+            <p className="mt-0.5 text-xs text-slate-500">
+              {isOpen
+                ? "Administrator actions are visible"
+                : "Click to view administrator actions"}
+            </p>
+          </div>
+        </div>
+
+        {/* Chevron */}
+
+        <svg
+          className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+
+      {/* ======================================================
+          CONTENT
+      ====================================================== */}
+
+      <div
+        id={`${plan}-plan-actions`}
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+          isOpen
+            ? "grid-rows-[1fr]"
+            : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="border-t border-slate-200 p-4 md:p-6">
+            <QuickActions
+              title=""
+              actions={actions}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

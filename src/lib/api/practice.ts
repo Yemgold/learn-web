@@ -226,7 +226,7 @@ export async function markPracticeSession(
   practiceId: string,
   questions: Array<{
     questionId: string;
-    answer: string | null;
+    selectedOption: string | null;
   }>,
 ) {
   console.log(

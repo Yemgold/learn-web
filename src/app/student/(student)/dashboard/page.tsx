@@ -87,24 +87,28 @@ export default function StudentDashboardPage() {
       href: "/student/competitions",
       icon: "trophy",
     },
+
+     {
+      title: "Solve & Win Questions",
+      description: " Earn While You Learn",
+      href: "/student/solve-and-win",
+       icon: "trophy",
+    },
+
     {
       title: "Learning Arena",
       description: "Learn through interactive lessons",
       href: "/student/arena",
       icon: "play",
     },
+
     {
-      title: "My Team",
-      description: "Manage your team",
-      href: "/student/team",
-      icon: "users",
+      title: "Past Quetions Mood",
+      description: "Practice Past Quetions",
+      href: "/student/practice",
+      icon: "book",
     },
-    {
-      title: "Leaderboard",
-      description: "See top-performing teams",
-      href: "/student/competitions/leaderboard",
-      icon: "medal",
-    },
+
   ];
 
   /* ============================================================

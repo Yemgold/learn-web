@@ -84,7 +84,7 @@ export interface ArenaProps {
 
 export default function Arena({
   questions = [],
-  timePerQuestion = 10,
+  timePerQuestion = 30,
   subject = "Physics",
   topic = "Mechanics",
   onComplete,

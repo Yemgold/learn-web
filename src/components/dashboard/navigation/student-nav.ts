@@ -69,10 +69,10 @@ export const studentNavigation: NavigationSection[] = [
   },
 
   {
-  title: "Learning CBT",
+  title: "Past Questions",
   items: [
     {
-      label: "Practice CBT",
+      label: "Practice Questions",
       description: "Simulate the real JAMB exams",
       href: "/student/practice",
       icon: BookOpen,

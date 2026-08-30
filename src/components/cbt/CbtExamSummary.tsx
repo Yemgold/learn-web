@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 "use client";
 
 import {
@@ -23,6 +27,9 @@ export interface CbtExamSummaryProps {
   score: number;
   percentage: number;
 
+  // CBT points awarded by the backend
+  totalPointsAwarded: number;
+
   onExit?: () => void;
   onReview?: () => void;
 }
@@ -35,6 +42,7 @@ export default function CbtExamSummary({
   correctAnswers,
   score,
   percentage,
+  totalPointsAwarded,
   onExit,
   onReview,
 }: CbtExamSummaryProps) {
@@ -67,6 +75,25 @@ export default function CbtExamSummary({
           <p className="mt-2 text-slate-500">
             {score} / {totalQuestions} points
           </p>
+
+          {/* CBT Points Earned */}
+          <div className="mt-6 border-t border-gray-100 pt-5">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl">🏆</span>
+
+              <span className="text-lg font-bold text-green-600">
+                +{totalPointsAwarded} Points
+              </span>
+            </div>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Get more points and use them for Solve &amp; Win questions
+              to win up to{" "}
+              <span className="font-semibold text-green-600">
+                ₦50,000 cash!
+              </span>
+            </p>
+          </div>
         </div>
       </div>
 

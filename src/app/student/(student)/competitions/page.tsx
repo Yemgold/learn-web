@@ -2,6 +2,9 @@
 
 
 
+
+
+
 import Link from "next/link";
 import {
   Trophy,
@@ -63,7 +66,7 @@ export default function StudentCompetitionsPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-lg text-slate-600">
-            View competitions you've joined, register for new
+            View competitions you've joined, join new
             competitions, and monitor upcoming events.
           </p>
         </div>
@@ -73,7 +76,9 @@ export default function StudentCompetitionsPage() {
           <Card hoverable className="text-center">
             <Trophy className="mx-auto h-12 w-12 text-yellow-500" />
 
-            <h2 className="mt-4 text-3xl font-bold">3</h2>
+            <h2 className="mt-4 text-3xl font-bold">
+              3
+            </h2>
 
             <p className="mt-2 text-slate-600">
               Total Competitions
@@ -83,7 +88,9 @@ export default function StudentCompetitionsPage() {
           <Card hoverable className="text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
 
-            <h2 className="mt-4 text-3xl font-bold">1</h2>
+            <h2 className="mt-4 text-3xl font-bold">
+              1
+            </h2>
 
             <p className="mt-2 text-slate-600">
               Joined
@@ -93,7 +100,9 @@ export default function StudentCompetitionsPage() {
           <Card hoverable className="text-center">
             <Clock3 className="mx-auto h-12 w-12 text-blue-600" />
 
-            <h2 className="mt-4 text-3xl font-bold">2</h2>
+            <h2 className="mt-4 text-3xl font-bold">
+              2
+            </h2>
 
             <p className="mt-2 text-slate-600">
               Upcoming
@@ -110,18 +119,29 @@ export default function StudentCompetitionsPage() {
               className="p-8"
             >
               <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                {/* Competition Information */}
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
                       {competition.subject}
                     </span>
 
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                        competition.status ===
+                        "Coming Soon"
+                          ? "bg-slate-100 text-slate-600"
+                          : competition.status ===
+                              "Registration Open"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
                       {competition.status}
                     </span>
                   </div>
 
-                  <h2 className="mt-5 text-3xl font-bold">
+                  <h2 className="mt-5 text-3xl font-bold text-slate-900">
                     {competition.title}
                   </h2>
 
@@ -143,9 +163,12 @@ export default function StudentCompetitionsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
+                {/* Actions */}
+                <div className="flex w-full flex-col gap-4 lg:w-56">
+                  {/* Competition Details */}
                   <Link
                     href={`/student/competitions/${competition.id}`}
+                    className="w-full"
                   >
                     <Button
                       fullWidth
@@ -157,27 +180,45 @@ export default function StudentCompetitionsPage() {
                     </Button>
                   </Link>
 
+                  {/* Joined / Not Joined */}
                   {competition.joined ? (
-                    <Link
-                      href={`/student/competitions/${competition.id}/room`}
-                    >
-                      <Button
-                        fullWidth
-                        variant="outline"
+                    <>
+                      <Link
+                        href={`/student/competitions/${competition.id}/team`}
+                        className="w-full"
                       >
-                        Enter Waiting Room 
-                      </Button>
-                    </Link>
+                        <Button
+                          fullWidth
+                          variant="secondary"
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          My Team
+                        </Button>
+                      </Link>
+
+                      <Link
+                        href={`/student/competitions/${competition.id}/room`}
+                        className="w-full"
+                      >
+                        <Button
+                          fullWidth
+                          variant="outline"
+                        >
+                          Enter Waiting Room
+                        </Button>
+                      </Link>
+                    </>
                   ) : (
                     <Link
-                      
-                      href={`/student/competitions/${competition.id}/team/create`}
+                      href={`/student/competitions/${competition.id}/team/register`}
+                      className="w-full"
                     >
                       <Button
                         fullWidth
                         variant="secondary"
                       >
-                        Register Team
+                        <Users className="mr-2 h-4 w-4" />
+                        Join / Create Team
                       </Button>
                     </Link>
                   )}

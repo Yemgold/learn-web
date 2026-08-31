@@ -58,18 +58,6 @@ export const studentNavigation: NavigationSection[] = [
     ],
   },
 
-   {
-    title: "Team",
-    items: [
-      {
-        label: "My Team",
-        href: "/student/competitions/${competitionId}/team",
-      
-        icon: Users,
-      },
-    ],
-  },
-
   {
   title: "Past Questions",
   items: [

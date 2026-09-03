@@ -4,8 +4,10 @@
 
 
 
+
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -13,9 +15,9 @@ import {
   BookOpen,
   CalendarDays,
   CheckCircle2,
-  Clock3,
   Eye,
   FileQuestion,
+  Loader2,
   Pencil,
   Plus,
   Settings2,
@@ -24,162 +26,58 @@ import {
   Trash2,
   ChevronRight,
   AlertCircle,
+  Coins,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getContestWithSubjectsById } from "@/lib/api/solveAndWin";
 
 /* ============================================================
-   TYPES
+   API TYPES
    ============================================================ */
 
-interface CompetitionSubject {
-  id: string;
-  subjectId: string;
-  name: string;
-  questionCount: number;
-  selectedQuestions: number;
-  marksPerQuestion: number;
-  easy: number;
-  medium: number;
-  hard: number;
+interface ContestSubject {
+  subjectId:
+    | string
+    | {
+        _id: string;
+        name: string;
+      };
+
+  questions: unknown[];
 }
 
-interface Competition {
-  id: string;
+interface ContestData {
+  _id: string;
   title: string;
   description: string;
   category: string;
+  amountToBeWonInKobo: number;
+  entryPoints: number;
+  subjects: ContestSubject[];
   status: string;
-
+  isActive: boolean;
   startDate: string;
   endDate: string;
-
-  registrationStart: string;
-  registrationEnd: string;
-
-  teams: number;
-  maxTeams: number;
-
-  subjects: CompetitionSubject[];
-
-  totalQuestions: number;
-  totalMarks: number;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
 }
 
 /* ============================================================
-   TEMPORARY COMPETITION DATA
-   ============================================================
-
-   IMPORTANT:
-
-   This is temporary UI data.
-
-   Replace this with your backend request when your
-   competition endpoints are ready.
-
-   Recommended endpoint:
-
-   GET /admin/solve-and-win/competitions/:competitionId
-
+   HELPERS
    ============================================================ */
 
-const competition: Competition = {
-  id: "1",
+function getStatusClass(
+  status: string,
+  isActive: boolean,
+) {
+  if (!isActive) {
+    return "bg-slate-100 text-slate-600";
+  }
 
-  title: "JAMB League 2027 Championship",
-
-  description:
-    "The national JAMB League championship where students compete across multiple subjects and test their CBT knowledge.",
-
-  category: "National",
-
-  status: "Upcoming",
-
-  startDate: "15 Jan 2027",
-
-  endDate: "20 Jan 2027",
-
-  registrationStart: "01 Dec 2026",
-
-  registrationEnd: "10 Jan 2027",
-
-  teams: 425,
-
-  maxTeams: 1000,
-
-  subjects: [
-    {
-      id: "subject-1",
-      subjectId: "english",
-      name: "Use of English",
-      questionCount: 40,
-      selectedQuestions: 40,
-      marksPerQuestion: 2,
-      easy: 12,
-      medium: 20,
-      hard: 8,
-    },
-
-    {
-      id: "subject-2",
-      subjectId: "mathematics",
-      name: "Mathematics",
-      questionCount: 40,
-      selectedQuestions: 38,
-      marksPerQuestion: 2,
-      easy: 12,
-      medium: 20,
-      hard: 8,
-    },
-
-    {
-      id: "subject-3",
-      subjectId: "biology",
-      name: "Biology",
-      questionCount: 30,
-      selectedQuestions: 30,
-      marksPerQuestion: 2,
-      easy: 10,
-      medium: 14,
-      hard: 6,
-    },
-
-    {
-      id: "subject-4",
-      subjectId: "chemistry",
-      name: "Chemistry",
-      questionCount: 30,
-      selectedQuestions: 30,
-      marksPerQuestion: 2,
-      easy: 10,
-      medium: 14,
-      hard: 6,
-    },
-
-    {
-      id: "subject-5",
-      subjectId: "physics",
-      name: "Physics",
-      questionCount: 40,
-      selectedQuestions: 35,
-      marksPerQuestion: 2,
-      easy: 12,
-      medium: 20,
-      hard: 8,
-    },
-  ],
-
-  totalQuestions: 180,
-
-  totalMarks: 360,
-};
-
-/* ============================================================
-   STATUS
-   ============================================================ */
-
-function getStatusClass(status: string) {
   switch (status.toLowerCase()) {
     case "active":
       return "bg-green-100 text-green-700";
@@ -196,9 +94,133 @@ function getStatusClass(status: string) {
     case "draft":
       return "bg-purple-100 text-purple-700";
 
+    case "cancelled":
+    case "canceled":
+      return "bg-red-100 text-red-700";
+
     default:
       return "bg-slate-100 text-slate-600";
   }
+}
+
+function formatStatus(
+  status: string,
+  isActive: boolean,
+) {
+  if (!isActive) {
+    return "Inactive";
+  }
+
+  if (!status) {
+    return "Unknown";
+  }
+
+  return status
+    .toLowerCase()
+    .split(/[\s_-]+/)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1),
+    )
+    .join(" ");
+}
+
+function formatDate(date: string) {
+  if (!date) {
+    return "—";
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date;
+  }
+
+  return parsedDate.toLocaleDateString("en-NG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(date: string) {
+  if (!date) {
+    return "—";
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date;
+  }
+
+  return parsedDate.toLocaleString("en-NG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatCurrencyFromKobo(
+  amountInKobo: number,
+) {
+  const amount =
+    Number(amountInKobo || 0) / 100;
+
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function getSubjectName(name: string) {
+  if (!name) {
+    return "Unknown Subject";
+  }
+
+  return name
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (character) =>
+      character.toUpperCase(),
+    );
+}
+
+/* ============================================================
+   NORMALIZE SUBJECT
+   ============================================================ */
+
+function getSubjectId(
+  subject: ContestSubject,
+): string {
+  if (
+    typeof subject.subjectId === "object" &&
+    subject.subjectId !== null
+  ) {
+    return subject.subjectId._id;
+  }
+
+  return String(subject.subjectId);
+}
+
+function getSubjectDisplayName(
+  subject: ContestSubject,
+): string {
+  if (
+    typeof subject.subjectId === "object" &&
+    subject.subjectId !== null
+  ) {
+    return getSubjectName(
+      subject.subjectId.name,
+    );
+  }
+
+  return getSubjectName(
+    String(subject.subjectId),
+  );
 }
 
 /* ============================================================
@@ -209,29 +231,197 @@ export default function CompetitionManagementPage() {
   const params = useParams();
 
   const competitionId = String(
-    params?.competitionId ?? competition.id,
+    params?.competitionId ?? "",
   );
+
+  const [competition, setCompetition] =
+    useState<ContestData | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  /* ==========================================================
+     FETCH COMPETITION
+     ========================================================== */
+
+  const fetchCompetition = async () => {
+    if (!competitionId) {
+      setError("Competition ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response =
+        await getContestWithSubjectsById(
+          competitionId,
+        );
+
+      if (!response?.success) {
+        throw new Error(
+          response?.message ||
+            "Unable to load competition.",
+        );
+      }
+
+      setCompetition(
+        response.data as ContestData,
+      );
+    } catch (err) {
+      console.error(
+        "Failed to load Solve and Win competition:",
+        err,
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load competition. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ==========================================================
+     LOAD ON MOUNT
+     ========================================================== */
+
+  useEffect(() => {
+    fetchCompetition();
+  }, [competitionId]);
 
   /* ==========================================================
      DERIVED DATA
      ========================================================== */
 
+  const subjects =
+    competition?.subjects ?? [];
+
   const totalSubjects =
-    competition.subjects.length;
+    subjects.length;
 
-  const incompleteSubjects =
-    competition.subjects.filter(
-      (subject) =>
-        subject.selectedQuestions <
-        subject.questionCount,
+  const totalQuestions = useMemo(() => {
+    return subjects.reduce(
+      (total, subject) =>
+        total +
+        (Array.isArray(subject.questions)
+          ? subject.questions.length
+          : 0),
+      0,
     );
+  }, [subjects]);
 
-  const configuredSubjects =
-    competition.subjects.filter(
-      (subject) =>
-        subject.selectedQuestions ===
-        subject.questionCount,
+  const subjectsWithQuestions =
+    useMemo(() => {
+      return subjects.filter(
+        (subject) =>
+          Array.isArray(subject.questions) &&
+          subject.questions.length > 0,
+      ).length;
+    }, [subjects]);
+
+  const subjectsWithoutQuestions =
+    useMemo(() => {
+      return subjects.filter(
+        (subject) =>
+          !Array.isArray(subject.questions) ||
+          subject.questions.length === 0,
+      ).length;
+    }, [subjects]);
+
+  /* ==========================================================
+     LOADING
+     ========================================================== */
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="container mx-auto max-w-7xl px-4 py-10">
+          <Link
+            href="/admin/secondary/solveandwin/competitions"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Competitions
+          </Link>
+
+          <div className="mt-8 flex min-h-[400px] items-center justify-center rounded-3xl border bg-white shadow-sm">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-10 w-10 animate-spin text-blue-600" />
+
+              <h2 className="mt-4 text-lg font-bold text-slate-900">
+                Loading competition...
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Fetching competition details and
+                subjects.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
     );
+  }
+
+  /* ==========================================================
+     ERROR
+     ========================================================== */
+
+  if (error || !competition) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="container mx-auto max-w-7xl px-4 py-10">
+          <Link
+            href="/admin/secondary/solveandwin/competitions"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Competitions
+          </Link>
+
+          <Card className="mt-8 p-10 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+
+            <h1 className="mt-5 text-2xl font-bold text-slate-900">
+              Unable to load competition
+            </h1>
+
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+              {error ||
+                "The competition could not be found."}
+            </p>
+
+            <div className="mt-6 flex justify-center gap-3">
+              <Button
+                onClick={fetchCompetition}
+                leftIcon={
+                  <RefreshCw className="h-4 w-4" />
+                }
+              >
+                Try Again
+              </Button>
+
+              <Link href="/admin/secondary/solveandwin/competitions">
+                <Button variant="outline">
+                  Back to Competitions
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   /* ==========================================================
      RENDER
@@ -240,7 +430,6 @@ export default function CompetitionManagementPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="container mx-auto max-w-7xl px-4 py-10">
-
         {/* ==================================================
            BACK
            ================================================== */}
@@ -258,15 +447,11 @@ export default function CompetitionManagementPage() {
            ================================================== */}
 
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm md:p-8">
-
           <div className="flex flex-col gap-7 lg:flex-row lg:items-start lg:justify-between">
-
             {/* Competition Information */}
 
             <div className="min-w-0">
-
               <div className="flex flex-wrap items-center gap-3">
-
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                   {competition.category}
                 </span>
@@ -274,11 +459,14 @@ export default function CompetitionManagementPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
                     competition.status,
+                    competition.isActive,
                   )}`}
                 >
-                  {competition.status}
+                  {formatStatus(
+                    competition.status,
+                    competition.isActive,
+                  )}
                 </span>
-
               </div>
 
               <h1 className="mt-4 text-3xl font-bold text-slate-900 md:text-4xl">
@@ -289,39 +477,62 @@ export default function CompetitionManagementPage() {
                 {competition.description}
               </p>
 
-              {/* Dates */}
+              {/* Competition Metadata */}
 
               <div className="mt-6 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-600">
-
                 <span className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-blue-600" />
 
                   Competition:
+
                   <strong className="text-slate-900">
-                    {competition.startDate}
+                    {formatDate(
+                      competition.startDate,
+                    )}
                   </strong>
 
                   →
+
                   <strong className="text-slate-900">
-                    {competition.endDate}
+                    {formatDate(
+                      competition.endDate,
+                    )}
                   </strong>
                 </span>
 
                 <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-purple-600" />
+                  <Coins className="h-4 w-4 text-emerald-600" />
 
-                  {competition.teams}/
-                  {competition.maxTeams} Teams
+                  Prize:
+
+                  <strong className="text-slate-900">
+                    {formatCurrencyFromKobo(
+                      competition.amountToBeWonInKobo,
+                    )}
+                  </strong>
                 </span>
 
+                <span className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-600" />
+
+                  Entry:
+
+                  <strong className="text-slate-900">
+                    {competition.entryPoints}{" "}
+                    points
+                  </strong>
+                </span>
               </div>
 
+              <p className="mt-4 text-xs text-slate-400">
+                Competition ID:{" "}
+                {competition._id}
+              </p>
             </div>
 
             {/* Header Actions */}
 
             <div className="flex flex-wrap gap-3">
-
               <Link
                 href={`/admin/secondary/solveandwin/competitions/${competitionId}/edit`}
               >
@@ -342,11 +553,8 @@ export default function CompetitionManagementPage() {
               >
                 Settings
               </Button>
-
             </div>
-
           </div>
-
         </div>
 
         {/* ==================================================
@@ -354,15 +562,11 @@ export default function CompetitionManagementPage() {
            ================================================== */}
 
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Subjects */}
 
           <Card className="p-5">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
-                <BookOpen className="h-5 w-5 text-blue-600" />
-              </div>
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
+              <BookOpen className="h-5 w-5 text-blue-600" />
             </div>
 
             <p className="mt-5 text-2xl font-bold text-slate-900">
@@ -372,122 +576,102 @@ export default function CompetitionManagementPage() {
             <p className="mt-1 text-sm text-slate-500">
               Subjects
             </p>
-
           </Card>
 
+          {/* Questions */}
+
           <Card className="p-5">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-100">
-                <FileQuestion className="h-5 w-5 text-purple-600" />
-              </div>
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-100">
+              <FileQuestion className="h-5 w-5 text-purple-600" />
             </div>
 
             <p className="mt-5 text-2xl font-bold text-slate-900">
-              {competition.totalQuestions}
+              {totalQuestions}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Questions
+              Attached Questions
             </p>
-
           </Card>
 
+          {/* Prize */}
+
           <Card className="p-5">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100">
-                <Trophy className="h-5 w-5 text-emerald-600" />
-              </div>
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100">
+              <Trophy className="h-5 w-5 text-emerald-600" />
             </div>
 
             <p className="mt-5 text-2xl font-bold text-slate-900">
-              {competition.totalMarks}
+              {formatCurrencyFromKobo(
+                competition.amountToBeWonInKobo,
+              )}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Total Marks
+              Prize
             </p>
-
           </Card>
 
+          {/* Entry Points */}
+
           <Card className="p-5">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100">
-                <Users className="h-5 w-5 text-orange-600" />
-              </div>
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100">
+              <Coins className="h-5 w-5 text-orange-600" />
             </div>
 
             <p className="mt-5 text-2xl font-bold text-slate-900">
-              {competition.teams}
+              {competition.entryPoints}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Registered Teams
+              Entry Points
             </p>
-
           </Card>
 
+          {/* Configured Subjects */}
+
           <Card className="p-5">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
             </div>
 
             <p className="mt-5 text-2xl font-bold text-slate-900">
-  {configuredSubjects.length}
-</p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Fully Configured
+              {subjectsWithQuestions}/
+              {totalSubjects}
             </p>
 
+            <p className="mt-1 text-sm text-slate-500">
+              Subjects With Questions
+            </p>
           </Card>
-
         </div>
 
         {/* ==================================================
            CONFIGURATION WARNING
            ================================================== */}
 
-        {incompleteSubjects.length > 0 && (
+        {subjectsWithoutQuestions > 0 && (
           <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-
             <div className="flex items-start gap-3">
-
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
 
               <div>
-
                 <p className="font-semibold text-amber-900">
                   Competition setup is incomplete
                 </p>
 
                 <p className="mt-1 text-sm leading-6 text-amber-800">
-                  {incompleteSubjects.length}{" "}
-                  {incompleteSubjects.length === 1
+                  {subjectsWithoutQuestions}{" "}
+                  {subjectsWithoutQuestions ===
+                  1
                     ? "subject has"
                     : "subjects have"}{" "}
-                  fewer selected questions than required.
-                  Complete the question setup before the
-                  competition starts.
+                  no questions attached yet. Add
+                  questions before students
+                  participate in the competition.
                 </p>
-
               </div>
-
             </div>
-
           </div>
         )}
 
@@ -496,20 +680,16 @@ export default function CompetitionManagementPage() {
            ================================================== */}
 
         <section className="mt-8">
-
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
             <div>
-
               <h2 className="text-2xl font-bold text-slate-900">
                 Competition Subjects
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Add subjects and configure the questions
-                students will answer.
+                Manage the subjects and questions
+                attached to this competition.
               </p>
-
             </div>
 
             <Link
@@ -523,14 +703,12 @@ export default function CompetitionManagementPage() {
                 Add Subject
               </Button>
             </Link>
-
           </div>
 
           {/* Subject List */}
 
-          {competition.subjects.length === 0 ? (
+          {subjects.length === 0 ? (
             <Card className="p-12 text-center">
-
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100">
                 <BookOpen className="h-8 w-8 text-blue-600" />
               </div>
@@ -540,13 +718,12 @@ export default function CompetitionManagementPage() {
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                Add the first subject to this competition,
-                then select the questions students will
-                answer.
+                Add the first subject to this
+                competition, then attach the
+                questions students will answer.
               </p>
 
               <div className="mt-6">
-
                 <Link
                   href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/add`}
                 >
@@ -558,63 +735,55 @@ export default function CompetitionManagementPage() {
                     Add First Subject
                   </Button>
                 </Link>
-
               </div>
-
             </Card>
           ) : (
             <div className="space-y-5">
-
-              {competition.subjects.map(
+              {subjects.map(
                 (subject) => {
+                  const subjectId =
+                    getSubjectId(subject);
 
-                  const isComplete =
-                    subject.selectedQuestions ===
-                    subject.questionCount;
+                  const subjectName =
+                    getSubjectDisplayName(
+                      subject,
+                    );
 
-                  const progress =
-                    subject.questionCount > 0
-                      ? Math.min(
-                          100,
-                          Math.round(
-                            (subject.selectedQuestions /
-                              subject.questionCount) *
-                              100,
-                          ),
-                        )
+                  const questionCount =
+                    Array.isArray(
+                      subject.questions,
+                    )
+                      ? subject.questions.length
                       : 0;
+
+                  const hasQuestions =
+                    questionCount > 0;
 
                   return (
                     <Card
-                      key={subject.id}
+                      key={subjectId}
                       hoverable
                       className="p-6"
                     >
-
                       <div className="flex flex-col gap-6">
-
                         {/* Subject Header */}
 
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-
                           <div className="flex gap-4">
-
                             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-100">
                               <BookOpen className="h-7 w-7 text-blue-600" />
                             </div>
 
                             <div>
-
                               <div className="flex flex-wrap items-center gap-3">
-
                                 <h3 className="text-xl font-bold text-slate-900">
-                                  {subject.name}
+                                  {subjectName}
                                 </h3>
 
-                                {isComplete ? (
+                                {hasQuestions ? (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                                     <CheckCircle2 className="h-3.5 w-3.5" />
-                                    Complete
+                                    Questions Added
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
@@ -622,24 +791,20 @@ export default function CompetitionManagementPage() {
                                     Needs Questions
                                   </span>
                                 )}
-
                               </div>
 
                               <p className="mt-1 text-sm text-slate-500">
                                 Subject ID:{" "}
-                                {subject.subjectId}
+                                {subjectId}
                               </p>
-
                             </div>
-
                           </div>
 
                           {/* Subject Actions */}
 
                           <div className="flex flex-wrap gap-2">
-
                             <Link
-                              href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/${subject.id}`}
+                              href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/${subjectId}`}
                             >
                               <Button
                                 leftIcon={
@@ -658,135 +823,101 @@ export default function CompetitionManagementPage() {
                             >
                               Preview
                             </Button>
-
                           </div>
-
                         </div>
 
                         {/* Question Progress */}
 
                         <div>
-
                           <div className="mb-2 flex items-center justify-between gap-3">
-
                             <div>
-
                               <p className="text-sm font-semibold text-slate-900">
                                 Questions
                               </p>
 
                               <p className="mt-1 text-xs text-slate-500">
-                                {subject.selectedQuestions}{" "}
-                                of{" "}
-                                {subject.questionCount}{" "}
-                                selected
+                                {questionCount}{" "}
+                                question
+                                {questionCount ===
+                                1
+                                  ? ""
+                                  : "s"}{" "}
+                                attached to this
+                                subject
                               </p>
-
                             </div>
 
                             <span className="text-sm font-bold text-slate-700">
-                              {progress}%
+                              {questionCount}
                             </span>
-
                           </div>
 
                           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-
                             <div
                               className={`h-full rounded-full transition-all ${
-                                isComplete
+                                hasQuestions
                                   ? "bg-green-500"
-                                  : "bg-blue-500"
+                                  : "bg-amber-500"
                               }`}
                               style={{
-                                width: `${progress}%`,
+                                width: hasQuestions
+                                  ? "100%"
+                                  : "0%",
                               }}
                             />
-
                           </div>
-
                         </div>
 
                         {/* Subject Configuration */}
 
-                        <div className="grid gap-3 border-t pt-5 sm:grid-cols-2 lg:grid-cols-5">
-
+                        <div className="grid gap-3 border-t pt-5 sm:grid-cols-2 lg:grid-cols-3">
                           <div className="rounded-xl bg-slate-50 p-4">
-
                             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              Questions
+                              Subject
                             </p>
 
                             <p className="mt-1 text-lg font-bold text-slate-900">
-                              {subject.questionCount}
+                              {subjectName}
                             </p>
-
                           </div>
 
                           <div className="rounded-xl bg-slate-50 p-4">
-
                             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              Marks / Question
+                              Attached Questions
                             </p>
 
                             <p className="mt-1 text-lg font-bold text-slate-900">
-                              {subject.marksPerQuestion}
+                              {questionCount}
                             </p>
-
                           </div>
 
                           <div className="rounded-xl bg-slate-50 p-4">
-
                             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              Easy
+                              Subject ID
                             </p>
 
-                            <p className="mt-1 text-lg font-bold text-slate-900">
-                              {subject.easy}
+                            <p className="mt-1 truncate text-sm font-bold text-slate-900">
+                              {subjectId}
                             </p>
-
                           </div>
-
-                          <div className="rounded-xl bg-slate-50 p-4">
-
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              Medium
-                            </p>
-
-                            <p className="mt-1 text-lg font-bold text-slate-900">
-                              {subject.medium}
-                            </p>
-
-                          </div>
-
-                          <div className="rounded-xl bg-slate-50 p-4">
-
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                              Hard
-                            </p>
-
-                            <p className="mt-1 text-lg font-bold text-slate-900">
-                              {subject.hard}
-                            </p>
-
-                          </div>
-
                         </div>
 
                         {/* Bottom Actions */}
 
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
-
                           <p className="text-xs text-slate-400">
-                            {subject.selectedQuestions}{" "}
-                            questions currently attached
-                            to this subject.
+                            {questionCount}{" "}
+                            question
+                            {questionCount === 1
+                              ? ""
+                              : "s"}{" "}
+                            currently attached to
+                            this subject.
                           </p>
 
                           <div className="flex flex-wrap gap-2">
-
                             <Link
-                              href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/${subject.id}/questions`}
+                              href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/${subjectId}/questions`}
                             >
                               <Button
                                 variant="outline"
@@ -816,21 +947,81 @@ export default function CompetitionManagementPage() {
                             >
                               Remove
                             </Button>
-
                           </div>
-
                         </div>
-
                       </div>
-
                     </Card>
                   );
                 },
               )}
-
             </div>
           )}
+        </section>
 
+        {/* ==================================================
+           COMPETITION INFORMATION
+           ================================================== */}
+
+        <section className="mt-10">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Competition Information
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Important details configured for this
+              competition.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Prize
+              </p>
+
+              <p className="mt-2 text-xl font-bold text-slate-900">
+                {formatCurrencyFromKobo(
+                  competition.amountToBeWonInKobo,
+                )}
+              </p>
+            </Card>
+
+            <Card className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Entry Cost
+              </p>
+
+              <p className="mt-2 text-xl font-bold text-slate-900">
+                {competition.entryPoints}{" "}
+                points
+              </p>
+            </Card>
+
+            <Card className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Start Date
+              </p>
+
+              <p className="mt-2 text-lg font-bold text-slate-900">
+                {formatDateTime(
+                  competition.startDate,
+                )}
+              </p>
+            </Card>
+
+            <Card className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                End Date
+              </p>
+
+              <p className="mt-2 text-lg font-bold text-slate-900">
+                {formatDateTime(
+                  competition.endDate,
+                )}
+              </p>
+            </Card>
+          </div>
         </section>
 
         {/* ==================================================
@@ -838,29 +1029,24 @@ export default function CompetitionManagementPage() {
            ================================================== */}
 
         <section className="mt-10">
-
           <div className="mb-5">
-
             <h2 className="text-2xl font-bold text-slate-900">
               Competition Management
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage the other operational parts of this
-              competition.
+              Manage the other operational parts of
+              this competition.
             </p>
-
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
-
             {/* Participants */}
 
             <Card
               hoverable
               className="p-6"
             >
-
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100">
                 <Users className="h-6 w-6 text-purple-600" />
               </div>
@@ -881,7 +1067,6 @@ export default function CompetitionManagementPage() {
                 Manage Participants
                 <ChevronRight className="h-4 w-4" />
               </Link>
-
             </Card>
 
             {/* Schedule */}
@@ -890,7 +1075,6 @@ export default function CompetitionManagementPage() {
               hoverable
               className="p-6"
             >
-
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100">
                 <CalendarDays className="h-6 w-6 text-blue-600" />
               </div>
@@ -900,8 +1084,9 @@ export default function CompetitionManagementPage() {
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Configure registration periods,
-                competition dates and timing.
+                Configure competition dates and
+                review the current competition
+                window.
               </p>
 
               <Link
@@ -911,7 +1096,6 @@ export default function CompetitionManagementPage() {
                 Manage Schedule
                 <ChevronRight className="h-4 w-4" />
               </Link>
-
             </Card>
 
             {/* Results */}
@@ -920,7 +1104,6 @@ export default function CompetitionManagementPage() {
               hoverable
               className="p-6"
             >
-
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100">
                 <Trophy className="h-6 w-6 text-yellow-600" />
               </div>
@@ -941,11 +1124,8 @@ export default function CompetitionManagementPage() {
                 View Results
                 <ChevronRight className="h-4 w-4" />
               </Link>
-
             </Card>
-
           </div>
-
         </section>
 
         {/* ==================================================
@@ -953,11 +1133,8 @@ export default function CompetitionManagementPage() {
            ================================================== */}
 
         <section className="mt-10 rounded-3xl border bg-white p-6 shadow-sm md:p-8">
-
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
             <div>
-
               <h2 className="text-xl font-bold text-slate-900">
                 Quick Actions
               </h2>
@@ -965,11 +1142,9 @@ export default function CompetitionManagementPage() {
               <p className="mt-1 text-sm text-slate-500">
                 Frequently used competition controls.
               </p>
-
             </div>
 
             <div className="flex flex-wrap gap-3">
-
               <Link
                 href={`/admin/secondary/solveandwin/competitions/${competitionId}/subjects/add`}
               >
@@ -1007,13 +1182,9 @@ export default function CompetitionManagementPage() {
                   Results
                 </Button>
               </Link>
-
             </div>
-
           </div>
-
         </section>
-
       </div>
     </main>
   );

@@ -70,11 +70,6 @@ export const studentNavigation: NavigationSection[] = [
   ],
 },
 
-
-
-
-
-
   {
   title: "Learning Arena",
   items: [

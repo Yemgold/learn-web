@@ -1,10 +1,15 @@
 
 
 
+
+
+
+
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { useForm } from "react-hook-form";
@@ -12,14 +17,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from "@/components/ui/button";
-import {LoadingButton} from "@/components/ui/button";
+import {
+  Button,
+  LoadingButton,
+} from "@/components/ui/button";
 
 import { Input } from "@/components/ui/input";
 
 import {
   AuthCard,
-  AuthHeader,
   AuthFooter,
   Divider,
   PasswordInput,
@@ -30,7 +36,7 @@ import { useLogin } from "@/hooks/auth/useLogin";
 
 /* ============================================================
    VALIDATION
-   ============================================================ */
+============================================================ */
 
 const loginSchema = z.object({
   email: z
@@ -46,13 +52,11 @@ const loginSchema = z.object({
     ),
 });
 
-type LoginFormData = z.infer<
-  typeof loginSchema
->;
+type LoginFormData = z.infer<typeof loginSchema>;
 
 /* ============================================================
    PROPS
-   ============================================================ */
+============================================================ */
 
 interface LoginFormProps {
   adminOnly?: boolean;
@@ -60,7 +64,7 @@ interface LoginFormProps {
 
 /* ============================================================
    COMPONENT
-   ============================================================ */
+============================================================ */
 
 export default function LoginForm({
   adminOnly = false,
@@ -71,7 +75,7 @@ export default function LoginForm({
 
   /* ============================================================
      FORCE SWITCH STATE
-     ============================================================ */
+  ============================================================ */
 
   const [showForceSwitch, setShowForceSwitch] =
     useState(false);
@@ -87,7 +91,7 @@ export default function LoginForm({
 
   /* ============================================================
      FORM
-     ============================================================ */
+  ============================================================ */
 
   const {
     register,
@@ -104,14 +108,12 @@ export default function LoginForm({
 
   /* ============================================================
      REDIRECT USER BASED ON ROLE
-     ============================================================ */
+  ============================================================ */
 
-  const redirectAfterLogin = (
-    role: string,
-  ) => {
+  const redirectAfterLogin = (role: string) => {
     /* ========================================================
        ADMIN LOGIN PAGE
-       ======================================================== */
+    ======================================================== */
 
     if (adminOnly) {
       if (role !== "ADMIN") {
@@ -129,7 +131,7 @@ export default function LoginForm({
 
     /* ========================================================
        NORMAL LOGIN REDIRECT
-       ======================================================== */
+    ======================================================== */
 
     switch (role) {
       case "ADMIN":
@@ -137,16 +139,12 @@ export default function LoginForm({
         break;
 
       case "ORGANIZER":
-        router.push(
-          "/organizer/dashboard",
-        );
+        router.push("/organizer/dashboard");
         break;
 
       case "STUDENT":
       case "USER":
-        router.push(
-          "/student/dashboard",
-        );
+        router.push("/student/dashboard");
         break;
 
       default:
@@ -162,36 +160,33 @@ export default function LoginForm({
 
   /* ============================================================
      NORMAL LOGIN
-     ============================================================ */
+  ============================================================ */
 
   const onSubmit = async (
     data: LoginFormData,
   ) => {
     /* ========================================================
        CLEAR OLD FORCE-SWITCH ERROR
-       ======================================================== */
+    ======================================================== */
 
     setForceSwitchError(null);
 
     try {
       const response =
-        await loginMutation.mutateAsync(
-          data,
-        );
+        await loginMutation.mutateAsync(data);
 
       /* ========================================================
          GET USER ROLE
-         ======================================================== */
+      ======================================================== */
 
       const role =
         response.data.user.role;
 
       /* ========================================================
          REDIRECT
-         ======================================================== */
+      ======================================================== */
 
       redirectAfterLogin(role);
-
     } catch (error: any) {
       console.error(
         "Login failed:",
@@ -200,7 +195,7 @@ export default function LoginForm({
 
       /* ========================================================
          FORCE SWITCH REQUIRED
-         ======================================================== */
+      ======================================================== */
 
       const status =
         error?.response?.status;
@@ -218,13 +213,13 @@ export default function LoginForm({
       ) {
         /* ======================================================
            SAVE LOGIN DATA
-           ====================================================== */
+        ====================================================== */
 
         setForceSwitchData(data);
 
         /* ======================================================
            GET CURRENT DEVICE
-           ====================================================== */
+        ====================================================== */
 
         setCurrentDevice(
           errorData?.currentDevice ??
@@ -233,7 +228,7 @@ export default function LoginForm({
 
         /* ======================================================
            SHOW FORCE SWITCH UI
-           ====================================================== */
+        ====================================================== */
 
         setShowForceSwitch(true);
 
@@ -242,7 +237,7 @@ export default function LoginForm({
 
       /* ========================================================
          OTHER LOGIN ERRORS
-         ======================================================== */
+      ======================================================== */
 
       console.error(
         "Unhandled login error:",
@@ -253,96 +248,93 @@ export default function LoginForm({
 
   /* ============================================================
      FORCE SWITCH
-     ============================================================ */
+  ============================================================ */
 
-  const handleForceSwitch =
-    async () => {
-      if (!forceSwitchData) {
-        console.error(
-          "No login data available for force switch.",
+  const handleForceSwitch = async () => {
+    if (!forceSwitchData) {
+      console.error(
+        "No login data available for force switch.",
+      );
+
+      return;
+    }
+
+    /* ========================================================
+       CLEAR PREVIOUS FORCE SWITCH ERROR
+    ======================================================== */
+
+    setForceSwitchError(null);
+
+    try {
+      console.log(
+        "========== STARTING FORCE SWITCH ==========",
+      );
+
+      /* ======================================================
+         CALL FORCE SWITCH MUTATION
+      ====================================================== */
+
+      const response =
+        await loginMutation.forceSwitchMutation.mutateAsync(
+          forceSwitchData,
         );
 
-        return;
-      }
+      console.log(
+        "========== FORCE SWITCH COMPLETED ==========",
+      );
 
-      /* ========================================================
-         CLEAR PREVIOUS FORCE SWITCH ERROR
-         ======================================================== */
+      console.log(response);
 
-      setForceSwitchError(null);
+      /* ======================================================
+         GET USER ROLE
+      ====================================================== */
 
-      try {
-        console.log(
-          "========== STARTING FORCE SWITCH ==========",
-        );
+      const role =
+        response.data.user.role;
 
-        /* ======================================================
-           CALL FORCE SWITCH MUTATION
-           ====================================================== */
+      /* ======================================================
+         CLOSE FORCE SWITCH UI
+      ====================================================== */
 
-        const response =
-          await loginMutation.forceSwitchMutation.mutateAsync(
-            forceSwitchData,
-          );
-
-        console.log(
-          "========== FORCE SWITCH COMPLETED ==========",
-        );
-
-        console.log(response);
-
-        /* ======================================================
-           GET USER ROLE
-           ====================================================== */
-
-        const role =
-          response.data.user.role;
-
-        /* ======================================================
-           CLOSE FORCE SWITCH UI
-           ====================================================== */
-
-        setShowForceSwitch(false);
-
-        setForceSwitchData(null);
-
-        /* ======================================================
-           REDIRECT
-           ====================================================== */
-
-        redirectAfterLogin(role);
-
-      } catch (error: any) {
-        console.error(
-          "Force switch failed:",
-          error,
-        );
-
-        const message =
-          error?.response?.data?.message ??
-          error?.message ??
-          "Unable to switch this account to your device. Please try again.";
-
-        setForceSwitchError(message);
-      }
-    };
-
-  /* ============================================================
-     CANCEL FORCE SWITCH
-     ============================================================ */
-
-  const handleCancelForceSwitch =
-    () => {
       setShowForceSwitch(false);
 
       setForceSwitchData(null);
 
-      setForceSwitchError(null);
-    };
+      /* ======================================================
+         REDIRECT
+      ====================================================== */
+
+      redirectAfterLogin(role);
+    } catch (error: any) {
+      console.error(
+        "Force switch failed:",
+        error,
+      );
+
+      const message =
+        error?.response?.data?.message ??
+        error?.message ??
+        "Unable to switch this account to your device. Please try again.";
+
+      setForceSwitchError(message);
+    }
+  };
+
+  /* ============================================================
+     CANCEL FORCE SWITCH
+  ============================================================ */
+
+  const handleCancelForceSwitch = () => {
+    setShowForceSwitch(false);
+
+    setForceSwitchData(null);
+
+    setForceSwitchError(null);
+  };
 
   /* ============================================================
      LOADING STATES
-     ============================================================ */
+  ============================================================ */
 
   const isLoggingIn =
     loginMutation.isPending;
@@ -358,30 +350,86 @@ export default function LoginForm({
 
   /* ============================================================
      RENDER
-     ============================================================ */
+  ============================================================ */
 
   return (
     <>
       <AuthCard>
-        <AuthHeader
-          title={
-            adminOnly
+
+        {/* ======================================================
+            LOGIN HEADER
+        ====================================================== */}
+
+        <div className="mb-7">
+
+          {/* ====================================================
+              TITLE
+          ==================================================== */}
+
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+            {adminOnly
               ? "Administrator Login"
-              : "Welcome Back"
-          }
-          subtitle={
-            adminOnly
-              ? "Sign in to manage competitions, students, questions, results, and the JAMB League platform."
-              : "Sign in to continue your JAMB preparation, compete with others, and climb the leaderboard."
-          }
-        />
+              : "Welcome Back"}
+          </h1>
+
+          {/* ====================================================
+              STUDENT IMAGE
+          ==================================================== */}
+
+          {!adminOnly && (
+            <div className="relative mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm">
+
+              <Image
+                src="/images/auth/login-students.png"
+                alt="Two students studying together"
+                width={900}
+                height={520}
+                priority
+                className="h-auto w-full object-cover"
+              />
+
+              {/* ==================================================
+                  IMAGE GRADIENT
+              ================================================== */}
+
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent px-5 pb-5 pt-12">
+
+                <p className="text-sm font-extrabold text-white">
+                  Learn. Compete. Win.
+                </p>
+
+                <p className="mt-1 max-w-sm text-xs leading-5 text-white/90">
+                  Prepare for EXAMS, challenge yourself,
+                  and compete with students across Nigeria.
+                </p>
+
+              </div>
+            </div>
+          )}
+
+          {/* ====================================================
+              ADMIN DESCRIPTION
+          ==================================================== */}
+
+          {adminOnly && (
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              Sign in to manage competitions,
+              students, questions, results, and
+              the EXAMS League platform.
+            </p>
+          )}
+
+        </div>
+
+        {/* ======================================================
+            LOGIN FORM
+        ====================================================== */}
 
         <form
-          onSubmit={handleSubmit(
-            onSubmit,
-          )}
+          onSubmit={handleSubmit(onSubmit)}
           className="space-y-6"
         >
+
           {/* ==================================================
               EMAIL
           ================================================== */}
@@ -392,9 +440,7 @@ export default function LoginForm({
             placeholder="example@email.com"
             autoComplete="email"
             {...register("email")}
-            error={
-              errors.email?.message
-            }
+            error={errors.email?.message}
           />
 
           {/* ==================================================
@@ -406,9 +452,7 @@ export default function LoginForm({
             placeholder="Enter your password"
             autoComplete="current-password"
             {...register("password")}
-            error={
-              errors.password?.message
-            }
+            error={errors.password?.message}
           />
 
           {/* ==================================================
@@ -449,10 +493,7 @@ export default function LoginForm({
           {loginMutation.isSuccess && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-4">
               <p className="text-sm font-medium text-green-700">
-                {
-                  loginMutation
-                    .data?.message
-                }
+                {loginMutation.data?.message}
               </p>
             </div>
           )}
@@ -461,16 +502,21 @@ export default function LoginForm({
               LOGIN BUTTON
           ================================================== */}
 
-          
-<LoadingButton
-  type="submit"
-  loading={isLoggingIn}
-  loadingText={adminOnly ? "Signing in..." : "Logging in..."}
-  className="w-full"
->
-  {adminOnly ? "Admin Login" : "Login"}
-</LoadingButton>
-
+          <LoadingButton
+            type="submit"
+            loading={isLoggingIn}
+            loadingText={
+              adminOnly
+                ? "Signing in..."
+                : "Logging in..."
+            }
+            disabled={isSubmitting}
+            className="w-full"
+          >
+            {adminOnly
+              ? "Admin Login"
+              : "Login"}
+          </LoadingButton>
 
         </form>
 
@@ -503,6 +549,7 @@ export default function LoginForm({
             href="/"
           />
         )}
+
       </AuthCard>
 
       {/* ========================================================
@@ -511,7 +558,9 @@ export default function LoginForm({
 
       {showForceSwitch && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+
             {/* ==================================================
                 ICON
             ================================================== */}
@@ -555,6 +604,7 @@ export default function LoginForm({
             ================================================== */}
 
             <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Current active device
               </p>
@@ -562,6 +612,7 @@ export default function LoginForm({
               <p className="mt-1 text-sm font-semibold text-gray-900">
                 {currentDevice}
               </p>
+
             </div>
 
             {/* ==================================================
@@ -585,9 +636,11 @@ export default function LoginForm({
 
             {forceSwitchError && (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+
                 <p className="text-sm font-medium text-red-600">
                   {forceSwitchError}
                 </p>
+
               </div>
             )}
 
@@ -596,6 +649,7 @@ export default function LoginForm({
             ================================================== */}
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
               {/* =================================================
                   CANCEL
               ================================================= */}
@@ -628,7 +682,9 @@ export default function LoginForm({
                   ? "Switching..."
                   : "Switch Device"}
               </Button>
+
             </div>
+
           </div>
         </div>
       )}

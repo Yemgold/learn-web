@@ -12,6 +12,8 @@ import {
   Users,
   Settings2,
   Sparkles,
+  Book,
+  FileCheck2,
 } from "lucide-react";
 
 /* ============================================================
@@ -180,7 +182,7 @@ export default function SolveAndWinPage() {
                     <Plus className="h-4 w-4" />
                     Create Competition
                   </Link>
-                  
+
                 </div>
               </div>
             </div>
@@ -203,81 +205,38 @@ export default function SolveAndWinPage() {
               </p>
 
               <div className="mt-5 space-y-3">
-                <QuickAction
-                  href="/admin/secondary/solveandwin/competitions"
-                  icon={<Trophy className="h-5 w-5" />}
-                  title="Competitions"
-                  description="View and manage competitions"
-                />
-
+                       
                 <QuickAction
                   href="/admin/secondary/solveandwin/competitions/create"
                   icon={<Plus className="h-5 w-5" />}
                   title="Create Competition"
                   description="Launch a new competition"
                 />
+
+                 <QuickAction
+                  href="/admin/secondary/solveandwin/competitions/createquestion"
+                  icon={<Book className="h-5 w-5" />}
+                  title="Create Questions"
+                  description="Load questions "
+                />
+
+                 <QuickAction
+                  href="/admin/secondary/solveandwin/competitions"
+                  icon={<Trophy className="h-5 w-5" />}
+                  title="Manage Competitions"
+                  description="View competitions"
+                />
+
+                <QuickAction
+  href="/admin/secondary/solveandwin/question-bank/validator"
+  icon={<FileCheck2 className="h-5 w-5" />}
+  title="Question Bank Validator"
+  description="Validate and clean questions"
+/>
+
               </div>
             </section>
 
-            {/* System Structure */}
-
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                  <Settings2 className="h-5 w-5" />
-                </div>
-
-                <div>
-                  <h2 className="font-bold text-slate-900">
-                    Competition Structure
-                  </h2>
-
-                  <p className="text-xs text-slate-500">
-                    How content is organized
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                <StructureRow
-                  number="1"
-                  title="Competition"
-                  description="Main Solve & Win event"
-                />
-
-                <StructureRow
-                  number="2"
-                  title="Subjects"
-                  description="Subjects inside the competition"
-                />
-
-                <StructureRow
-                  number="3"
-                  title="Questions"
-                  description="Questions belonging to each subject"
-                />
-              </div>
-            </section>
-
-            {/* Important Note */}
-
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-              <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-
-                <div>
-                  <h2 className="font-semibold text-amber-900">
-                    Admin Control
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-amber-800">
-                    A competition should only be enabled after its
-                    configuration, subjects and questions have been
-                    reviewed.
-                  </p>
-                </div>
-              </div>
-            </section>
           </aside>
         </div>
       </div>

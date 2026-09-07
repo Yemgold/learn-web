@@ -1040,7 +1040,7 @@ const buildPayload = () => {
 
       const response =
         await addQuestionsToSubjectInContest(
-          competitionId,
+         
           subjectId,
           payload,
         );

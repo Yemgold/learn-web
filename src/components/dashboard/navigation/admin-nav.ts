@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Trophy,
+  Video,
   Users,
   UserRound,
   FileQuestion,
@@ -58,6 +59,13 @@ export const adminNavigation: AdminNavSection[] = [
       href: "/admin/secondary/nationalcompetitions",
       icon: Trophy,
     },
+    
+{
+  label: "Video Lectures",
+  href: "/admin/secondary/create/video-ai-lecture",
+  icon: Video,
+},
+
   ],
 },
 

@@ -53,6 +53,17 @@ import { api } from "./axios";
 
 
 
+export type ContestSubjectPayload = {
+  subjectId: string;
+  expectedNoOfQuestions: number;
+  difficultyBreakdown: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+  durationInMinutes: number;
+};
+
 export type CreateContestPayload = {
   title: string;
   description: string;
@@ -61,8 +72,8 @@ export type CreateContestPayload = {
   amountToBeWonInKobo: number;
   entryPoints: number;
   startDate: string;
-  endDate: string;
-  subjectIds: string[];
+  windowPeriod: number;
+  subjects: ContestSubjectPayload[];
 };
 
 export type CreateContestResponse = {
@@ -78,8 +89,8 @@ export type CreateContestResponse = {
     amountToBeWonInKobo?: number;
     entryPoints?: number;
     startDate?: string;
-    endDate?: string;
-    subjectIds?: string[];
+    windowPeriod?: number;
+    subjects?: ContestSubjectPayload[];
     [key: string]: unknown;
   };
 };
@@ -230,15 +241,17 @@ export interface AddQuestionsToSubjectInContestPayload {
   totalNumberOfExpectedQuestions: number;
 }
 
+
+
+
 export async function addQuestionsToSubjectInContest(
-  competitionId: string,
   subjectId: string,
   payload: AddQuestionsToSubjectInContestPayload,
 ) {
   const response = await api.patch(
-    `/solve-and-win/contests/add-questions-to-subject-in-contest/${encodeURIComponent(
-      competitionId,
-    )}/${encodeURIComponent(subjectId)}`,
+    `/solve-and-win/contests/add-solve-and-win-contest-questions-to-database/${encodeURIComponent(
+      subjectId,
+    )}`,
     payload,
   );
 

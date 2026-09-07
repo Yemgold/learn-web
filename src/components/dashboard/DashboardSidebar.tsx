@@ -410,10 +410,10 @@ export default function DashboardSidebar({
 
         <div className="flex h-16 shrink-0 items-center border-b border-slate-200 px-6">
           <Link
-            href="/"
+             href="/student/dashboard"
             className="text-2xl font-black tracking-tight text-blue-600"
           >
-            {/* JAMB League */}
+            {/* EXAM League */}
             EXAM League
           </Link>
         </div>

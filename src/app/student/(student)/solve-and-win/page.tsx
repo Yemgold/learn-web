@@ -6,19 +6,661 @@
 
 
 
+
+
+
+
+
+// "use client";
+
+// import { useEffect, useState } from "react";
+// import { motion } from "framer-motion";
+// import Link from "next/link";
+// import {
+//   ArrowRight,
+//   BookOpen,
+//   Brain,
+//   CheckCircle2,
+//   Flame,
+//   Gift,
+//   Lock,
+//   Medal,
+//   Sparkles,
+//   Target,
+//   Trophy,
+//   Users,
+//   Zap,
+//   Loader2,
+//   AlertCircle,
+//   RefreshCw,
+//   Wallet,
+// } from "lucide-react";
+
+// import { Button } from "@/components/ui/button";
+// import { Card } from "@/components/ui/card";
+
+// import {
+//   getAllActiveContests,
+//   type SolveAndWinContest,
+// } from "@/lib/api/solveAndWin";
+
+// import { axiosInstance } from "@/lib/api/axios";
+
+// interface PracticeWallet {
+//   type: string;
+//   points: number;
+// }
+
+// interface PracticeWalletResponse {
+//   success: boolean;
+//   data: PracticeWallet[];
+// }
+
+// function formatCurrency(kobo: number) {
+//   return new Intl.NumberFormat("en-NG", {
+//     style: "currency",
+//     currency: "NGN",
+//     maximumFractionDigits: 0,
+//   }).format(kobo / 100);
+// }
+
+// function getSubjectNames(contest: SolveAndWinContest): string[] {
+//   if (!Array.isArray(contest.subjects)) {
+//     return [];
+//   }
+
+//   return contest.subjects.map((subject: any) => {
+//     if (typeof subject === "string") {
+//       return subject;
+//     }
+
+//     return (
+//       subject?.subjectId?.name ||
+//       subject?.name ||
+//       subject?.subjectName ||
+//       "Subject"
+//     );
+//   });
+// }
+
+// function getSubjectLabel(contest: SolveAndWinContest) {
+//   const subjects = getSubjectNames(contest);
+
+//   if (subjects.length === 0) {
+//     return "Multiple Subjects";
+//   }
+
+//   if (subjects.length === 1) {
+//     return subjects[0];
+//   }
+
+//   return `${subjects[0]} +${subjects.length - 1}`;
+// }
+
+// function getSubjectCount(contest: SolveAndWinContest) {
+//   if (!Array.isArray(contest.subjects)) {
+//     return 0;
+//   }
+
+//   return contest.subjects.length;
+// }
+
+// function getContestIcon(index: number) {
+//   const icons = [Trophy, Medal, Target, Brain, Flame];
+//   return icons[index % icons.length];
+// }
+
+// function getStatusLabel(status?: string) {
+//   if (!status) return "Active";
+
+//   return status
+//     .toLowerCase()
+//     .split("_")
+//     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+//     .join(" ");
+// }
+
+// function isContestLocked(
+//   contest: SolveAndWinContest,
+//   practicePoints: number
+// ) {
+//   return practicePoints < contest.entryPoints;
+// }
+
+// export default function SolveAndWinPage() {
+//   const [contests, setContests] = useState<SolveAndWinContest[]>([]);
+//   const [practicePoints, setPracticePoints] = useState(0);
+
+//   const [isLoading, setIsLoading] = useState(true);
+//   const [isWalletLoading, setIsWalletLoading] = useState(true);
+
+//   const [error, setError] = useState("");
+//   const [walletError, setWalletError] = useState("");
+
+//   const fetchContests = async () => {
+//     try {
+//       setError("");
+
+//       const response = await getAllActiveContests();
+
+//       if (!response.success) {
+//         throw new Error(
+//           response.message || "Unable to load active contests."
+//         );
+//       }
+
+//       setContests(response.data ?? []);
+//     } catch (err: any) {
+//       console.error("Failed to load contests:", err);
+
+//       setError(
+//         err?.response?.data?.message ||
+//           err?.message ||
+//           "Unable to load contests. Please try again."
+//       );
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const fetchPracticeWallet = async () => {
+//     try {
+//       setIsWalletLoading(true);
+//       setWalletError("");
+
+//       const response =
+//         await axiosInstance.get<PracticeWalletResponse>(
+//           "/practice-wallet/get-all-practice-wallets"
+//         );
+
+//       const wallets = response.data?.data ?? [];
+
+//       const practiceWallet = wallets.find(
+//         (wallet) =>
+//           String(wallet.type).toUpperCase() === "PRACTICE"
+//       );
+
+//       setPracticePoints(practiceWallet?.points ?? 0);
+//     } catch (err: any) {
+//       console.error("Failed to load practice wallet:", err);
+
+//       setWalletError(
+//         err?.response?.data?.message ||
+//           err?.message ||
+//           "Unable to load your Practice Points."
+//       );
+
+//       setPracticePoints(0);
+//     } finally {
+//       setIsWalletLoading(false);
+//     }
+//   };
+
+//   const fetchPageData = async () => {
+//     setIsLoading(true);
+
+//     await Promise.all([
+//       fetchContests(),
+//       fetchPracticeWallet(),
+//     ]);
+//   };
+
+//   useEffect(() => {
+//     fetchPageData();
+//   }, []);
+
+//   return (
+//     <main className="min-h-screen bg-slate-950 text-white">
+//       {/* HERO */}
+//       <section className="relative overflow-hidden border-b border-white/10">
+//         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
+
+//         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+//           <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-center">
+//             {/* HERO CONTENT */}
+//             <div>
+//               <motion.div
+//                 initial={{ opacity: 0, y: 15 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ duration: 0.5 }}
+//               >
+//                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-sm text-purple-300">
+//                   <Sparkles className="h-4 w-4" />
+//                   Practice. Compete. Win.
+//                 </div>
+
+//                 <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+//                   Solve & Win
+//                 </h1>
+
+//                 <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+//                   Put your knowledge to the test, compete with other
+//                   students, and stand a chance to win exciting cash
+//                   prizes.
+//                 </p>
+
+//                 <div className="mt-7 flex flex-wrap gap-3">
+//                   <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+//                     <BookOpen className="h-4 w-4 text-blue-400" />
+//                     Practice
+//                   </div>
+
+//                   <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+//                     <Trophy className="h-4 w-4 text-yellow-400" />
+//                     Compete
+//                   </div>
+
+//                   <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+//                     <Gift className="h-4 w-4 text-emerald-400" />
+//                     Earn
+//                   </div>
+//                 </div>
+//               </motion.div>
+//             </div>
+
+//             {/* PRACTICE WALLET */}
+//             <motion.div
+//               initial={{ opacity: 0, x: 20 }}
+//               animate={{ opacity: 1, x: 0 }}
+//               transition={{ duration: 0.5, delay: 0.1 }}
+//             >
+//               <Card className="overflow-hidden border-white/10 bg-white/[0.04]">
+//                 <div className="p-6">
+//                   <div className="flex items-center justify-between">
+//                     <div className="flex items-center gap-3">
+//                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
+//                         <Wallet className="h-5 w-5 text-amber-400" />
+//                       </div>
+
+//                       <div>
+//                         <p className="text-sm text-slate-400">
+//                           Your Practice Wallet
+//                         </p>
+
+//                         <h2 className="text-lg font-semibold text-white">
+//                           Practice Points
+//                         </h2>
+//                       </div>
+//                     </div>
+
+//                     <Zap className="h-5 w-5 text-amber-400" />
+//                   </div>
+
+//                   <div className="mt-6">
+//                     {isWalletLoading ? (
+//                       <div className="flex items-center gap-2 text-slate-400">
+//                         <Loader2 className="h-5 w-5 animate-spin" />
+//                         Loading points...
+//                       </div>
+//                     ) : (
+//                       <>
+//                         <div className="text-4xl font-bold tracking-tight">
+//                           {practicePoints.toLocaleString()}
+//                         </div>
+
+//                         <p className="mt-1 text-sm text-slate-400">
+//                           Practice Points available
+//                         </p>
+//                       </>
+//                     )}
+//                   </div>
+
+//                   {walletError ? (
+//                     <div className="mt-4 rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+//                       <div className="flex gap-2">
+//                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+
+//                         <p className="text-xs leading-5 text-red-300">
+//                           {walletError}
+//                         </p>
+//                       </div>
+//                     </div>
+//                   ) : (
+//                     <div className="mt-5 rounded-lg bg-white/[0.04] p-3">
+//                       <p className="text-xs leading-5 text-slate-400">
+//                         Practice Points are earned by answering
+//                         practice questions and are used to enter
+//                         Solve & Win competitions.
+//                       </p>
+//                     </div>
+//                   )}
+
+//                   <Link
+//                     href="/student/practice/cbtsubjects?exam=jamb"
+//                     className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-slate-200"
+//                   >
+//                     <BookOpen className="mr-2 h-4 w-4" />
+//                     Practice & Earn Points
+//                   </Link>
+//                 </div>
+//               </Card>
+//             </motion.div>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* CONTESTS */}
+//       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+//         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+//           <div>
+//             <div className="flex items-center gap-2">
+//               <Trophy className="h-5 w-5 text-yellow-400" />
+
+//               <h2 className="text-2xl font-bold">
+//                 Available Contests
+//               </h2>
+//             </div>
+
+//             <p className="mt-2 text-sm text-slate-400">
+//               Use your Practice Points to enter competitions and
+//               compete for prizes.
+//             </p>
+//           </div>
+
+//           {/* CURRENT BALANCE */}
+//           <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm">
+//             <span className="text-slate-400">
+//               Your balance:
+//             </span>{" "}
+//             <span className="font-semibold text-amber-300">
+//               {isWalletLoading
+//                 ? "..."
+//                 : practicePoints.toLocaleString()}{" "}
+//               points
+//             </span>
+//           </div>
+//         </div>
+
+//         {/* LOADING */}
+//         {isLoading ? (
+//           <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+//             <div className="flex flex-col items-center gap-3 text-slate-400">
+//               <Loader2 className="h-8 w-8 animate-spin" />
+//               <p>Loading contests...</p>
+//             </div>
+//           </div>
+//         ) : error ? (
+//           /* ERROR */
+//           <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-8 text-center">
+//             <AlertCircle className="mx-auto h-10 w-10 text-red-400" />
+
+//             <h3 className="mt-4 text-lg font-semibold">
+//               Unable to load contests
+//             </h3>
+
+//             <p className="mx-auto mt-2 max-w-md text-sm text-red-200/80">
+//               {error}
+//             </p>
+
+//             <Button
+//               onClick={fetchPageData}
+//               variant="outline"
+//               className="mt-5 border-white/10 bg-white/5"
+//             >
+//               <RefreshCw className="mr-2 h-4 w-4" />
+//               Try Again
+//             </Button>
+//           </div>
+//         ) : contests.length === 0 ? (
+//           /* EMPTY */
+//           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+//             <Trophy className="mx-auto h-12 w-12 text-slate-600" />
+
+//             <h3 className="mt-4 text-lg font-semibold">
+//               No active contests
+//             </h3>
+
+//             <p className="mt-2 text-sm text-slate-400">
+//               Check back later for new Solve & Win competitions.
+//             </p>
+//           </div>
+//         ) : (
+//           /* CONTEST GRID */
+//           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+//             {contests.map((contest, index) => {
+//               const ContestIcon = getContestIcon(index);
+
+//               const locked = isContestLocked(
+//                 contest,
+//                 practicePoints
+//               );
+
+//               const pointsNeeded = Math.max(
+//                 contest.entryPoints - practicePoints,
+//                 0
+//               );
+
+//               const subjectCount = getSubjectCount(contest);
+
+//               return (
+//                 <motion.div
+//                   key={contest._id}
+//                   initial={{ opacity: 0, y: 15 }}
+//                   animate={{ opacity: 1, y: 0 }}
+//                   transition={{
+//                     duration: 0.35,
+//                     delay: index * 0.05,
+//                   }}
+//                 >
+//                   <Card className="group flex h-full flex-col overflow-hidden border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.05]">
+//                     {/* CARD HEADER */}
+//                     <div className="relative p-6">
+//                       <div className="flex items-start justify-between gap-4">
+//                         <div className="flex items-center gap-3">
+//                           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10">
+//                             <ContestIcon className="h-6 w-6 text-purple-400" />
+//                           </div>
+
+//                           <div>
+//                             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+//                               {getStatusLabel(contest.status)}
+//                             </span>
+
+//                             <h3 className="mt-1 line-clamp-1 text-lg font-semibold text-white">
+//                               {contest.title}
+//                             </h3>
+//                           </div>
+//                         </div>
+
+//                         {locked ? (
+//                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+//                             <Lock className="h-4 w-4 text-red-400" />
+//                           </div>
+//                         ) : (
+//                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+//                             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+//                           </div>
+//                         )}
+//                       </div>
+
+//                       {contest.description && (
+//                         <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+//                           {contest.description}
+//                         </p>
+//                       )}
+//                     </div>
+
+//                     {/* STATS */}
+//                     <div className="grid grid-cols-2 border-y border-white/10">
+//                       <div className="p-4">
+//                         <p className="text-xs text-slate-500">
+//                           Prize
+//                         </p>
+
+//                         <p className="mt-1 font-semibold text-emerald-400">
+//                           {formatCurrency(
+//                             contest.amountToBeWonInKobo
+//                           )}
+//                         </p>
+//                       </div>
+
+//                       <div className="border-l border-white/10 p-4">
+//                         <p className="text-xs text-slate-500">
+//                           Entry
+//                         </p>
+
+//                         <p className="mt-1 font-semibold text-amber-400">
+//                           {contest.entryPoints.toLocaleString()}{" "}
+//                           points
+//                         </p>
+//                       </div>
+//                     </div>
+
+//                     {/* DETAILS */}
+//                     <div className="flex-1 p-6">
+//                       <div className="space-y-3">
+//                         <div className="flex items-center justify-between gap-4 text-sm">
+//                           <span className="flex items-center gap-2 text-slate-400">
+//                             <BookOpen className="h-4 w-4 shrink-0" />
+//                             Subject
+//                           </span>
+
+//                           <span className="text-right font-medium text-slate-200">
+//                             {getSubjectLabel(contest)}
+//                           </span>
+//                         </div>
+
+//                         <div className="flex items-center justify-between text-sm">
+//                           <span className="flex items-center gap-2 text-slate-400">
+//                             <Target className="h-4 w-4" />
+//                             Subjects
+//                           </span>
+
+//                           <span className="font-medium text-slate-200">
+//                             {subjectCount}
+//                           </span>
+//                         </div>
+//                       </div>
+
+//                       {/* ENTRY REQUIREMENT */}
+//                       <div
+//                         className={`mt-5 rounded-xl border p-4 ${
+//                           locked
+//                             ? "border-red-400/20 bg-red-500/10"
+//                             : "border-emerald-400/20 bg-emerald-500/10"
+//                         }`}
+//                       >
+//                         {locked ? (
+//                           <>
+//                             <div className="flex items-center gap-2">
+//                               <Lock className="h-4 w-4 text-red-400" />
+
+//                               <p className="text-sm font-semibold text-red-300">
+//                                 Not enough Practice Points
+//                               </p>
+//                             </div>
+
+//                             <p className="mt-1 text-xs leading-5 text-red-200/70">
+//                               You need{" "}
+//                               <span className="font-semibold text-red-200">
+//                                 {pointsNeeded.toLocaleString()}
+//                               </span>{" "}
+//                               more points to enter this contest.
+//                             </p>
+//                           </>
+//                         ) : (
+//                           <>
+//                             <div className="flex items-center gap-2">
+//                               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+
+//                               <p className="text-sm font-semibold text-emerald-300">
+//                                 You can enter this contest
+//                               </p>
+//                             </div>
+
+//                             <p className="mt-1 text-xs leading-5 text-emerald-200/70">
+//                               Your{" "}
+//                               {practicePoints.toLocaleString()}{" "}
+//                               Practice Points cover the{" "}
+//                               {contest.entryPoints.toLocaleString()}{" "}
+//                               point entry fee.
+//                             </p>
+//                           </>
+//                         )}
+//                       </div>
+//                     </div>
+
+//                     {/* ACTION */}
+//                     <div className="p-6 pt-0">
+//                       {locked ? (
+//                         <Link
+//                           href="/student/practice/cbtsubjects?exam=jamb"
+//                           className="inline-flex h-10 w-full items-center justify-center rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+//                         >
+//                           <BookOpen className="mr-2 h-4 w-4" />
+//                           Practice & Earn Points
+//                         </Link>
+//                       ) : (
+//                         <Link
+//                           href={`/student/solve-and-win/contests/${contest._id}/join`}
+//                           className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+//                         >
+//                           Join Contest
+//                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+//                         </Link>
+//                       )}
+//                     </div>
+//                   </Card>
+//                 </motion.div>
+//               );
+//             })}
+//           </div>
+//         )}
+
+//         {/* FAIR PLAY */}
+//         <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+//           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+//             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+//               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+//             </div>
+
+//             <div>
+//               <h3 className="font-semibold">
+//                 Fair Play & Competition
+//               </h3>
+
+//               <p className="mt-1 text-sm leading-6 text-slate-400">
+//                 Every participant gets a fair chance. Answer
+//                 questions carefully, follow the competition rules,
+//                 and let your knowledge determine your score.
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+//     </main>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-
-
 import {
   ArrowRight,
   BookOpen,
   Brain,
   CheckCircle2,
-  Clock3,
   Flame,
   Gift,
   Lock,
@@ -26,797 +668,723 @@ import {
   Sparkles,
   Target,
   Trophy,
-  Users,
   Zap,
   Loader2,
   AlertCircle,
   RefreshCw,
+  Wallet,
 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 import {
   getAllActiveContests,
   type SolveAndWinContest,
 } from "@/lib/api/solveAndWin";
 
-/* ============================================================
-   HELPERS
-============================================================ */
+import { axiosInstance } from "@/lib/api/axios";
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-NG", {
+interface PracticeWallet {
+  _id: string;
+  userId: string;
+  __v?: number;
+  createdAt?: string;
+  points: number;
+  updatedAt?: string;
+}
+
+interface PracticeWalletResponse {
+  success: boolean;
+  message?: string;
+  data: PracticeWallet;
+}
+
+interface AuthUser {
+  _id?: string;
+  id?: string;
+}
+
+function formatCurrency(kobo: number) {
+  return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
-    minimumFractionDigits: 0,
-  }).format(amount);
+    maximumFractionDigits: 0,
+  }).format(kobo / 100);
+}
 
-const formatDate = (date: string) => {
-  if (!date) return "Not scheduled";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "Not scheduled";
+function getSubjectNames(contest: SolveAndWinContest): string[] {
+  if (!Array.isArray(contest.subjects)) {
+    return [];
   }
 
-  return new Intl.DateTimeFormat("en-NG", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(parsedDate);
-};
+  return contest.subjects.map((subject: any) => {
+    if (typeof subject === "string") {
+      return subject;
+    }
 
-const getSubjectNames = (contest: SolveAndWinContest) => {
-  return contest.subjects
-    .map((subject) => {
-      if (typeof subject.subjectId === "string") {
-        return subject.subjectId;
-      }
+    return (
+      subject?.subjectId?.name ||
+      subject?.name ||
+      subject?.subjectName ||
+      "Subject"
+    );
+  });
+}
 
-      return subject.subjectId?.name ?? "";
-    })
-    .filter(Boolean);
-};
+function getSubjectLabel(contest: SolveAndWinContest) {
+  const subjects = getSubjectNames(contest);
 
-const getSubjectLabel = (contest: SolveAndWinContest) => {
-  const names = getSubjectNames(contest);
-
-  if (names.length === 0) {
-    return "General";
+  if (subjects.length === 0) {
+    return "Multiple Subjects";
   }
 
-  if (names.length === 1) {
-    return names[0];
+  if (subjects.length === 1) {
+    return subjects[0];
   }
 
-  if (names.length === 2) {
-    return names.join(" & ");
+  return `${subjects[0]} +${subjects.length - 1}`;
+}
+
+function getSubjectCount(contest: SolveAndWinContest) {
+  if (!Array.isArray(contest.subjects)) {
+    return 0;
   }
 
-  return `${names[0]} + ${names.length - 1} more`;
-};
-
-const getSubjectCount = (contest: SolveAndWinContest) => {
   return contest.subjects.length;
-};
+}
 
-const getQuestionCount = (contest: SolveAndWinContest) => {
-  return contest.subjects.reduce(
-    (total, subject) => total + (subject.questions?.length ?? 0),
-    0,
-  );
-};
+function getContestIcon(index: number) {
+  const icons = [Trophy, Medal, Target, Brain, Flame];
+  return icons[index % icons.length];
+}
 
-const getContestIcon = (contest: SolveAndWinContest) => {
-  const names = getSubjectNames(contest).join(" ").toLowerCase();
+function getStatusLabel(status?: string) {
+  if (!status) return "Active";
 
-  if (names.includes("mathematics")) {
-    return Target;
-  }
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
-  if (
-    names.includes("physics") ||
-    names.includes("chemistry") ||
-    names.includes("biology")
-  ) {
-    return Brain;
-  }
-
-  return Zap;
-};
-
-const getStatusLabel = (contest: SolveAndWinContest) => {
-  switch (contest.status?.toUpperCase()) {
-    case "DRAFT":
-      return "Draft";
-
-    case "UPCOMING":
-      return "Upcoming";
-
-    case "ACTIVE":
-      return "Available";
-
-    case "COMPLETED":
-      return "Completed";
-
-    case "CLOSED":
-      return "Closed";
-
-    case "REGISTRATION_OPEN":
-      return "Registration Open";
-
-    default:
-      return contest.status || "Available";
-  }
-};
-
-const isContestLocked = (contest: SolveAndWinContest) => {
-  if (!contest.isActive) {
-    return true;
-  }
-
-  const status = contest.status?.toUpperCase();
-
-  if (
-    status === "DRAFT" ||
-    status === "COMPLETED" ||
-    status === "CLOSED"
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
-/* ============================================================
-   PAGE
-============================================================ */
+function isContestLocked(
+  contest: SolveAndWinContest,
+  practicePoints: number
+) {
+  return practicePoints < contest.entryPoints;
+}
 
 export default function SolveAndWinPage() {
-  /* ==========================================================
-     STATE
-  ========================================================== */
-
   const [contests, setContests] = useState<SolveAndWinContest[]>([]);
+  const [practicePoints, setPracticePoints] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isWalletLoading, setIsWalletLoading] = useState(true);
 
   const [error, setError] = useState("");
+  const [walletError, setWalletError] = useState("");
 
-  /* ==========================================================
-     FETCH ACTIVE CONTESTS
-  ========================================================== */
+  /**
+   * ============================================================
+   * GET LOGGED-IN USER ID
+   * ============================================================
+   *
+   * Replace this section with your actual auth-store/provider
+   * if your user object is stored somewhere else.
+   *
+   * This version checks localStorage for common auth user keys.
+   */
+  const getCurrentUserId = (): string | null => {
+    try {
+      const possibleKeys = [
+        "user",
+        "auth-user",
+        "jamb_user",
+        "jamb_auth_user",
+      ];
 
+      for (const key of possibleKeys) {
+        const storedUser = localStorage.getItem(key);
+
+        if (!storedUser) continue;
+
+        const parsedUser: AuthUser = JSON.parse(storedUser);
+
+        const userId = parsedUser?._id || parsedUser?.id;
+
+        if (userId) {
+          return userId;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Failed to read authenticated user:", error);
+      return null;
+    }
+  };
+
+  /**
+   * ============================================================
+   * FETCH CONTESTS
+   * ============================================================
+   */
   const fetchContests = async () => {
     try {
-      setIsLoading(true);
       setError("");
 
       const response = await getAllActiveContests();
 
-      console.log(
-        "GET ALL ACTIVE CONTESTS RESPONSE:",
-        response,
-      );
-
       if (!response.success) {
         throw new Error(
-          response.message || "Failed to load active contests.",
+          response.message || "Unable to load active contests."
         );
       }
 
-      /*
-       * IMPORTANT:
-       *
-       * Active contests endpoint returns:
-       *
-       * {
-       *   success: true,
-       *   message: "...",
-       *   data: [...]
-       * }
-       *
-       * Unlike the admin get-all-contests endpoint,
-       * there is no:
-       *
-       * data.solveAndWinContestObj
-       */
-
       setContests(response.data ?? []);
-    } catch (err: unknown) {
-      console.error(
-        "Failed to fetch active Solve & Win contests:",
-        err,
+    } catch (err: any) {
+      console.error("Failed to load contests:", err);
+
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Unable to load contests. Please try again."
       );
-
-      let message = "Failed to load Solve & Win contests.";
-
-      if (err instanceof Error) {
-        message = err.message;
-      }
-
-      const axiosError = err as {
-        response?: {
-          data?: {
-            message?: string;
-            error?: string;
-          };
-        };
-      };
-
-      const backendMessage =
-        axiosError.response?.data?.message ??
-        axiosError.response?.data?.error;
-
-      if (backendMessage) {
-        message = backendMessage;
-      }
-
-      setError(message);
-      setContests([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  /* ==========================================================
-     LOAD ON PAGE MOUNT
-  ========================================================== */
+  /**
+   * ============================================================
+   * FETCH USER PRACTICE WALLET
+   *
+   * GET:
+   * /practice-wallet/get-user-practice-wallet/{userId}
+   *
+   * Backend response:
+   *
+   * {
+   *   "success": true,
+   *   "message": "User practice wallet fetched successfully.",
+   *   "data": {
+   *     "_id": "...",
+   *     "userId": "...",
+   *     "points": 0
+   *   }
+   * }
+   * ============================================================
+   */
+  const fetchPracticeWallet = async () => {
+    try {
+      setIsWalletLoading(true);
+      setWalletError("");
+
+      const userId = getCurrentUserId();
+
+      if (!userId) {
+        throw new Error(
+          "Unable to identify the logged-in user."
+        );
+      }
+
+      const response =
+        await axiosInstance.get<PracticeWalletResponse>(
+          `/practice-wallet/get-user-practice-wallet/${userId}`
+        );
+
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message ||
+            "Unable to load your Practice Points."
+        );
+      }
+
+      const wallet = response.data?.data;
+
+      setPracticePoints(wallet?.points ?? 0);
+    } catch (err: any) {
+      console.error(
+        "Failed to load user practice wallet:",
+        err
+      );
+
+      setWalletError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Unable to load your Practice Points."
+      );
+
+      setPracticePoints(0);
+    } finally {
+      setIsWalletLoading(false);
+    }
+  };
+
+  /**
+   * ============================================================
+   * FETCH PAGE DATA
+   * ============================================================
+   */
+  const fetchPageData = async () => {
+    setIsLoading(true);
+
+    await Promise.all([
+      fetchContests(),
+      fetchPracticeWallet(),
+    ]);
+  };
 
   useEffect(() => {
-    fetchContests();
+    fetchPageData();
   }, []);
 
-  /* ============================================================
-     RENDER
-  ============================================================ */
-
   return (
-    <div className="space-y-8">
+    <main className="min-h-screen bg-slate-950 text-white">
+      {/* ======================================================
+          HERO
+         ====================================================== */}
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
 
-
-
-{/* ========================================================
-    HERO
-======================================================== */}
-<motion.section
-  initial={{
-    opacity: 0,
-    y: 20,
-  }}
-  animate={{
-    opacity: 1,
-    y: 0,
-  }}
-  transition={{
-    duration: 0.5,
-  }}
-  className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-8 text-white shadow-xl sm:px-8 sm:py-10 lg:px-10"
->
-  <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl" />
-
-  <div className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-indigo-400/10 blur-3xl" />
-
-  <div className="relative z-10 max-w-3xl">
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-blue-200 backdrop-blur">
-      <Sparkles className="h-4 w-4" />
-      Solve &amp; Win
-    </div>
-
-    <h1 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-      Solve Questions.
-      <br />
-      Win Rewards.
-    </h1>
-
-    <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
-      Put your knowledge to work. Solve timed
-      challenges, prove your skills and earn
-      rewards as you climb your way to the top.
-    </p>
-
-   
-   {/* ====================================================
-        ACTIVE CONTEST CTA
-    ===================================================== */}
-    <div className="mt-7">
-      <Link
-        href="/student/solve-and-win/active"
-        className="group inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-extrabold text-slate-950 shadow-lg shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-xl sm:px-7 sm:py-4"
-      >
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-          <Trophy className="h-5 w-5" />
-        </span>
-
-        <span className="flex flex-col items-start">
-          <span className="text-sm sm:text-base">
-            View Active Contests
-          </span>
-
-          <span className="text-xs font-medium text-slate-500">
-            Join a live competition and start solving
-          </span>
-        </span>
-
-        <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
-      </Link>
-    </div>
-
-
-
-
-
-
-
-    {/* ====================================================
-        FEATURE BADGES
-    ===================================================== */}
-    <div className="mt-7 flex flex-wrap gap-3">
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-        <Target className="h-4 w-4 text-blue-300" />
-        Practice
-      </div>
-
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-        <Trophy className="h-4 w-4 text-amber-300" />
-        Compete
-      </div>
-
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-        <Gift className="h-4 w-4 text-emerald-300" />
-        Earn
-      </div>
-    </div>
-  </div>
-</motion.section>
-
-
-
-      {/* ========================================================
-          HOW IT WORKS
-      ======================================================== */}
-
-      <section>
-        <div className="mb-5">
-          <h2 className="text-xl font-bold text-slate-900">
-            How Solve &amp; Win Works
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Turn your exam preparation into an
-            opportunity to earn.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              number: "01",
-              icon: BookOpen,
-              title: "Choose a Contest",
-              text: "Pick a contest that matches your subjects and interests.",
-            },
-            {
-              number: "02",
-              icon: Brain,
-              title: "Solve the Questions",
-              text: "Answer the competition questions and demonstrate your knowledge.",
-            },
-            {
-              number: "03",
-              icon: Gift,
-              title: "Win Rewards",
-              text: "Perform well and qualify for the available rewards.",
-            },
-          ].map((item, index) => {
-            const Icon = item.icon;
-
-            return (
+        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+          <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-center">
+            {/* HERO CONTENT */}
+            <div>
               <motion.div
-                key={item.number}
-                initial={{
-                  opacity: 0,
-                  y: 15,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  delay: 0.1 + index * 0.08,
-                }}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                    <Icon className="h-5 w-5 text-blue-600" />
-                  </div>
-
-                  <span className="text-3xl font-black text-slate-100">
-                    {item.number}
-                  </span>
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-sm text-purple-300">
+                  <Sparkles className="h-4 w-4" />
+                  Practice. Compete. Win.
                 </div>
 
-                <h3 className="mt-5 font-bold text-slate-900">
-                  {item.title}
-                </h3>
+                <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                  Solve & Win
+                </h1>
 
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  {item.text}
+                <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+                  Put your knowledge to the test, compete with
+                  other students, and stand a chance to win
+                  exciting cash prizes.
                 </p>
+
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+                    <BookOpen className="h-4 w-4 text-blue-400" />
+                    Practice
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+                    <Trophy className="h-4 w-4 text-yellow-400" />
+                    Compete
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">
+                    <Gift className="h-4 w-4 text-emerald-400" />
+                    Earn
+                  </div>
+                </div>
               </motion.div>
-            );
-          })}
+            </div>
+
+            {/* ==================================================
+                PRACTICE WALLET
+               ================================================== */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                duration: 0.5,
+                delay: 0.1,
+              }}
+            >
+              <Card className="overflow-hidden border-white/10 bg-white/[0.04]">
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
+                        <Wallet className="h-5 w-5 text-amber-400" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-slate-400">
+                          Your Practice Wallet
+                        </p>
+
+                        <h2 className="text-lg font-semibold text-white">
+                          Practice Points
+                        </h2>
+                      </div>
+                    </div>
+
+                    <Zap className="h-5 w-5 text-amber-400" />
+                  </div>
+
+                  <div className="mt-6">
+                    {isWalletLoading ? (
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Loading points...
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-4xl font-bold tracking-tight">
+                          {practicePoints.toLocaleString()}
+                        </div>
+
+                        <p className="mt-1 text-sm text-slate-400">
+                          Practice Points available
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {walletError ? (
+                    <div className="mt-4 rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                      <div className="flex gap-2">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+
+                        <p className="text-xs leading-5 text-red-300">
+                          {walletError}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-5 rounded-lg bg-white/[0.04] p-3">
+                      <p className="text-xs leading-5 text-slate-400">
+                        Practice Points are earned by answering
+                        practice questions and are used to enter
+                        Solve & Win competitions.
+                      </p>
+                    </div>
+                  )}
+
+                  <Link
+                    href="/student/practice/cbtsubjects?exam=jamb"
+                    className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-slate-200"
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Practice & Earn Points
+                  </Link>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* ========================================================
+      {/* ======================================================
           CONTESTS
-      ======================================================== */}
-
-      <section>
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+         ====================================================== */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Available Contests
-            </h2>
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
 
-            <p className="mt-1 text-sm text-slate-500">
-              Choose a contest and put your
-              knowledge to the test.
+              <h2 className="text-2xl font-bold">
+                Available Contests
+              </h2>
+            </div>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Use your Practice Points to enter competitions
+              and compete for prizes.
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
-            <Flame className="h-4 w-4 text-orange-500" />
-
-            {contests.length}{" "}
-            {contests.length === 1
-              ? "contest"
-              : "contests"}
+          {/* CURRENT BALANCE */}
+          <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm">
+            <span className="text-slate-400">
+              Your balance:
+            </span>{" "}
+            <span className="font-semibold text-amber-300">
+              {isWalletLoading
+                ? "..."
+                : practicePoints.toLocaleString()}{" "}
+              points
+            </span>
           </div>
         </div>
 
-        {/* ======================================================
+        {/* ====================================================
             LOADING
-        ====================================================== */}
+           ==================================================== */}
+        {isLoading ? (
+          <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <Loader2 className="h-8 w-8 animate-spin" />
 
-        {isLoading && (
-          <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-
-              <div>
-                <p className="font-semibold text-slate-900">
-                  Loading contests...
-                </p>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Please wait while we fetch the
-                  latest Solve &amp; Win contests.
-                </p>
-              </div>
+              <p>Loading contests...</p>
             </div>
           </div>
-        )}
+        ) : error ? (
+          /* ==================================================
+             ERROR
+             ================================================== */
+          <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-8 text-center">
+            <AlertCircle className="mx-auto h-10 w-10 text-red-400" />
 
-        {/* ======================================================
-            ERROR
-        ====================================================== */}
+            <h3 className="mt-4 text-lg font-semibold">
+              Unable to load contests
+            </h3>
 
-        {!isLoading && error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              </div>
+            <p className="mx-auto mt-2 max-w-md text-sm text-red-200/80">
+              {error}
+            </p>
 
-              <div className="flex-1">
-                <h3 className="font-bold text-red-900">
-                  Unable to load contests
-                </h3>
+            <Button
+              onClick={fetchPageData}
+              variant="outline"
+              className="mt-5 border-white/10 bg-white/5"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        ) : contests.length === 0 ? (
+          /* ==================================================
+             EMPTY
+             ================================================== */
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <Trophy className="mx-auto h-12 w-12 text-slate-600" />
 
-                <p className="mt-1 text-sm text-red-700">
-                  {error}
-                </p>
+            <h3 className="mt-4 text-lg font-semibold">
+              No active contests
+            </h3>
 
-                <button
-                  type="button"
-                  onClick={fetchContests}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+            <p className="mt-2 text-sm text-slate-400">
+              Check back later for new Solve & Win competitions.
+            </p>
+          </div>
+        ) : (
+          /* ==================================================
+             CONTEST GRID
+             ================================================== */
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {contests.map((contest, index) => {
+              const ContestIcon = getContestIcon(index);
+
+              const locked = isContestLocked(
+                contest,
+                practicePoints
+              );
+
+              const pointsNeeded = Math.max(
+                contest.entryPoints - practicePoints,
+                0
+              );
+
+              const subjectCount =
+                getSubjectCount(contest);
+
+              return (
+                <motion.div
+                  key={contest._id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: index * 0.05,
+                  }}
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                  <Card className="group flex h-full flex-col overflow-hidden border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.05]">
+                    {/* CARD HEADER */}
+                    <div className="relative p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10">
+                            <ContestIcon className="h-6 w-6 text-purple-400" />
+                          </div>
 
-        {/* ======================================================
-            EMPTY
-        ====================================================== */}
+                          <div>
+                            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                              {getStatusLabel(
+                                contest.status
+                              )}
+                            </span>
 
-        {!isLoading &&
-          !error &&
-          contests.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
-              <Trophy className="mx-auto h-10 w-10 text-slate-300" />
+                            <h3 className="mt-1 line-clamp-1 text-lg font-semibold text-white">
+                              {contest.title}
+                            </h3>
+                          </div>
+                        </div>
 
-              <h3 className="mt-4 font-bold text-slate-900">
-                No contests available
-              </h3>
-
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                There are no Solve &amp; Win
-                contests available at the moment.
-                Check back soon for new contests.
-              </p>
-            </div>
-          )}
-
-        {/* ======================================================
-            CONTEST GRID
-        ====================================================== */}
-
-        {!isLoading &&
-          !error &&
-          contests.length > 0 && (
-            <div className="grid gap-5 xl:grid-cols-2">
-              {contests.map((contest, index) => {
-                const Icon = getContestIcon(contest);
-
-                const locked = isContestLocked(contest);
-
-                const subjectLabel =
-                  getSubjectLabel(contest);
-
-                const subjectCount =
-                  getSubjectCount(contest);
-
-                const questionCount =
-                  getQuestionCount(contest);
-
-                const reward =
-                  contest.amountToBeWonInKobo / 100;
-
-                return (
-                  <motion.article
-                    key={contest._id}
-                    initial={{
-                      opacity: 0,
-                      y: 20,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    transition={{
-                      duration: 0.45,
-                      delay: 0.1 + index * 0.06,
-                    }}
-                    className={`group relative overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition ${
-                      locked
-                        ? "border-slate-200 opacity-80"
-                        : "border-slate-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
-                    }`}
-                  >
-                    {/* Top */}
-
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
-                        <Icon className="h-6 w-6 text-blue-600" />
+                        {locked ? (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+                            <Lock className="h-4 w-4 text-red-400" />
+                          </div>
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          </div>
+                        )}
                       </div>
 
-                      {locked ? (
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
-                          <Lock className="h-3.5 w-3.5" />
-
-                          {getStatusLabel(contest)}
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-
-                          {getStatusLabel(contest)}
-                        </div>
+                      {contest.description && (
+                        <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                          {contest.description}
+                        </p>
                       )}
                     </div>
 
-                    {/* Content */}
-
-                    <div className="mt-5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold capitalize text-blue-600">
-                          {subjectLabel}
-                        </span>
-
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                          {contest.category}
-                        </span>
-                      </div>
-
-                      <h3 className="mt-4 text-lg font-bold text-slate-900">
-                        {contest.title}
-                      </h3>
-
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {contest.description}
-                      </p>
-                    </div>
-
-                    {/* Contest Stats */}
-
-                    <div className="mt-5 grid grid-cols-3 gap-2 border-y border-slate-100 py-4">
-
-                      {/* Subjects */}
-
-                      <div>
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <BookOpen className="h-3.5 w-3.5" />
-
-                          <span className="text-[11px]">
-                            Subjects
-                          </span>
-                        </div>
-
-                        <p className="mt-1 text-sm font-bold text-slate-900">
-                          {subjectCount}
-                        </p>
-                      </div>
-
-                      {/* Questions */}
-
-                      <div>
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Brain className="h-3.5 w-3.5" />
-
-                          <span className="text-[11px]">
-                            Questions
-                          </span>
-                        </div>
-
-                        <p className="mt-1 text-sm font-bold text-slate-900">
-                          {questionCount}
-                        </p>
-                      </div>
-
-                      {/* Entry */}
-
-                      <div>
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Users className="h-3.5 w-3.5" />
-
-                          <span className="text-[11px]">
-                            Entry
-                          </span>
-                        </div>
-
-                        <p className="mt-1 text-sm font-bold text-slate-900">
-                          {contest.entryPoints.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Dates */}
-
-                    <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div>
-                          <span className="text-slate-400">
-                            Starts
-                          </span>
-
-                          <p className="mt-1 font-semibold text-slate-700">
-                            {formatDate(
-                              contest.startDate,
-                            )}
-                          </p>
-                        </div>
-
-                        <ArrowRight className="h-4 w-4 text-slate-300" />
-
-                        <div className="text-right">
-                          <span className="text-slate-400">
-                            Ends
-                          </span>
-
-                          <p className="mt-1 font-semibold text-slate-700">
-                            {formatDate(
-                              contest.endDate,
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reward */}
-
-                    <div className="mt-5 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-medium text-slate-400">
+                    {/* STATS */}
+                    <div className="grid grid-cols-2 border-y border-white/10">
+                      <div className="p-4">
+                        <p className="text-xs text-slate-500">
                           Prize
                         </p>
 
-                        <div className="mt-1 flex items-center gap-2">
-                          <Gift className="h-5 w-5 text-amber-500" />
+                        <p className="mt-1 font-semibold text-emerald-400">
+                          {formatCurrency(
+                            contest.amountToBeWonInKobo
+                          )}
+                        </p>
+                      </div>
 
-                          <span className="text-xl font-extrabold text-slate-900">
-                            {formatCurrency(reward)}
-                          </span>
-                        </div>
+                      <div className="border-l border-white/10 p-4">
+                        <p className="text-xs text-slate-500">
+                          Entry
+                        </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
-                          Entry:{" "}
+                        <p className="mt-1 font-semibold text-amber-400">
                           {contest.entryPoints.toLocaleString()}{" "}
                           points
                         </p>
                       </div>
+                    </div>
 
-                      <button
-                        type="button"
-                        disabled={locked}
-                        className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${
+                    {/* DETAILS */}
+                    <div className="flex-1 p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-4 text-sm">
+                          <span className="flex items-center gap-2 text-slate-400">
+                            <BookOpen className="h-4 w-4 shrink-0" />
+                            Subject
+                          </span>
+
+                          <span className="text-right font-medium text-slate-200">
+                            {getSubjectLabel(contest)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2 text-slate-400">
+                            <Target className="h-4 w-4" />
+                            Subjects
+                          </span>
+
+                          <span className="font-medium text-slate-200">
+                            {subjectCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* ENTRY REQUIREMENT */}
+                      <div
+                        className={`mt-5 rounded-xl border p-4 ${
                           locked
-                            ? "cursor-not-allowed bg-slate-100 text-slate-400"
-                            : "bg-slate-900 text-white hover:bg-blue-600"
+                            ? "border-red-400/20 bg-red-500/10"
+                            : "border-emerald-400/20 bg-emerald-500/10"
                         }`}
                       >
-                        {locked
-                          ? getStatusLabel(contest)
-                          : "Enter Contest"}
+                        {locked ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-4 w-4 text-red-400" />
 
-                        {!locked && (
-                          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                              <p className="text-sm font-semibold text-red-300">
+                                Not enough Practice Points
+                              </p>
+                            </div>
+
+                            <p className="mt-1 text-xs leading-5 text-red-200/70">
+                              You need{" "}
+                              <span className="font-semibold text-red-200">
+                                {pointsNeeded.toLocaleString()}
+                              </span>{" "}
+                              more points to enter this
+                              contest.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+
+                              <p className="text-sm font-semibold text-emerald-300">
+                                You can enter this contest
+                              </p>
+                            </div>
+
+                            <p className="mt-1 text-xs leading-5 text-emerald-200/70">
+                              Your{" "}
+                              {practicePoints.toLocaleString()}{" "}
+                              Practice Points cover the{" "}
+                              {contest.entryPoints.toLocaleString()}{" "}
+                              point entry fee.
+                            </p>
+                          </>
                         )}
-                      </button>
-
-
+                      </div>
                     </div>
-                  </motion.article>
-                );
-              })}
-            </div>
-          )}
-      </section>
 
-      {/* ========================================================
-          FAIR PLAY NOTICE
-      ======================================================== */}
-
-      <motion.section
-        initial={{
-          opacity: 0,
-          y: 15,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          duration: 0.45,
-          delay: 0.25,
-        }}
-        className="rounded-2xl border border-amber-200 bg-amber-50 p-5"
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-            <Medal className="h-5 w-5 text-amber-600" />
+                    {/* ACTION */}
+                    <div className="p-6 pt-0">
+                      {locked ? (
+                        <Link
+                          href="/student/practice/cbtsubjects?exam=jamb"
+                          className="inline-flex h-10 w-full items-center justify-center rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                        >
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Practice & Earn Points
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/student/solve-and-win/contests/${contest._id}/join`}
+                          className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                        >
+                          Join Contest
+                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Link>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
+        )}
 
-          <div>
-            <h3 className="font-bold text-amber-900">
-              Play fair. Learn more. Win more.
-            </h3>
+        {/* ======================================================
+            FAIR PLAY
+           ====================================================== */}
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            </div>
 
-            <p className="mt-1 text-sm leading-6 text-amber-800/70">
-              Solve contests independently.
-              Your performance determines your
-              eligibility for available rewards.
-            </p>
+            <div>
+              <h3 className="font-semibold">
+                Fair Play & Competition
+              </h3>
+
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                Every participant gets a fair chance. Answer
+                questions carefully, follow the competition
+                rules, and let your knowledge determine your
+                score.
+              </p>
+            </div>
           </div>
         </div>
-      </motion.section>
-    </div>
+      </section>
+    </main>
   );
 }

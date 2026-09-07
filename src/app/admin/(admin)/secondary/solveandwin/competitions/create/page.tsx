@@ -1,5 +1,12 @@
 
 
+
+
+
+
+
+
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -8,8 +15,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Trophy,
-  Users,
-   Clock3,
+  Clock3,
   Coins,
   FileText,
   Save,
@@ -44,15 +50,10 @@ import {
 type CompetitionForm = {
   title: string;
   description: string;
-
   timePerQuestion: string;
-
   startDate: string;
   windowPeriod: "1" | "3" | "7";
-
   questionCount: string;
-  difficultyRange: string;
-
   prizeAmount: string;
   maxParticipants: string;
   entryPoints: string;
@@ -116,29 +117,6 @@ const QUESTION_COUNT_OPTIONS = [
   { value: "50", label: "50 Questions" },
   { value: "60", label: "60 Questions" },
   { value: "100", label: "100 Questions" },
-];
-
-const DIFFICULTY_OPTIONS = [
-  {
-    value: "EASY_MEDIUM",
-    label: "Easy – Medium",
-  },
-  {
-    value: "MEDIUM",
-    label: "Medium Only",
-  },
-  {
-    value: "MEDIUM_HARD",
-    label: "Medium – Hard",
-  },
-  {
-    value: "EASY_HARD",
-    label: "Easy – Hard",
-  },
-  {
-    value: "HARD",
-    label: "Hard Only",
-  },
 ];
 
 const WINDOW_OPTIONS = [
@@ -249,6 +227,33 @@ const ENTRY_POINT_OPTIONS = [
   },
 ];
 
+const TIME_PER_QUESTION_OPTIONS = [
+  {
+    value: "30",
+    label: "30 seconds",
+  },
+  {
+    value: "45",
+    label: "45 seconds",
+  },
+  {
+    value: "60",
+    label: "1 minute",
+  },
+  {
+    value: "90",
+    label: "1 minute 30 seconds",
+  },
+  {
+    value: "120",
+    label: "2 minutes",
+  },
+  {
+    value: "180",
+    label: "3 minutes",
+  },
+];
+
 /* ============================================================
    INITIAL FORM
 ============================================================ */
@@ -256,15 +261,10 @@ const ENTRY_POINT_OPTIONS = [
 const initialForm: CompetitionForm = {
   title: "",
   description: "",
-
-   timePerQuestion: "",
-
+  timePerQuestion: "60",
   startDate: "",
   windowPeriod: "1",
-
   questionCount: "20",
-  difficultyRange: "EASY_HARD",
-
   prizeAmount: "",
   maxParticipants: "1000",
   entryPoints: "500",
@@ -281,22 +281,17 @@ function calculateEndDate(
   if (!startDate) return "";
 
   const date = new Date(`${startDate}T00:00:00`);
-
   const days = Number(windowPeriod);
 
-  if (!Number.isFinite(days)) {
+  if (!Number.isFinite(days) || days < 1) {
     return "";
   }
 
   date.setDate(date.getDate() + days - 1);
 
   const year = date.getFullYear();
-  const month = String(
-    date.getMonth() + 1,
-  ).padStart(2, "0");
-  const day = String(
-    date.getDate(),
-  ).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -304,9 +299,7 @@ function calculateEndDate(
 function formatDisplayDate(dateString: string) {
   if (!dateString) return "";
 
-  const date = new Date(
-    `${dateString}T00:00:00`,
-  );
+  const date = new Date(`${dateString}T00:00:00`);
 
   if (Number.isNaN(date.getTime())) {
     return "";
@@ -318,6 +311,33 @@ function formatDisplayDate(dateString: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function calculateDifficultyBreakdown(totalQuestions: number) {
+  /*
+    Backend documentation expects:
+
+    easy
+    medium
+    hard
+
+    We use the application's 20 / 30 / 50 distribution.
+  */
+
+  const easy = Math.round(totalQuestions * 0.2);
+  const medium = Math.round(totalQuestions * 0.3);
+
+  /*
+    Calculate hard as the remainder so that
+    easy + medium + hard ALWAYS equals totalQuestions.
+  */
+  const hard = totalQuestions - easy - medium;
+
+  return {
+    easy,
+    medium,
+    hard,
+  };
 }
 
 /* ============================================================
@@ -337,9 +357,7 @@ function SelectField({
   id: string;
   label: string;
   value: string;
-  onChange: (
-    value: string,
-  ) => void;
+  onChange: (value: string) => void;
   options: {
     value: string;
     label: string;
@@ -356,9 +374,7 @@ function SelectField({
       >
         {label}
         {required && (
-          <span className="ml-1 text-red-500">
-            *
-          </span>
+          <span className="ml-1 text-red-500">*</span>
         )}
       </label>
 
@@ -366,9 +382,7 @@ function SelectField({
         <select
           id={id}
           value={value}
-          onChange={(event) =>
-            onChange(event.target.value)
-          }
+          onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
           required={required}
           className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -538,7 +552,37 @@ export default function CreateCompetitionPage() {
       );
 
   /* ==========================================================
-     END DATE
+     QUESTION CONFIGURATION
+  ========================================================== */
+
+  const totalQuestions =
+    Number(form.questionCount) || 0;
+
+  const difficultyBreakdown =
+    useMemo(
+      () =>
+        calculateDifficultyBreakdown(
+          totalQuestions,
+        ),
+      [totalQuestions],
+    );
+
+  const totalDurationMinutes =
+    form.timePerQuestion && totalQuestions
+      ? Math.ceil(
+          (totalQuestions *
+            Number(form.timePerQuestion)) /
+            60,
+        )
+      : 0;
+
+  /* ==========================================================
+     END DATE PREVIEW
+
+     This is ONLY for UI.
+
+     It is NOT sent to the backend because the
+     documented API uses startDate + windowPeriod.
   ========================================================== */
 
   const endDate = useMemo(
@@ -594,6 +638,8 @@ export default function CreateCompetitionPage() {
           (id) => id !== subjectId,
         ),
     );
+
+    setError("");
   };
 
   /* ==========================================================
@@ -645,6 +691,15 @@ export default function CreateCompetitionPage() {
     }
 
     if (
+      Number(form.windowPeriod) < 1
+    ) {
+      setError(
+        "Competition window period must be at least 1 day.",
+      );
+      return;
+    }
+
+    if (
       selectedSubjectIds.length === 0
     ) {
       setError(
@@ -660,9 +715,9 @@ export default function CreateCompetitionPage() {
       return;
     }
 
-    if (!form.difficultyRange) {
+    if (!form.timePerQuestion) {
       setError(
-        "Please select the question difficulty range.",
+        "Please select the time per question.",
       );
       return;
     }
@@ -698,6 +753,15 @@ export default function CreateCompetitionPage() {
     const entryPoints =
       Number(form.entryPoints);
 
+    const windowPeriod =
+      Number(form.windowPeriod);
+
+    const questionCount =
+      Number(form.questionCount);
+
+    const timePerQuestion =
+      Number(form.timePerQuestion);
+
     if (
       !Number.isFinite(prizeAmount) ||
       prizeAmount <= 0
@@ -718,6 +782,36 @@ export default function CreateCompetitionPage() {
       return;
     }
 
+    if (
+      !Number.isInteger(windowPeriod) ||
+      windowPeriod < 1
+    ) {
+      setError(
+        "Window period must be an integer greater than or equal to 1.",
+      );
+      return;
+    }
+
+    if (
+      !Number.isInteger(questionCount) ||
+      questionCount <= 0
+    ) {
+      setError(
+        "Question count must be greater than zero.",
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(timePerQuestion) ||
+      timePerQuestion <= 0
+    ) {
+      setError(
+        "Time per question must be greater than zero.",
+      );
+      return;
+    }
+
     /* ========================================================
        PRIZE → KOBO
     ======================================================== */
@@ -728,63 +822,116 @@ export default function CreateCompetitionPage() {
       );
 
     /* ========================================================
+       SUBJECT CONFIGURATION
+
+       IMPORTANT:
+
+       The backend documentation expects:
+
+       subjects: [
+         {
+           subjectId,
+           expectedNoOfQuestions,
+           difficultyBreakdown: {
+             easy,
+             medium,
+             hard
+           },
+           durationInMinutes
+         }
+       ]
+
+       We distribute the selected total questions across
+       selected subjects.
+
+       For one subject:
+         20 questions
+         → 4 easy
+         → 6 medium
+         → 10 hard
+
+       For multiple subjects, the total is divided between
+       the subjects as evenly as possible.
+    ======================================================== */
+
+    const baseQuestionsPerSubject = Math.floor(
+      questionCount /
+        selectedSubjectIds.length,
+    );
+
+    const remainder =
+      questionCount %
+      selectedSubjectIds.length;
+
+    const configuredSubjects =
+      selectedSubjectIds.map(
+        (subjectId, index) => {
+          const subjectQuestionCount =
+            baseQuestionsPerSubject +
+            (index < remainder ? 1 : 0);
+
+          const breakdown =
+            calculateDifficultyBreakdown(
+              subjectQuestionCount,
+            );
+
+          const subjectDuration =
+            Math.ceil(
+              (subjectQuestionCount *
+                timePerQuestion) /
+                60,
+            );
+
+          return {
+            subjectId,
+            expectedNoOfQuestions:
+              subjectQuestionCount,
+            difficultyBreakdown:
+              breakdown,
+            durationInMinutes:
+              subjectDuration,
+          };
+        },
+      );
+
+    /* ========================================================
        CREATE CONTEST PAYLOAD
-       
-       Status is intentionally ALWAYS UPCOMING.
-       The backend currently accepts the fields below.
+
+       THIS NOW MATCHES THE DOCUMENTATION:
+
+       {
+         title,
+         description,
+         category,
+         status,
+         amountToBeWonInKobo,
+         entryPoints,
+         startDate,
+         windowPeriod,
+         subjects: [...]
+       }
     ======================================================== */
 
     const payload: CreateContestPayload = {
       title: form.title,
-
       description: form.description,
-
       category: "National",
-
       status: "UPCOMING",
-
       amountToBeWonInKobo,
-
       entryPoints,
-
       startDate: form.startDate,
-
-      endDate,
-
-      subjectIds:
-        selectedSubjectIds,
+      windowPeriod,
+      subjects: configuredSubjects,
     };
 
     console.log(
       "CREATE COMPETITION PAYLOAD:",
-      payload,
+      JSON.stringify(
+        payload,
+        null,
+        2,
+      ),
     );
-
-    /* ========================================================
-       QUESTION CONFIG
-       
-       This is the configuration selected by admin for the
-       next question-bank step.
-    ======================================================== */
-
-    const questionConfiguration = {
-      source: "QUESTION_BANK",
-      questionCount:
-        Number(form.questionCount),
-      difficultyRange:
-        form.difficultyRange,
-      subjectIds:
-        selectedSubjectIds,
-    };
-
-    console.log(
-      "QUESTION BANK CONFIGURATION:",
-      questionConfiguration,
-    );
-
-    /* ========================================================
-       API
-    ======================================================== */
 
     try {
       setIsSubmitting(true);
@@ -809,11 +956,6 @@ export default function CreateCompetitionPage() {
           "Competition created successfully.",
       );
 
-      /*
-       * The next step can use the returned competition ID
-       * to open the Question Bank configuration page.
-       */
-
       const competitionId =
         response.data?._id ??
         response.data?.id;
@@ -825,12 +967,12 @@ export default function CreateCompetitionPage() {
         );
 
         /*
-         * When your next page is ready:
-         *
-         * router.push(
-         *   `/admin/secondary/solveandwin/competitions/${competitionId}`
-         * );
-         */
+          When the next page is ready:
+
+          router.push(
+            `/admin/secondary/solveandwin/competitions/${competitionId}`
+          );
+        */
       }
     } catch (err: unknown) {
       console.error(
@@ -848,17 +990,23 @@ export default function CreateCompetitionPage() {
       const axiosError = err as {
         response?: {
           data?: {
-            message?: string;
+            message?:
+              | string
+              | string[];
             error?: string;
           };
         };
       };
 
       const backendMessage =
-        axiosError.response?.data?.message ??
+        axiosError.response?.data
+          ?.message ??
         axiosError.response?.data?.error;
 
-      if (backendMessage) {
+      if (Array.isArray(backendMessage)) {
+        message =
+          backendMessage.join(", ");
+      } else if (backendMessage) {
         message = backendMessage;
       }
 
@@ -1095,8 +1243,7 @@ export default function CreateCompetitionPage() {
                           ? "Loading subjects..."
                           : availableSubjects.length ===
                               0
-                            ? subjects.length ===
-                              0
+                            ? subjects.length === 0
                               ? "No subjects available"
                               : "All subjects selected"
                             : "Select a subject"}
@@ -1187,9 +1334,7 @@ export default function CreateCompetitionPage() {
                                 subject._id,
                               )
                             }
-                            disabled={
-                              isSubmitting
-                            }
+                            disabled={isSubmitting}
                             className="ml-3 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-red-600"
                             aria-label={`Remove ${subject.name}`}
                           >
@@ -1201,331 +1346,371 @@ export default function CreateCompetitionPage() {
                   </div>
                 )}
               </div>
+
+              {/* SUBJECT CONFIGURATION PREVIEW */}
+
+              {selectedSubjects.length > 0 && (
+                <div className="mt-8 rounded-2xl border border-green-200 bg-green-50 p-5">
+                  <div className="flex items-start gap-3">
+                    <Target className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+
+                    <div>
+                      <p className="text-sm font-bold text-green-900">
+                        Subject Question Configuration
+                      </p>
+
+                      <p className="mt-1 text-sm text-green-800">
+                        The selected questions will be
+                        distributed across the selected
+                        subjects using the 20% Easy,
+                        30% Medium and 50% Hard structure.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {selectedSubjects.map(
+                      (subject, index) => {
+                        const base =
+                          Math.floor(
+                            totalQuestions /
+                              selectedSubjects.length,
+                          );
+
+                        const remainder =
+                          totalQuestions %
+                          selectedSubjects.length;
+
+                        const subjectCount =
+                          base +
+                          (index < remainder
+                            ? 1
+                            : 0);
+
+                        const breakdown =
+                          calculateDifficultyBreakdown(
+                            subjectCount,
+                          );
+
+                        const duration =
+                          Math.ceil(
+                            (subjectCount *
+                              Number(
+                                form.timePerQuestion,
+                              )) /
+                              60,
+                          );
+
+                        return (
+                          <div
+                            key={subject._id}
+                            className="rounded-xl border border-green-200 bg-white p-4"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-bold text-slate-900">
+                                  {subject.name}
+                                </p>
+
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {subjectCount} questions
+                                  · {duration} minutes
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2 text-xs font-bold">
+                                <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-700">
+                                  Easy {breakdown.easy}
+                                </span>
+
+                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-yellow-700">
+                                  Medium {breakdown.medium}
+                                </span>
+
+                                <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-700">
+                                  Hard {breakdown.hard}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
             </Card>
 
+            {/* ==================================================
+                QUESTION BANK
+            ================================================== */}
 
+            <Card className="p-6 md:p-8">
+              <div className="mb-7 flex items-start gap-4">
+                <div className="rounded-xl bg-orange-100 p-3 text-orange-700">
+                  <HelpCircle className="h-5 w-5" />
+                </div>
 
-{/* ==================================================
-    QUESTION BANK
-================================================== */}
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Competition Questions
+                  </h2>
 
-<Card className="p-6 md:p-8">
-  <div className="mb-7 flex items-start gap-4">
-    <div className="rounded-xl bg-orange-100 p-3 text-orange-700">
-      <HelpCircle className="h-5 w-5" />
-    </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Questions will be automatically selected
+                    from the Question Bank using a 20/30/50
+                    difficulty distribution.
+                  </p>
+                </div>
+              </div>
 
-    <div>
-      <h2 className="text-xl font-bold text-slate-900">
-        Competition Questions
-      </h2>
+              {/* QUESTION SOURCE */}
 
-      <p className="mt-1 text-sm text-slate-500">
-        Questions will be automatically selected from the Question
-        Bank using a 20/30/50 difficulty distribution.
-      </p>
-    </div>
-  </div>
+              <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-5">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
 
-  {/* ==================================================
-      QUESTION SOURCE
-  ================================================== */}
+                  <div>
+                    <p className="text-sm font-bold text-orange-900">
+                      Question Source
+                    </p>
 
-  <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-5">
-    <div className="flex items-start gap-3">
-      <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
+                    <p className="mt-1 text-sm text-orange-800">
+                      Questions will be fetched automatically
+                      from the existing Question Bank.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-      <div>
-        <p className="text-sm font-bold text-orange-900">
-          Question Source
-        </p>
+              {/* QUESTION COUNT */}
 
-        <p className="mt-1 text-sm text-orange-800">
-          Questions will be fetched automatically from the
-          existing Question Bank.
-        </p>
-      </div>
-    </div>
-  </div>
+              <SelectField
+                id="questionCount"
+                label="Number of Questions"
+                value={form.questionCount}
+                onChange={(value) =>
+                  updateField(
+                    "questionCount",
+                    value,
+                  )
+                }
+                options={
+                  QUESTION_COUNT_OPTIONS
+                }
+                disabled={isSubmitting}
+                required
+                description="Select the total number of questions for the competition."
+              />
 
-  {/* ==================================================
-      QUESTION COUNT
-  ================================================== */}
+              {/* DIFFICULTY */}
 
-  <SelectField
-    id="questionCount"
-    label="Number of Questions"
-    value={form.questionCount}
-    onChange={(value) =>
-      updateField("questionCount", value)
-    }
-    options={QUESTION_COUNT_OPTIONS}
-    disabled={isSubmitting}
-    required
-    description="Select the total number of questions for the competition."
-  />
+              {form.questionCount && (
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Difficulty Distribution
+                      </h3>
 
-  {/* ==================================================
-      AUTOMATIC DIFFICULTY DISTRIBUTION
-  ================================================== */}
+                      <p className="mt-1 text-xs text-slate-500">
+                        This configuration will be sent
+                        to the backend for each selected
+                        subject.
+                      </p>
+                    </div>
 
-  {form.questionCount && (
-    <div className="mt-6">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-slate-900">
-            Difficulty Distribution
-          </h3>
+                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
+                      20 / 30 / 50
+                    </span>
+                  </div>
 
-          <p className="mt-1 text-xs text-slate-500">
-            The distribution is automatically calculated from
-            the selected question count.
-          </p>
-        </div>
+                  <div className="grid gap-4 md:grid-cols-3">
 
-        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-          20 / 30 / 50
-        </span>
-      </div>
+                    {/* EASY */}
 
-      <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-green-900">
+                          Easy
+                        </span>
 
-        {/* ==================================================
-            EASY — 20%
-        ================================================== */}
+                        <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
+                          20%
+                        </span>
+                      </div>
 
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-green-900">
-              Easy
-            </span>
+                      <p className="mt-4 text-3xl font-black text-green-900">
+                        {difficultyBreakdown.easy}
+                      </p>
 
-            <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
-              20%
-            </span>
-          </div>
+                      <p className="mt-1 text-xs font-medium text-green-700">
+                        questions
+                      </p>
+                    </div>
 
-          <p className="mt-4 text-3xl font-black text-green-900">
-            {Math.round(
-              Number(form.questionCount) * 0.2,
-            )}
-          </p>
+                    {/* MEDIUM */}
 
-          <p className="mt-1 text-xs font-medium text-green-700">
-            questions
-          </p>
-        </div>
+                    <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-yellow-900">
+                          Medium
+                        </span>
 
-        {/* ==================================================
-            MEDIUM — 30%
-        ================================================== */}
+                        <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-bold text-yellow-700">
+                          30%
+                        </span>
+                      </div>
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-yellow-900">
-              Medium
-            </span>
+                      <p className="mt-4 text-3xl font-black text-yellow-900">
+                        {difficultyBreakdown.medium}
+                      </p>
 
-            <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-bold text-yellow-700">
-              30%
-            </span>
-          </div>
+                      <p className="mt-1 text-xs font-medium text-yellow-700">
+                        questions
+                      </p>
+                    </div>
 
-          <p className="mt-4 text-3xl font-black text-yellow-900">
-            {Math.round(
-              Number(form.questionCount) * 0.3,
-            )}
-          </p>
+                    {/* HARD */}
 
-          <p className="mt-1 text-xs font-medium text-yellow-700">
-            questions
-          </p>
-        </div>
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-red-900">
+                          Hard
+                        </span>
 
-        {/* ==================================================
-            HARD — 50%
-        ================================================== */}
+                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                          50%
+                        </span>
+                      </div>
 
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-red-900">
-              Hard
-            </span>
+                      <p className="mt-4 text-3xl font-black text-red-900">
+                        {difficultyBreakdown.hard}
+                      </p>
 
-            <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-              50%
-            </span>
-          </div>
+                      <p className="mt-1 text-xs font-medium text-red-700">
+                        questions
+                      </p>
+                    </div>
+                  </div>
 
-          <p className="mt-4 text-3xl font-black text-red-900">
-            {Math.round(
-              Number(form.questionCount) * 0.5,
-            )}
-          </p>
+                  {/* TIME PER QUESTION */}
 
-          <p className="mt-1 text-xs font-medium text-red-700">
-            questions
-          </p>
-        </div>
-      </div>
+                  <div className="mt-6">
+                    <SelectField
+                      id="timePerQuestion"
+                      label="Time Per Question"
+                      value={
+                        form.timePerQuestion
+                      }
+                      onChange={(value) =>
+                        updateField(
+                          "timePerQuestion",
+                          value,
+                        )
+                      }
+                      options={
+                        TIME_PER_QUESTION_OPTIONS
+                      }
+                      disabled={
+                        isSubmitting
+                      }
+                      required
+                      description="The selected time is used to calculate each subject's durationInMinutes."
+                    />
+                  </div>
 
+                  {/* TOTAL DURATION */}
 
+                  {form.questionCount &&
+                    form.timePerQuestion && (
+                      <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                        <div className="flex items-start gap-3">
+                          <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
 
-  {/* ==================================================
-      TIME PER QUESTION
-  ================================================== */}
+                          <div className="flex-1">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-bold text-blue-900">
+                                  Competition Duration
+                                </p>
 
-  <div className="mt-6">
-    <SelectField
-      id="timePerQuestion"
-      label="Time Per Question"
-      value={form.timePerQuestion}
-      onChange={(value) =>
-        updateField("timePerQuestion", value)
-      }
-      options={[
-        { value: "30", label: "30 seconds" },
-        { value: "45", label: "45 seconds" },
-        { value: "60", label: "1 minute" },
-        { value: "90", label: "1 minute 30 seconds" },
-        { value: "120", label: "2 minutes" },
-        { value: "180", label: "3 minutes" },
-      ]}
-      disabled={isSubmitting}
-      required
-      description="Each question will have the selected amount of time before the competition moves to the next question."
-    />
-  </div>
+                                <p className="mt-1 text-xs text-blue-700">
+                                  Automatically calculated
+                                  from the number of questions
+                                  and time allowed per question.
+                                </p>
+                              </div>
 
+                              <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
+                                <p className="text-2xl font-black text-blue-900">
+                                  {totalDurationMinutes} min
+                                </p>
 
+                                <p className="mt-1 text-xs font-semibold text-blue-600">
+                                  Total Time
+                                </p>
+                              </div>
+                            </div>
 
-  {/* ==================================================
-      TOTAL DURATION
-  ================================================== */}
+                            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium text-blue-800">
+                              <span className="rounded-full bg-blue-100 px-3 py-1.5">
+                                {form.questionCount} questions
+                              </span>
 
-  {form.questionCount && form.timePerQuestion && (
-    <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-      <div className="flex items-start gap-3">
-        <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                              <span>×</span>
 
-        <div className="flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-bold text-blue-900">
-                Competition Duration
-              </p>
+                              <span className="rounded-full bg-blue-100 px-3 py-1.5">
+                                {Number(
+                                  form.timePerQuestion,
+                                ) < 60
+                                  ? `${form.timePerQuestion} seconds`
+                                  : `${Number(
+                                      form.timePerQuestion,
+                                    ) / 60} minute${
+                                      Number(
+                                        form.timePerQuestion,
+                                      ) / 60 === 1
+                                        ? ""
+                                        : "s"
+                                    }`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-              <p className="mt-1 text-xs text-blue-700">
-                Automatically calculated from the number of
-                questions and time allowed per question.
-              </p>
-            </div>
+                  {/* SUMMARY */}
 
-            <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
-              <p className="text-2xl font-black text-blue-900">
-                {(() => {
-                  const totalSeconds =
-                    Number(form.questionCount) *
-                    Number(form.timePerQuestion);
+                  <div className="mt-5 flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <Target className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
 
-                  const totalMinutes =
-                    totalSeconds / 60;
+                    <div className="text-sm text-slate-600">
+                      <p className="font-semibold text-slate-900">
+                        Automatic Question Selection
+                      </p>
 
-                  if (totalMinutes < 1) {
-                    return `${totalSeconds} sec`;
-                  }
-
-                  if (
-                    Number.isInteger(totalMinutes)
-                  ) {
-                    return `${totalMinutes} min`;
-                  }
-
-                  const minutes = Math.floor(
-                    totalMinutes,
-                  );
-
-                  const seconds =
-                    totalSeconds % 60;
-
-                  return `${minutes}m ${seconds}s`;
-                })()}
-              </p>
-
-              <p className="mt-1 text-xs font-semibold text-blue-600">
-                Total Time
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium text-blue-800">
-            <span className="rounded-full bg-blue-100 px-3 py-1.5">
-              {form.questionCount} questions
-            </span>
-
-            <span>×</span>
-
-            <span className="rounded-full bg-blue-100 px-3 py-1.5">
-              {Number(form.timePerQuestion) < 60
-                ? `${form.timePerQuestion} seconds`
-                : `${Number(form.timePerQuestion) / 60} minute${
-                    Number(form.timePerQuestion) / 60 === 1
-                      ? ""
-                      : "s"
-                  }`}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
-
-
-
-
-      {/* ==================================================
-          DISTRIBUTION SUMMARY
-      ================================================== */}
-
-      <div className="mt-5 flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <Target className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-
-        <div className="text-sm text-slate-600">
-          <p className="font-semibold text-slate-900">
-            Automatic Question Selection
-          </p>
-
-          <p className="mt-1">
-            The system will fetch{" "}
-            <span className="font-bold text-green-700">
-              {Math.round(
-                Number(form.questionCount) * 0.2,
-              )}{" "}
-              Easy
-            </span>
-            ,{" "}
-            <span className="font-bold text-yellow-700">
-              {Math.round(
-                Number(form.questionCount) * 0.3,
-              )}{" "}
-              Medium
-            </span>
-            , and{" "}
-            <span className="font-bold text-red-700">
-              {Math.round(
-                Number(form.questionCount) * 0.5,
-              )}{" "}
-              Hard
-            </span>{" "}
-            questions from the Question Bank.
-          </p>
-        </div>
-      </div>
-    </div>
-  )}
-</Card>
-
-
+                      <p className="mt-1">
+                        The system will fetch{" "}
+                        <span className="font-bold text-green-700">
+                          {difficultyBreakdown.easy} Easy
+                        </span>
+                        ,{" "}
+                        <span className="font-bold text-yellow-700">
+                          {difficultyBreakdown.medium} Medium
+                        </span>
+                        , and{" "}
+                        <span className="font-bold text-red-700">
+                          {difficultyBreakdown.hard} Hard
+                        </span>{" "}
+                        questions from the Question Bank.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
 
             {/* ==================================================
                 SCHEDULE
@@ -1543,9 +1728,8 @@ export default function CreateCompetitionPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Choose when the competition
-                    starts and how long it remains
-                    open.
+                    Choose when the competition starts
+                    and how long it remains open.
                   </p>
                 </div>
               </div>
@@ -1568,12 +1752,12 @@ export default function CreateCompetitionPage() {
                   <input
                     id="startDate"
                     type="date"
-                    value={form.startDate}
                     min={
                       new Date()
                         .toISOString()
                         .split("T")[0]
                     }
+                    value={form.startDate}
                     onChange={(event) =>
                       updateField(
                         "startDate",
@@ -1609,9 +1793,7 @@ export default function CreateCompetitionPage() {
                       value,
                     )
                   }
-                  options={
-                    WINDOW_OPTIONS
-                  }
+                  options={WINDOW_OPTIONS}
                   disabled={isSubmitting}
                   required
                   description="How long students can participate."
@@ -1642,8 +1824,7 @@ export default function CreateCompetitionPage() {
 
                       <p className="mt-1 text-xs text-purple-700">
                         {form.windowPeriod}{" "}
-                        {form.windowPeriod ===
-                        "1"
+                        {form.windowPeriod === "1"
                           ? "day"
                           : "days"}{" "}
                         participation window.
@@ -1657,9 +1838,9 @@ export default function CreateCompetitionPage() {
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
 
                 <p>
-                  The end date is automatically
-                  calculated from the selected
-                  start date and window period.
+                  The backend receives the start date and
+                  window period. The end date shown above
+                  is only a preview.
                 </p>
               </div>
             </Card>
@@ -1700,9 +1881,7 @@ export default function CreateCompetitionPage() {
                       value,
                     )
                   }
-                  options={
-                    PRIZE_OPTIONS
-                  }
+                  options={PRIZE_OPTIONS}
                   disabled={isSubmitting}
                   required
                   description="Cash prize awarded to the winner."
@@ -1751,7 +1930,7 @@ export default function CreateCompetitionPage() {
                 />
               </div>
 
-              {/* ENTRY TOKEN EXPLANATION */}
+              {/* ENTRY EXPLANATION */}
 
               <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
                 <div className="flex items-start gap-3">
@@ -1763,9 +1942,8 @@ export default function CreateCompetitionPage() {
                     </p>
 
                     <p className="mt-1 text-sm text-yellow-800">
-                      Students use their earned
+                      Students use their earned{" "}
                       <span className="font-bold">
-                        {" "}
                         CBT Tokens
                       </span>{" "}
                       to enter the competition.
@@ -1794,6 +1972,7 @@ export default function CreateCompetitionPage() {
               </div>
 
               <div className="grid gap-px bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+
                 <div className="bg-white p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Status
@@ -1832,12 +2011,7 @@ export default function CreateCompetitionPage() {
                   </p>
 
                   <p className="mt-1 font-bold text-slate-900">
-                    {DIFFICULTY_OPTIONS.find(
-                      (item) =>
-                        item.value ===
-                        form.difficultyRange,
-                    )?.label ??
-                      "Not selected"}
+                    20% Easy / 30% Medium / 50% Hard
                   </p>
                 </div>
 
@@ -1848,8 +2022,7 @@ export default function CreateCompetitionPage() {
 
                   <p className="mt-1 font-bold text-slate-900">
                     {form.windowPeriod}{" "}
-                    {form.windowPeriod ===
-                    "1"
+                    {form.windowPeriod === "1"
                       ? "Day"
                       : "Days"}
                   </p>
@@ -1866,6 +2039,56 @@ export default function CreateCompetitionPage() {
                           form.entryPoints,
                         ).toLocaleString()} CBT Tokens`
                       : "Not selected"}
+                  </p>
+                </div>
+
+                <div className="bg-white p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Prize
+                  </p>
+
+                  <p className="mt-1 font-bold text-green-700">
+                    {form.prizeAmount
+                      ? `₦${Number(
+                          form.prizeAmount,
+                        ).toLocaleString()}`
+                      : "Not selected"}
+                  </p>
+                </div>
+
+                <div className="bg-white p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Total Duration
+                  </p>
+
+                  <p className="mt-1 font-bold text-slate-900">
+                    {totalDurationMinutes
+                      ? `${totalDurationMinutes} Minutes`
+                      : "Not calculated"}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* ==================================================
+                PAYLOAD PREVIEW
+            ================================================== */}
+
+            <Card className="border-blue-200 bg-blue-50 p-6 md:p-8">
+              <div className="flex items-start gap-3">
+                <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-blue-900">
+                    Backend Configuration
+                  </h3>
+
+                  <p className="mt-1 text-sm text-blue-800">
+                    The competition will be created with
+                    the documented <code>subjects</code>{" "}
+                    configuration. Each subject receives
+                    its own question count, difficulty
+                    breakdown and duration.
                   </p>
                 </div>
               </div>
@@ -1919,8 +2142,7 @@ export default function CreateCompetitionPage() {
                 disabled={
                   isSubmitting ||
                   isSubjectsLoading ||
-                  selectedSubjectIds.length ===
-                    0
+                  selectedSubjectIds.length === 0
                 }
                 className="w-full sm:w-auto"
               >

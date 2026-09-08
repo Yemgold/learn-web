@@ -1,160 +1,6 @@
 
 
 
-// // import { biologyQuestions} 
-// // // import { chemistryQuestions } from "./chemistry";
-// // // import { physicsQuestions } from "./physics";
-// // // import { mathematicsQuestions } from "./mathematics";
-// // // import { englishQuestions } from "./english";
-
-// // // export const questionBank = {
-// // //   biology: biologyQuestions,
-// // //   chemistry: chemistryQuestions,
-// // //   physics: physicsQuestions,
-// // //   mathematics: mathematicsQuestions,
-// // //   english: englishQuestions,
-// // // };
-
-
-
-
-// import type { ExamType, QuestionBankItem } from "./types";
-
-// // ============================================================
-// // BIOLOGY
-// // ============================================================
-
-// import jambBiologyQuestions from "./biology/simple/jamb";
-
-// // ============================================================
-// // QUESTION BANK REGISTRY
-// // ============================================================
-
-// type QuestionBankMap = Record<
-//   string,
-//   Partial<Record<ExamType, QuestionBankItem[]>>
-// >;
-
-// /**
-//  * All subject question banks are registered here.
-//  *
-//  * Structure:
-//  *
-//  * biology
-//  *   ├── jamb
-//  *   ├── waec
-//  *   └── neco
-//  *
-//  * chemistry
-//  *   ├── jamb
-//  *   ├── waec
-//  *   └── neco
-//  *
-//  * etc.
-//  */
-// const questionBank: QuestionBankMap = {
-//   biology: {
-//     jamb: jambBiologyQuestions,
-//   },
-
-//   // Add Chemistry when the file is created:
-//   //
-//   // chemistry: {
-//   //   jamb: jambChemistryQuestions,
-//   //   waec: waecChemistryQuestions,
-//   //   neco: necoChemistryQuestions,
-//   // },
-
-//   // Add Physics when the files are created:
-//   //
-//   // physics: {
-//   //   jamb: jambPhysicsQuestions,
-//   //   waec: waecPhysicsQuestions,
-//   //   neco: necoPhysicsQuestions,
-//   // },
-// };
-
-// // ============================================================
-// // SUBJECT NORMALIZATION
-// // ============================================================
-
-// function normalizeSubjectName(subjectName: string): string {
-//   return subjectName
-//     .toLowerCase()
-//     .trim()
-//     .replace(/&/g, "and")
-//     .replace(/[^a-z0-9]+/g, "");
-// }
-
-// // ============================================================
-// // GET QUESTION BANK
-// // ============================================================
-
-// export function getQuestionBank(
-//   subjectName: string,
-//   examType: ExamType,
-// ): QuestionBankItem[] {
-//   const subjectKey = normalizeSubjectName(subjectName);
-
-//   const subjectBank = questionBank[subjectKey];
-
-//   if (!subjectBank) {
-//     return [];
-//   }
-
-//   return subjectBank[examType] ?? [];
-// }
-
-// // ============================================================
-// // CHECK WHETHER A QUESTION BANK EXISTS
-// // ============================================================
-
-// export function hasQuestionBank(
-//   subjectName: string,
-//   examType: ExamType,
-// ): boolean {
-//   return getQuestionBank(subjectName, examType).length > 0;
-// }
-
-// // ============================================================
-// // GET AVAILABLE EXAM TYPES FOR A SUBJECT
-// // ============================================================
-
-// export function getAvailableExamTypes(
-//   subjectName: string,
-// ): ExamType[] {
-//   const subjectKey = normalizeSubjectName(subjectName);
-
-//   const subjectBank = questionBank[subjectKey];
-
-//   if (!subjectBank) {
-//     return [];
-//   }
-
-//   return (Object.keys(subjectBank) as ExamType[]).filter(
-//     (examType) => (subjectBank[examType]?.length ?? 0) > 0,
-//   );
-// }
-
-// // ============================================================
-// // GET ALL REGISTERED SUBJECTS
-// // ============================================================
-
-// export function getQuestionBankSubjects(): string[] {
-//   return Object.keys(questionBank);
-// }
-
-// // ============================================================
-// // DEFAULT EXPORT
-// // ============================================================
-
-// export default questionBank;
-
-
-
-
-
-
 
 
 
@@ -165,7 +11,7 @@ import type { ExamType, QuestionBankItem } from "./types";
 // BIOLOGY — JAMB
 // ============================================================
 
-import simpleBiologyJambQuestions from "./biology/simple/jamb";
+import easyBiologyJambQuestions from "./biology/easy/jamb";
 import mediumBiologyJambQuestions from "./biology/medium/jamb";
 import hardBiologyJambQuestions from "./biology/hard/jamb";
 
@@ -173,10 +19,10 @@ import hardBiologyJambQuestions from "./biology/hard/jamb";
 // TYPES
 // ============================================================
 
-export type QuestionDifficulty = "simple" | "medium" | "hard";
+export type QuestionDifficulty = "easy" | "medium" | "hard";
 
 export type QuestionBanks = {
-  simple: QuestionBankItem[];
+  easy: QuestionBankItem[];
   medium: QuestionBankItem[];
   hard: QuestionBankItem[];
 };
@@ -213,7 +59,7 @@ type DifficultyBankMap = Record<
 
 const questionBank: QuestionBankMap = {
   biology: {
-    jamb: simpleBiologyJambQuestions,
+    jamb: easyBiologyJambQuestions,
   },
 
   // Add Chemistry when ready:
@@ -255,7 +101,7 @@ const questionBank: QuestionBankMap = {
 const difficultyQuestionBank: DifficultyBankMap = {
   biology: {
     jamb: {
-      simple: simpleBiologyJambQuestions,
+      easy: easyBiologyJambQuestions,
       medium: mediumBiologyJambQuestions,
       hard: hardBiologyJambQuestions,
     },
@@ -318,7 +164,7 @@ export function getQuestionBanks(
 
   if (!subjectBank) {
     return {
-      simple: [],
+      easy: [],
       medium: [],
       hard: [],
     };
@@ -328,14 +174,14 @@ export function getQuestionBanks(
 
   if (!examBank) {
     return {
-      simple: [],
+      easy: [],
       medium: [],
       hard: [],
     };
   }
 
   return {
-    simple: examBank.simple ?? [],
+    easy: examBank.easy ?? [],
     medium: examBank.medium ?? [],
     hard: examBank.hard ?? [],
   };
@@ -352,7 +198,7 @@ export function hasQuestionBank(
   const banks = getQuestionBanks(subjectName, examType);
 
   return (
-    banks.simple.length > 0 ||
+    banks.easy.length > 0 ||
     banks.medium.length > 0 ||
     banks.hard.length > 0
   );
@@ -383,7 +229,7 @@ export function getAvailableDifficulties(
   const banks = getQuestionBanks(subjectName, examType);
 
   const difficulties: QuestionDifficulty[] = [
-    "simple",
+    "easy",
     "medium",
     "hard",
   ];
@@ -417,7 +263,7 @@ export function getAvailableExamTypes(
       }
 
       return (
-        (examBank.simple?.length ?? 0) > 0 ||
+        (examBank.easy?.length ?? 0) > 0 ||
         (examBank.medium?.length ?? 0) > 0 ||
         (examBank.hard?.length ?? 0) > 0
       );

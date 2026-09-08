@@ -54,6 +54,13 @@ export const adminNavigation: AdminNavSection[] = [
       href: "/admin/secondary/solveandwin",
       icon: Trophy,
     },
+
+     {
+      label: "Quiz-Competitions",
+      href: "/admin/secondary/quiz-board",
+      icon: Trophy,
+    },
+
     {
       label: "National Competitions",
       href: "/admin/secondary/nationalcompetitions",

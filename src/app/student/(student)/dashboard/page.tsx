@@ -96,11 +96,11 @@ export default function StudentDashboardPage() {
     },
 
     {
-      title: "Learning Arena",
-      description: "Learn through interactive lessons",
-      href: "/student/arena",
-      icon: "play",
-    },
+  title: "Quiz Board",
+  description: "Answer fast and Qualify",
+  href: "/student/quiz-board",
+  icon: "play",
+},
 
     {
       title: "Past Quetions Mood",

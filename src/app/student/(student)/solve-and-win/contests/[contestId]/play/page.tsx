@@ -2,7 +2,6 @@
 
 
 
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -13,312 +12,513 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Flag,
   Loader2,
-  Send,
   Trophy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  getAllActiveContests,
-  type SolveAndWinContest,
-} from "@/lib/api/solveAndWin";
-import { axiosInstance } from "@/lib/api/axios";
 
-/* =========================================================
+/* ============================================================
    TYPES
-========================================================= */
+   ============================================================ */
 
-type ContestQuestion = {
-  _id: string;
+type ContestOption = {
   id?: string;
-  question: string;
+  _id?: string;
+  label?: string;
   text?: string;
-  options: string[];
-  correctAnswer?: string;
-  explanation?: string;
+  value?: string;
+  option?: string;
 };
 
-type ContestAnswers = Record<string, string>;
+type ContestQuestion = {
+  _id?: string;
+  id?: string;
+  questionId?: string;
 
-type ContestState = "loading" | "ready" | "error" | "submitted";
+  question?: string;
+  text?: string;
+  instruction?: string;
 
-/* =========================================================
-   HELPERS
-========================================================= */
+  content?: unknown[];
+  media?: unknown;
 
-function getContestStartDate(
-  contest: SolveAndWinContest
-): Date | null {
-  const rawStartDate =
-    (contest as any).startDate ??
-    (contest as any).startAt ??
-    (contest as any).startsAt ??
-    (contest as any).scheduledStartDate ??
-    (contest as any).scheduledStartAt;
+  options?: ContestOption[] | string[];
 
-  if (!rawStartDate) {
-    return null;
-  }
+  questionType?: string;
+  isMultipleAnswer?: boolean;
 
-  const date = new Date(rawStartDate);
+  marks?: number;
 
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
+  explanation?: string;
+  explanationSteps?: string[];
 
-  return date;
-}
+  selectedOption?: string | null;
+  isCorrect?: boolean | null;
+  marksAwarded?: number;
+};
 
-function getContestDurationMinutes(
-  contest: SolveAndWinContest
-): number {
-  const duration =
-    (contest as any).durationMinutes ??
-    (contest as any).duration ??
-    (contest as any).timeLimitMinutes ??
-    30;
+type ParticipationSubject = {
+  subjectId?: string;
+  questions?: ContestQuestion[];
 
-  const parsed = Number(duration);
+  correctAnswers?: number;
+  wrongAnswers?: number;
+  unansweredQuestions?: number;
+  score?: number;
 
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 30;
-  }
+  durationInSeconds?: number;
+  remainingDurationInSeconds?: number;
 
-  return parsed;
-}
+  startedAt?: string | null;
+  endsAt?: string | null;
+  submittedAt?: string | null;
+};
 
-function getQuestionId(question: ContestQuestion) {
-  return question._id || question.id || "";
-}
+type Participation = {
+  _id?: string;
+  id?: string;
+  participationId?: string;
 
-function formatTime(totalSeconds: number) {
-  const safeSeconds = Math.max(0, totalSeconds);
+  userId?: string;
+  contestId?: string;
 
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = safeSeconds % 60;
+  subjects?: ParticipationSubject[];
 
-  return {
-    minutes: String(minutes).padStart(2, "0"),
-    seconds: String(seconds).padStart(2, "0"),
-  };
-}
+  questions?: ContestQuestion[];
 
-/* =========================================================
-   PAGE
-========================================================= */
+  totalQuestions?: number;
+  correctAnswers?: number;
+  wrongAnswers?: number;
+  unansweredQuestions?: number;
 
-export default function PlayContestPage() {
-  const router = useRouter();
-  const params = useParams();
+  score?: number;
+  percentage?: number;
+  pointsSpent?: number;
 
-  const contestId = params?.contestId as string;
+  durationInSeconds?: number;
+  remainingDurationInSeconds?: number;
 
-  /* -------------------------------------------------------
-     Contest
-  ------------------------------------------------------- */
+  status?: string;
 
-  const [contest, setContest] =
-    useState<SolveAndWinContest | null>(null);
+  startedAt?: string;
+  endsAt?: string;
+  submittedAt?: string;
+};
 
-  const [questions, setQuestions] = useState<ContestQuestion[]>(
-    []
+/* ============================================================
+   GENERIC HELPERS
+   ============================================================ */
+
+function isObject(
+  value: unknown
+): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null
   );
+}
 
-  /* -------------------------------------------------------
-     UI state
-  ------------------------------------------------------- */
+function getString(
+  value: unknown
+): string | null {
+  return typeof value === "string"
+    ? value
+    : null;
+}
 
-  const [state, setState] =
-    useState<ContestState>("loading");
+function getNumber(
+  value: unknown
+): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value)
+      ? value
+      : null;
+  }
 
-  const [error, setError] = useState<string | null>(null);
+  if (
+    typeof value === "string" &&
+    value.trim() !== ""
+  ) {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed)
+      ? parsed
+      : null;
+  }
+
+  return null;
+}
+
+/* ============================================================
+   RESPONSE EXTRACTION
+   ============================================================ */
+
+/**
+ * The backend response is intentionally treated flexibly for now.
+ *
+ * We will inspect the real response in the browser console
+ * and tighten this structure later.
+ */
+function extractParticipation(
+  response: unknown
+): Participation | null {
+  if (!isObject(response)) {
+    return null;
+  }
+
+  /*
+   * Possible:
+   *
+   * {
+   *   participation: {...}
+   * }
+   */
+  if (
+    isObject(response.participation)
+  ) {
+    return response.participation as Participation;
+  }
+
+  /*
+   * Possible:
+   *
+   * {
+   *   data: {
+   *     participation: {...}
+   *   }
+   * }
+   */
+  if (
+    isObject(response.data) &&
+    isObject(response.data.participation)
+  ) {
+    return response.data.participation as Participation;
+  }
+
+  /*
+   * Possible:
+   *
+   * {
+   *   data: {...participation}
+   * }
+   */
+  if (
+    isObject(response.data)
+  ) {
+    const data =
+      response.data as Record<
+        string,
+        unknown
+      >;
+
+    if (
+      data.subjects ||
+      data.questions ||
+      data.contestId ||
+      data.participationId ||
+      data._id
+    ) {
+      return data as Participation;
+    }
+  }
+
+  /*
+   * Possible direct participation object.
+   */
+  if (
+    response.subjects ||
+    response.questions ||
+    response.contestId ||
+    response.participationId
+  ) {
+    return response as Participation;
+  }
+
+  return null;
+}
+
+/* ============================================================
+   QUESTION EXTRACTION
+   ============================================================ */
+
+function extractQuestions(
+  participation: Participation | null
+): ContestQuestion[] {
+  if (!participation) {
+    return [];
+  }
+
+  /*
+   * Direct questions.
+   */
+  if (
+    Array.isArray(
+      participation.questions
+    )
+  ) {
+    return participation.questions;
+  }
+
+  /*
+   * Questions nested inside subjects.
+   */
+  if (
+    Array.isArray(
+      participation.subjects
+    )
+  ) {
+    return participation.subjects.flatMap(
+      (subject) =>
+        Array.isArray(subject.questions)
+          ? subject.questions
+          : []
+    );
+  }
+
+  return [];
+}
+
+/* ============================================================
+   OPTION HELPERS
+   ============================================================ */
+
+function getQuestionText(
+  question: ContestQuestion
+): string {
+  return (
+    question.question ??
+    question.text ??
+    "Question unavailable"
+  );
+}
+
+function getQuestionId(
+  question: ContestQuestion,
+  index: number
+): string {
+  return (
+    question._id ??
+    question.id ??
+    question.questionId ??
+    `question-${index}`
+  );
+}
+
+function getOptionLabel(
+  option: ContestOption | string,
+  index: number
+): string {
+  if (typeof option === "string") {
+    return option;
+  }
+
+  return (
+    option.label ??
+    option.text ??
+    option.value ??
+    option.option ??
+    `Option ${index + 1}`
+  );
+}
+
+function getOptionId(
+  option: ContestOption | string,
+  index: number
+): string {
+  if (typeof option === "string") {
+    return option;
+  }
+
+  return (
+    option._id ??
+    option.id ??
+    option.value ??
+    `option-${index}`
+  );
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+export default function SolveAndWinPlayPage() {
+  const params = useParams();
+  const router = useRouter();
+
+  const contestId =
+    params?.contestId as
+      | string
+      | undefined;
+
+  const [participation, setParticipation] =
+    useState<Participation | null>(null);
+
+  const [questions, setQuestions] =
+    useState<ContestQuestion[]>([]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] =
     useState(0);
 
   const [answers, setAnswers] =
-    useState<ContestAnswers>({});
+    useState<Record<string, string>>({});
 
   const [timeRemaining, setTimeRemaining] =
-    useState<number>(0);
+    useState<number | null>(null);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
-  const [showSubmitConfirmation, setShowSubmitConfirmation] =
+  const [isSubmitted, setIsSubmitted] =
     useState(false);
 
-  const [autoSubmitted, setAutoSubmitted] =
-    useState(false);
-
-  /* =======================================================
-     LOAD CONTEST
-  ======================================================= */
+  /* ==========================================================
+     LOAD START RESPONSE
+     ========================================================== */
 
   useEffect(() => {
-    const loadContest = async () => {
-      if (!contestId) {
-        setError("Contest information could not be found.");
-        setState("error");
+    if (!contestId) {
+      setError(
+        "Contest information could not be found."
+      );
+
+      setIsLoading(false);
+
+      return;
+    }
+
+    try {
+      const storageKey =
+        `solve-and-win-start-${contestId}`;
+
+      const stored =
+        sessionStorage.getItem(
+          storageKey
+        );
+
+      if (!stored) {
+        setError(
+          "Your contest session could not be found. Please return to the contest and start again."
+        );
+
+        setIsLoading(false);
+
         return;
       }
 
-      try {
-        setState("loading");
-        setError(null);
+      const parsed: unknown =
+        JSON.parse(stored);
 
-        /*
-         * Load contest details.
-         */
-        const contestResponse =
-          await getAllActiveContests();
+      /*
+       * IMPORTANT:
+       *
+       * This lets us see exactly what the backend
+       * returned without assuming the response shape.
+       */
+      console.log(
+        "Stored Solve & Win start response:",
+        parsed
+      );
 
-        if (!contestResponse.success) {
-          throw new Error(
-            contestResponse.message ||
-              "Unable to load contest."
-          );
-        }
+      const extracted =
+        extractParticipation(parsed);
 
-        const contests: SolveAndWinContest[] =
-          contestResponse.data ?? [];
+      console.log(
+        "Extracted participation:",
+        extracted
+      );
 
-        const foundContest = contests.find(
-          (item: SolveAndWinContest) =>
-            item._id === contestId
-        );
-
-        if (!foundContest) {
-          throw new Error(
-            "This contest could not be found or is no longer available."
-          );
-        }
-
-        setContest(foundContest);
-
-        /*
-         * Check contest start time.
-         */
-        const startDate =
-          getContestStartDate(foundContest);
-
-        if (startDate && Date.now() < startDate.getTime()) {
-          throw new Error(
-            "This contest has not started yet. Please return when the countdown reaches zero."
-          );
-        }
-
-        /*
-         * Contest duration.
-         */
-        const durationMinutes =
-          getContestDurationMinutes(foundContest);
-
-        setTimeRemaining(durationMinutes * 60);
-
-        /*
-         * Load contest questions.
-         *
-         * IMPORTANT:
-         * Replace this endpoint with your final backend
-         * contest-question endpoint if the route differs.
-         */
-        const questionsResponse =
-          await axiosInstance.get(
-            `/solve-and-win/contests/${contestId}/questions`
-          );
-
-        const rawQuestions =
-          questionsResponse.data?.data ??
-          questionsResponse.data?.questions ??
-          questionsResponse.data ??
-          [];
-
-        const normalizedQuestions: ContestQuestion[] =
-          Array.isArray(rawQuestions)
-            ? rawQuestions.map((item: any) => ({
-                _id:
-                  item._id ??
-                  item.id ??
-                  "",
-                id: item.id,
-                question:
-                  item.question ??
-                  item.text ??
-                  item.questionText ??
-                  "",
-                text: item.text,
-                options:
-                  item.options ??
-                  item.answers ??
-                  [],
-                correctAnswer:
-                  item.correctAnswer,
-                explanation:
-                  item.explanation,
-              }))
-            : [];
-
-        if (normalizedQuestions.length === 0) {
-          throw new Error(
-            "No questions are available for this contest yet."
-          );
-        }
-
-        setQuestions(normalizedQuestions);
-        setState("ready");
-      } catch (err: any) {
-        console.error(
-          "Failed to load contest:",
-          err
-        );
-
-        const message =
-          err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
-          "Unable to load this contest.";
-
+      if (!extracted) {
         setError(
-          Array.isArray(message)
-            ? message.join(", ")
-            : String(message)
+          "The contest session was created, but the response format could not be understood yet."
         );
 
-        setState("error");
-      }
-    };
+        setIsLoading(false);
 
-    loadContest();
+        return;
+      }
+
+      const extractedQuestions =
+        extractQuestions(extracted);
+
+      console.log(
+        "Extracted contest questions:",
+        extractedQuestions
+      );
+
+      setParticipation(
+        extracted
+      );
+
+      setQuestions(
+        extractedQuestions
+      );
+
+      /*
+       * Determine initial timer.
+       */
+      const remaining =
+        getNumber(
+          extracted.remainingDurationInSeconds
+        );
+
+      if (remaining !== null) {
+        setTimeRemaining(
+          remaining
+        );
+      } else {
+        const firstSubject =
+          extracted.subjects?.[0];
+
+        const subjectRemaining =
+          getNumber(
+            firstSubject?.remainingDurationInSeconds
+          );
+
+        const subjectDuration =
+          getNumber(
+            firstSubject?.durationInSeconds
+          );
+
+        setTimeRemaining(
+          subjectRemaining ??
+            subjectDuration
+        );
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error(
+        "Failed to load contest session:",
+        err
+      );
+
+      setError(
+        "Unable to load your contest session. Please return and start the contest again."
+      );
+
+      setIsLoading(false);
+    }
   }, [contestId]);
 
-  /* =======================================================
-     CURRENT QUESTION
-  ======================================================= */
-
-  const currentQuestion = questions[currentQuestionIndex];
-
-  const currentQuestionId = currentQuestion
-    ? getQuestionId(currentQuestion)
-    : "";
-
-  const selectedAnswer =
-    currentQuestionId
-      ? answers[currentQuestionId]
-      : undefined;
-
-  /* =======================================================
+  /* ==========================================================
      TIMER
-  ======================================================= */
+     ========================================================== */
 
   useEffect(() => {
-    if (state !== "ready") {
+    if (
+      timeRemaining === null ||
+      isSubmitted
+    ) {
       return;
     }
 
@@ -326,252 +526,211 @@ export default function PlayContestPage() {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      setTimeRemaining((previous) =>
-        Math.max(0, previous - 1)
-      );
-    }, 1000);
+    const timer =
+      window.setInterval(() => {
+        setTimeRemaining(
+          (previous) => {
+            if (
+              previous === null ||
+              previous <= 1
+            ) {
+              return 0;
+            }
+
+            return previous - 1;
+          }
+        );
+      }, 1000);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [state, timeRemaining]);
-
-  /* =======================================================
-     TIME EXPIRED
-  ======================================================= */
-
-  useEffect(() => {
-    if (
-      state !== "ready" ||
-      timeRemaining > 0 ||
-      isSubmitting
-    ) {
-      return;
-    }
-
-    setAutoSubmitted(true);
-    setShowSubmitConfirmation(true);
   }, [
-    state,
     timeRemaining,
-    isSubmitting,
+    isSubmitted,
   ]);
 
-  /* =======================================================
+  /* ==========================================================
+     CURRENT QUESTION
+     ========================================================== */
+
+  const currentQuestion =
+    questions[
+      currentQuestionIndex
+    ];
+
+  const currentQuestionId =
+    currentQuestion
+      ? getQuestionId(
+          currentQuestion,
+          currentQuestionIndex
+        )
+      : null;
+
+  const currentOptions =
+    currentQuestion &&
+    Array.isArray(
+      currentQuestion.options
+    )
+      ? currentQuestion.options
+      : [];
+
+  /* ==========================================================
+     QUESTION PROGRESS
+     ========================================================== */
+
+  const answeredCount =
+    Object.keys(answers).length;
+
+  const progressPercentage =
+    questions.length > 0
+      ? Math.round(
+          ((currentQuestionIndex + 1) /
+            questions.length) *
+            100
+        )
+      : 0;
+
+  /* ==========================================================
      TIMER DISPLAY
-  ======================================================= */
+     ========================================================== */
 
-  const formattedTime = useMemo(
-    () => formatTime(timeRemaining),
-    [timeRemaining]
-  );
+  const timerDisplay =
+    useMemo(() => {
+      if (
+        timeRemaining === null
+      ) {
+        return "--:--";
+      }
 
-  const timerIsLow =
-    timeRemaining <= 60;
+      const minutes =
+        Math.floor(
+          timeRemaining / 60
+        );
 
-  /* =======================================================
-     ANSWER QUESTION
-  ======================================================= */
+      const seconds =
+        timeRemaining % 60;
+
+      return `${String(minutes).padStart(
+        2,
+        "0"
+      )}:${String(seconds).padStart(
+        2,
+        "0"
+      )}`;
+    }, [timeRemaining]);
+
+  /* ==========================================================
+     SELECT ANSWER
+     ========================================================== */
 
   const handleSelectAnswer = (
-    answer: string
-  ) => {
-    if (!currentQuestionId || isSubmitting) {
-      return;
-    }
-
-    setAnswers((previous) => ({
-      ...previous,
-      [currentQuestionId]: answer,
-    }));
-  };
-
-  /* =======================================================
-     NAVIGATION
-  ======================================================= */
-
-  const goToQuestion = (
-    index: number
+    optionId: string
   ) => {
     if (
-      index < 0 ||
-      index >= questions.length
+      !currentQuestionId ||
+      isSubmitted
     ) {
       return;
     }
 
-    setCurrentQuestionIndex(index);
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    setAnswers(
+      (previous) => ({
+        ...previous,
+        [currentQuestionId]:
+          optionId,
+      })
+    );
+  };
+
+  /* ==========================================================
+     NAVIGATION
+     ========================================================== */
+
+  const goToPreviousQuestion = () => {
+    setCurrentQuestionIndex(
+      (previous) =>
+        Math.max(
+          0,
+          previous - 1
+        )
+    );
   };
 
   const goToNextQuestion = () => {
-    if (
-      currentQuestionIndex <
-      questions.length - 1
-    ) {
-      goToQuestion(
-        currentQuestionIndex + 1
-      );
-    }
+    setCurrentQuestionIndex(
+      (previous) =>
+        Math.min(
+          questions.length - 1,
+          previous + 1
+        )
+    );
   };
 
-  const goToPreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      goToQuestion(
-        currentQuestionIndex - 1
-      );
-    }
-  };
+  /* ==========================================================
+     SUBMIT
+     ========================================================== */
 
-  /* =======================================================
-     SUBMIT CONTEST
-  ======================================================= */
-
-  const handleSubmitContest = async () => {
+  const handleSubmit = async () => {
     if (
       isSubmitting ||
-      !contestId ||
-      questions.length === 0
+      isSubmitted
     ) {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      setError(null);
+    /*
+     * For now we deliberately do not guess the
+     * submission endpoint.
+     *
+     * We already have the student's selected
+     * answers in state.
+     *
+     * Once the actual backend submit endpoint
+     * is confirmed, we will connect this function.
+     */
+    console.log(
+      "Solve & Win submission payload:",
+      {
+        contestId,
+        participation,
+        answers,
+      }
+    );
 
-      /*
-       * Convert answer map into the backend payload.
-       *
-       * Example:
-       *
-       * {
-       *   contestId: "...",
-       *   answers: [
-       *     {
-       *       questionId: "...",
-       *       answer: "A"
-       *     }
-       *   ]
-       * }
-       */
+    setIsSubmitting(true);
 
-      const answerPayload = questions.map(
-        (question) => {
-          const questionId =
-            getQuestionId(question);
-
-          return {
-            questionId,
-            answer:
-              answers[questionId] ?? null,
-          };
-        }
-      );
-
-      /*
-       * IMPORTANT:
-       * Replace this endpoint if your backend uses
-       * a different contest submission route.
-       */
-      const response =
-        await axiosInstance.post(
-          `/solve-and-win/contests/${contestId}/submit`,
-          {
-            contestId,
-            answers: answerPayload,
-          }
-        );
-
-      console.log(
-        "Contest submitted successfully:",
-        response.data
-      );
-
-      setState("submitted");
-
-      /*
-       * Redirect to the contest result page.
-       */
-      router.push(
-        `/student/solve-and-win/contests/${contestId}/result`
-      );
-    } catch (err: any) {
-      console.error(
-        "Failed to submit contest:",
-        err
-      );
-
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Unable to submit your contest.";
-
-      setError(
-        Array.isArray(message)
-          ? message.join(", ")
-          : String(message)
-      );
-
+    /*
+     * Temporary frontend behavior.
+     *
+     * Replace with the real backend submission
+     * call once the endpoint is confirmed.
+     */
+    setTimeout(() => {
       setIsSubmitting(false);
-      setShowSubmitConfirmation(false);
-    }
+      setIsSubmitted(true);
+    }, 500);
   };
 
-  /* =======================================================
-     SUBMITTED
-  ======================================================= */
-
-  if (state === "submitted") {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-            </div>
-
-            <h1 className="mt-5 text-2xl font-black text-slate-900">
-              Contest Submitted
-            </h1>
-
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Your answers have been submitted successfully.
-            </p>
-
-            <div className="mt-6 flex justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            </div>
-          </Card>
-        </div>
-      </main>
-    );
-  }
-
-  /* =======================================================
+  /* ==========================================================
      LOADING
-  ======================================================= */
+     ========================================================== */
 
-  if (state === "loading") {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4">
+        <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4">
           <Card className="w-full rounded-3xl border-0 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
               <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
             </div>
 
             <h1 className="mt-5 text-xl font-black text-slate-900">
-              Preparing Your Contest
+              Loading Contest
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              Loading your questions and getting everything ready...
+              Preparing your questions...
             </p>
           </Card>
         </div>
@@ -579,11 +738,11 @@ export default function PlayContestPage() {
     );
   }
 
-  /* =======================================================
+  /* ==========================================================
      ERROR
-  ======================================================= */
+     ========================================================== */
 
-  if (state === "error") {
+  if (error) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
@@ -593,32 +752,28 @@ export default function PlayContestPage() {
             </div>
 
             <h1 className="mt-5 text-xl font-black text-slate-900">
-              Unable to Enter Contest
+              Unable to Load Contest
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              {error ||
-                "Something went wrong while preparing the contest."}
+              {error}
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Button
-                variant="outline"
-                className="h-11 rounded-xl font-bold"
+              <Link
+                href={`/student/solve-and-win/contests/${contestId}/start`}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
               >
-                <Link href="/student/solve-and-win/contests">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Contests
-                </Link>
-              </Button>
+                <ArrowLeft className="h-4 w-4" />
+                Return to Start
+              </Link>
 
-              <Button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="h-11 rounded-xl bg-slate-900 font-bold hover:bg-blue-600"
+              <Link
+                href="/student/solve-and-win"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
-                Try Again
-              </Button>
+                Back to Contests
+              </Link>
             </div>
           </Card>
         </div>
@@ -626,520 +781,513 @@ export default function PlayContestPage() {
     );
   }
 
-  /* =======================================================
+  /* ==========================================================
+     NO QUESTIONS
+     ========================================================== */
+
+  if (
+    !questions.length &&
+    !isSubmitted
+  ) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+              <AlertCircle className="h-7 w-7 text-amber-600" />
+            </div>
+
+            <h1 className="mt-5 text-xl font-black text-slate-900">
+              No Questions Available
+            </h1>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              The contest session was created, but
+              no questions were returned yet.
+            </p>
+
+            <p className="mt-4 text-xs text-slate-400">
+              Check the browser console for the
+              actual backend response.
+            </p>
+
+            <Link
+              href={`/student/solve-and-win/contests/${contestId}/start`}
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Return to Contest
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  /* ==========================================================
+     SUBMITTED
+     ========================================================== */
+
+  if (isSubmitted) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </div>
+
+            <p className="mt-5 text-xs font-black uppercase tracking-widest text-emerald-600">
+              Contest Submitted
+            </p>
+
+            <h1 className="mt-2 text-2xl font-black text-slate-900">
+              Your answers have been recorded
+            </h1>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Your contest result will be processed by
+              the competition system.
+            </p>
+
+            <Link
+              href="/student/solve-and-win"
+              className="mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 text-sm font-bold text-white transition hover:bg-blue-600"
+            >
+              <Trophy className="h-4 w-4" />
+              Back to Solve & Win
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  /* ==========================================================
      MAIN CBT
-  ======================================================= */
+     ========================================================== */
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* ===================================================
-          TOP BAR
-      =================================================== */}
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-4">
-            {/* Contest */}
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
-                <Trophy className="h-5 w-5" />
-              </div>
+        {/* =====================================================
+            TOP BAR
+           ===================================================== */}
 
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Solve & Win
-                </p>
+        <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
 
-                <h1 className="truncate text-sm font-black text-slate-900 sm:text-base">
-                  {contest?.title}
-                </h1>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+              <Trophy className="h-5 w-5 text-emerald-600" />
             </div>
 
-            {/* Timer */}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                Solve & Win
+              </p>
+
+              <h1 className="text-sm font-black text-slate-900 sm:text-base">
+                Contest
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+
+            <div className="hidden text-right sm:block">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                Progress
+              </p>
+
+              <p className="text-sm font-black text-slate-900">
+                {answeredCount} / {questions.length}
+              </p>
+            </div>
+
             <div
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 ${
-                timerIsLow
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 ${
+                timeRemaining !== null &&
+                timeRemaining <= 60
                   ? "bg-red-50 text-red-700"
-                  : "bg-slate-100 text-slate-700"
+                  : "bg-slate-100 text-slate-900"
               }`}
             >
               <Clock3 className="h-4 w-4" />
 
-              <div className="text-right">
-                <p className="hidden text-[9px] font-bold uppercase tracking-wide sm:block">
-                  Time Remaining
-                </p>
-
-                <p className="font-mono text-sm font-black sm:text-base">
-                  {formattedTime.minutes}:
-                  {formattedTime.seconds}
-                </p>
-              </div>
+              <span className="font-mono text-sm font-black">
+                {timerDisplay}
+              </span>
             </div>
+
           </div>
         </div>
-      </header>
 
-      {/* ===================================================
-          MAIN CONTENT
-      =================================================== */}
+        {/* =====================================================
+            PROGRESS
+           ===================================================== */}
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Error */}
-        {error && (
-          <div className="mb-6 flex gap-3 rounded-2xl border border-red-100 bg-red-50 p-4">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+        <div className="mb-5">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-500">
+              Question{" "}
+              {currentQuestionIndex + 1}{" "}
+              of {questions.length}
+            </span>
 
-            <div>
-              <p className="text-sm font-bold text-red-900">
-                Something went wrong
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-red-700">
-                {error}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* =================================================
-            QUESTION NAVIGATION
-        ================================================= */}
-
-        <Card className="mb-6 rounded-3xl border-0 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Questions
-              </p>
-
-              <p className="mt-1 text-sm font-black text-slate-900">
-                {currentQuestionIndex + 1} of{" "}
-                {questions.length}
-              </p>
-            </div>
-
-            <p className="text-xs font-semibold text-slate-400">
-              {
-                Object.keys(answers).length
-              }{" "}
-              answered
-            </p>
+            <span className="font-black text-slate-700">
+              {progressPercentage}%
+            </span>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {questions.map(
-              (question, index) => {
-                const questionId =
-                  getQuestionId(question);
+          <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+              style={{
+                width: `${progressPercentage}%`,
+              }}
+            />
+          </div>
+        </div>
 
-                const isAnswered =
-                  Boolean(
-                    answers[questionId]
-                  );
+        {/* =====================================================
+            CBT LAYOUT
+           ===================================================== */}
 
-                const isCurrent =
-                  index ===
-                  currentQuestionIndex;
+        <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
 
-                return (
-                  <button
-                    key={
-                      questionId || index
-                    }
+          {/* ===================================================
+              QUESTION
+             =================================================== */}
+
+          <Card className="rounded-3xl border-0 bg-white shadow-sm">
+
+            <div className="p-6 sm:p-8">
+
+              {/* Question header */}
+              <div className="flex items-start justify-between gap-4">
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-emerald-600">
+                    Question{" "}
+                    {currentQuestionIndex + 1}
+                  </p>
+
+                  {currentQuestion?.instruction && (
+                    <p className="mt-2 text-sm font-semibold text-slate-500">
+                      {currentQuestion.instruction}
+                    </p>
+                  )}
+                </div>
+
+                {currentQuestion?.marks !==
+                  undefined && (
+                  <div className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                    {currentQuestion.marks}{" "}
+                    {currentQuestion.marks === 1
+                      ? "mark"
+                      : "marks"}
+                  </div>
+                )}
+
+              </div>
+
+              {/* Question text */}
+              <div className="mt-6">
+                <h2 className="text-lg font-bold leading-8 text-slate-900 sm:text-xl">
+                  {currentQuestion
+                    ? getQuestionText(
+                        currentQuestion
+                      )
+                    : "Question unavailable"}
+                </h2>
+              </div>
+
+              {/* Options */}
+              <div className="mt-7 space-y-3">
+
+                {currentOptions.map(
+                  (
+                    option,
+                    optionIndex
+                  ) => {
+                    const optionId =
+                      getOptionId(
+                        option,
+                        optionIndex
+                      );
+
+                    const optionLabel =
+                      getOptionLabel(
+                        option,
+                        optionIndex
+                      );
+
+                    const selected =
+                      currentQuestionId
+                        ? answers[
+                            currentQuestionId
+                          ] === optionId
+                        : false;
+
+                    return (
+                      <button
+                        key={optionId}
+                        type="button"
+                        onClick={() =>
+                          handleSelectAnswer(
+                            optionId
+                          )
+                        }
+                        className={`flex w-full items-start gap-4 rounded-2xl border p-4 text-left transition ${
+                          selected
+                            ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100"
+                            : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
+                            selected
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {String.fromCharCode(
+                            65 +
+                              optionIndex
+                          )}
+                        </span>
+
+                        <span
+                          className={`pt-1 text-sm font-semibold leading-6 ${
+                            selected
+                              ? "text-emerald-900"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          {optionLabel}
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
+
+              </div>
+
+              {/* Navigation */}
+              <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={
+                    goToPreviousQuestion
+                  }
+                  disabled={
+                    currentQuestionIndex ===
+                    0
+                  }
+                  className="h-11 rounded-xl font-bold"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+
+                {currentQuestionIndex <
+                questions.length - 1 ? (
+                  <Button
                     type="button"
-                    onClick={() =>
-                      goToQuestion(index)
+                    onClick={
+                      goToNextQuestion
                     }
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl text-xs font-black transition ${
-                      isCurrent
-                        ? "bg-slate-900 text-white"
-                        : isAnswered
-                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                    }`}
+                    className="h-11 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-slate-800"
                   >
-                    {index + 1}
-                  </button>
-                );
-              }
-            )}
-          </div>
-        </Card>
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={
+                      handleSubmit
+                    }
+                    disabled={
+                      isSubmitting
+                    }
+                    className="h-11 rounded-xl bg-emerald-600 px-6 font-bold text-white hover:bg-emerald-700"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Flag className="mr-2 h-4 w-4" />
+                        Submit Contest
+                      </>
+                    )}
+                  </Button>
+                )}
 
-        {/* =================================================
-            QUESTION
-        ================================================= */}
+              </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          <div>
+            </div>
+          </Card>
+
+          {/* ===================================================
+              QUESTION NAVIGATOR
+             =================================================== */}
+
+          <div className="lg:sticky lg:top-5 lg:self-start">
+
             <Card className="rounded-3xl border-0 bg-white shadow-sm">
-              <div className="p-6 sm:p-8">
-                {/* Question heading */}
-                <div className="flex items-start justify-between gap-4">
+
+              <div className="p-5">
+
+                <div className="flex items-center justify-between">
+
                   <div>
-                    <p className="text-xs font-black uppercase tracking-wider text-blue-600">
-                      Question{" "}
-                      {currentQuestionIndex + 1}
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      Questions
                     </p>
 
-                    <p className="mt-2 text-xs font-semibold text-slate-400">
-                      Choose the best answer.
+                    <p className="mt-1 text-sm font-black text-slate-900">
+                      {answeredCount} answered
                     </p>
                   </div>
 
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50">
-                    <Flag className="h-5 w-5 text-slate-400" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
+                    <span className="text-xs font-black text-slate-600">
+                      {questions.length}
+                    </span>
                   </div>
+
                 </div>
 
-                {/* Question text */}
-                <div className="mt-7">
-                  <h2 className="text-xl font-bold leading-8 text-slate-900 sm:text-2xl sm:leading-9">
-                    {currentQuestion?.question ||
-                      currentQuestion?.text}
-                  </h2>
-                </div>
-
-                {/* Options */}
-                <div className="mt-8 space-y-3">
-                  {(
-                    currentQuestion?.options ??
-                    []
-                  ).map(
+                <div className="mt-5 grid grid-cols-5 gap-2">
+                  {questions.map(
                     (
-                      option,
-                      optionIndex
+                      question,
+                      index
                     ) => {
-                      const isSelected =
-                        selectedAnswer ===
-                        option;
-
-                      const letter =
-                        String.fromCharCode(
-                          65 +
-                            optionIndex
+                      const questionId =
+                        getQuestionId(
+                          question,
+                          index
                         );
+
+                      const answered =
+                        Boolean(
+                          answers[
+                            questionId
+                          ]
+                        );
+
+                      const active =
+                        index ===
+                        currentQuestionIndex;
 
                       return (
                         <button
-                          key={`${currentQuestionId}-${optionIndex}`}
+                          key={questionId}
                           type="button"
                           onClick={() =>
-                            handleSelectAnswer(
-                              option
+                            setCurrentQuestionIndex(
+                              index
                             )
                           }
-                          className={`group flex w-full items-start gap-4 rounded-2xl border p-4 text-left transition ${
-                            isSelected
-                              ? "border-blue-600 bg-blue-50"
-                              : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-black transition ${
+                            active
+                              ? "bg-emerald-600 text-white ring-2 ring-emerald-200"
+                              : answered
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                           }`}
                         >
-                          <span
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
-                              isSelected
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700"
-                            }`}
-                          >
-                            {letter}
-                          </span>
-
-                          <span
-                            className={`pt-1 text-sm font-semibold leading-6 sm:text-base ${
-                              isSelected
-                                ? "text-blue-950"
-                                : "text-slate-700"
-                            }`}
-                          >
-                            {option}
-                          </span>
-
-                          {isSelected && (
-                            <CheckCircle2 className="ml-auto mt-1 h-5 w-5 shrink-0 text-blue-600" />
-                          )}
+                          {index + 1}
                         </button>
                       );
                     }
                   )}
                 </div>
 
-                {/* Navigation */}
-                <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={
-                      goToPreviousQuestion
-                    }
-                    disabled={
-                      currentQuestionIndex ===
-                        0 ||
-                      isSubmitting
-                    }
-                    className="h-11 rounded-xl font-bold"
-                  >
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Previous
-                  </Button>
+                <div className="mt-5 space-y-2 border-t border-slate-100 pt-5">
 
-                  {currentQuestionIndex <
-                  questions.length - 1 ? (
-                    <Button
-                      type="button"
-                      onClick={
-                        goToNextQuestion
-                      }
-                      disabled={isSubmitting}
-                      className="h-11 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-blue-600"
-                    >
-                      Next Question
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        setShowSubmitConfirmation(
-                          true
-                        )
-                      }
-                      disabled={isSubmitting}
-                      className="h-11 rounded-xl bg-emerald-600 px-6 font-bold text-white hover:bg-emerald-700"
-                    >
-                      <Send className="mr-2 h-4 w-4" />
-                      Submit Contest
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="h-3 w-3 rounded bg-emerald-600" />
+                    Current
+                  </div>
 
-          {/* =================================================
-              SIDE PANEL
-          ================================================= */}
-
-          <aside className="space-y-4">
-            {/* Progress */}
-            <Card className="rounded-3xl border-0 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                Your Progress
-              </p>
-
-              <div className="mt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="h-3 w-3 rounded bg-emerald-100" />
                     Answered
-                  </span>
+                  </div>
 
-                  <span className="text-sm font-black text-slate-900">
-                    {
-                      Object.keys(
-                        answers
-                      ).length
-                    }{" "}
-                    / {questions.length}
-                  </span>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="h-3 w-3 rounded bg-slate-100" />
+                    Unanswered
+                  </div>
+
                 </div>
 
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-blue-600 transition-all"
-                    style={{
-                      width: `${
-                        questions.length
-                          ? (Object.keys(
-                              answers
-                            ).length /
-                              questions.length) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
               </div>
             </Card>
 
-            {/* Timer */}
-            <Card
-              className={`rounded-3xl border-0 p-5 shadow-sm ${
-                timerIsLow
-                  ? "bg-red-50"
-                  : "bg-slate-900"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    timerIsLow
-                      ? "bg-white"
-                      : "bg-white/10"
-                  }`}
-                >
-                  <Clock3
-                    className={`h-5 w-5 ${
-                      timerIsLow
-                        ? "text-red-600"
-                        : "text-white"
-                    }`}
-                  />
-                </div>
+            {/* Participation information */}
+            <Card className="mt-4 rounded-3xl border-0 bg-white shadow-sm">
 
-                <div>
-                  <p
-                    className={`text-xs font-bold uppercase tracking-wide ${
-                      timerIsLow
-                        ? "text-red-500"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    Time Remaining
-                  </p>
+              <div className="p-5">
 
-                  <p
-                    className={`mt-1 font-mono text-2xl font-black ${
-                      timerIsLow
-                        ? "text-red-700"
-                        : "text-white"
-                    }`}
-                  >
-                    {formattedTime.minutes}:
-                    {formattedTime.seconds}
-                  </p>
-                </div>
-              </div>
-
-              {timerIsLow && (
-                <p className="mt-4 text-xs font-bold leading-5 text-red-700">
-                  Time is almost up. Review your answers
-                  and submit the contest.
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  Contest Session
                 </p>
-              )}
-            </Card>
 
-            {/* Submit */}
-            <Card className="rounded-3xl border-0 bg-white p-5 shadow-sm">
-              <p className="text-sm font-black text-slate-900">
-                Finished early?
-              </p>
+                <div className="mt-4 space-y-3">
 
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                You can submit your answers before the
-                timer reaches zero.
-              </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500">
+                      Questions
+                    </span>
 
-              <Button
-                type="button"
-                onClick={() =>
-                  setShowSubmitConfirmation(
-                    true
-                  )
-                }
-                disabled={isSubmitting}
-                className="mt-4 w-full rounded-xl bg-slate-900 font-bold hover:bg-blue-600"
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Submit Contest
-              </Button>
-            </Card>
-          </aside>
-        </div>
-      </div>
+                    <span className="text-xs font-black text-slate-900">
+                      {questions.length}
+                    </span>
+                  </div>
 
-      {/* ===================================================
-          SUBMIT CONFIRMATION MODAL
-      =================================================== */}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500">
+                      Answered
+                    </span>
 
-      {showSubmitConfirmation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md rounded-3xl border-0 bg-white p-6 shadow-2xl sm:p-8">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-              {autoSubmitted ? (
-                <Clock3 className="h-7 w-7 text-amber-600" />
-              ) : (
-                <Send className="h-7 w-7 text-amber-600" />
-              )}
-            </div>
+                    <span className="text-xs font-black text-emerald-600">
+                      {answeredCount}
+                    </span>
+                  </div>
 
-            <h2 className="mt-5 text-xl font-black text-slate-900">
-              {autoSubmitted
-                ? "Time Is Up"
-                : "Submit Contest?"}
-            </h2>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500">
+                      Remaining
+                    </span>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              {autoSubmitted
-                ? "Your contest time has ended. Submit your answers now."
-                : `You have answered ${
-                    Object.keys(
-                      answers
-                    ).length
-                  } of ${
-                    questions.length
-                  } questions. Are you sure you want to submit?`}
-            </p>
+                    <span className="text-xs font-black text-slate-900">
+                      {Math.max(
+                        0,
+                        questions.length -
+                          answeredCount
+                      )}
+                    </span>
+                  </div>
 
-            {!autoSubmitted &&
-              Object.keys(answers).length <
-                questions.length && (
-                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                  <p className="text-sm font-bold text-amber-900">
-                    Some questions are unanswered
-                  </p>
-
-                  <p className="mt-1 text-xs leading-5 text-amber-800">
-                    Unanswered questions will be submitted
-                    without an answer.
-                  </p>
                 </div>
-              )}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              {!autoSubmitted && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    setShowSubmitConfirmation(
-                      false
-                    )
-                  }
-                  disabled={isSubmitting}
-                  className="h-11 rounded-xl font-bold"
-                >
-                  Continue Contest
-                </Button>
-              )}
+              </div>
+            </Card>
 
-              <Button
-                type="button"
-                onClick={
-                  handleSubmitContest
-                }
-                disabled={isSubmitting}
-                className="h-11 rounded-xl bg-emerald-600 px-6 font-bold text-white hover:bg-emerald-700"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Submit Answers
-                  </>
-                )}
-              </Button>
-            </div>
-          </Card>
+          </div>
         </div>
-      )}
+
+      </div>
     </main>
   );
 }
-

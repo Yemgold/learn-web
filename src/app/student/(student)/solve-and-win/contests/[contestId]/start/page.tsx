@@ -1,950 +1,11 @@
 
 
-// "use client";
-
-// import { useEffect, useMemo, useState } from "react";
-// import { useParams, useRouter } from "next/navigation";
-// import Link from "next/link";
-// import {
-//   ArrowLeft,
-//   ArrowRight,
-//   AlertCircle,
-//   CalendarDays,
-//   CheckCircle2,
-//   Clock3,
-//   Loader2,
-//   Play,
-//   Trophy,
-//   Users,
-// } from "lucide-react";
-
-// import { Button } from "@/components/ui/button";
-// import { Card } from "@/components/ui/card";
-// import {
-//   getAllActiveContests,
-//   type SolveAndWinContest,
-// } from "@/lib/api/solveAndWin";
-
-// type Countdown = {
-//   days: number;
-//   hours: number;
-//   minutes: number;
-//   seconds: number;
-// };
-
-// function parseDateValue(value: unknown): Date | null {
-//   if (!value) return null;
-
-//   const date = new Date(String(value));
-
-//   if (Number.isNaN(date.getTime())) {
-//     return null;
-//   }
-
-//   return date;
-// }
-
-// /**
-//  * Gets the scheduled contest start date.
-//  *
-//  * Scheduled/full datetime fields are checked first.
-//  * Scheduled date + time is checked next.
-//  * Generic startDate is only used as a fallback.
-//  */
-// function getContestStartDate(
-//   contest: SolveAndWinContest
-// ): Date | null {
-//   const data = contest as any;
-
-//   /*
-//    * ---------------------------------------------------------
-//    * 1. Full scheduled datetime fields
-//    * ---------------------------------------------------------
-//    */
-//   const scheduledDateTimeCandidates = [
-//     data.scheduledStartAt,
-//     data.scheduledStartDateTime,
-//     data.scheduledStart,
-//     data.startAt,
-//     data.startsAt,
-//     data.startDateTime,
-//   ];
-
-//   for (const value of scheduledDateTimeCandidates) {
-//     const parsed = parseDateValue(value);
-
-//     if (parsed) {
-//       return parsed;
-//     }
-//   }
-
-//   /*
-//    * ---------------------------------------------------------
-//    * 2. Scheduled date + scheduled time
-//    *
-//    * Example:
-//    *
-//    * scheduledDate = "2026-09-04"
-//    * scheduledTime = "01:00"
-//    *
-//    * becomes:
-//    *
-//    * 2026-09-04T01:00
-//    * ---------------------------------------------------------
-//    */
-//   const scheduledDate =
-//     data.scheduledDate ??
-//     data.scheduledStartDate ??
-//     data.contestDate;
-
-//   const scheduledTime =
-//     data.scheduledTime ??
-//     data.scheduledStartTime ??
-//     data.startTime;
-
-//   if (scheduledDate && scheduledTime) {
-//     const combined = `${scheduledDate}T${scheduledTime}`;
-
-//     const parsed = parseDateValue(combined);
-
-//     if (parsed) {
-//       return parsed;
-//     }
-//   }
-
-//   /*
-//    * ---------------------------------------------------------
-//    * 3. Generic startDate fallback
-//    * ---------------------------------------------------------
-//    */
-//   const fallbackStartDate = parseDateValue(data.startDate);
-
-//   if (fallbackStartDate) {
-//     return fallbackStartDate;
-//   }
-
-//   return null;
-// }
-
-// function getCountdown(
-//   target: Date,
-//   currentTime: number
-// ): Countdown {
-//   const difference = Math.max(
-//     0,
-//     target.getTime() - currentTime
-//   );
-
-//   const totalSeconds = Math.floor(difference / 1000);
-
-//   const days = Math.floor(
-//     totalSeconds / (60 * 60 * 24)
-//   );
-
-//   const hours = Math.floor(
-//     (totalSeconds % (60 * 60 * 24)) /
-//       (60 * 60)
-//   );
-
-//   const minutes = Math.floor(
-//     (totalSeconds % (60 * 60)) / 60
-//   );
-
-//   const seconds = totalSeconds % 60;
-
-//   return {
-//     days,
-//     hours,
-//     minutes,
-//     seconds,
-//   };
-// }
-
-// function pad(value: number) {
-//   return String(value).padStart(2, "0");
-// }
-
-// export default function StartContestPage() {
-//   const router = useRouter();
-//   const params = useParams();
-
-//   const contestId = params?.contestId as string;
-
-//   const [contest, setContest] =
-//     useState<SolveAndWinContest | null>(null);
-
-//   const [isLoading, setIsLoading] =
-//     useState(true);
-
-//   const [isStarting, setIsStarting] =
-//     useState(false);
-
-//   const [error, setError] =
-//     useState<string | null>(null);
-
-//   /*
-//    * Live client clock.
-//    *
-//    * It updates every second so the Start button
-//    * automatically changes state when the scheduled
-//    * time arrives.
-//    */
-//   const [now, setNow] = useState(() => Date.now());
-
-//   /*
-//    * ---------------------------------------------------------
-//    * LOAD CONTEST
-//    * ---------------------------------------------------------
-//    */
-//   useEffect(() => {
-//     const loadContest = async () => {
-//       if (!contestId) {
-//         setError(
-//           "Contest information could not be found."
-//         );
-
-//         setIsLoading(false);
-
-//         return;
-//       }
-
-//       try {
-//         setIsLoading(true);
-//         setError(null);
-
-//         const response =
-//           await getAllActiveContests();
-
-//         if (!response.success) {
-//           throw new Error(
-//             response.message ||
-//               "Unable to load contest information."
-//           );
-//         }
-
-//         const contests: SolveAndWinContest[] =
-//           response.data ?? [];
-
-//         const foundContest = contests.find(
-//           (item: SolveAndWinContest) =>
-//             item._id === contestId
-//         );
-
-//         if (!foundContest) {
-//           setError(
-//             "This contest could not be found or is no longer available."
-//           );
-
-//           return;
-//         }
-
-//         console.log(
-//           "Solve & Win contest data:",
-//           foundContest
-//         );
-
-//         console.log(
-//           "Contest scheduled start fields:",
-//           {
-//             scheduledStartAt:
-//               (foundContest as any)
-//                 .scheduledStartAt,
-
-//             scheduledStartDate:
-//               (foundContest as any)
-//                 .scheduledStartDate,
-
-//             scheduledStartDateTime:
-//               (foundContest as any)
-//                 .scheduledStartDateTime,
-
-//             scheduledStart:
-//               (foundContest as any)
-//                 .scheduledStart,
-
-//             startAt:
-//               (foundContest as any).startAt,
-
-//             startsAt:
-//               (foundContest as any).startsAt,
-
-//             startDateTime:
-//               (foundContest as any)
-//                 .startDateTime,
-
-//             startDate:
-//               (foundContest as any).startDate,
-
-//             scheduledDate:
-//               (foundContest as any)
-//                 .scheduledDate,
-
-//             scheduledTime:
-//               (foundContest as any)
-//                 .scheduledTime,
-
-//             scheduledStartTime:
-//               (foundContest as any)
-//                 .scheduledStartTime,
-
-//             startTime:
-//               (foundContest as any).startTime,
-//           }
-//         );
-
-//         setContest(foundContest);
-//       } catch (err: any) {
-//         console.error(
-//           "Failed to load contest:",
-//           err
-//         );
-
-//         const message =
-//           err?.response?.data?.message ||
-//           err?.response?.data?.error ||
-//           err?.message ||
-//           "Unable to load contest information. Please try again.";
-
-//         setError(
-//           Array.isArray(message)
-//             ? message.join(", ")
-//             : String(message)
-//         );
-//       } finally {
-//         setIsLoading(false);
-//       }
-//     };
-
-//     loadContest();
-//   }, [contestId]);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * LIVE CLOCK
-//    * ---------------------------------------------------------
-//    */
-//   useEffect(() => {
-//     const timer = window.setInterval(() => {
-//       setNow(Date.now());
-//     }, 1000);
-
-//     return () => {
-//       window.clearInterval(timer);
-//     };
-//   }, []);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * ACTUAL SCHEDULED START DATE
-//    * ---------------------------------------------------------
-//    */
-//   const startDate = useMemo(() => {
-//     if (!contest) {
-//       return null;
-//     }
-
-//     return getContestStartDate(contest);
-//   }, [contest]);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * START TIMESTAMP
-//    * ---------------------------------------------------------
-//    */
-//   const startTimestamp = useMemo(() => {
-//     if (!startDate) {
-//       return null;
-//     }
-
-//     return startDate.getTime();
-//   }, [startDate]);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * HAS CONTEST STARTED?
-//    *
-//    * Before:
-//    *
-//    * now < startTimestamp
-//    *
-//    * false
-//    *
-//    * At/after:
-//    *
-//    * now >= startTimestamp
-//    *
-//    * true
-//    * ---------------------------------------------------------
-//    */
-//   const hasStarted = useMemo(() => {
-//     if (startTimestamp === null) {
-//       return false;
-//     }
-
-//     return now >= startTimestamp;
-//   }, [now, startTimestamp]);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * COUNTDOWN
-//    * ---------------------------------------------------------
-//    */
-//   const countdown = useMemo(() => {
-//     if (!startDate) {
-//       return {
-//         days: 0,
-//         hours: 0,
-//         minutes: 0,
-//         seconds: 0,
-//       };
-//     }
-
-//     return getCountdown(startDate, now);
-//   }, [startDate, now]);
-
-//   /*
-//    * ---------------------------------------------------------
-//    * START CONTEST
-//    * ---------------------------------------------------------
-//    */
-//   const handleStartContest = () => {
-//     if (isStarting || !contestId) {
-//       return;
-//     }
-
-//     /*
-//      * No valid scheduled start time.
-//      */
-//     if (startTimestamp === null) {
-//       setError(
-//         "The contest start time could not be determined."
-//       );
-
-//       return;
-//     }
-
-//     /*
-//      * ALWAYS use a fresh timestamp when the student
-//      * clicks the button.
-//      *
-//      * This prevents the button from being bypassed
-//      * because the displayed `now` value is slightly old.
-//      */
-//     const currentTime = Date.now();
-
-//     /*
-//      * Contest has NOT started.
-//      *
-//      * Do not navigate.
-//      */
-//     if (currentTime < startTimestamp) {
-//       setError(
-//         "This contest has not started yet. Please wait until the scheduled start time."
-//       );
-
-//       setNow(currentTime);
-
-//       return;
-//     }
-
-//     /*
-//      * Contest has started.
-//      */
-//     setIsStarting(true);
-//     setError(null);
-
-//     router.replace(
-//       `/student/solve-and-win/contests/${contestId}/play`
-//     );
-//   };
-
-//   /*
-//    * ---------------------------------------------------------
-//    * LOADING
-//    * ---------------------------------------------------------
-//    */
-//   if (isLoading) {
-//     return (
-//       <main className="min-h-screen bg-slate-50">
-//         <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4">
-//           <Card className="w-full rounded-3xl border-0 bg-white p-10 text-center shadow-sm">
-//             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
-//               <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
-//             </div>
-
-//             <h1 className="mt-5 text-xl font-black text-slate-900">
-//               Preparing Contest
-//             </h1>
-
-//             <p className="mt-2 text-sm text-slate-500">
-//               Checking the contest schedule...
-//             </p>
-//           </Card>
-//         </div>
-//       </main>
-//     );
-//   }
-
-//   /*
-//    * ---------------------------------------------------------
-//    * CONTEST NOT FOUND
-//    * ---------------------------------------------------------
-//    */
-//   if (!contest) {
-//     return (
-//       <main className="min-h-screen bg-slate-50">
-//         <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-//           <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-//             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-//               <AlertCircle className="h-7 w-7 text-red-600" />
-//             </div>
-
-//             <h1 className="mt-5 text-xl font-black text-slate-900">
-//               Contest Unavailable
-//             </h1>
-
-//             <p className="mt-2 text-sm leading-6 text-slate-500">
-//               {error ||
-//                 "This contest could not be found or is no longer available."}
-//             </p>
-
-//             <Link
-//               href="/student/solve-and-win/contests"
-//               className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
-//             >
-//               <ArrowLeft className="h-4 w-4" />
-//               Back to Contests
-//             </Link>
-//           </Card>
-//         </div>
-//       </main>
-//     );
-//   }
-
-//   /*
-//    * ---------------------------------------------------------
-//    * NO START DATE
-//    * ---------------------------------------------------------
-//    */
-//   if (!startDate) {
-//     return (
-//       <main className="min-h-screen bg-slate-50">
-//         <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-//           <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-//             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-//               <Clock3 className="h-7 w-7 text-amber-600" />
-//             </div>
-
-//             <h1 className="mt-5 text-xl font-black text-slate-900">
-//               Contest Schedule Unavailable
-//             </h1>
-
-//             <p className="mt-2 text-sm leading-6 text-slate-500">
-//               We could not determine when this contest
-//               is scheduled to start. Please try again
-//               later.
-//             </p>
-
-//             <Link
-//               href="/student/solve-and-win/contests"
-//               className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
-//             >
-//               <ArrowLeft className="h-4 w-4" />
-//               Back to Contests
-//             </Link>
-//           </Card>
-//         </div>
-//       </main>
-//     );
-//   }
-
-//   return (
-//     <main className="min-h-screen bg-slate-50">
-//       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-
-//         {/* Back */}
-//         <Link
-//           href="/student/solve-and-win/contests"
-//           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
-//         >
-//           <ArrowLeft className="h-4 w-4" />
-//           Back to Contests
-//         </Link>
-
-//         {/* Header */}
-//         <div className="mb-8">
-//           <div
-//             className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${
-//               hasStarted
-//                 ? "bg-emerald-50 text-emerald-700"
-//                 : "bg-blue-50 text-blue-700"
-//             }`}
-//           >
-//             {hasStarted ? (
-//               <CheckCircle2 className="h-3.5 w-3.5" />
-//             ) : (
-//               <Clock3 className="h-3.5 w-3.5" />
-//             )}
-
-//             {hasStarted
-//               ? "Contest is Live"
-//               : "Contest Starts Soon"}
-//           </div>
-
-//           <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-//             {hasStarted
-//               ? "Ready to Start?"
-//               : "Get Ready"}
-//           </h1>
-
-//           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-//             {hasStarted
-//               ? "The contest is now live. You can start answering the questions."
-//               : "The contest has not started yet. The Start Contest button will become available when the scheduled time arrives."}
-//           </p>
-//         </div>
-
-//         {/* Contest Card */}
-//         <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-sm">
-
-//           {/* Contest Header */}
-//           <div
-//             className={`p-6 text-white sm:p-8 ${
-//               hasStarted
-//                 ? "bg-emerald-700"
-//                 : "bg-slate-900"
-//             }`}
-//           >
-//             <div className="flex items-start gap-4">
-
-//               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-//                 <Trophy className="h-7 w-7" />
-//               </div>
-
-//               <div className="min-w-0">
-
-//                 <p className="text-xs font-bold uppercase tracking-wider text-white/60">
-//                   Solve & Win Contest
-//                 </p>
-
-//                 <h2 className="mt-1 text-xl font-black sm:text-2xl">
-//                   {contest.title}
-//                 </h2>
-
-//                 <p className="mt-1 text-sm leading-6 text-white/70">
-//                   {contest.description ||
-//                     "Compete against other students and answer the contest questions to win rewards."}
-//                 </p>
-
-//               </div>
-
-//             </div>
-//           </div>
-
-//           <div className="p-6 sm:p-8">
-
-//             {/* Countdown */}
-//             {!hasStarted ? (
-//               <div className="rounded-3xl border border-blue-100 bg-blue-50 p-6">
-
-//                 <div className="text-center">
-
-//                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white">
-//                     <Clock3 className="h-6 w-6 text-blue-600" />
-//                   </div>
-
-//                   <p className="mt-4 text-xs font-black uppercase tracking-widest text-blue-600">
-//                     Contest Starts In
-//                   </p>
-
-//                   <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-4">
-
-//                     <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-//                       <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-//                         {pad(countdown.days)}
-//                       </p>
-
-//                       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-//                         Days
-//                       </p>
-//                     </div>
-
-//                     <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-//                       <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-//                         {pad(countdown.hours)}
-//                       </p>
-
-//                       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-//                         Hours
-//                       </p>
-//                     </div>
-
-//                     <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-//                       <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-//                         {pad(countdown.minutes)}
-//                       </p>
-
-//                       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-//                         Minutes
-//                       </p>
-//                     </div>
-
-//                     <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-//                       <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-//                         {pad(countdown.seconds)}
-//                       </p>
-
-//                       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-//                         Seconds
-//                       </p>
-//                     </div>
-
-//                   </div>
-
-//                   <div className="mt-5 flex items-center justify-center gap-2 text-sm text-slate-500">
-//                     <CalendarDays className="h-4 w-4" />
-
-//                     <span>
-//                       Starts{" "}
-//                       <span className="font-bold text-slate-700">
-//                         {startDate.toLocaleString([], {
-//                           dateStyle: "medium",
-//                           timeStyle: "short",
-//                         })}
-//                       </span>
-//                     </span>
-//                   </div>
-
-//                 </div>
-//               </div>
-//             ) : (
-//               <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 text-center">
-
-//                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white">
-//                   <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-//                 </div>
-
-//                 <p className="mt-4 text-xs font-black uppercase tracking-widest text-emerald-600">
-//                   Contest is Live
-//                 </p>
-
-//                 <h3 className="mt-2 text-2xl font-black text-slate-900">
-//                   You can start now!
-//                 </h3>
-
-//                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-//                   The scheduled start time has arrived.
-//                   Click the button below to enter the
-//                   contest.
-//                 </p>
-
-//               </div>
-//             )}
-
-//             {/* Contest Information */}
-//             <div className="mt-6 grid gap-4 sm:grid-cols-3">
-
-//               <div className="rounded-2xl border border-slate-100 p-4">
-//                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-//                   <Trophy className="h-5 w-5 text-blue-600" />
-//                 </div>
-
-//                 <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
-//                   Contest
-//                 </p>
-
-//                 <p className="mt-1 text-sm font-bold text-slate-900">
-//                   {contest.title}
-//                 </p>
-//               </div>
-
-//               <div className="rounded-2xl border border-slate-100 p-4">
-//                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-//                   <Users className="h-5 w-5 text-emerald-600" />
-//                 </div>
-
-//                 <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
-//                   Participation
-//                 </p>
-
-//                 <p className="mt-1 text-sm font-bold text-slate-900">
-//                   Joined Successfully
-//                 </p>
-//               </div>
-
-//               <div className="rounded-2xl border border-slate-100 p-4">
-//                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-//                   <CalendarDays className="h-5 w-5 text-violet-600" />
-//                 </div>
-
-//                 <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
-//                   Start Time
-//                 </p>
-
-//                 <p className="mt-1 text-sm font-bold text-slate-900">
-//                   {startDate.toLocaleString([], {
-//                     dateStyle: "medium",
-//                     timeStyle: "short",
-//                   })}
-//                 </p>
-//               </div>
-
-//             </div>
-
-//             {/* Notice */}
-//             <div
-//               className={`mt-6 flex gap-3 rounded-2xl border p-4 ${
-//                 hasStarted
-//                   ? "border-emerald-100 bg-emerald-50"
-//                   : "border-amber-100 bg-amber-50"
-//               }`}
-//             >
-//               {hasStarted ? (
-//                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-//               ) : (
-//                 <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-//               )}
-
-//               <div>
-
-//                 <p
-//                   className={`text-sm font-bold ${
-//                     hasStarted
-//                       ? "text-emerald-900"
-//                       : "text-amber-900"
-//                   }`}
-//                 >
-//                   {hasStarted
-//                     ? "Your contest is ready"
-//                     : "Please wait for the start time"}
-//                 </p>
-
-//                 <p
-//                   className={`mt-1 text-sm leading-6 ${
-//                     hasStarted
-//                       ? "text-emerald-800"
-//                       : "text-amber-800"
-//                   }`}
-//                 >
-//                   {hasStarted
-//                     ? "You may now enter the contest. Make sure you are ready before starting."
-//                     : "The Start Contest button is disabled until the scheduled contest start time is reached."}
-//                 </p>
-
-//               </div>
-//             </div>
-
-//             {/* Error */}
-//             {error && (
-//               <div className="mt-6 flex gap-3 rounded-2xl border border-red-100 bg-red-50 p-4">
-
-//                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-
-//                 <div>
-
-//                   <p className="text-sm font-bold text-red-900">
-//                     Unable to continue
-//                   </p>
-
-//                   <p className="mt-1 text-sm leading-6 text-red-700">
-//                     {error}
-//                   </p>
-
-//                 </div>
-
-//               </div>
-//             )}
-
-//             {/* Actions */}
-//             <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-
-//               <Link
-//                 href="/student/solve-and-win/contests"
-//                 className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-//               >
-//                 <ArrowLeft className="mr-2 h-4 w-4" />
-//                 Back to Contests
-//               </Link>
-
-//               {/* 
-//                * IMPORTANT:
-//                *
-//                * !hasStarted = disabled
-//                *
-//                * isStarting = disabled
-//                *
-//                * Therefore the button CANNOT be clicked
-//                * before the scheduled start time.
-//                */}
-//               <Button
-//                 type="button"
-//                 onClick={handleStartContest}
-//                 disabled={!hasStarted || isStarting}
-//                 aria-disabled={!hasStarted || isStarting}
-//                 className={`h-12 rounded-xl px-7 font-bold ${
-//                   hasStarted
-//                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
-//                     : "cursor-not-allowed bg-slate-200 text-slate-400 hover:bg-slate-200"
-//                 }`}
-//               >
-
-//                 {isStarting ? (
-//                   <>
-//                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-//                     Starting...
-//                   </>
-//                 ) : hasStarted ? (
-//                   <>
-//                     <Play className="mr-2 h-4 w-4 fill-current" />
-//                     Start Contest
-//                     <ArrowRight className="ml-2 h-4 w-4" />
-//                   </>
-//                 ) : (
-//                   <>
-//                     <Clock3 className="mr-2 h-4 w-4" />
-//                     Contest Not Started
-//                   </>
-//                 )}
-
-//               </Button>
-
-//             </div>
-
-//           </div>
-//         </Card>
-
-//         {/* Footer */}
-//         <div className="mt-5 text-center">
-//           <p className="text-xs text-slate-400">
-//             Contest ID:{" "}
-//             <span className="font-mono font-bold text-slate-500">
-//               {contestId}
-//             </span>
-//           </p>
-//         </div>
-
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { axiosInstance } from "@/lib/api/axios";
 import {
   ArrowLeft,
   ArrowRight,
@@ -1185,6 +246,169 @@ function getContestWindowDays(
   return null;
 }
 
+function getContestSubjectId(
+  contest: SolveAndWinContest
+): string | null {
+  const data =
+    contest as unknown as Record<string, unknown>;
+
+  const findId = (
+    value: unknown
+  ): string | null => {
+    if (
+      typeof value === "string" &&
+      value.trim()
+    ) {
+      return value;
+    }
+
+    if (
+      typeof value !== "object" ||
+      value === null
+    ) {
+      return null;
+    }
+
+    const objectValue =
+      value as Record<string, unknown>;
+
+    /*
+     * Most common ID fields
+     */
+    const directIdFields = [
+      objectValue.subjectId,
+      objectValue._id,
+      objectValue.id,
+      objectValue.subjectID,
+      objectValue.subject_id,
+    ];
+
+    for (const candidate of directIdFields) {
+      const found = findId(candidate);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    /*
+     * Nested subject
+     *
+     * Example:
+     *
+     * {
+     *   subject: {
+     *     _id: "..."
+     *   }
+     * }
+     */
+    if (
+      objectValue.subject !== undefined
+    ) {
+      const found = findId(
+        objectValue.subject
+      );
+
+      if (found) {
+        return found;
+      }
+    }
+
+    /*
+     * Nested data
+     */
+    if (
+      objectValue.data !== undefined
+    ) {
+      const found = findId(
+        objectValue.data
+      );
+
+      if (found) {
+        return found;
+      }
+    }
+
+    /*
+     * Nested value
+     */
+    if (
+      objectValue.value !== undefined
+    ) {
+      const found = findId(
+        objectValue.value
+      );
+
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  };
+
+  /*
+   * ----------------------------------------------------------
+   * 1. Direct contest subject fields
+   * ----------------------------------------------------------
+   */
+
+  const directSubjectId =
+    findId(data.subjectId) ??
+    findId(data.selectedSubjectId);
+
+  if (directSubjectId) {
+    return directSubjectId;
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 2. Single subject object
+   * ----------------------------------------------------------
+   */
+
+  if (data.subject !== undefined) {
+    const subjectId =
+      findId(data.subject);
+
+    if (subjectId) {
+      return subjectId;
+    }
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 3. Subjects array
+   * ----------------------------------------------------------
+   */
+
+  if (
+    Array.isArray(data.subjects)
+  ) {
+    for (const subject of data.subjects) {
+      const subjectId =
+        findId(subject);
+
+      if (subjectId) {
+        return subjectId;
+      }
+    }
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 4. Nothing found
+   * ----------------------------------------------------------
+   */
+
+  return null;
+}
+
+
+
+
+
+
 /**
  * Calculates the END of the contest window.
  *
@@ -1200,6 +424,13 @@ function getContestWindowDays(
  * This means the contest is available for a full
  * three-day period.
  */
+
+
+
+
+
+
+
 function calculateEndDate(
   startDate: Date,
   windowDays: number
@@ -1601,73 +832,147 @@ export default function StartContestPage() {
     now,
   ]);
 
-  /* ==========================================================
-     START CONTEST
-     ========================================================== */
+const handleStartContest = async () => {
+  if (isStarting || !contestId || !contest) {
+    return;
+  }
 
-  const handleStartContest = () => {
-    if (isStarting || !contestId) {
-      return;
-    }
+  const currentTime = Date.now();
 
-    const currentTime = Date.now();
+  /*
+   * ----------------------------------------------------------
+   * 1. Verify contest schedule
+   * ----------------------------------------------------------
+   */
 
-    /*
-     * Always perform the check again using the
-     * current browser timestamp.
-     */
+  if (startTimestamp === null) {
+    setError(
+      "The contest start time could not be determined."
+    );
 
-    if (
-      startTimestamp === null
-    ) {
-      setError(
-        "The contest start time could not be determined."
-      );
+    return;
+  }
 
-      return;
-    }
+  if (currentTime < startTimestamp) {
+    setError(
+      "This contest has not started yet. Please wait until the scheduled start time."
+    );
 
-    /*
-     * Contest has not started yet.
-     */
-    if (
-      currentTime < startTimestamp
-    ) {
-      setError(
-        "This contest has not started yet. Please wait until the scheduled start time."
-      );
+    setNow(currentTime);
 
-      setNow(currentTime);
+    return;
+  }
 
-      return;
-    }
+  if (
+    endTimestamp !== null &&
+    currentTime >= endTimestamp
+  ) {
+    setError(
+      "This contest window has ended. You can no longer enter this contest."
+    );
 
-    /*
-     * Contest window has expired.
-     */
-    if (
-      endTimestamp !== null &&
-      currentTime >= endTimestamp
-    ) {
-      setError(
-        "This contest window has ended. You can no longer enter this contest."
-      );
+    setNow(currentTime);
 
-      setNow(currentTime);
+    return;
+  }
 
-      return;
-    }
+  /*
+   * ----------------------------------------------------------
+   * 2. Resolve subject ID
+   * ----------------------------------------------------------
+   */
 
-    /*
-     * Contest is live.
-     */
+  const subjectId =
+    getContestSubjectId(contest);
+
+  if (!subjectId) {
+    console.error(
+      "Unable to determine contest subject ID.",
+      contest
+    );
+
+    setError(
+      "The subject for this contest could not be determined. Please try again or contact support."
+    );
+
+    return;
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 3. Start contest through backend
+   * ----------------------------------------------------------
+   */
+
+  try {
     setIsStarting(true);
     setError(null);
 
-    router.replace(
-      `/student/solve-and-win/contests/${contestId}/play`
+    console.log(
+      "Starting Solve & Win contest:",
+      {
+        contestId,
+        subjectId,
+      }
     );
-  };
+
+    const response =
+      await axiosInstance.get(
+        `/solve-and-win/contests/start-solve-and-win-contest/${contestId}/${subjectId}`
+      );
+
+
+console.log(
+  "Contest start response:",
+  response.data
+);
+
+sessionStorage.setItem(
+  `solve-and-win-start-${contestId}`,
+  JSON.stringify(response.data)
+);
+
+/*
+ * --------------------------------------------------------
+ * 4. Only navigate after successful API call
+ * --------------------------------------------------------
+ */
+
+router.replace(
+  `/student/solve-and-win/contests/${contestId}/play`
+);
+
+  } catch (err: unknown) {
+    console.error(
+      "Failed to start contest:",
+      err
+    );
+
+    const apiError = err as {
+      response?: {
+        data?: {
+          message?: unknown;
+          error?: unknown;
+        };
+      };
+      message?: unknown;
+    };
+
+    const message =
+      apiError?.response?.data?.message ||
+      apiError?.response?.data?.error ||
+      apiError?.message ||
+      "Unable to start the contest. Please try again.";
+
+    setError(
+      Array.isArray(message)
+        ? message.join(", ")
+        : String(message)
+    );
+  } finally {
+    setIsStarting(false);
+  }
+};
 
   /* ==========================================================
      LOADING

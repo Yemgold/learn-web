@@ -4,6 +4,14 @@
 
 
 
+
+
+
+
+
+
+
+
 import type { QuestionBankItem } from "../../types";
 
 /**
@@ -46137,41 +46145,6 @@ export const jambBiologyQuestions: QuestionBankItem[] = [
         order: 1,
         segments: [
           {
-            text: "Which blood vessel carries blood away from the heart?",
-            styles: [],
-          },
-        ],
-      },
-    ],
-    question: "Which blood vessel carries blood away from the heart?",
-    instruction: "Select the correct option.",
-    topic: "B03 — Transport — Blood Vessels",
-    section: "objective",
-    options: [
-      { label: "A", value: "Artery" },
-      { label: "B", value: "Vein" },
-      { label: "C", value: "Capillary" },
-      { label: "D", value: "Venule" },
-    ],
-    correctAnswers: ["Artery"],
-    explanation:
-      "Arteries carry blood away from the heart.",
-    explanationSteps: [
-      "The heart pumps blood into arteries.",
-      "The arteries distribute blood toward different tissues of the body.",
-    ],
-    difficulty: "easy",
-    examType: "jamb",
-    apiSubjectName: "Biology",
-    isMultipleAnswer: false,
-  },
-  {
-    content: [
-      {
-        type: "text",
-        order: 1,
-        segments: [
-          {
             text: "Which blood vessel carries blood toward the heart?",
             styles: [],
           },
@@ -83819,7 +83792,614 @@ export const jambBiologyQuestions: QuestionBankItem[] = [
     apiSubjectName: "Biology",
     isMultipleAnswer: false,
   },
-  
+  {
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which feature enables red blood cells to transport more oxygen efficiently?", styles: [] }],
+    },
+  ],
+  question: "Which feature enables red blood cells to transport more oxygen efficiently?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood and Its Components",
+  section: "objective",
+  options: [
+    { label: "A", value: "presence of a large nucleus" },
+    { label: "B", value: "biconcave shape and absence of a nucleus" },
+    { label: "C", value: "presence of chloroplasts" },
+    { label: "D", value: "ability to produce antibodies" },
+  ],
+  correctAnswers: ["biconcave shape and absence of a nucleus"],
+  explanation: "The biconcave shape provides a large surface area for oxygen uptake, while the absence of a nucleus provides more space for haemoglobin.",
+  explanationSteps: [
+    "The biconcave shape increases the surface area for gas exchange.",
+    "The absence of a nucleus provides additional space for haemoglobin.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The major function of platelets in the blood is to", styles: [] }],
+    },
+  ],
+  question: "The major function of platelets in the blood is to",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood and Its Components",
+  section: "objective",
+  options: [
+    { label: "A", value: "transport oxygen" },
+    { label: "B", value: "produce antibodies" },
+    { label: "C", value: "assist in blood clotting" },
+    { label: "D", value: "transport nutrients" },
+  ],
+  correctAnswers: ["assist in blood clotting"],
+  explanation: "Platelets gather at damaged blood vessels and help initiate the clotting process.",
+  explanationSteps: [
+    "A damaged blood vessel exposes tissues beneath its lining.",
+    "Platelets collect at the damaged region and contribute to clot formation.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which component of blood is mainly responsible for transporting digested food substances?", styles: [] }],
+    },
+  ],
+  question: "Which component of blood is mainly responsible for transporting digested food substances?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood and Its Components",
+  section: "objective",
+  options: [
+    { label: "A", value: "plasma" },
+    { label: "B", value: "red blood cells" },
+    { label: "C", value: "platelets" },
+    { label: "D", value: "white blood cells" },
+  ],
+  correctAnswers: ["plasma"],
+  explanation: "Plasma carries dissolved substances such as glucose, amino acids, hormones and waste products.",
+  explanationSteps: [
+    "Digested nutrients enter the bloodstream after absorption.",
+    "Many of these substances dissolve in plasma and are transported to body tissues.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which blood vessel carries blood away from the heart?", styles: [] }],
+    },
+  ],
+  question: "Which blood vessel carries blood away from the heart?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood Vessels",
+  section: "objective",
+  options: [
+    { label: "A", value: "vein" },
+    { label: "B", value: "capillary" },
+    { label: "C", value: "artery" },
+    { label: "D", value: "venule" },
+  ],
+  correctAnswers: ["artery"],
+  explanation: "Arteries are defined by carrying blood away from the heart, regardless of whether the blood is oxygenated.",
+  explanationSteps: [
+    "Blood leaves the heart through arteries.",
+    "The pulmonary artery is an exception to the usual oxygenation pattern because it carries deoxygenated blood.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The presence of valves in veins mainly helps to", styles: [] }],
+    },
+  ],
+  question: "The presence of valves in veins mainly helps to",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood Vessels",
+  section: "objective",
+  options: [
+    { label: "A", value: "increase blood pressure" },
+    { label: "B", value: "prevent backflow of blood" },
+    { label: "C", value: "oxygenate the blood" },
+    { label: "D", value: "filter harmful substances" },
+  ],
+  correctAnswers: ["prevent backflow of blood"],
+  explanation: "Veins carry blood at relatively low pressure, so valves help maintain one-way movement toward the heart.",
+  explanationSteps: [
+    "Venous blood pressure is lower than arterial pressure.",
+    "Valves close when blood tends to move backward, helping maintain its direction toward the heart.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Exchange of materials between the blood and body cells occurs mainly through the", styles: [] }],
+    },
+  ],
+  question: "Exchange of materials between the blood and body cells occurs mainly through the",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Blood Vessels",
+  section: "objective",
+  options: [
+    { label: "A", value: "arteries" },
+    { label: "B", value: "veins" },
+    { label: "C", value: "capillaries" },
+    { label: "D", value: "aorta" },
+  ],
+  correctAnswers: ["capillaries"],
+  explanation: "Capillaries have thin walls and a large network that brings blood close to body cells for efficient exchange.",
+  explanationSteps: [
+    "Capillary walls are only one cell thick.",
+    "The short diffusion distance allows gases, nutrients and wastes to move efficiently.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which chamber of the human heart receives oxygenated blood from the lungs?", styles: [] }],
+    },
+  ],
+  question: "Which chamber of the human heart receives oxygenated blood from the lungs?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — The Heart and Circulation",
+  section: "objective",
+  options: [
+    { label: "A", value: "right atrium" },
+    { label: "B", value: "right ventricle" },
+    { label: "C", value: "left atrium" },
+    { label: "D", value: "left ventricle" },
+  ],
+  correctAnswers: ["left atrium"],
+  explanation: "The pulmonary veins return oxygenated blood from the lungs to the left atrium.",
+  explanationSteps: [
+    "Blood becomes oxygenated in the lungs.",
+    "The pulmonary veins carry it to the left atrium.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The chamber of the heart with the thickest muscular wall is the", styles: [] }],
+    },
+  ],
+  question: "The chamber of the heart with the thickest muscular wall is the",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — The Heart and Circulation",
+  section: "objective",
+  options: [
+    { label: "A", value: "right atrium" },
+    { label: "B", value: "left atrium" },
+    { label: "C", value: "right ventricle" },
+    { label: "D", value: "left ventricle" },
+  ],
+  correctAnswers: ["left ventricle"],
+  explanation: "The left ventricle requires a thick muscular wall because it pumps blood throughout the entire body.",
+  explanationSteps: [
+    "The left ventricle pumps blood into the aorta.",
+    "Systemic circulation requires blood to be pumped at relatively high pressure.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The pulmonary artery differs from most other arteries because it carries", styles: [] }],
+    },
+  ],
+  question: "The pulmonary artery differs from most other arteries because it carries",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Double Circulation",
+  section: "objective",
+  options: [
+    { label: "A", value: "oxygenated blood to the lungs" },
+    { label: "B", value: "deoxygenated blood to the lungs" },
+    { label: "C", value: "oxygenated blood to the body" },
+    { label: "D", value: "deoxygenated blood to the body" },
+  ],
+  correctAnswers: ["deoxygenated blood to the lungs"],
+  explanation: "The pulmonary artery carries deoxygenated blood from the right ventricle to the lungs.",
+  explanationSteps: [
+    "The right ventricle receives deoxygenated blood.",
+    "It pumps this blood through the pulmonary artery to the lungs for oxygenation.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The main advantage of double circulation in mammals is that", styles: [] }],
+    },
+  ],
+  question: "The main advantage of double circulation in mammals is that",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Double Circulation",
+  section: "objective",
+  options: [
+    { label: "A", value: "blood passes through the heart only once" },
+    { label: "B", value: "oxygenated and deoxygenated blood are completely mixed" },
+    { label: "C", value: "blood can be pumped to the body at high pressure after returning from the lungs" },
+    { label: "D", value: "the heart does not need chambers" },
+  ],
+  correctAnswers: ["blood can be pumped to the body at high pressure after returning from the lungs"],
+  explanation: "Blood returning from the lungs enters the left side of the heart and is pumped to the body at high pressure.",
+  explanationSteps: [
+    "The pulmonary circuit carries blood to the lungs for oxygenation.",
+    "Oxygenated blood returns to the left side of the heart.",
+    "The left ventricle pumps it through the systemic circulation at high pressure.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which of the following organisms has an open circulatory system?", styles: [] }],
+    },
+  ],
+  question: "Which of the following organisms has an open circulatory system?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Circulatory Systems",
+  section: "objective",
+  options: [
+    { label: "A", value: "human" },
+    { label: "B", value: "fish" },
+    { label: "C", value: "grasshopper" },
+    { label: "D", value: "earthworm" },
+  ],
+  correctAnswers: ["grasshopper"],
+  explanation: "Grasshoppers are insects and have an open circulatory system in which haemolymph is not confined entirely to blood vessels.",
+  explanationSteps: [
+    "Insects have an open circulatory system.",
+    "Their haemolymph is released into body spaces where it bathes tissues.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "In a closed circulatory system, blood is", styles: [] }],
+    },
+  ],
+  question: "In a closed circulatory system, blood is",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Circulatory Systems",
+  section: "objective",
+  options: [
+    { label: "A", value: "always colourless" },
+    { label: "B", value: "confined mainly within blood vessels" },
+    { label: "C", value: "mixed directly with tissue fluid" },
+    { label: "D", value: "not pumped by the heart" },
+  ],
+  correctAnswers: ["confined mainly within blood vessels"],
+  explanation: "In a closed circulatory system, blood remains within vessels while substances are exchanged across their walls.",
+  explanationSteps: [
+    "The heart pumps blood through a network of vessels.",
+    "Blood remains within the vessels while exchange occurs across capillary walls.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "The upward movement of water through the xylem is mainly aided by", styles: [] }],
+    },
+  ],
+  question: "The upward movement of water through the xylem is mainly aided by",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Water Movement in Plants",
+  section: "objective",
+  options: [
+    { label: "A", value: "translocation" },
+    { label: "B", value: "transpiration pull" },
+    { label: "C", value: "diffusion of sugars" },
+    { label: "D", value: "respiration in sieve tubes" },
+  ],
+  correctAnswers: ["transpiration pull"],
+  explanation: "Water loss from leaves during transpiration creates tension that helps pull the continuous water column upward through the xylem.",
+  explanationSteps: [
+    "Water evaporates from the leaf during transpiration.",
+    "This creates tension in the xylem water column.",
+    "The tension helps pull water upward from the roots.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which tissue transports manufactured food from the leaves to other parts of a plant?", styles: [] }],
+    },
+  ],
+  question: "Which tissue transports manufactured food from the leaves to other parts of a plant?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Xylem and Phloem",
+  section: "objective",
+  options: [
+    { label: "A", value: "xylem" },
+    { label: "B", value: "phloem" },
+    { label: "C", value: "epidermis" },
+    { label: "D", value: "cambium" },
+  ],
+  correctAnswers: ["phloem"],
+  explanation: "Phloem transports soluble products of photosynthesis, particularly sucrose, between sources and sinks.",
+  explanationSteps: [
+    "Leaves produce carbohydrates during photosynthesis.",
+    "Sucrose is transported in soluble form through the phloem.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which process is responsible for the movement of manufactured food through the phloem?", styles: [] }],
+    },
+  ],
+  question: "Which process is responsible for the movement of manufactured food through the phloem?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Phloem Translocation",
+  section: "objective",
+  options: [
+    { label: "A", value: "translocation" },
+    { label: "B", value: "transpiration" },
+    { label: "C", value: "guttation" },
+    { label: "D", value: "osmosis only" },
+  ],
+  correctAnswers: ["translocation"],
+  explanation: "Translocation is the movement of soluble organic substances such as sucrose through the phloem.",
+  explanationSteps: [
+    "Photosynthesis produces carbohydrates in source tissues.",
+    "The carbohydrates are converted into transportable soluble substances.",
+    "Phloem transports these substances to sinks such as roots, fruits and growing tissues.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "A major difference between xylem vessels and phloem sieve tubes is that xylem vessels are usually", styles: [] }],
+    },
+  ],
+  question: "A major difference between xylem vessels and phloem sieve tubes is that xylem vessels are usually",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Xylem and Phloem",
+  section: "objective",
+  options: [
+    { label: "A", value: "living and nucleated at maturity" },
+    { label: "B", value: "dead at maturity and lignified" },
+    { label: "C", value: "responsible for transporting sugars only" },
+    { label: "D", value: "found only in leaves" },
+  ],
+  correctAnswers: ["dead at maturity and lignified"],
+  explanation: "Xylem vessel elements are dead at maturity and have lignified walls that provide strength and form continuous water-conducting pathways.",
+  explanationSteps: [
+    "Xylem vessel elements lose their cell contents as they mature.",
+    "Their walls become lignified and strong.",
+    "The hollow vessels provide pathways for water movement and support.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Root hairs are efficient in absorbing water mainly because they", styles: [] }],
+    },
+  ],
+  question: "Root hairs are efficient in absorbing water mainly because they",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Water and Mineral Uptake",
+  section: "objective",
+  options: [
+    { label: "A", value: "contain chlorophyll" },
+    { label: "B", value: "have a large surface area" },
+    { label: "C", value: "are covered by a waxy cuticle" },
+    { label: "D", value: "have thick lignified walls" },
+  ],
+  correctAnswers: ["have a large surface area"],
+  explanation: "Root hairs are elongated extensions that greatly increase the surface area available for absorption from the soil.",
+  explanationSteps: [
+    "Root hairs extend between soil particles.",
+    "Their numerous projections create a large surface area.",
+    "This allows more water and mineral ions to be absorbed.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Mineral salts are mainly absorbed from the soil by root hair cells through", styles: [] }],
+    },
+  ],
+  question: "Mineral salts are mainly absorbed from the soil by root hair cells through",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Water and Mineral Uptake",
+  section: "objective",
+  options: [
+    { label: "A", value: "active transport" },
+    { label: "B", value: "transpiration" },
+    { label: "C", value: "photosynthesis" },
+    { label: "D", value: "guttation" },
+  ],
+  correctAnswers: ["active transport"],
+  explanation: "Root hair cells can actively absorb mineral ions against their concentration gradient using energy supplied by respiration.",
+  explanationSteps: [
+    "The concentration of an ion in the soil may be lower than its concentration inside the root.",
+    "Movement against the concentration gradient requires energy.",
+    "Carrier proteins use energy to transport the ions into the root hair cells.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "If the rate of transpiration exceeds the rate of water absorption for a long period, a plant is likely to", styles: [] }],
+    },
+  ],
+  question: "If the rate of transpiration exceeds the rate of water absorption for a long period, a plant is likely to",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Transpiration",
+  section: "objective",
+  options: [
+    { label: "A", value: "become turgid" },
+    { label: "B", value: "wilt" },
+    { label: "C", value: "produce more chlorophyll immediately" },
+    { label: "D", value: "increase its cell wall thickness immediately" },
+  ],
+  correctAnswers: ["wilt"],
+  explanation: "When water loss exceeds replacement, cells lose water and turgor pressure, causing the plant to wilt.",
+  explanationSteps: [
+    "Transpiration continuously removes water from the leaves.",
+    "If roots cannot replace the lost water, cells lose water.",
+    "Reduced turgor pressure causes leaves and young stems to droop.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
+{
+  content: [
+    {
+      type: "text",
+      order: 1,
+      segments: [{ text: "Which environmental condition would most likely increase the rate of transpiration?", styles: [] }],
+    },
+  ],
+  question: "Which environmental condition would most likely increase the rate of transpiration?",
+  instruction: "Select the correct option.",
+  topic: "B03 — Transport — Transpiration",
+  section: "objective",
+  options: [
+    { label: "A", value: "high humidity" },
+    { label: "B", value: "still air" },
+    { label: "C", value: "strong wind" },
+    { label: "D", value: "low temperature" },
+  ],
+  correctAnswers: ["strong wind"],
+  explanation: "Strong wind removes moist air from around the leaf surface, maintaining a steep water-vapour concentration gradient.",
+  explanationSteps: [
+    "A layer of moist air normally develops around the leaf.",
+    "Wind removes this layer and replaces it with drier air.",
+    "The resulting gradient increases diffusion of water vapour from the leaf.",
+  ],
+  difficulty: "easy",
+  examType: "jamb",
+  apiSubjectName: "Biology",
+  isMultipleAnswer: false,
+},
+
 ];
 
 export default jambBiologyQuestions;

@@ -1,6 +1,11 @@
 
 
 
+
+
+
+
+
 // src/lib/api/axios.ts
 
 import axios, {
@@ -49,14 +54,27 @@ interface ApiErrorResponse {
   data?: unknown;
 }
 
+/*
+ * IMPORTANT:
+ *
+ * The backend documentation shows:
+ *
+ * {
+ *   "success": true,
+ *   "message": "Access token generated successfully",
+ *   "data": "NEW_ACCESS_TOKEN"
+ * }
+ *
+ * Therefore data is a STRING, not:
+ *
+ * data: {
+ *   accessToken: string
+ * }
+ */
 interface RefreshResponse {
   success: boolean;
   message?: string;
-
-  data?: {
-    accessToken?: string;
-    refreshToken?: string;
-  };
+  data?: string;
 }
 
 interface RetryableRequestConfig
@@ -71,9 +89,8 @@ interface RetryableRequestConfig
 /*
  * Only one refresh request is allowed to run at a time.
  *
- * If 5 API requests return 401 at the same time,
- * they will all wait for this same promise instead of
- * sending 5 refresh requests.
+ * If several API requests return 401 simultaneously,
+ * they all wait for the same refresh operation.
  */
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -144,19 +161,20 @@ function isEmptyTransactionsResponse(
 /*
  * Axios should not directly import the Zustand auth store.
  *
- * Instead, when refresh fails, we dispatch an event.
+ * Instead, when refresh fails, dispatch an event.
  *
  * AuthProvider listens for this event and clears the
  * authenticated Zustand state.
  */
-
 function notifySessionExpired(): void {
   if (typeof window === "undefined") {
     return;
   }
 
   window.dispatchEvent(
-    new CustomEvent("jamb:auth-session-expired"),
+    new CustomEvent(
+      "jamb:auth-session-expired",
+    ),
   );
 }
 
@@ -169,7 +187,7 @@ async function refreshAccessToken(): Promise<
 > {
   /*
    * If another request is already refreshing,
-   * wait for that request.
+   * wait for that same refresh operation.
    */
   if (refreshPromise) {
     return refreshPromise;
@@ -189,14 +207,6 @@ async function refreshAccessToken(): Promise<
     if (!refreshToken) {
       console.warn(
         "❌ Cannot refresh access token: no refresh token.",
-      );
-
-      return null;
-    }
-
-    if (!deviceId) {
-      console.warn(
-        "❌ Cannot refresh access token: no device ID.",
       );
 
       return null;
@@ -230,13 +240,31 @@ async function refreshAccessToken(): Promise<
       /*
        * IMPORTANT:
        *
-       * Use plain axios here.
+       * Use plain Axios here.
        *
        * DO NOT use axiosInstance.
        *
-       * This prevents the refresh request from passing
-       * through the normal Authorization interceptor.
+       * This prevents the refresh request from being
+       * processed by the normal authenticated request
+       * interceptor.
+       *
+       * ------------------------------------------------------
+       *
+       * BACKEND DOCUMENTATION:
+       *
+       * Security:
+       * JWT-refresh (http, Bearer)
+       *
+       * Therefore the REFRESH TOKEN must be sent as:
+       *
+       * Authorization: Bearer <refresh-token>
+       *
+       * NOT:
+       *
+       * X-Refresh-Token: <refresh-token>
+       * ------------------------------------------------------
        */
+
       const response =
         await axios.post<RefreshResponse>(
           `${env.API_URL}/auth/request-access-token`,
@@ -251,11 +279,25 @@ async function refreshAccessToken(): Promise<
               Accept:
                 "application/json",
 
-              "X-Device-Id":
-                deviceId,
+              /*
+               * The backend documentation says the
+               * refresh endpoint uses HTTP Bearer auth.
+               */
+              Authorization:
+                `Bearer ${refreshToken}`,
 
-              "X-Refresh-Token":
-                refreshToken,
+              /*
+               * Keep the device ID because your
+               * authentication system uses device/session
+               * information and the existing backend contract
+               * may require it.
+               */
+              ...(deviceId
+                ? {
+                    "X-Device-Id":
+                      deviceId,
+                  }
+                : {}),
             },
 
             withCredentials: true,
@@ -284,14 +326,7 @@ async function refreshAccessToken(): Promise<
       console.log(
         "Has new access token:",
         Boolean(
-          response.data?.data?.accessToken,
-        ),
-      );
-
-      console.log(
-        "Has rotated refresh token:",
-        Boolean(
-          response.data?.data?.refreshToken,
+          response.data?.data,
         ),
       );
 
@@ -303,12 +338,38 @@ async function refreshAccessToken(): Promise<
          GET NEW ACCESS TOKEN
          ====================================================== */
 
-      const newAccessToken =
-        response.data?.data?.accessToken;
+      /*
+       * IMPORTANT:
+       *
+       * Backend response:
+       *
+       * data: "eyJhbGciOiJIUzI1Ni..."
+       *
+       * Therefore:
+       *
+       * response.data.data
+       *
+       * is the NEW ACCESS TOKEN.
+       */
 
-      if (!newAccessToken) {
+      const newAccessToken =
+        response.data?.data;
+
+      if (
+        !newAccessToken ||
+        typeof newAccessToken !== "string"
+      ) {
         console.error(
-          "❌ Refresh succeeded but backend returned no access token.",
+          "❌ Refresh succeeded but backend returned no valid access token.",
+        );
+
+        console.error(
+          "Refresh response:",
+          JSON.stringify(
+            response.data,
+            null,
+            2,
+          ),
         );
 
         return null;
@@ -325,15 +386,6 @@ async function refreshAccessToken(): Promise<
       console.log(
         "✅ NEW ACCESS TOKEN STORED",
       );
-
-      /*
-       * If your backend rotates refresh tokens,
-       * it may return a new refresh token.
-       *
-       * We intentionally don't overwrite the existing
-       * refresh token here unless you confirm that your
-       * backend rotates it.
-       */
 
       console.log(
         "=========================================",
@@ -357,7 +409,11 @@ async function refreshAccessToken(): Promise<
 
         console.error(
           "Refresh response:",
-          refreshError.response?.data,
+          JSON.stringify(
+            refreshError.response?.data,
+            null,
+            2,
+          ),
         );
 
         console.error(
@@ -368,6 +424,30 @@ async function refreshAccessToken(): Promise<
         console.error(
           "Refresh method:",
           refreshError.config?.method,
+        );
+
+        /*
+         * Do not print the Authorization header here.
+         *
+         * It contains the refresh token.
+         */
+        console.error(
+          "Refresh request headers:",
+          {
+            hasAuthorization:
+              Boolean(
+                refreshError.config?.headers?.[
+                  "Authorization"
+                ],
+              ),
+
+            hasDeviceId:
+              Boolean(
+                refreshError.config?.headers?.[
+                  "X-Device-Id"
+                ],
+              ),
+          },
         );
       } else {
         console.error(
@@ -380,16 +460,12 @@ async function refreshAccessToken(): Promise<
       );
 
       /*
-       * The refresh token is no longer usable.
-       *
-       * Clear the local token storage.
+       * At this point the backend rejected the refresh
+       * request, so the frontend cannot safely continue
+       * the authenticated session.
        */
       clearTokens();
 
-      /*
-       * Tell AuthProvider/Zustand that the session
-       * has expired.
-       */
       notifySessionExpired();
 
       return null;
@@ -484,13 +560,26 @@ axiosInstance.interceptors.request.use(
     }
 
     /* ========================================================
-       REFRESH TOKEN
+       REFRESH ENDPOINT
        ======================================================== */
 
     /*
-     * The normal API should NOT receive the refresh token.
+     * Normally this axiosInstance interceptor is NOT used
+     * for the automatic refresh request because refreshAccessToken()
+     * uses plain axios.
      *
-     * Only explicitly attach it to the refresh endpoint.
+     * This section remains defensive for any other code that
+     * explicitly calls /auth/request-access-token through
+     * axiosInstance.
+     *
+     * IMPORTANT:
+     *
+     * The backend expects the refresh token as:
+     *
+     * Authorization: Bearer <refresh-token>
+     *
+     * Therefore we replace the normal access-token
+     * Authorization header with the refresh token.
      */
     const isRefreshRequest =
       config.url?.includes(
@@ -502,18 +591,8 @@ axiosInstance.interceptors.request.use(
       refreshToken
     ) {
       config.headers.set(
-        "X-Refresh-Token",
-        refreshToken,
-      );
-
-      /*
-       * Remove Authorization from the refresh request.
-       *
-       * This is important because the access token may
-       * already be expired.
-       */
-      config.headers.delete(
         "Authorization",
+        `Bearer ${refreshToken}`,
       );
     }
 
@@ -521,6 +600,13 @@ axiosInstance.interceptors.request.use(
        LOGOUT
        ======================================================== */
 
+    /*
+     * Keep the existing logout behavior.
+     *
+     * The logout endpoint can continue receiving the
+     * refresh token using X-Refresh-Token if that is what
+     * its existing backend contract requires.
+     */
     const isLogoutRequest =
       config.url?.includes(
         "/auth/logout",
@@ -681,7 +767,7 @@ axiosInstance.interceptors.response.use(
     /*
      * Only attempt refresh for a normal API request.
      *
-     * Never refresh the refresh endpoint itself.
+     * Never attempt to refresh the refresh endpoint itself.
      */
     if (
       is401 &&
@@ -816,9 +902,34 @@ axiosInstance.interceptors.response.use(
       error.config?.data,
     );
 
+    /*
+     * Do not log the actual Authorization header because
+     * it can contain either an access token or refresh token.
+     */
     console.error(
       "Request headers:",
-      error.config?.headers,
+      {
+        hasAuthorization:
+          Boolean(
+            error.config?.headers?.[
+              "Authorization"
+            ],
+          ),
+
+        hasDeviceId:
+          Boolean(
+            error.config?.headers?.[
+              "X-Device-Id"
+            ],
+          ),
+
+        hasRefreshHeader:
+          Boolean(
+            error.config?.headers?.[
+              "X-Refresh-Token"
+            ],
+          ),
+      },
     );
 
     console.error(

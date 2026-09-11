@@ -220,6 +220,16 @@ export default function SolveAndWinPage() {
                   description="Load questions "
                 />
 
+              
+<QuickAction
+  href="/admin/secondary/solveandwin/all-participants"
+  icon={<Users className="h-5 w-5" />}
+  title="All Participants"
+  description="View contest participants"
+/>
+
+
+
                  <QuickAction
                   href="/admin/secondary/solveandwin/competitions"
                   icon={<Trophy className="h-5 w-5" />}
@@ -230,7 +240,7 @@ export default function SolveAndWinPage() {
                 <QuickAction
   href="/admin/secondary/solveandwin/question-bank/validator"
   icon={<FileCheck2 className="h-5 w-5" />}
-  title="Question Bank Validator"
+  title="Question Validator"
   description="Validate and clean questions"
 />
 

@@ -58,13 +58,13 @@ export const studentNavigation: NavigationSection[] = [
     ],
   },
 
-  {
-    title: "Learning Arena",
+    {
+    title: "Quiz Platform",
     items: [
       {
-        label: "Interactive Lessons",
-        description: "Learn through guided lessons",
-        href: "/student/arena",
+        label: "Quiz Board",
+        description: "Answer fast and Qualify",
+        href: "/student/quiz-board",
         icon: Play,
       },
     ],

@@ -43,10 +43,22 @@ import { axiosInstance } from "@/lib/api";
    BACKEND ENDPOINT
 ============================================================ */
 
-
+/**
+ * IMPORTANT:
+ *
+ * Replace this ONLY if your backend uses a different endpoint
+ * for retrieving all Solve & Win / Quiz Board contests.
+ *
+ * The create/start endpoint you previously supplied is:
+ *
+ * /solve-and-win/contests/start-solve-and-win-contest/:contestId/:userId
+ *
+ * That endpoint is for STARTING a contest and should NOT be used
+ * here to retrieve the admin competition list.
+ */
 const GET_CONTESTS_ENDPOINT =
-  "/solve-and-win/contests/quiz-board/quiz-competitions";
-
+  "/quiz-board/quiz-competitions";
+  
 
 /* ============================================================
    TYPES

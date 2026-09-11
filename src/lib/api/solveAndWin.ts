@@ -3,49 +3,9 @@
 
 import { api } from "./axios";
 
+import type { GetAllContestParticipationsResponse,CreateContestPayload,CreateContestResponse
+ } from "@/types/solveandwin"; 
 
-
-export type ContestSubjectPayload = {
-  subjectId: string;
-  expectedNoOfQuestions: number;
-  difficultyBreakdown: {
-    easy: number;
-    medium: number;
-    hard: number;
-  };
-  durationInMinutes: number;
-};
-
-export type CreateContestPayload = {
-  title: string;
-  description: string;
-  category: string;
-  status: "DRAFT" | "UPCOMING";
-  amountToBeWonInKobo: number;
-  entryPoints: number;
-  startDate: string;
-  windowPeriod: number;
-  subjects: ContestSubjectPayload[];
-};
-
-export type CreateContestResponse = {
-  success: boolean;
-  message: string;
-  data?: {
-    _id?: string;
-    id?: string;
-    title?: string;
-    description?: string;
-    category?: string;
-    status?: string;
-    amountToBeWonInKobo?: number;
-    entryPoints?: number;
-    startDate?: string;
-    windowPeriod?: number;
-    subjects?: ContestSubjectPayload[];
-    [key: string]: unknown;
-  };
-};
 
 
 
@@ -382,7 +342,7 @@ export async function resumeSolveAndWinContest(
   contestId: string,
   subjectId: string,
 ) {
-  const response = await api.patch(
+  const response = await api.get(
     `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
       contestId,
     )}/${encodeURIComponent(subjectId)}`,
@@ -403,3 +363,28 @@ export async function submitSolveAndWinContest(
 
   return response.data;
 }
+
+
+
+
+
+
+
+
+export async function getAllContestParticipations(
+  page = 1,
+  limit = 10
+): Promise<GetAllContestParticipationsResponse> {
+  const response = await api.get<GetAllContestParticipationsResponse>(
+    "/solve-and-win/contests/get-all-contest-participations",
+    {
+      params: {
+        page,
+        limit,
+      },
+    }
+  );
+
+  return response.data;
+}
+

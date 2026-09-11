@@ -1,7 +1,7 @@
 
 
 
-// C:\Users\Lara Spellman\Jamb\jamb-league\src\app\admin\(admin)\secondary\quiz-board\quiz-competitions\page.tsx
+// src\app\admin\(admin)\secondary\quiz-board\quiz-competitions\page.tsx
 
 "use client";
 
@@ -20,7 +20,6 @@ import {
   BookOpen,
   ChevronRight,
   Loader2,
-  Coins,
   AlertCircle,
   X,
   Users,
@@ -33,6 +32,9 @@ import {
   Target,
   Layers3,
   RefreshCw,
+  Timer,
+  ListChecks,
+  Medal,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,100 +54,86 @@ type QuizBoardStatus =
   | "FULL"
   | "LIVE"
   | "COMPLETED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | string;
 
-type QuizBoardDifficulty =
-  | "EASY"
-  | "MEDIUM"
-  | "HARD"
-  | "MIXED";
+interface DifficultyBreakdown {
+  easy: number;
+  medium: number;
+  hard: number;
+}
 
-type RoundNumber = 1 | 2 | 3 | 4 | 5;
+interface EliminationRound {
+  round_number: number;
+  no_of_questions: number;
+  difficultyBreakdown: DifficultyBreakdown;
+  exit_number: number;
+  exit_reward: number;
+}
+
+interface FinalRoundInformation {
+  no_of_questions: number;
+  difficultyBreakdown: DifficultyBreakdown;
+  first_position_reward: number;
+  second_position_reward: number;
+}
 
 interface QuizBoard {
-  _id: string;
+  _id?: string;
   id?: string;
 
-  title: string;
+  quiz_title: string;
   description?: string;
 
   subject?: string;
-  subjectName?: string;
 
-  difficulty?: QuizBoardDifficulty | string;
+  time_per_question: number;
 
-  status: QuizBoardStatus | string;
+  start_date: string;
 
-  entryFee?: number;
-  entryPoints?: number;
+  no_of_contestants: number;
 
-  winnerReward?: number;
-  rewardPoints?: number;
+  number_of_rounds: number;
 
-  maxPlayers?: number;
-  players?: number;
-  participantCount?: number;
+  round_information: EliminationRound[];
 
-  questionCount?: number;
+  final_round_information: FinalRoundInformation;
 
-  currentRound?: RoundNumber | number | null;
-
-  startDate?: string;
-  startsAt?: string;
-
-  endDate?: string;
-  endsAt?: string;
+  status: QuizBoardStatus;
 
   createdAt?: string;
   updatedAt?: string;
+
+  /*
+   * These are optional because the list endpoint may later
+   * return participant information.
+   */
+  participants?: number;
+  participantCount?: number;
+  players?: number;
 }
 
 /* ============================================================
-   CONSTANTS
+   API RESPONSE TYPES
 ============================================================ */
 
-const MAX_PLAYERS = 20;
+interface QuizBoardsResponse {
+  success?: boolean;
+  message?: string;
 
-const ROUND_CONFIG: Record<
-  RoundNumber,
-  {
-    label: string;
-    from: number;
-    to: number;
-    questions: number;
-  }
-> = {
-  1: {
-    label: "Round 1",
-    from: 20,
-    to: 15,
-    questions: 10,
-  },
-  2: {
-    label: "Round 2",
-    from: 15,
-    to: 10,
-    questions: 10,
-  },
-  3: {
-    label: "Round 3",
-    from: 10,
-    to: 5,
-    questions: 10,
-  },
-  4: {
-    label: "Round 4",
-    from: 5,
-    to: 2,
-    questions: 10,
-  },
-  5: {
-    label: "Final",
-    from: 2,
-    to: 1,
-    questions: 20,
-  },
-};
+  data?: unknown;
+
+  quizBoards?: QuizBoard[];
+  quizBoardObj?: QuizBoard[];
+  quizBoardObjs?: QuizBoard[];
+
+  items?: QuizBoard[];
+  results?: QuizBoard[];
+}
+
+/* ============================================================
+   FILTERS
+============================================================ */
 
 const STATUS_OPTIONS = [
   "ALL",
@@ -158,18 +146,21 @@ const STATUS_OPTIONS = [
   "CANCELLED",
 ] as const;
 
+type StatusFilter =
+  (typeof STATUS_OPTIONS)[number];
+
 /* ============================================================
    HELPERS
 ============================================================ */
 
 function normalizeStatus(status?: string) {
-  return (status || "DRAFT").trim().toUpperCase();
+  return String(status || "DRAFT")
+    .trim()
+    .toUpperCase();
 }
 
 function getStatusLabel(status?: string) {
-  const normalized = normalizeStatus(status);
-
-  switch (normalized) {
+  switch (normalizeStatus(status)) {
     case "DRAFT":
       return "Draft";
 
@@ -224,52 +215,9 @@ function getStatusClass(status?: string) {
   }
 }
 
-function getDifficultyClass(difficulty?: string) {
-  switch ((difficulty || "").toUpperCase()) {
-    case "EASY":
-      return "bg-green-100 text-green-700";
-
-    case "MEDIUM":
-      return "bg-blue-100 text-blue-700";
-
-    case "HARD":
-      return "bg-red-100 text-red-700";
-
-    case "MIXED":
-      return "bg-purple-100 text-purple-700";
-
-    default:
-      return "bg-slate-100 text-slate-600";
-  }
-}
-
-function formatDifficulty(difficulty?: string) {
-  if (!difficulty) {
-    return "Not set";
-  }
-
-  return difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase();
-}
-
-function formatDate(dateString?: string) {
-  if (!dateString) {
-    return "—";
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("en-NG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatDateTime(dateString?: string) {
+function formatDateTime(
+  dateString?: string,
+) {
   if (!dateString) {
     return "—";
   }
@@ -290,83 +238,118 @@ function formatDateTime(dateString?: string) {
 }
 
 function formatPoints(value?: number) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value)
+  ) {
     return "0";
   }
 
   return value.toLocaleString("en-NG");
 }
 
-function getEntryPoints(quiz: QuizBoard) {
-  return quiz.entryFee ?? quiz.entryPoints ?? 0;
+function getBoardId(board: QuizBoard) {
+  return board._id || board.id || "";
 }
 
-function getRewardPoints(quiz: QuizBoard) {
-  return quiz.winnerReward ?? quiz.rewardPoints ?? 0;
-}
-
-function getPlayerCount(quiz: QuizBoard) {
+function getPlayerCount(board: QuizBoard) {
   return (
-    quiz.players ??
-    quiz.participantCount ??
+    board.participantCount ??
+    board.participants ??
+    board.players ??
     0
   );
 }
 
-function getQuestionCount(quiz: QuizBoard) {
-  return quiz.questionCount ?? 0;
-}
-
-function getStartDate(quiz: QuizBoard) {
-  return quiz.startsAt ?? quiz.startDate;
-}
-
-function getEndDate(quiz: QuizBoard) {
-  return quiz.endsAt ?? quiz.endDate;
-}
-
-function getSubjectName(quiz: QuizBoard) {
-  return quiz.subjectName ?? quiz.subject ?? "Not assigned";
-}
-
-function getBoardId(quiz: QuizBoard) {
-  return quiz._id || quiz.id || "";
-}
-
-function getCurrentRound(quiz: QuizBoard): RoundNumber | null {
-  const round = Number(quiz.currentRound);
-
-  if ([1, 2, 3, 4, 5].includes(round)) {
-    return round as RoundNumber;
+function getSubjectLabel(board: QuizBoard) {
+  /*
+   * The current create API only stores the subject ID.
+   *
+   * Until the backend returns the populated subject,
+   * display a shortened subject ID rather than pretending
+   * it is the subject name.
+   */
+  if (!board.subject) {
+    return "Subject not assigned";
   }
 
-  return null;
-}
-
-function getRoundProgress(quiz: QuizBoard) {
-  const round = getCurrentRound(quiz);
-
-  if (!round) {
-    return 0;
+  if (board.subject.length <= 24) {
+    return board.subject;
   }
 
-  return (round / 5) * 100;
+  return `${board.subject.slice(0, 12)}...${board.subject.slice(-8)}`;
 }
 
-function getPlayerProgress(quiz: QuizBoard) {
-  const players = getPlayerCount(quiz);
-  const maxPlayers = quiz.maxPlayers ?? MAX_PLAYERS;
+function getTotalEliminationQuestions(
+  board: QuizBoard,
+) {
+  return (board.round_information || []).reduce(
+    (total, round) =>
+      total + Number(round.no_of_questions || 0),
+    0,
+  );
+}
 
-  if (maxPlayers <= 0) {
-    return 0;
+function getFinalQuestionCount(
+  board: QuizBoard,
+) {
+  return Number(
+    board.final_round_information
+      ?.no_of_questions || 0,
+  );
+}
+
+function getTotalQuestionCount(
+  board: QuizBoard,
+) {
+  return (
+    getTotalEliminationQuestions(board) +
+    getFinalQuestionCount(board)
+  );
+}
+
+function getTotalRewards(board: QuizBoard) {
+  const eliminationRewards = (
+    board.round_information || []
+  ).reduce(
+    (total, round) =>
+      total + Number(round.exit_reward || 0),
+    0,
+  );
+
+  const finalRewards =
+    Number(
+      board.final_round_information
+        ?.first_position_reward || 0,
+    ) +
+    Number(
+      board.final_round_information
+        ?.second_position_reward || 0,
+    );
+
+  return eliminationRewards + finalRewards;
+}
+
+function getCurrentRound(board: QuizBoard) {
+  const status = normalizeStatus(
+    board.status,
+  );
+
+  if (status !== "LIVE") {
+    return null;
   }
 
-  return Math.min(100, (players / maxPlayers) * 100);
+  /*
+   * Until the backend returns currentRound,
+   * LIVE boards start at Round 1.
+   */
+  return 1;
 }
 
 function getApiErrorMessage(error: unknown) {
   const axiosError = error as {
     response?: {
+      status?: number;
       data?: {
         message?: string;
         error?: string;
@@ -384,55 +367,87 @@ function getApiErrorMessage(error: unknown) {
 }
 
 /* ============================================================
-   API RESPONSE NORMALIZER
+   RESPONSE NORMALIZER
 ============================================================ */
 
-function extractQuizBoards(payload: unknown): QuizBoard[] {
-  if (!payload || typeof payload !== "object") {
+function isQuizBoard(
+  value: unknown,
+): value is QuizBoard {
+  if (
+    !value ||
+    typeof value !== "object"
+  ) {
+    return false;
+  }
+
+  const item =
+    value as Record<string, unknown>;
+
+  return (
+    typeof item.quiz_title === "string" ||
+    typeof item._id === "string" ||
+    typeof item.id === "string"
+  );
+}
+
+function extractQuizBoards(
+  payload: unknown,
+): QuizBoard[] {
+  if (Array.isArray(payload)) {
+    return payload.filter(isQuizBoard);
+  }
+
+  if (
+    !payload ||
+    typeof payload !== "object"
+  ) {
     return [];
   }
 
-  const data = payload as Record<string, unknown>;
+  const root =
+    payload as Record<string, unknown>;
 
-  const possibleArrays = [
-    data.quizBoards,
-    data.quizBoardObj,
-    data.quizBoardObjs,
-    data.data,
-    data.items,
-    data.results,
+  const directCandidates = [
+    root.quizBoards,
+    root.quizBoardObj,
+    root.quizBoardObjs,
+    root.items,
+    root.results,
   ];
 
-  for (const candidate of possibleArrays) {
+  for (const candidate of directCandidates) {
     if (Array.isArray(candidate)) {
-      return candidate as QuizBoard[];
+      return candidate.filter(isQuizBoard);
     }
   }
 
   if (
-    data.data &&
-    typeof data.data === "object" &&
-    !Array.isArray(data.data)
+    root.data &&
+    typeof root.data === "object"
   ) {
-    const nested = data.data as Record<string, unknown>;
+    const data =
+      root.data as Record<string, unknown>;
 
-    const nestedArrays = [
-      nested.quizBoards,
-      nested.quizBoardObj,
-      nested.quizBoardObjs,
-      nested.items,
-      nested.results,
+    if (Array.isArray(root.data)) {
+      return root.data.filter(isQuizBoard);
+    }
+
+    const nestedCandidates = [
+      data.quizBoards,
+      data.quizBoardObj,
+      data.quizBoardObjs,
+      data.items,
+      data.results,
+      data.contests,
+      data.contestObj,
+      data.contestObjs,
     ];
 
-    for (const candidate of nestedArrays) {
+    for (const candidate of nestedCandidates) {
       if (Array.isArray(candidate)) {
-        return candidate as QuizBoard[];
+        return candidate.filter(isQuizBoard);
       }
     }
-  }
-
-  if (Array.isArray(payload)) {
-    return payload as QuizBoard[];
   }
 
   return [];
@@ -443,23 +458,19 @@ function extractQuizBoards(payload: unknown): QuizBoard[] {
 ============================================================ */
 
 export default function AdminQuizCompetitionsPage() {
-  /* ==========================================================
-     STATE
-  ========================================================== */
+  const [quizBoards, setQuizBoards] =
+    useState<QuizBoard[]>([]);
 
-  const [quizBoards, setQuizBoards] = useState<QuizBoard[]>([]);
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] =
+    useState(true);
 
   const [error, setError] = useState("");
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] =
+    useState("");
 
   const [statusFilter, setStatusFilter] =
-    useState<(typeof STATUS_OPTIONS)[number]>("ALL");
-
-  const [difficultyFilter, setDifficultyFilter] =
-    useState("ALL");
+    useState<StatusFilter>("ALL");
 
   /* ==========================================================
      ACTION STATE
@@ -468,16 +479,26 @@ export default function AdminQuizCompetitionsPage() {
   const [actionBoard, setActionBoard] =
     useState<QuizBoard | null>(null);
 
-  const [actionType, setActionType] = useState<
-    "delete" | "start" | "cancel" | null
-  >(null);
+  const [actionType, setActionType] =
+    useState<
+      "delete" | "start" | "cancel" | null
+    >(null);
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] =
+    useState(false);
 
-  const [actionError, setActionError] = useState("");
+  const [actionError, setActionError] =
+    useState("");
 
   /* ==========================================================
      LOAD QUIZ BOARDS
+
+     IMPORTANT:
+     This is now the Quiz Board endpoint.
+
+     GET /api/v1/quiz-board/quiz-competitions
+
+     axiosInstance already contains /api/v1.
   ========================================================== */
 
   const loadQuizBoards = async () => {
@@ -485,22 +506,18 @@ export default function AdminQuizCompetitionsPage() {
       setIsLoading(true);
       setError("");
 
-      /*
-       * Quiz Board admin endpoint.
-       *
-       * Expected backend endpoint:
-       *
-       * GET /api/v1/admin/quiz-board
-       *
-       * Your axiosInstance already contains the API base URL,
-       * so we only provide the endpoint path here.
-       */
+      const response =
+        await axiosInstance.get<QuizBoardsResponse>(
+          "/quiz-board/quiz-competitions",
+        );
 
-      const response = await axiosInstance.get(
-        "/admin/quiz-board",
+      console.log(
+        "Quiz Board list response:",
+        response.data,
       );
 
-      const boards = extractQuizBoards(response.data);
+      const boards =
+        extractQuizBoards(response.data);
 
       setQuizBoards(boards);
     } catch (err) {
@@ -509,7 +526,11 @@ export default function AdminQuizCompetitionsPage() {
         err,
       );
 
-      setError(getApiErrorMessage(err));
+      setQuizBoards([]);
+
+      setError(
+        getApiErrorMessage(err),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -527,101 +548,134 @@ export default function AdminQuizCompetitionsPage() {
      FILTERED BOARDS
   ========================================================== */
 
-  const filteredQuizBoards = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const filteredQuizBoards =
+    useMemo(() => {
+      const query =
+        search.trim().toLowerCase();
 
-    return quizBoards.filter((quiz) => {
-      const matchesSearch =
-        !query ||
-        quiz.title?.toLowerCase().includes(query) ||
-        quiz.description?.toLowerCase().includes(query) ||
-        getSubjectName(quiz).toLowerCase().includes(query) ||
-        normalizeStatus(quiz.status)
-          .toLowerCase()
-          .includes(query) ||
-        formatDifficulty(quiz.difficulty)
-          .toLowerCase()
-          .includes(query);
+      return quizBoards.filter(
+        (board) => {
+          const title =
+            board.quiz_title
+              ?.toLowerCase() || "";
 
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        normalizeStatus(quiz.status) === statusFilter;
+          const description =
+            board.description
+              ?.toLowerCase() || "";
 
-      const matchesDifficulty =
-        difficultyFilter === "ALL" ||
-        normalizeStatus(quiz.difficulty) ===
-          difficultyFilter;
+          const subject =
+            getSubjectLabel(board)
+              .toLowerCase();
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesDifficulty
+          const status =
+            normalizeStatus(board.status)
+              .toLowerCase();
+
+          const matchesSearch =
+            !query ||
+            title.includes(query) ||
+            description.includes(query) ||
+            subject.includes(query) ||
+            status.includes(query);
+
+          const matchesStatus =
+            statusFilter === "ALL" ||
+            normalizeStatus(
+              board.status,
+            ) === statusFilter;
+
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        },
       );
-    });
-  }, [
-    quizBoards,
-    search,
-    statusFilter,
-    difficultyFilter,
-  ]);
+    }, [
+      quizBoards,
+      search,
+      statusFilter,
+    ]);
 
   /* ==========================================================
      STATISTICS
   ========================================================== */
 
-  const statistics = useMemo(() => {
-    const total = quizBoards.length;
+  const statistics =
+    useMemo(() => {
+      const total =
+        quizBoards.length;
 
-    const draft = quizBoards.filter(
-      (quiz) =>
-        normalizeStatus(quiz.status) === "DRAFT",
-    ).length;
+      const draft =
+        quizBoards.filter(
+          (board) =>
+            normalizeStatus(
+              board.status,
+            ) === "DRAFT",
+        ).length;
 
-    const open = quizBoards.filter(
-      (quiz) =>
-        normalizeStatus(quiz.status) === "OPEN",
-    ).length;
+      const upcoming =
+        quizBoards.filter(
+          (board) =>
+            normalizeStatus(
+              board.status,
+            ) === "UPCOMING",
+        ).length;
 
-    const live = quizBoards.filter(
-      (quiz) =>
-        normalizeStatus(quiz.status) === "LIVE",
-    ).length;
+      const live =
+        quizBoards.filter(
+          (board) =>
+            normalizeStatus(
+              board.status,
+            ) === "LIVE",
+        ).length;
 
-    const completed = quizBoards.filter(
-      (quiz) =>
-        normalizeStatus(quiz.status) === "COMPLETED",
-    ).length;
+      const completed =
+        quizBoards.filter(
+          (board) =>
+            normalizeStatus(
+              board.status,
+            ) === "COMPLETED",
+        ).length;
 
-    const totalParticipants = quizBoards.reduce(
-      (total, quiz) =>
-        total + getPlayerCount(quiz),
-      0,
-    );
+      const totalParticipants =
+        quizBoards.reduce(
+          (total, board) =>
+            total +
+            getPlayerCount(board),
+          0,
+        );
 
-    const totalQuestions = quizBoards.reduce(
-      (total, quiz) =>
-        total + getQuestionCount(quiz),
-      0,
-    );
+      const totalQuestions =
+        quizBoards.reduce(
+          (total, board) =>
+            total +
+            getTotalQuestionCount(
+              board,
+            ),
+          0,
+        );
 
-    return {
-      total,
-      draft,
-      open,
-      live,
-      completed,
-      totalParticipants,
-      totalQuestions,
-    };
-  }, [quizBoards]);
+      return {
+        total,
+        draft,
+        upcoming,
+        live,
+        completed,
+        totalParticipants,
+        totalQuestions,
+      };
+    }, [quizBoards]);
 
   /* ==========================================================
-     MODAL
+     ACTION MODAL
   ========================================================== */
 
   const openActionModal = (
     board: QuizBoard,
-    type: "delete" | "start" | "cancel",
+    type:
+      | "delete"
+      | "start"
+      | "cancel",
   ) => {
     setActionBoard(board);
     setActionType(type);
@@ -639,119 +693,118 @@ export default function AdminQuizCompetitionsPage() {
   };
 
   /* ==========================================================
-     EXECUTE ACTION
+     BOARD ACTIONS
+
+     These remain isolated here so the list endpoint is not
+     coupled to the display code.
   ========================================================== */
 
-  const handleBoardAction = async () => {
-    if (!actionBoard) {
-      return;
-    }
-
-    const boardId = getBoardId(actionBoard);
-
-    if (!boardId) {
-      setActionError("Quiz Board ID is missing.");
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setActionError("");
-
-      if (actionType === "delete") {
-        await axiosInstance.delete(
-          `/admin/quiz-board/${boardId}`,
-        );
-
-        setQuizBoards((current) =>
-          current.filter(
-            (quiz) => getBoardId(quiz) !== boardId,
-          ),
-        );
+  const handleBoardAction =
+    async () => {
+      if (!actionBoard) {
+        return;
       }
 
-      if (actionType === "start") {
-        await axiosInstance.post(
-          `/admin/quiz-board/${boardId}/start`,
-        );
+      const boardId =
+        getBoardId(actionBoard);
 
-        setQuizBoards((current) =>
-          current.map((quiz) =>
-            getBoardId(quiz) === boardId
-              ? {
-                  ...quiz,
-                  status: "LIVE",
-                  currentRound: 1,
-                }
-              : quiz,
-          ),
+      if (!boardId) {
+        setActionError(
+          "Quiz Board ID is missing.",
         );
+        return;
       }
 
-      if (actionType === "cancel") {
-        await axiosInstance.post(
-          `/admin/quiz-board/${boardId}/cancel`,
+      try {
+        setIsProcessing(true);
+        setActionError("");
+
+        if (actionType === "delete") {
+          await axiosInstance.delete(
+            `/quiz-board/quiz-competitions/${boardId}`,
+          );
+
+          setQuizBoards(
+            (current) =>
+              current.filter(
+                (board) =>
+                  getBoardId(board) !==
+                  boardId,
+              ),
+          );
+        }
+
+        if (actionType === "start") {
+          await axiosInstance.post(
+            `/quiz-board/quiz-competitions/${boardId}/start`,
+          );
+
+          await loadQuizBoards();
+        }
+
+        if (actionType === "cancel") {
+          await axiosInstance.post(
+            `/quiz-board/quiz-competitions/${boardId}/cancel`,
+          );
+
+          await loadQuizBoards();
+        }
+
+        closeActionModal();
+      } catch (err) {
+        console.error(
+          `Failed to ${actionType} Quiz Board:`,
+          err,
         );
 
-        setQuizBoards((current) =>
-          current.map((quiz) =>
-            getBoardId(quiz) === boardId
-              ? {
-                  ...quiz,
-                  status: "CANCELLED",
-                }
-              : quiz,
-          ),
+        setActionError(
+          getApiErrorMessage(err),
         );
+      } finally {
+        setIsProcessing(false);
       }
-
-      closeActionModal();
-    } catch (err) {
-      console.error(
-        `Failed to ${actionType} Quiz Board:`,
-        err,
-      );
-
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    };
 
   /* ==========================================================
      ACTION MODAL TEXT
   ========================================================== */
 
-  const actionModal = useMemo(() => {
-    switch (actionType) {
-      case "start":
-        return {
-          title: "Start Quiz Board?",
-          description:
-            "Starting this Quiz Board will make it live for participating students.",
-          button: "Start Quiz Board",
-        };
+  const actionModal =
+    useMemo(() => {
+      switch (actionType) {
+        case "start":
+          return {
+            title: "Start Quiz Board?",
+            description:
+              "Starting this Quiz Board will make the competition live for participating students.",
+            button:
+              "Start Quiz Board",
+          };
 
-      case "cancel":
-        return {
-          title: "Cancel Quiz Board?",
-          description:
-            "This will prevent the Quiz Board from continuing and students will no longer be able to participate.",
-          button: "Cancel Quiz Board",
-        };
+        case "cancel":
+          return {
+            title:
+              "Cancel Quiz Board?",
+            description:
+              "This will prevent the Quiz Board from continuing.",
+            button:
+              "Cancel Quiz Board",
+          };
 
-      case "delete":
-        return {
-          title: "Delete Quiz Board?",
-          description:
-            "This action cannot be undone. The Quiz Board and its configuration may be permanently removed.",
-          button: "Delete Quiz Board",
-        };
+        case "delete":
+          return {
+            title:
+              "Delete Quiz Board?",
+            description:
+              "This action cannot be undone.",
+            button:
+              "Delete Quiz Board",
+          };
 
-      default:
-        return null;
-    }
-  }, [actionType]);
+        default:
+          return null;
+      }
+    }, [actionType]);
 
   /* ==========================================================
      RENDER
@@ -760,6 +813,7 @@ export default function AdminQuizCompetitionsPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-10">
+
         {/* ==================================================
             HEADER
         ================================================== */}
@@ -776,10 +830,10 @@ export default function AdminQuizCompetitionsPage() {
             </h1>
 
             <p className="mt-3 max-w-3xl text-lg leading-7 text-slate-600">
-              Create, configure, monitor and control
-              real-time Quiz Board competitions with up
-              to 20 students competing through five
-              elimination rounds.
+              Create, configure, monitor and
+              control Quiz Board competitions
+              through multiple elimination rounds
+              and a final championship round.
             </p>
           </div>
 
@@ -792,7 +846,9 @@ export default function AdminQuizCompetitionsPage() {
               leftIcon={
                 <RefreshCw
                   className={`h-4 w-4 ${
-                    isLoading ? "animate-spin" : ""
+                    isLoading
+                      ? "animate-spin"
+                      : ""
                   }`}
                 />
               }
@@ -800,9 +856,7 @@ export default function AdminQuizCompetitionsPage() {
               Refresh
             </Button>
 
-            <Link
-              href="/admin/secondary/quiz-board/quiz-competitions/create"
-            >
+            <Link href="/admin/secondary/quiz-board/quiz-competitions/create">
               <Button
                 leftIcon={
                   <Plus className="h-4 w-4" />
@@ -815,7 +869,7 @@ export default function AdminQuizCompetitionsPage() {
         </div>
 
         {/* ==================================================
-            QUICK OVERVIEW
+            STATISTICS
         ================================================== */}
 
         <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
@@ -839,11 +893,11 @@ export default function AdminQuizCompetitionsPage() {
 
           <StatCard
             icon={
-              <Users className="h-5 w-5" />
+              <CalendarDays className="h-5 w-5" />
             }
-            label="Open"
-            value={statistics.open}
-            description="Accepting students"
+            label="Upcoming"
+            value={statistics.upcoming}
+            description="Scheduled boards"
           />
 
           <StatCard
@@ -867,190 +921,11 @@ export default function AdminQuizCompetitionsPage() {
         </div>
 
         {/* ==================================================
-            LIVE SUMMARY
-        ================================================== */}
-
-        {statistics.live > 0 && (
-          <section className="mb-8 overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
-            <div className="border-b border-red-100 bg-red-50 px-6 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="relative flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" />
-                  </span>
-
-                  <div>
-                    <h2 className="font-bold text-red-900">
-                      Live Quiz Boards
-                    </h2>
-
-                    <p className="text-sm text-red-700">
-                      {statistics.live} Quiz Board
-                      {statistics.live === 1
-                        ? ""
-                        : "s"} currently running.
-                    </p>
-                  </div>
-                </div>
-
-                <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
-                  LIVE
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-3">
-              {quizBoards
-                .filter(
-                  (quiz) =>
-                    normalizeStatus(
-                      quiz.status,
-                    ) === "LIVE",
-                )
-                .slice(0, 3)
-                .map((quiz) => (
-                  <LiveSummaryCard
-                    key={getBoardId(quiz)}
-                    quiz={quiz}
-                  />
-                ))}
-            </div>
-          </section>
-        )}
-
-        {/* ==================================================
-            SEARCH + FILTERS
-        ================================================== */}
-
-        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="min-w-0 flex-1">
-              <Input
-                placeholder="Search by title, subject, difficulty or status..."
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                leftIcon={
-                  <Search className="h-4 w-4" />
-                }
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target.value as
-                      (typeof STATUS_OPTIONS)[number],
-                  )
-                }
-                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                aria-label="Filter by status"
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {status === "ALL"
-                      ? "All Statuses"
-                      : getStatusLabel(status)}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={difficultyFilter}
-                onChange={(event) =>
-                  setDifficultyFilter(
-                    event.target.value,
-                  )
-                }
-                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                aria-label="Filter by difficulty"
-              >
-                <option value="ALL">
-                  All Difficulties
-                </option>
-                <option value="EASY">
-                  Easy
-                </option>
-                <option value="MEDIUM">
-                  Medium
-                </option>
-                <option value="HARD">
-                  Hard
-                </option>
-                <option value="MIXED">
-                  Mixed
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-            <span>
-              Showing{" "}
-              <strong className="text-slate-900">
-                {filteredQuizBoards.length}
-              </strong>{" "}
-              of{" "}
-              <strong className="text-slate-900">
-                {quizBoards.length}
-              </strong>{" "}
-              Quiz Boards
-            </span>
-
-            {(search ||
-              statusFilter !== "ALL" ||
-              difficultyFilter !== "ALL") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("ALL");
-                  setDifficultyFilter("ALL");
-                }}
-                className="font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* ==================================================
-            LOADING
-        ================================================== */}
-
-        {isLoading && (
-          <Card className="p-12">
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
-                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
-              </div>
-
-              <p className="mt-5 text-sm font-semibold text-slate-800">
-                Loading Quiz Boards...
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Fetching Quiz Board competitions from
-                the server.
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* ==================================================
             ERROR
         ================================================== */}
 
         {!isLoading && error && (
-          <Card className="border-red-200 bg-red-50 p-8">
+          <Card className="mb-8 border-red-200 bg-red-50 p-8">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100">
                 <AlertCircle className="h-5 w-5 text-red-600" />
@@ -1058,7 +933,7 @@ export default function AdminQuizCompetitionsPage() {
 
               <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-red-900">
-                  Failed to load Quiz Boards
+                  Unable to load Quiz Boards
                 </h2>
 
                 <p className="mt-1 text-sm leading-6 text-red-700">
@@ -1082,48 +957,212 @@ export default function AdminQuizCompetitionsPage() {
         )}
 
         {/* ==================================================
-            QUIZ BOARD LIST
+            SUMMARY
         ================================================== */}
 
         {!isLoading &&
           !error &&
-          filteredQuizBoards.length > 0 && (
-            <div className="space-y-6">
-              {filteredQuizBoards.map((quiz) => (
-                <QuizBoardCard
-                  key={getBoardId(quiz)}
-                  quiz={quiz}
-                  onStart={() =>
-                    openActionModal(
-                      quiz,
-                      "start",
-                    )
-                  }
-                  onCancel={() =>
-                    openActionModal(
-                      quiz,
-                      "cancel",
-                    )
-                  }
-                  onDelete={() =>
-                    openActionModal(
-                      quiz,
-                      "delete",
-                    )
-                  }
-                />
-              ))}
+          quizBoards.length > 0 && (
+            <div className="mb-8 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <Users className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Participants
+                    </p>
+
+                    <p className="text-2xl font-bold text-slate-900">
+                      {statistics.totalParticipants.toLocaleString(
+                        "en-NG",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                    <ListChecks className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Questions Configured
+                    </p>
+
+                    <p className="text-2xl font-bold text-slate-900">
+                      {statistics.totalQuestions.toLocaleString(
+                        "en-NG",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
         {/* ==================================================
-            FILTER EMPTY
+            SEARCH
+        ================================================== */}
+
+        {!isLoading && !error && (
+          <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="min-w-0 flex-1">
+                <Input
+                  placeholder="Search by title, subject or status..."
+                  value={search}
+                  onChange={(event) =>
+                    setSearch(
+                      event.target.value,
+                    )
+                  }
+                  leftIcon={
+                    <Search className="h-4 w-4" />
+                  }
+                />
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target
+                      .value as StatusFilter,
+                  )
+                }
+                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                aria-label="Filter by status"
+              >
+                {STATUS_OPTIONS.map(
+                  (status) => (
+                    <option
+                      key={status}
+                      value={status}
+                    >
+                      {status === "ALL"
+                        ? "All Statuses"
+                        : getStatusLabel(
+                            status,
+                          )}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+              <span>
+                Showing{" "}
+                <strong className="text-slate-900">
+                  {
+                    filteredQuizBoards.length
+                  }
+                </strong>{" "}
+                of{" "}
+                <strong className="text-slate-900">
+                  {quizBoards.length}
+                </strong>{" "}
+                Quiz Boards
+              </span>
+
+              {(search ||
+                statusFilter !==
+                  "ALL") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter(
+                      "ALL",
+                    );
+                  }}
+                  className="font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ==================================================
+            LOADING
+        ================================================== */}
+
+        {isLoading && (
+          <Card className="p-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+              </div>
+
+              <p className="mt-5 text-sm font-semibold text-slate-800">
+                Loading Quiz Boards...
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Fetching Quiz Board competitions
+                from the server.
+              </p>
+            </div>
+          </Card>
+        )}
+
+        {/* ==================================================
+            LIST
+        ================================================== */}
+
+        {!isLoading &&
+          !error &&
+          filteredQuizBoards.length >
+            0 && (
+            <div className="space-y-6">
+              {filteredQuizBoards.map(
+                (board) => (
+                  <QuizBoardCard
+                    key={
+                      getBoardId(board)
+                    }
+                    board={board}
+                    onStart={() =>
+                      openActionModal(
+                        board,
+                        "start",
+                      )
+                    }
+                    onCancel={() =>
+                      openActionModal(
+                        board,
+                        "cancel",
+                      )
+                    }
+                    onDelete={() =>
+                      openActionModal(
+                        board,
+                        "delete",
+                      )
+                    }
+                  />
+                ),
+              )}
+            </div>
+          )}
+
+        {/* ==================================================
+            EMPTY FILTER
         ================================================== */}
 
         {!isLoading &&
           !error &&
           quizBoards.length > 0 &&
-          filteredQuizBoards.length === 0 && (
+          filteredQuizBoards.length ===
+            0 && (
             <Card className="p-12 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
                 <Search className="h-8 w-8 text-slate-400" />
@@ -1134,26 +1173,14 @@ export default function AdminQuizCompetitionsPage() {
               </h2>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                No Quiz Board matches your current
-                search and filters.
+                No Quiz Board matches your
+                current search or filter.
               </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("ALL");
-                  setDifficultyFilter("ALL");
-                }}
-                className="mt-5 text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Clear filters
-              </button>
             </Card>
           )}
 
         {/* ==================================================
-            EMPTY STATE
+            EMPTY DATABASE
         ================================================== */}
 
         {!isLoading &&
@@ -1169,16 +1196,14 @@ export default function AdminQuizCompetitionsPage() {
               </h2>
 
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                Create your first Quiz Board, configure
-                the subject and questions, set the entry
-                fee and reward, then open registration for
-                students.
+                Create your first Quiz Board and
+                configure its elimination rounds,
+                question difficulty, timing and
+                final rewards.
               </p>
 
               <div className="mt-6">
-                <Link
-                  href="/admin/secondary/quiz-board/quiz-competitions/create"
-                >
+                <Link href="/admin/secondary/quiz-board/quiz-competitions/create">
                   <Button
                     leftIcon={
                       <Plus className="h-4 w-4" />
@@ -1192,7 +1217,7 @@ export default function AdminQuizCompetitionsPage() {
           )}
 
         {/* ==================================================
-            ADMIN INFORMATION
+            STRUCTURE
         ================================================== */}
 
         {!isLoading && !error && (
@@ -1204,40 +1229,35 @@ export default function AdminQuizCompetitionsPage() {
 
               <div>
                 <h2 className="font-bold text-slate-900">
-                  Quiz Board elimination structure
+                  Quiz Board structure
                 </h2>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Every Quiz Board supports up to 20
-                  students and progresses through five
-                  competitive stages.
+                  Each Quiz Board can contain
+                  multiple elimination rounds followed
+                  by a separate Final Round.
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  {(
-                    Object.keys(
-                      ROUND_CONFIG,
-                    ) as unknown as RoundNumber[]
-                  ).map((round) => {
-                    const config =
-                      ROUND_CONFIG[round];
+                  <StructurePill
+                    label="Elimination"
+                    value="Multiple rounds"
+                  />
 
-                    return (
-                      <div
-                        key={round}
-                        className="rounded-xl border border-blue-100 bg-white px-4 py-2.5"
-                      >
-                        <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
-                          {config.label}
-                        </p>
+                  <StructurePill
+                    label="Final"
+                    value="Separate configuration"
+                  />
 
-                        <p className="mt-0.5 text-sm font-bold text-slate-900">
-                          {config.from} →{" "}
-                          {config.to}
-                        </p>
-                      </div>
-                    );
-                  })}
+                  <StructurePill
+                    label="Difficulty"
+                    value="Easy · Medium · Hard"
+                  />
+
+                  <StructurePill
+                    label="Rewards"
+                    value="Exit + Final"
+                  />
                 </div>
               </div>
             </div>
@@ -1249,199 +1269,188 @@ export default function AdminQuizCompetitionsPage() {
           ACTION MODAL
       ====================================================== */}
 
-      {actionBoard && actionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
-          <div
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="quiz-board-action-title"
-          >
-            {/* Header */}
-
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-                    actionType === "delete"
-                      ? "bg-red-100 text-red-600"
-                      : actionType === "cancel"
-                        ? "bg-orange-100 text-orange-600"
-                        : "bg-blue-100 text-blue-600"
-                  }`}
-                >
-                  {actionType === "delete" ? (
-                    <Trash2 className="h-6 w-6" />
-                  ) : actionType === "cancel" ? (
-                    <Square className="h-6 w-6" />
-                  ) : (
-                    <Play className="h-6 w-6" />
-                  )}
-                </div>
-
-                <div>
-                  <h2
-                    id="quiz-board-action-title"
-                    className="text-xl font-bold text-slate-900"
+      {actionBoard &&
+        actionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+            <div
+              className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+                      actionType ===
+                      "delete"
+                        ? "bg-red-100 text-red-600"
+                        : actionType ===
+                            "cancel"
+                          ? "bg-orange-100 text-orange-600"
+                          : "bg-blue-100 text-blue-600"
+                    }`}
                   >
-                    {actionModal.title}
-                  </h2>
-
-                  <p className="mt-1 text-sm leading-5 text-slate-500">
-                    {actionModal.description}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeActionModal}
-                disabled={isProcessing}
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Close dialog"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Board summary */}
-
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Quiz Board
-              </p>
-
-              <p className="mt-1 font-bold text-slate-900">
-                {actionBoard.title}
-              </p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                    actionBoard.status,
-                  )}`}
-                >
-                  {getStatusLabel(
-                    actionBoard.status,
-                  )}
-                </span>
-
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {getPlayerCount(actionBoard)} /{" "}
-                  {actionBoard.maxPlayers ??
-                    MAX_PLAYERS}{" "}
-                  Players
-                </span>
-
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {getQuestionCount(actionBoard)}{" "}
-                  Questions
-                </span>
-              </div>
-            </div>
-
-            {/* Warning */}
-
-            {actionType === "delete" && (
-              <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">
-                    This cannot be undone
-                  </p>
-
-                  <p className="mt-1 text-sm leading-5 text-amber-800">
-                    Make sure this Quiz Board is not
-                    currently running and that you no
-                    longer need its questions,
-                    configuration or participant data.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {actionType === "start" && (
-              <div className="mt-5 flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <Radio className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-
-                <div>
-                  <p className="text-sm font-semibold text-blue-900">
-                    Starting the live competition
-                  </p>
-
-                  <p className="mt-1 text-sm leading-5 text-blue-800">
-                    The backend should take control of
-                    the official timer, question order,
-                    response timestamps and elimination
-                    logic once the board starts.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Error */}
-
-            {actionError && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                    {actionType ===
+                    "delete" ? (
+                      <Trash2 className="h-6 w-6" />
+                    ) : actionType ===
+                      "cancel" ? (
+                      <Square className="h-6 w-6" />
+                    ) : (
+                      <Play className="h-6 w-6" />
+                    )}
+                  </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-red-900">
-                      Action failed
-                    </p>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {actionModal.title}
+                    </h2>
 
-                    <p className="mt-1 text-sm leading-5 text-red-700">
-                      {actionError}
+                    <p className="mt-1 text-sm leading-5 text-slate-500">
+                      {
+                        actionModal.description
+                      }
                     </p>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeActionModal
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                  aria-label="Close dialog"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            )}
 
-            {/* Actions */}
+              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Quiz Board
+                </p>
 
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeActionModal}
-                disabled={isProcessing}
-                className="sm:min-w-28"
-              >
-                Cancel
-              </Button>
+                <p className="mt-1 font-bold text-slate-900">
+                  {
+                    actionBoard.quiz_title
+                  }
+                </p>
 
-              <Button
-                type="button"
-                variant={
-                  actionType === "delete"
-                    ? "destructive"
-                    : "default"
-                }
-                onClick={handleBoardAction}
-                disabled={isProcessing}
-                leftIcon={
-                  isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : actionType === "delete" ? (
-                    <Trash2 className="h-4 w-4" />
-                  ) : actionType === "cancel" ? (
-                    <Square className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )
-                }
-              >
-                {isProcessing
-                  ? "Processing..."
-                  : actionModal.button}
-              </Button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
+                      actionBoard.status,
+                    )}`}
+                  >
+                    {getStatusLabel(
+                      actionBoard.status,
+                    )}
+                  </span>
+
+                  <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {
+                      actionBoard.no_of_contestants
+                    } Contestants
+                  </span>
+
+                  <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {
+                      actionBoard.number_of_rounds
+                    } Rounds
+                  </span>
+                </div>
+              </div>
+
+              {actionType ===
+                "delete" && (
+                <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">
+                      This cannot be undone
+                    </p>
+
+                    <p className="mt-1 text-sm leading-5 text-amber-800">
+                      Make sure you no longer
+                      need this Quiz Board.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {actionError && (
+                <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                    <div>
+                      <p className="text-sm font-semibold text-red-900">
+                        Action failed
+                      </p>
+
+                      <p className="mt-1 text-sm leading-5 text-red-700">
+                        {actionError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={
+                    closeActionModal
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={
+                    actionType ===
+                    "delete"
+                      ? "destructive"
+                      : "default"
+                  }
+                  onClick={
+                    handleBoardAction
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                  leftIcon={
+                    isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : actionType ===
+                      "delete" ? (
+                      <Trash2 className="h-4 w-4" />
+                    ) : actionType ===
+                      "cancel" ? (
+                      <Square className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )
+                  }
+                >
+                  {isProcessing
+                    ? "Processing..."
+                    : actionModal.button}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </main>
   );
 }
@@ -1497,7 +1506,9 @@ function StatCard({
       </p>
 
       <p className="mt-1 text-3xl font-bold text-slate-900">
-        {value.toLocaleString("en-NG")}
+        {value.toLocaleString(
+          "en-NG",
+        )}
       </p>
 
       <p className="mt-1 text-xs text-slate-500">
@@ -1508,79 +1519,26 @@ function StatCard({
 }
 
 /* ============================================================
-   LIVE SUMMARY CARD
+   STRUCTURE PILL
 ============================================================ */
 
-interface LiveSummaryCardProps {
-  quiz: QuizBoard;
-}
-
-function LiveSummaryCard({
-  quiz,
-}: LiveSummaryCardProps) {
-  const players = getPlayerCount(quiz);
-  const maxPlayers =
-    quiz.maxPlayers ?? MAX_PLAYERS;
-  const round = getCurrentRound(quiz);
-
+function StructurePill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <Link
-      href={`/admin/secondary/quiz-board/quiz-competitions/${getBoardId(
-        quiz,
-      )}`}
-      className="group rounded-2xl border border-red-100 bg-white p-5 transition hover:border-red-300 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-bold text-slate-900">
-            {quiz.title}
-          </p>
+    <div className="rounded-xl border border-blue-100 bg-white px-4 py-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-blue-600">
+        {label}
+      </p>
 
-          <p className="mt-1 text-xs text-slate-500">
-            {getSubjectName(quiz)}
-          </p>
-        </div>
-
-        <Radio className="h-5 w-5 shrink-0 text-red-600" />
-      </div>
-
-      <div className="mt-5 flex items-center justify-between text-sm">
-        <span className="font-semibold text-slate-700">
-          {players}/{maxPlayers} players
-        </span>
-
-        <span className="font-bold text-red-600">
-          {round
-            ? ROUND_CONFIG[round].label
-            : "Starting"}
-        </span>
-      </div>
-
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full bg-red-500 transition-all"
-          style={{
-            width: `${Math.min(
-              100,
-              (players / maxPlayers) * 100,
-            )}%`,
-          }}
-        />
-      </div>
-
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>
-          {round
-            ? `${ROUND_CONFIG[round].from} → ${ROUND_CONFIG[round].to}`
-            : "Waiting"}
-        </span>
-
-        <span className="flex items-center gap-1 font-semibold text-red-600 group-hover:translate-x-0.5">
-          Monitor
-          <ChevronRight className="h-3.5 w-3.5" />
-        </span>
-      </div>
-    </Link>
+      <p className="mt-0.5 text-sm font-bold text-slate-900">
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -1589,49 +1547,63 @@ function LiveSummaryCard({
 ============================================================ */
 
 interface QuizBoardCardProps {
-  quiz: QuizBoard;
+  board: QuizBoard;
   onStart: () => void;
   onCancel: () => void;
   onDelete: () => void;
 }
 
 function QuizBoardCard({
-  quiz,
+  board,
   onStart,
   onCancel,
   onDelete,
 }: QuizBoardCardProps) {
-  const status = normalizeStatus(
-    quiz.status,
-  );
+  const status =
+    normalizeStatus(board.status);
 
-  const boardId = getBoardId(quiz);
+  const boardId =
+    getBoardId(board);
 
-  const players = getPlayerCount(quiz);
+  const contestants =
+    Number(
+      board.no_of_contestants || 0,
+    );
 
-  const maxPlayers =
-    quiz.maxPlayers ?? MAX_PLAYERS;
+  const joined =
+    getPlayerCount(board);
 
-  const playerProgress =
-    getPlayerProgress(quiz);
+  const eliminationQuestions =
+    getTotalEliminationQuestions(
+      board,
+    );
 
-  const questionCount =
-    getQuestionCount(quiz);
+  const finalQuestions =
+    getFinalQuestionCount(board);
 
-  const round = getCurrentRound(quiz);
+  const totalQuestions =
+    getTotalQuestionCount(board);
 
-  const roundProgress =
-    getRoundProgress(quiz);
+  const totalRewards =
+    getTotalRewards(board);
+
+  const currentRound =
+    getCurrentRound(board);
+
+  const numberOfRounds =
+    Number(
+      board.number_of_rounds || 0,
+    );
 
   const canStart =
+    status === "UPCOMING" ||
     status === "OPEN" ||
-    status === "FULL" ||
-    status === "UPCOMING";
+    status === "FULL";
 
   const canCancel =
+    status === "UPCOMING" ||
     status === "OPEN" ||
     status === "FULL" ||
-    status === "UPCOMING" ||
     status === "LIVE";
 
   return (
@@ -1643,8 +1615,6 @@ function QuizBoardCard({
           : ""
       }`}
     >
-      {/* LIVE TOP BAR */}
-
       {status === "LIVE" && (
         <div className="flex items-center justify-between bg-red-600 px-6 py-2.5 text-white">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
@@ -1652,97 +1622,75 @@ function QuizBoardCard({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
             </span>
+
             Live Quiz Board
           </div>
 
           <span className="text-xs font-semibold">
-            {round
-              ? ROUND_CONFIG[round].label
-              : "Live"}
+            {currentRound
+              ? `Round ${currentRound}`
+              : "LIVE"}
           </span>
         </div>
       )}
 
       <div className="p-6 md:p-8">
-        {/* ====================================================
-            HEADER
-        ==================================================== */}
+
+        {/* HEADER */}
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="text-2xl font-bold text-slate-900">
-                {quiz.title}
+                {board.quiz_title}
               </h2>
 
               <span
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                  quiz.status,
+                  board.status,
                 )}`}
               >
                 {getStatusLabel(
-                  quiz.status,
+                  board.status,
                 )}
               </span>
-
-              {quiz.difficulty && (
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${getDifficultyClass(
-                    quiz.difficulty,
-                  )}`}
-                >
-                  {formatDifficulty(
-                    quiz.difficulty,
-                  )}
-                </span>
-              )}
             </div>
 
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-              {quiz.description ||
+              {board.description ||
                 "No description provided."}
             </p>
-
-            {/* META */}
 
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
               <span className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-blue-600" />
-                {getSubjectName(quiz)}
+                {getSubjectLabel(
+                  board,
+                )}
               </span>
 
               <span className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-600" />
-                {players}/{maxPlayers} Players
+                {contestants} Contestants
+              </span>
+
+              <span className="flex items-center gap-2">
+                <Timer className="h-4 w-4 text-blue-600" />
+                {board.time_per_question}s
+                / Question
               </span>
 
               <span className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-blue-600" />
-                {questionCount}{" "}
-                {questionCount === 1
-                  ? "Question"
-                  : "Questions"}
+                {totalQuestions} Questions
               </span>
 
               <span className="flex items-center gap-2">
-                <Coins className="h-4 w-4 text-yellow-500" />
-                {formatPoints(
-                  getEntryPoints(quiz),
-                )}{" "}
-                CBT Points
-              </span>
-
-              <span className="flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                {formatPoints(
-                  getRewardPoints(quiz),
-                )}{" "}
-                Points Reward
+                <Layers3 className="h-4 w-4 text-blue-600" />
+                {numberOfRounds} Rounds
               </span>
             </div>
           </div>
-
-          {/* PRIMARY ACTION */}
 
           <div className="flex shrink-0 flex-wrap gap-2">
             <Link
@@ -1760,189 +1708,16 @@ function QuizBoardCard({
           </div>
         </div>
 
-        {/* ====================================================
-            PLAYER CAPACITY
-        ==================================================== */}
+        {/* BOARD SUMMARY */}
 
-        <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-slate-900">
-                    Player Capacity
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    Maximum of {maxPlayers} students
-                    can participate.
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-lg font-bold text-slate-900">
-                    {players}
-                    <span className="text-sm font-medium text-slate-400">
-                      /{maxPlayers}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    status === "LIVE"
-                      ? "bg-red-500"
-                      : players >= maxPlayers
-                        ? "bg-orange-500"
-                        : "bg-blue-600"
-                  }`}
-                  style={{
-                    width: `${playerProgress}%`,
-                  }}
-                />
-              </div>
-
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                <span>
-                  {players >= maxPlayers
-                    ? "Board is full"
-                    : `${maxPlayers - players} spots remaining`}
-                </span>
-
-                <span>
-                  {Math.round(
-                    playerProgress,
-                  )}
-                  %
-                </span>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <Users className="h-4 w-4" />
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Participants
-                </p>
-
-                <p className="font-bold text-slate-900">
-                  {players} joined
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ====================================================
-            ROUND PROGRESS
-        ==================================================== */}
-
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-bold text-slate-900">
-                Elimination Progress
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                20 → 15 → 10 → 5 → 2 → 1
-              </p>
-            </div>
-
-            {round && (
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-                {ROUND_CONFIG[round].label}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-5 grid grid-cols-5 gap-2">
-            {(
-              [1, 2, 3, 4, 5] as RoundNumber[]
-            ).map((roundNumber) => {
-              const isCurrent =
-                round === roundNumber;
-
-              const isCompleted =
-                round !== null &&
-                roundNumber < round;
-
-              const config =
-                ROUND_CONFIG[roundNumber];
-
-              return (
-                <div
-                  key={roundNumber}
-                  className={`rounded-xl border p-3 text-center ${
-                    isCurrent
-                      ? "border-blue-300 bg-blue-50"
-                      : isCompleted
-                        ? "border-green-200 bg-green-50"
-                        : "border-slate-200 bg-slate-50"
-                  }`}
-                >
-                  <p
-                    className={`text-[10px] font-bold uppercase tracking-wide ${
-                      isCurrent
-                        ? "text-blue-600"
-                        : isCompleted
-                          ? "text-green-600"
-                          : "text-slate-400"
-                    }`}
-                  >
-                    {config.label}
-                  </p>
-
-                  <p className="mt-1 text-sm font-bold text-slate-900">
-                    {config.from} →{" "}
-                    {config.to}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          {round && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>
-                  Stage {round} of 5
-                </span>
-
-                <span>
-                  {Math.round(roundProgress)}%
-                </span>
-              </div>
-
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-all"
-                  style={{
-                    width: `${roundProgress}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ====================================================
-            BOARD DETAILS
-        ==================================================== */}
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <InfoTile
             icon={
               <CalendarDays className="h-4 w-4" />
             }
             label="Starts"
             value={formatDateTime(
-              getStartDate(quiz),
+              board.start_date,
             )}
           />
 
@@ -1950,40 +1725,240 @@ function QuizBoardCard({
             icon={
               <Clock3 className="h-4 w-4" />
             }
-            label="Ends"
-            value={formatDateTime(
-              getEndDate(quiz),
-            )}
+            label="Time / Question"
+            value={`${board.time_per_question} seconds`}
           />
 
           <InfoTile
             icon={
+              <ListChecks className="h-4 w-4" />
+            }
+            label="Questions"
+            value={`${totalQuestions} total`}
+          />
+
+          <InfoTile
+            icon={
+              <Medal className="h-4 w-4" />
+            }
+            label="Final Winner"
+            value={`${formatPoints(
+              board
+                .final_round_information
+                ?.first_position_reward,
+            )} Points`}
+          />
+        </div>
+
+        {/* ROUND SUMMARY */}
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-900">
+                Competition Structure
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {
+                  board.round_information
+                    ?.length
+                } elimination rounds + Final
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                {eliminationQuestions} Elimination Questions
+              </span>
+
+              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+                {finalQuestions} Final Questions
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {(
+              board.round_information ||
+              []
+            ).map((round) => (
+              <div
+                key={
+                  round.round_number
+                }
+                className="rounded-xl border border-slate-200 bg-white p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                    Round{" "}
+                    {
+                      round.round_number
+                    }
+                  </p>
+
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
+                    Exit{" "}
+                    {
+                      round.exit_number
+                    }
+                  </span>
+                </div>
+
+                <p className="mt-2 text-lg font-bold text-slate-900">
+                  {
+                    round.no_of_questions
+                  } Questions
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold">
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+                    E{" "}
+                    {
+                      round
+                        .difficultyBreakdown
+                        ?.easy
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-700">
+                    M{" "}
+                    {
+                      round
+                        .difficultyBreakdown
+                        ?.medium
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
+                    H{" "}
+                    {
+                      round
+                        .difficultyBreakdown
+                        ?.hard
+                    }
+                  </span>
+                </div>
+
+                <p className="mt-3 text-xs text-slate-500">
+                  Exit reward:{" "}
+                  <strong className="text-slate-800">
+                    {
+                      round.exit_reward
+                    } Points
+                  </strong>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* FINAL */}
+
+          {board.final_round_information && (
+            <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-purple-700">
+                    Final Round
+                  </p>
+
+                  <p className="mt-1 font-bold text-slate-900">
+                    {
+                      board
+                        .final_round_information
+                        .no_of_questions
+                    }{" "}
+                    Questions
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                  <span className="rounded-full bg-white px-3 py-1.5 text-green-700">
+                    Easy{" "}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.easy
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1.5 text-yellow-700">
+                    Medium{" "}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.medium
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1.5 text-red-700">
+                    Hard{" "}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.hard
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-purple-700 px-3 py-1.5 text-white">
+                    1st:{" "}
+                    {
+                      board
+                        .final_round_information
+                        .first_position_reward
+                    }
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1.5 text-purple-700">
+                    2nd:{" "}
+                    {
+                      board
+                        .final_round_information
+                        .second_position_reward
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* REWARD SUMMARY */}
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <InfoTile
+            icon={
               <Zap className="h-4 w-4" />
             }
-            label="Entry"
+            label="Exit Rewards"
             value={`${formatPoints(
-              getEntryPoints(quiz),
-            )} CBT`}
+              totalRewards,
+            )} Points configured`}
           />
 
           <InfoTile
             icon={
               <Trophy className="h-4 w-4" />
             }
-            label="Winner Reward"
+            label="Final Rewards"
             value={`${formatPoints(
-              getRewardPoints(quiz),
+              board
+                .final_round_information
+                ?.first_position_reward,
+            )} / ${formatPoints(
+              board
+                .final_round_information
+                ?.second_position_reward,
             )} Points`}
           />
         </div>
 
-        {/* ====================================================
-            ACTIONS
-        ==================================================== */}
+        {/* ACTIONS */}
 
         <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5">
-          {/* Manage */}
-
           <Link
             href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
           >
@@ -1997,8 +1972,6 @@ function QuizBoardCard({
             </Button>
           </Link>
 
-          {/* View */}
-
           <Link
             href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
           >
@@ -2011,25 +1984,6 @@ function QuizBoardCard({
               View
             </Button>
           </Link>
-
-          {/* Live Monitor */}
-
-          {status === "LIVE" && (
-            <Link
-              href={`/student/quiz-board/${boardId}/watch`}
-            >
-              <Button
-                variant="outline"
-                leftIcon={
-                  <Radio className="h-4 w-4 text-red-600" />
-                }
-              >
-                Watch Live
-              </Button>
-            </Link>
-          )}
-
-          {/* Edit */}
 
           {(status === "DRAFT" ||
             status === "UPCOMING") && (
@@ -2047,7 +2001,20 @@ function QuizBoardCard({
             </Link>
           )}
 
-          {/* Start */}
+          {status === "LIVE" && (
+            <Link
+              href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
+            >
+              <Button
+                variant="outline"
+                leftIcon={
+                  <Radio className="h-4 w-4 text-red-600" />
+                }
+              >
+                Monitor Live
+              </Button>
+            </Link>
+          )}
 
           {canStart && (
             <Button
@@ -2061,8 +2028,6 @@ function QuizBoardCard({
             </Button>
           )}
 
-          {/* Cancel */}
-
           {canCancel && (
             <Button
               type="button"
@@ -2075,8 +2040,6 @@ function QuizBoardCard({
               Cancel
             </Button>
           )}
-
-          {/* Delete */}
 
           {status !== "LIVE" && (
             <Button

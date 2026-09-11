@@ -1,51 +1,3 @@
-// /* ============================================================
-//    CREATE CONTEST
-// ============================================================ */
-
-// export type CreateContestPayload = {
-//   title: string;
-//   description: string;
-//   category: string;
-//   status: "DRAFT" | "UPCOMING";
-//   amountToBeWonInKobo: number;
-//   entryPoints: number;
-//   startDate: string;
-//   endDate: string;
-//   subjectIds: string[];
-// };
-
-// export type CreateContestResponse = {
-//   success: boolean;
-//   message: string;
-//   data?: {
-//     _id?: string;
-//     id?: string;
-//     title?: string;
-//     description?: string;
-//     category?: string;
-//     status?: string;
-//     amountToBeWonInKobo?: number;
-//     entryPoints?: number;
-//     subjectIds?: string[];
-//     [key: string]: unknown;
-//   };
-// };
-
-
-// export async function createContest(
-//   payload: CreateContestPayload,
-// ): Promise<CreateContestResponse> {
-//   const response =
-//     await api.post<CreateContestResponse>(
-//       "/solve-and-win/contests/create-contest",
-//       payload,
-//     );
-
-//   return response.data;
-// }
-
-
-
 
 
 
@@ -150,6 +102,31 @@ export interface GetAllContestsResponse {
   };
 }
 
+/* ============================================================
+  MY JOINED CONTEST
+============================================================ */
+
+
+export interface MyJoinedContest {
+  contestId: string;
+}
+
+export interface MyJoinedContestsResponse {
+  success: boolean;
+  message?: string;
+  data: MyJoinedContest[];
+}
+
+export async function getMyJoinedContests(
+  userId: string,
+): Promise<MyJoinedContestsResponse> {
+  const response =
+    await api.get<MyJoinedContestsResponse>(
+      `/contests/my-joined-contests/${userId}`,
+    );
+
+  return response.data;
+}
 
 
 /* ============================================================
@@ -258,3 +235,171 @@ export async function addQuestionsToSubjectInContest(
   return response.data;
 }
 
+
+
+
+
+/* ============================================================
+   GET CONTEST BY ID
+============================================================ */
+
+export interface GetContestByIdResponse {
+  success: boolean;
+  message: string;
+  data: SolveAndWinContest;
+}
+
+export async function getContestById(
+  contestId: string,
+): Promise<GetContestByIdResponse> {
+  const response = await api.get<GetContestByIdResponse>(
+    `/solve-and-win/contests/get-contest-by-id/${contestId}`,
+  );
+
+  return response.data;
+}
+
+
+/* ============================================================
+   UPDATE CONTEST BY ID
+============================================================ */
+
+export type UpdateContestPayload = Partial<CreateContestPayload>;
+
+export interface UpdateContestResponse {
+  success: boolean;
+  message: string;
+  data?: SolveAndWinContest;
+}
+
+export async function updateContestById(
+  contestId: string,
+  payload: UpdateContestPayload,
+): Promise<UpdateContestResponse> {
+  const response = await api.patch<UpdateContestResponse>(
+    `/solve-and-win/contests/update-contest-by-id/${contestId}`,
+    payload,
+  );
+
+  return response.data;
+}
+
+
+
+
+
+/* ============================================================
+   UPDATE CONTEST QUESTION REMAINING TIME
+============================================================ */
+
+export interface UpdateContestQuestionRemainingTimePayload {
+  remainingTime: number;
+}
+
+export interface UpdateContestQuestionRemainingTimeResponse {
+  success: boolean;
+  message: string;
+  data?: unknown;
+}
+
+export async function updateSolveAndWinContestQuestionRemainingTime(
+  contestId: string,
+  subjectId: string,
+  payload: UpdateContestQuestionRemainingTimePayload,
+): Promise<UpdateContestQuestionRemainingTimeResponse> {
+  const response =
+    await api.patch<UpdateContestQuestionRemainingTimeResponse>(
+      `/solve-and-win/contests/update-solve-and-win-contest-question-remaining-time/${encodeURIComponent(
+        contestId,
+      )}/${encodeURIComponent(subjectId)}`,
+      payload,
+    );
+
+  return response.data;
+}
+
+
+
+
+
+
+
+/* ============================================================
+   START SOLVE & WIN CONTEST 
+   ============================================================ */
+
+
+// export async function startSolveAndWinContest(
+//   contestId: string,
+//   subjectId: string,
+// ) {
+//   const response = await api.patch(
+//     `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
+//       contestId,
+//     )}/${encodeURIComponent(subjectId)}`,
+//   );
+
+//   return response.data;
+// }
+
+
+
+/* ============================================================
+   ENDPOINTS FOR PLAY SOLVE AND WIN PAGE....PAUSE/UPDATE/RESUME/SUBMIT
+   ============================================================ */
+
+export async function pauseSolveAndWinContest(
+  contestId: string,
+  subjectId: string,
+) {
+  const response = await api.patch(
+    `/solve-and-win/contests/pause-solve-and-win-contest/${encodeURIComponent(
+      contestId,
+    )}/${encodeURIComponent(subjectId)}`,
+  );
+
+  return response.data;
+}
+
+
+export async function updateSolveAndWinContestQuestionAnswers(
+  contestId: string,
+  subjectId: string,
+  payload: Record<string, unknown>,
+) {
+  const response = await api.patch(
+    `/solve-and-win/contests/update-solve-and-win-contest-question-answers/${encodeURIComponent(
+      contestId,
+    )}/${encodeURIComponent(subjectId)}`,
+    payload,
+  );
+
+  return response.data;
+}
+
+
+export async function resumeSolveAndWinContest(
+  contestId: string,
+  subjectId: string,
+) {
+  const response = await api.patch(
+    `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
+      contestId,
+    )}/${encodeURIComponent(subjectId)}`,
+  );
+
+  return response.data;
+}
+
+export async function submitSolveAndWinContest(
+  contestId: string,
+  subjectId: string,
+) {
+  const response = await api.patch(
+    `/solve-and-win/contests/submit-solve-and-win-contest/${encodeURIComponent(
+      contestId,
+    )}/${encodeURIComponent(subjectId)}`,
+  );
+
+  return response.data;
+}

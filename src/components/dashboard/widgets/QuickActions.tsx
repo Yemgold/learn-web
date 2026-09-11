@@ -1,4 +1,6 @@
 
+
+
 "use client";
 
 import Link from "next/link";
@@ -42,12 +44,6 @@ export interface QuickAction {
   href: string;
   icon: keyof typeof icons;
 
-  /*
-   * Individual action lock.
-   *
-   * This can be used when only one particular
-   * action should be disabled.
-   */
   disabled?: boolean;
 }
 
@@ -55,15 +51,6 @@ export interface QuickActionsProps {
   title?: string;
   actions: QuickAction[];
 
-  /*
-   * Global lock.
-   *
-   * When true, ALL quick-action cards become
-   * non-clickable.
-   *
-   * This is what the student dashboard will use
-   * while the access blocker is active.
-   */
   locked?: boolean;
 
   className?: string;
@@ -82,7 +69,17 @@ export default function QuickActions({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm",
+        `
+          rounded-2xl
+          border
+          border-white/10
+          bg-white/[0.035]
+          p-4
+          shadow-lg
+          shadow-black/10
+          backdrop-blur-sm
+          sm:p-5
+        `,
         className,
       )}
     >
@@ -90,21 +87,38 @@ export default function QuickActions({
           HEADER
          ====================================================== */}
 
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-white sm:text-lg">
             {title}
           </h2>
 
           {locked && (
-            <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
-              <Lock className="h-3.5 w-3.5" />
-              Access Required
+            <div
+              className="
+                flex
+                items-center
+                gap-1.5
+                rounded-full
+                border
+                border-amber-400/20
+                bg-amber-500/10
+                px-2.5
+                py-1
+                text-[10px]
+                font-semibold
+                text-amber-300
+                sm:text-xs
+              "
+            >
+              <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+
+              <span>Access Required</span>
             </div>
           )}
         </div>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-xs text-white/40 sm:text-sm">
           {locked
             ? "Choose an access plan to unlock these features."
             : "Frequently used shortcuts."}
@@ -115,18 +129,11 @@ export default function QuickActions({
           ACTION CARDS
          ====================================================== */}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         {actions.map((action) => {
           const Icon =
             icons[action.icon] ?? Trophy;
 
-          /*
-           * An action is locked if:
-           *
-           * 1. The whole QuickActions section is locked
-           * OR
-           * 2. The individual action is disabled.
-           */
           const isLocked =
             locked || action.disabled === true;
 
@@ -137,24 +144,33 @@ export default function QuickActions({
           const content = (
             <div
               className={cn(
-                "group relative rounded-xl border p-5 transition-all",
+                `
+                  group
+                  relative
+                  min-h-[112px]
+                  rounded-xl
+                  border
+                  p-3.5
+                  transition-all
+                  duration-200
+                  sm:min-h-[120px]
+                  sm:p-4
+                `,
 
-                /*
-                 * LOCKED
-                 */
                 isLocked
                   ? [
                       "cursor-not-allowed",
-                      "border-slate-200",
-                      "bg-slate-50",
-                      "opacity-60",
+                      "border-white/10",
+                      "bg-white/[0.02]",
+                      "opacity-55",
                     ]
                   : [
-                      "border-slate-200",
-                      "bg-white",
-                      "hover:border-blue-200",
-                      "hover:bg-blue-50",
-                      "hover:shadow-sm",
+                      "border-white/10",
+                      "bg-white/[0.025]",
+                      "hover:border-blue-400/25",
+                      "hover:bg-white/[0.05]",
+                      "hover:shadow-md",
+                      "hover:shadow-blue-950/20",
                     ],
               )}
             >
@@ -162,23 +178,31 @@ export default function QuickActions({
                   TOP ROW
                  ============================================== */}
 
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between">
                 {/* Icon */}
 
                 <div
                   className={cn(
-                    "rounded-lg p-3",
+                    `
+                      flex
+                      h-8
+                      w-8
+                      items-center
+                      justify-center
+                      rounded-lg
+                      border
+                    `,
                     isLocked
-                      ? "bg-slate-200"
-                      : "bg-blue-100",
+                      ? "border-white/10 bg-white/[0.04]"
+                      : "border-blue-400/20 bg-blue-500/10",
                   )}
                 >
                   <Icon
                     className={cn(
-                      "h-6 w-6",
+                      "h-4 w-4",
                       isLocked
-                        ? "text-slate-400"
-                        : "text-blue-600",
+                        ? "text-white/30"
+                        : "text-blue-300",
                     )}
                   />
                 </div>
@@ -186,16 +210,31 @@ export default function QuickActions({
                 {/* Right indicator */}
 
                 {isLocked ? (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
-                    <Lock className="h-4 w-4 text-slate-400" />
+                  <div
+                    className="
+                      flex
+                      h-7
+                      w-7
+                      items-center
+                      justify-center
+                      rounded-full
+                      border
+                      border-white/10
+                      bg-white/[0.03]
+                    "
+                  >
+                    <Lock className="h-3.5 w-3.5 text-white/30" />
                   </div>
                 ) : (
                   <ArrowRight
-                    className={cn(
-                      "h-5 w-5 text-slate-400",
-                      "transition-transform",
-                      "group-hover:translate-x-1",
-                    )}
+                    className="
+                      h-4 w-4
+                      text-white/25
+                      transition-all
+                      duration-200
+                      group-hover:translate-x-1
+                      group-hover:text-blue-300
+                    "
                   />
                 )}
               </div>
@@ -206,10 +245,10 @@ export default function QuickActions({
 
               <h3
                 className={cn(
-                  "font-semibold",
+                  "text-sm font-semibold leading-5",
                   isLocked
-                    ? "text-slate-500"
-                    : "text-slate-900",
+                    ? "text-white/40"
+                    : "text-white/85 group-hover:text-white",
                 )}
               >
                 {action.title}
@@ -222,10 +261,10 @@ export default function QuickActions({
               {action.description && (
                 <p
                   className={cn(
-                    "mt-2 text-sm",
+                    "mt-1 text-[11px] leading-4 sm:text-xs",
                     isLocked
-                      ? "text-slate-400"
-                      : "text-slate-500",
+                      ? "text-white/25"
+                      : "text-white/40",
                   )}
                 >
                   {action.description}
@@ -237,8 +276,8 @@ export default function QuickActions({
                  ============================================== */}
 
               {isLocked && (
-                <div className="mt-4 flex items-center gap-2 text-xs font-medium text-amber-600">
-                  <Lock className="h-3.5 w-3.5" />
+                <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-medium text-amber-300/70">
+                  <Lock className="h-3 w-3" />
 
                   <span>
                     Unlock with an access plan
@@ -250,12 +289,6 @@ export default function QuickActions({
 
           /* ==================================================
              LOCKED ACTION
-             
-             IMPORTANT:
-             Do NOT wrap locked cards in Link.
-             
-             This means they are genuinely non-clickable,
-             not merely visually disabled.
              ================================================== */
 
           if (isLocked) {
@@ -287,130 +320,3 @@ export default function QuickActions({
     </section>
   );
 }
-
-
-
-
-
-
-
-// "use client";
-
-// import Link from "next/link";
-// import {
-//   ArrowRight,
-//   Trophy,
-//   Medal,
-//   Users,
-//   BookOpen,
-//   Settings,
-//   Bell,
-//   User,
-//   Play,
-//   Home,
-//   CreditCard,
-// } from "lucide-react";
-
-// import { cn } from "@/lib/utils";
-
-// const icons = {
-//   trophy: Trophy,
-//   medal: Medal,
-//   users: Users,
-//   book: BookOpen,
-//   settings: Settings,
-//   bell: Bell,
-//   user: User,
-//   play: Play,
-//   home: Home,
-//   payment: CreditCard,
-// };
-
-// export interface QuickAction {
-//   title: string;
-//   description?: string;
-//   href: string;
-//   icon: keyof typeof icons;
-//   disabled?: boolean;
-// }
-
-// export interface QuickActionsProps {
-//   title?: string;
-//   actions: QuickAction[];
-//   className?: string;
-// }
-
-// export default function QuickActions({
-//   title = "Quick Actions",
-//   actions,
-//   className,
-// }: QuickActionsProps) {
-//   return (
-//     <section
-//       className={cn(
-//         "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm",
-//         className
-//       )}
-//     >
-//       <div className="mb-6">
-//         <h2 className="text-lg font-semibold">
-//           {title}
-//         </h2>
-
-//         <p className="mt-1 text-sm text-slate-500">
-//           Frequently used shortcuts.
-//         </p>
-//       </div>
-
-//       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-//         {actions.map((action) => {
-//           const Icon = icons[action.icon] ?? Trophy;
-
-//           const content = (
-//             <div
-//               className={cn(
-//                 "group rounded-xl border border-slate-200 p-5 transition-all",
-//                 action.disabled
-//                   ? "cursor-not-allowed opacity-50"
-//                   : "hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm"
-//               )}
-//             >
-//               <div className="mb-4 flex items-center justify-between">
-//                 <div className="rounded-lg bg-blue-100 p-3">
-//                   <Icon className="h-6 w-6 text-blue-600" />
-//                 </div>
-
-//                 {!action.disabled && (
-//                   <ArrowRight className="h-5 w-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-//                 )}
-//               </div>
-
-//               <h3 className="font-semibold">
-//                 {action.title}
-//               </h3>
-
-//               {action.description && (
-//                 <p className="mt-2 text-sm text-slate-500">
-//                   {action.description}
-//                 </p>
-//               )}
-//             </div>
-//           );
-
-//           if (action.disabled) {
-//             return <div key={action.title}>{content}</div>;
-//           }
-
-//           return (
-//             <Link
-//               key={action.title}
-//               href={action.href}
-//             >
-//               {content}
-//             </Link>
-//           );
-//         })}
-//       </div>
-//     </section>
-//   );
-// }

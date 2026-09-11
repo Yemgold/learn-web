@@ -1,17 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 import type { QuestionBankItem } from "../../types";
 
 /**

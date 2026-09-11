@@ -1,6 +1,8 @@
 
 
 
+
+
 "use client";
 
 import Link from "next/link";
@@ -48,41 +50,41 @@ export default function UpcomingCompetitions({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white shadow-sm",
+        "mx-1 rounded-2xl border border-slate-200 bg-white shadow-sm",
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 p-6">
+      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
             Stay updated with upcoming competitions.
           </p>
         </div>
 
         <Link
           href="/competitions"
-          className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 sm:gap-2 sm:text-sm"
         >
           View All
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </Link>
       </div>
 
       {/* Empty */}
       {competitions.length === 0 && (
-        <div className="py-12 text-center">
-          <CalendarDays className="mx-auto h-12 w-12 text-slate-300" />
+        <div className="px-5 py-10 text-center sm:px-6 sm:py-12">
+          <CalendarDays className="mx-auto h-10 w-10 text-slate-300 sm:h-12 sm:w-12" />
 
-          <h3 className="mt-4 text-lg font-semibold text-slate-800">
+          <h3 className="mt-3 text-base font-semibold text-slate-800 sm:mt-4 sm:text-lg">
             No competitions available
           </h3>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-500 sm:mt-2 sm:text-sm">
             Check back later for new competitions.
           </p>
         </div>
@@ -95,28 +97,28 @@ export default function UpcomingCompetitions({
             <Link
               key={competition.id}
               href={competition.href}
-              className="block p-6 transition hover:bg-slate-50"
+              className="mx-1 block rounded-xl px-4 py-4 transition hover:bg-slate-50 sm:mx-2 sm:px-4 sm:py-4"
             >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
                     {competition.title}
                   </h3>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500 sm:mt-3 sm:gap-4 sm:text-sm">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {competition.date}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {competition.time}
                     </div>
 
                     {competition.teams !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {competition.teams} Teams
                       </div>
                     )}
@@ -125,7 +127,7 @@ export default function UpcomingCompetitions({
 
                 <span
                   className={cn(
-                    "inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold",
+                    "inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs",
                     statusStyles[competition.status]
                   )}
                 >

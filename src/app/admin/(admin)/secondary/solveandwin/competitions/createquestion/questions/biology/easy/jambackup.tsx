@@ -1,13 +1,4 @@
 
-
-
-
-
-
-
-
-
-
 // import type { QuestionBankItem } from "../../types";
 
 // /**
@@ -83827,5 +83818,6 @@
 // ];
 
 // export default jambBiologyQuestions;
+
 
 

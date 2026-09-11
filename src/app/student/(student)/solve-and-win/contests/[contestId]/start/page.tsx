@@ -1,5 +1,7 @@
 
 
+
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -16,7 +18,6 @@ import {
   Loader2,
   Play,
   Trophy,
-  Users,
   XCircle,
 } from "lucide-react";
 
@@ -49,9 +50,6 @@ type ContestSchedule = {
    HELPERS
    ============================================================ */
 
-/**
- * Safely convert a value to a Date.
- */
 function parseDateValue(value: unknown): Date | null {
   if (!value) return null;
 
@@ -64,15 +62,6 @@ function parseDateValue(value: unknown): Date | null {
   return date;
 }
 
-/**
- * Parse a date + time pair.
- *
- * Example:
- * 2026-09-04 + 01:00
- *
- * becomes:
- * 2026-09-04T01:00:00
- */
 function parseDateAndTime(
   dateValue: unknown,
   timeValue: unknown
@@ -81,9 +70,7 @@ function parseDateAndTime(
     return null;
   }
 
-  const combined = `${String(dateValue)}T${String(
-    timeValue
-  )}`;
+  const combined = `${String(dateValue)}T${String(timeValue)}`;
 
   return parseDateValue(combined);
 }
@@ -91,21 +78,15 @@ function parseDateAndTime(
 /**
  * Gets the scheduled contest START date.
  *
- * IMPORTANT:
- * We prioritize explicit scheduled fields.
- * Generic startDate is only a fallback.
+ * Priority:
+ * 1. Explicit scheduled datetime
+ * 2. Scheduled date + scheduled time
+ * 3. Generic startDate fallback
  */
 function getContestStartDate(
   contest: SolveAndWinContest
 ): Date | null {
-  const data = contest as unknown as Record<
-    string,
-    unknown
-  >;
-
-  /* ---------------------------------------------------------
-     1. Full scheduled datetime fields
-     --------------------------------------------------------- */
+  const data = contest as unknown as Record<string, unknown>;
 
   const scheduledDateTimeCandidates = [
     data.scheduledStartAt,
@@ -123,10 +104,6 @@ function getContestStartDate(
       return parsed;
     }
   }
-
-  /* ---------------------------------------------------------
-     2. Scheduled date + scheduled time
-     --------------------------------------------------------- */
 
   const scheduledDate =
     data.scheduledDate ??
@@ -147,13 +124,7 @@ function getContestStartDate(
     return scheduledDateTime;
   }
 
-  /* ---------------------------------------------------------
-     3. Generic startDate fallback
-     --------------------------------------------------------- */
-
-  const fallbackStartDate = parseDateValue(
-    data.startDate
-  );
+  const fallbackStartDate = parseDateValue(data.startDate);
 
   if (fallbackStartDate) {
     return fallbackStartDate;
@@ -164,23 +135,11 @@ function getContestStartDate(
 
 /**
  * Gets the contest window period in DAYS.
- *
- * Supports several likely backend property names.
- *
- * Example:
- * windowPeriod = 3
- *
- * means:
- * Start: Sept 4
- * End:   Sept 6
  */
 function getContestWindowDays(
   contest: SolveAndWinContest
 ): number | null {
-  const data = contest as unknown as Record<
-    string,
-    unknown
-  >;
+  const data = contest as unknown as Record<string, unknown>;
 
   const candidates = [
     data.windowPeriod,
@@ -215,11 +174,6 @@ function getContestWindowDays(
       }
     }
 
-    /*
-     * Some APIs may return:
-     *
-     * { days: 3 }
-     */
     if (
       typeof value === "object" &&
       value !== null
@@ -272,9 +226,6 @@ function getContestSubjectId(
     const objectValue =
       value as Record<string, unknown>;
 
-    /*
-     * Most common ID fields
-     */
     const directIdFields = [
       objectValue.subjectId,
       objectValue._id,
@@ -291,17 +242,6 @@ function getContestSubjectId(
       }
     }
 
-    /*
-     * Nested subject
-     *
-     * Example:
-     *
-     * {
-     *   subject: {
-     *     _id: "..."
-     *   }
-     * }
-     */
     if (
       objectValue.subject !== undefined
     ) {
@@ -314,9 +254,6 @@ function getContestSubjectId(
       }
     }
 
-    /*
-     * Nested data
-     */
     if (
       objectValue.data !== undefined
     ) {
@@ -329,9 +266,6 @@ function getContestSubjectId(
       }
     }
 
-    /*
-     * Nested value
-     */
     if (
       objectValue.value !== undefined
     ) {
@@ -347,12 +281,6 @@ function getContestSubjectId(
     return null;
   };
 
-  /*
-   * ----------------------------------------------------------
-   * 1. Direct contest subject fields
-   * ----------------------------------------------------------
-   */
-
   const directSubjectId =
     findId(data.subjectId) ??
     findId(data.selectedSubjectId);
@@ -360,12 +288,6 @@ function getContestSubjectId(
   if (directSubjectId) {
     return directSubjectId;
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 2. Single subject object
-   * ----------------------------------------------------------
-   */
 
   if (data.subject !== undefined) {
     const subjectId =
@@ -376,15 +298,7 @@ function getContestSubjectId(
     }
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 3. Subjects array
-   * ----------------------------------------------------------
-   */
-
-  if (
-    Array.isArray(data.subjects)
-  ) {
+  if (Array.isArray(data.subjects)) {
     for (const subject of data.subjects) {
       const subjectId =
         findId(subject);
@@ -395,42 +309,12 @@ function getContestSubjectId(
     }
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 4. Nothing found
-   * ----------------------------------------------------------
-   */
-
   return null;
 }
 
-
-
-
-
-
 /**
  * Calculates the END of the contest window.
- *
- * If:
- *
- * start = Sept 4, 1:00 AM
- * window = 3 days
- *
- * contest remains active until:
- *
- * Sept 7, 1:00 AM
- *
- * This means the contest is available for a full
- * three-day period.
  */
-
-
-
-
-
-
-
 function calculateEndDate(
   startDate: Date,
   windowDays: number
@@ -446,9 +330,6 @@ function calculateEndDate(
   return endDate;
 }
 
-/**
- * Countdown helper.
- */
 function getCountdown(
   target: Date,
   currentTime: number
@@ -520,13 +401,6 @@ export default function StartContestPage() {
   const [error, setError] =
     useState<string | null>(null);
 
-  /*
-   * Live clock.
-   *
-   * This is important because the page does not need
-   * to be refreshed when the contest becomes live or
-   * when the contest window expires.
-   */
   const [now, setNow] = useState(
     () => Date.now()
   );
@@ -744,45 +618,20 @@ export default function StartContestPage() {
      CONTEST STATE
      ========================================================== */
 
-  /*
-   * BEFORE START
-   *
-   * Example:
-   *
-   * start = Sept 10
-   * now   = Sept 6
-   *
-   * false
-   */
   const hasStarted =
     startTimestamp !== null &&
     now >= startTimestamp;
 
-  /*
-   * WINDOW STILL ACTIVE
-   *
-   * This is the important new condition.
-   *
-   * The contestant can continue seeing the contest
-   * after the starting date has passed as long as
-   * the window has not expired.
-   */
   const isWithinWindow =
     startTimestamp !== null &&
     endTimestamp !== null &&
     now >= startTimestamp &&
     now < endTimestamp;
 
-  /*
-   * WINDOW EXPIRED
-   */
   const hasEnded =
     endTimestamp !== null &&
     now >= endTimestamp;
 
-  /*
-   * BEFORE START
-   */
   const hasNotStarted =
     startTimestamp !== null &&
     now < startTimestamp;
@@ -792,10 +641,6 @@ export default function StartContestPage() {
      ========================================================== */
 
   const countdown = useMemo(() => {
-    /*
-     * Before contest starts:
-     * countdown to START.
-     */
     if (
       startDate &&
       now < startDate.getTime()
@@ -806,10 +651,6 @@ export default function StartContestPage() {
       );
     }
 
-    /*
-     * Contest is already live:
-     * countdown to END.
-     */
     if (
       endDate &&
       now < endDate.getTime()
@@ -832,147 +673,159 @@ export default function StartContestPage() {
     now,
   ]);
 
-const handleStartContest = async () => {
-  if (isStarting || !contestId || !contest) {
-    return;
-  }
+  /* ==========================================================
+     START CONTEST
+     ========================================================== */
 
-  const currentTime = Date.now();
+  const handleStartContest = async () => {
+    if (
+      isStarting ||
+      !contestId ||
+      !contest
+    ) {
+      return;
+    }
 
-  /*
-   * ----------------------------------------------------------
-   * 1. Verify contest schedule
-   * ----------------------------------------------------------
-   */
+    const currentTime = Date.now();
 
-  if (startTimestamp === null) {
-    setError(
-      "The contest start time could not be determined."
-    );
+    /* --------------------------------------------------------
+       1. Verify contest schedule
+       -------------------------------------------------------- */
 
-    return;
-  }
-
-  if (currentTime < startTimestamp) {
-    setError(
-      "This contest has not started yet. Please wait until the scheduled start time."
-    );
-
-    setNow(currentTime);
-
-    return;
-  }
-
-  if (
-    endTimestamp !== null &&
-    currentTime >= endTimestamp
-  ) {
-    setError(
-      "This contest window has ended. You can no longer enter this contest."
-    );
-
-    setNow(currentTime);
-
-    return;
-  }
-
-  /*
-   * ----------------------------------------------------------
-   * 2. Resolve subject ID
-   * ----------------------------------------------------------
-   */
-
-  const subjectId =
-    getContestSubjectId(contest);
-
-  if (!subjectId) {
-    console.error(
-      "Unable to determine contest subject ID.",
-      contest
-    );
-
-    setError(
-      "The subject for this contest could not be determined. Please try again or contact support."
-    );
-
-    return;
-  }
-
-  /*
-   * ----------------------------------------------------------
-   * 3. Start contest through backend
-   * ----------------------------------------------------------
-   */
-
-  try {
-    setIsStarting(true);
-    setError(null);
-
-    console.log(
-      "Starting Solve & Win contest:",
-      {
-        contestId,
-        subjectId,
-      }
-    );
-
-    const response =
-      await axiosInstance.get(
-        `/solve-and-win/contests/start-solve-and-win-contest/${contestId}/${subjectId}`
+    if (startTimestamp === null) {
+      setError(
+        "The contest start time could not be determined."
       );
 
+      return;
+    }
 
-console.log(
-  "Contest start response:",
-  response.data
-);
+    if (currentTime < startTimestamp) {
+      setError(
+        "This contest has not started yet. Please wait until the scheduled start time."
+      );
 
-sessionStorage.setItem(
-  `solve-and-win-start-${contestId}`,
-  JSON.stringify(response.data)
-);
+      setNow(currentTime);
 
-/*
- * --------------------------------------------------------
- * 4. Only navigate after successful API call
- * --------------------------------------------------------
- */
+      return;
+    }
 
-router.replace(
-  `/student/solve-and-win/contests/${contestId}/play`
-);
+    if (
+      endTimestamp !== null &&
+      currentTime >= endTimestamp
+    ) {
+      setError(
+        "This contest window has ended. You can no longer enter this contest."
+      );
 
-  } catch (err: unknown) {
-    console.error(
-      "Failed to start contest:",
-      err
-    );
+      setNow(currentTime);
 
-    const apiError = err as {
-      response?: {
-        data?: {
-          message?: unknown;
-          error?: unknown;
+      return;
+    }
+
+    /* --------------------------------------------------------
+       2. Resolve subject ID
+       -------------------------------------------------------- */
+
+    const subjectId =
+      getContestSubjectId(contest);
+
+    if (!subjectId) {
+      console.error(
+        "Unable to determine contest subject ID.",
+        contest
+      );
+
+      setError(
+        "The subject for this contest could not be determined. Please try again or contact support."
+      );
+
+      return;
+    }
+
+    /* --------------------------------------------------------
+       3. Start contest through backend
+       -------------------------------------------------------- */
+
+    try {
+      setIsStarting(true);
+      setError(null);
+
+      console.log(
+        "Starting Solve & Win contest:",
+        {
+          contestId,
+          subjectId,
+        }
+      );
+
+      const response =
+        await axiosInstance.get(
+          `/solve-and-win/contests/start-solve-and-win-contest/${contestId}/${subjectId}`
+        );
+
+      console.log(
+        "Contest start response:",
+        response.data
+      );
+
+      sessionStorage.setItem(
+        `solve-and-win-start-${contestId}`,
+        JSON.stringify(response.data)
+      );
+
+      /* ------------------------------------------------------
+         4. Navigate only after successful API call
+         ------------------------------------------------------ */
+
+      router.replace(
+        `/student/solve-and-win/contests/${contestId}/play`
+      );
+    } catch (err: unknown) {
+      console.error(
+        "Failed to start contest:",
+        err
+      );
+
+      const apiError = err as {
+        response?: {
+          data?: {
+            message?: unknown;
+            error?: unknown;
+          };
         };
+        message?: unknown;
       };
-      message?: unknown;
-    };
 
-    const message =
-      apiError?.response?.data?.message ||
-      apiError?.response?.data?.error ||
-      apiError?.message ||
-      "Unable to start the contest. Please try again.";
+      const message =
+        apiError?.response?.data?.message ||
+        apiError?.response?.data?.error ||
+        apiError?.message ||
+        "Unable to start the contest. Please try again.";
 
-    setError(
-      Array.isArray(message)
-        ? message.join(", ")
-        : String(message)
-    );
-  } finally {
-    setIsStarting(false);
-  }
-};
+      setError(
+        Array.isArray(message)
+          ? message.join(", ")
+          : String(message)
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  /* ==========================================================
+     REUSABLE BACKGROUND
+     ========================================================== */
+
+  const PageBackground = () => (
+    <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
+
+      <div className="absolute -right-32 top-24 h-72 w-72 rounded-full bg-purple-500/5 blur-3xl" />
+
+      <div className="absolute -bottom-32 -left-32 h-72 w-72 rounded-full bg-blue-500/5 blur-3xl" />
+    </div>
+  );
 
   /* ==========================================================
      LOADING
@@ -980,18 +833,20 @@ router.replace(
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4">
-          <Card className="w-full rounded-3xl border-0 bg-white p-10 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
-              <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        <PageBackground />
+
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center shadow-2xl shadow-black/20 backdrop-blur-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10">
+              <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
             </div>
 
-            <h1 className="mt-5 text-xl font-black text-slate-900">
+            <h1 className="mt-5 text-xl font-black text-white">
               Preparing Contest
             </h1>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-slate-400">
               Checking the contest schedule...
             </p>
           </Card>
@@ -1006,25 +861,27 @@ router.replace(
 
   if (!contest) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-              <AlertCircle className="h-7 w-7 text-red-600" />
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        <PageBackground />
+
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl shadow-black/20 backdrop-blur-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+              <AlertCircle className="h-7 w-7 text-red-400" />
             </div>
 
-            <h1 className="mt-5 text-xl font-black text-slate-900">
+            <h1 className="mt-5 text-xl font-black text-white">
               Contest Unavailable
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-slate-400">
               {error ||
                 "This contest could not be found or is no longer available."}
             </p>
 
             <Link
-              href="/student/solve-and-win/contests"
-              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
+              href="/student/solve-and-win"
+              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-blue-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Contests
@@ -1041,26 +898,28 @@ router.replace(
 
   if (!startDate) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-              <Clock3 className="h-7 w-7 text-amber-600" />
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        <PageBackground />
+
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl shadow-black/20 backdrop-blur-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500/10">
+              <Clock3 className="h-7 w-7 text-amber-400" />
             </div>
 
-            <h1 className="mt-5 text-xl font-black text-slate-900">
+            <h1 className="mt-5 text-xl font-black text-white">
               Contest Schedule Unavailable
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-slate-400">
               We could not determine when this
               contest is scheduled to start.
               Please try again later.
             </p>
 
             <Link
-              href="/student/solve-and-win/contests"
-              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
+              href="/student/solve-and-win"
+              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-blue-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Contests
@@ -1077,36 +936,38 @@ router.replace(
 
   if (!windowDays || !endDate) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
-          <Card className="w-full rounded-3xl border-0 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-              <CalendarDays className="h-7 w-7 text-amber-600" />
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        <PageBackground />
+
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-xl items-center justify-center px-4">
+          <Card className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl shadow-black/20 backdrop-blur-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500/10">
+              <CalendarDays className="h-7 w-7 text-amber-400" />
             </div>
 
-            <h1 className="mt-5 text-xl font-black text-slate-900">
+            <h1 className="mt-5 text-xl font-black text-white">
               Contest Window Unavailable
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              The contest start date was found, but
-              the participation window could not be
-              determined.
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              The contest start date was found,
+              but the participation window could
+              not be determined.
             </p>
 
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-              <p>
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Start Date
               </p>
 
-              <p className="mt-1 font-bold text-slate-900">
+              <p className="mt-1 font-bold text-white">
                 {formatDateTime(startDate)}
               </p>
             </div>
 
             <Link
               href="/student/solve-and-win"
-              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-blue-600"
+              className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-blue-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Contests
@@ -1122,13 +983,18 @@ router.replace(
      ========================================================== */
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <PageBackground />
 
-        {/* Back */}
+      <div className="relative z-10 mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {/* =====================================================
+            BACK
+           ===================================================== */}
+
         <Link
           href="/student/solve-and-win"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Contests
@@ -1140,32 +1006,28 @@ router.replace(
 
         <div className="mb-8">
 
-          {/* BEFORE START */}
           {hasNotStarted && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-300">
               <Clock3 className="h-3.5 w-3.5" />
               Contest Starts Soon
             </div>
           )}
 
-          {/* LIVE */}
           {isWithinWindow && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Contest is Live
             </div>
           )}
 
-          {/* ENDED */}
           {hasEnded && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300">
               <XCircle className="h-3.5 w-3.5" />
               Contest Ended
             </div>
           )}
 
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
             {hasNotStarted &&
               "Get Ready"}
 
@@ -1174,11 +1036,9 @@ router.replace(
 
             {hasEnded &&
               "Contest Has Ended"}
-
           </h1>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
             {hasNotStarted &&
               "The contest has not started yet. You will be able to enter when the scheduled start time arrives."}
 
@@ -1187,7 +1047,6 @@ router.replace(
 
             {hasEnded &&
               "The participation window for this contest has ended. This contest can no longer be entered."}
-
           </p>
         </div>
 
@@ -1195,35 +1054,31 @@ router.replace(
             CONTEST CARD
            ===================================================== */}
 
-        <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-sm">
+        <Card className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/20 backdrop-blur-sm">
 
           {/* Contest Header */}
-          <div
-            className={`p-6 text-white sm:p-8 ${
-              isWithinWindow
-                ? "bg-emerald-700"
-                : hasEnded
-                ? "bg-slate-700"
-                : "bg-slate-900"
-            }`}
-          >
-            <div className="flex items-start gap-4">
 
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-                <Trophy className="h-7 w-7" />
+          <div className="relative overflow-hidden border-b border-white/10 p-6 sm:p-8">
+
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.20),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_45%)]" />
+
+            <div className="relative flex items-start gap-4">
+
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10">
+                <Trophy className="h-7 w-7 text-purple-300" />
               </div>
 
               <div className="min-w-0">
 
-                <p className="text-xs font-bold uppercase tracking-wider text-white/60">
+                <p className="text-xs font-bold uppercase tracking-wider text-purple-300/80">
                   Solve & Win Contest
                 </p>
 
-                <h2 className="mt-1 text-xl font-black sm:text-2xl">
+                <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">
                   {contest.title}
                 </h2>
 
-                <p className="mt-1 text-sm leading-6 text-white/70">
+                <p className="mt-1 text-sm leading-6 text-slate-400">
                   {contest.description ||
                     "Compete against other students and answer the contest questions to win rewards."}
                 </p>
@@ -1240,65 +1095,57 @@ router.replace(
                ================================================= */}
 
             {hasNotStarted && (
-              <div className="rounded-3xl border border-blue-100 bg-blue-50 p-6">
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/[0.06] p-6">
 
                 <div className="text-center">
 
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white">
-                    <Clock3 className="h-6 w-6 text-blue-600" />
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10">
+                    <Clock3 className="h-6 w-6 text-blue-400" />
                   </div>
 
-                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-blue-600">
+                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-blue-400">
                     Contest Starts In
                   </p>
 
                   <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-4">
 
-                    <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-                      <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-                        {pad(countdown.days)}
-                      </p>
+                    {[
+                      {
+                        value: countdown.days,
+                        label: "Days",
+                      },
+                      {
+                        value: countdown.hours,
+                        label: "Hours",
+                      },
+                      {
+                        value: countdown.minutes,
+                        label: "Minutes",
+                      },
+                      {
+                        value: countdown.seconds,
+                        label: "Seconds",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-4"
+                      >
+                        <p className="text-2xl font-black text-white sm:text-3xl">
+                          {pad(item.value)}
+                        </p>
 
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-                        Days
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-                      <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-                        {pad(countdown.hours)}
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-                        Hours
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-                      <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-                        {pad(countdown.minutes)}
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-                        Minutes
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
-                      <p className="text-2xl font-black text-slate-900 sm:text-3xl">
-                        {pad(countdown.seconds)}
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
-                        Seconds
-                      </p>
-                    </div>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-xs">
+                          {item.label}
+                        </p>
+                      </div>
+                    ))}
 
                   </div>
 
-                  <div className="mt-5 text-sm text-slate-500">
+                  <div className="mt-5 text-sm text-slate-400">
                     Starts{" "}
-                    <span className="font-bold text-slate-700">
+                    <span className="font-bold text-slate-200">
                       {formatDateTime(startDate)}
                     </span>
                   </div>
@@ -1312,82 +1159,72 @@ router.replace(
                ================================================= */}
 
             {isWithinWindow && (
-              <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6">
+              <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/[0.06] p-6">
 
                 <div className="text-center">
 
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white">
-                    <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10">
+                    <CheckCircle2 className="h-7 w-7 text-emerald-400" />
                   </div>
 
-                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-emerald-600">
+                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-emerald-400">
                     Contest is Live
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-black text-slate-900">
+                  <h3 className="mt-2 text-2xl font-black text-white">
                     You can enter now!
                   </h3>
 
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
                     The scheduled start time has
                     passed, but the contest window is
                     still open.
                   </p>
 
                   {/* Remaining Window */}
-                  <div className="mt-6 rounded-2xl bg-white p-4">
 
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">
                       Time Remaining
                     </p>
 
                     <div className="mt-3 grid grid-cols-4 gap-2">
 
-                      <div>
-                        <p className="text-xl font-black text-slate-900">
-                          {pad(countdown.days)}
-                        </p>
+                      {[
+                        {
+                          value: countdown.days,
+                          label: "Days",
+                        },
+                        {
+                          value: countdown.hours,
+                          label: "Hours",
+                        },
+                        {
+                          value: countdown.minutes,
+                          label: "Minutes",
+                        },
+                        {
+                          value: countdown.seconds,
+                          label: "Seconds",
+                        },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <p className="text-xl font-black text-white">
+                            {pad(item.value)}
+                          </p>
 
-                        <p className="text-[10px] font-bold uppercase text-slate-400">
-                          Days
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xl font-black text-slate-900">
-                          {pad(countdown.hours)}
-                        </p>
-
-                        <p className="text-[10px] font-bold uppercase text-slate-400">
-                          Hours
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xl font-black text-slate-900">
-                          {pad(countdown.minutes)}
-                        </p>
-
-                        <p className="text-[10px] font-bold uppercase text-slate-400">
-                          Minutes
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xl font-black text-slate-900">
-                          {pad(countdown.seconds)}
-                        </p>
-
-                        <p className="text-[10px] font-bold uppercase text-slate-400">
-                          Seconds
-                        </p>
-                      </div>
+                          <p className="text-[10px] font-bold uppercase text-slate-500">
+                            {item.label}
+                          </p>
+                        </div>
+                      ))}
 
                     </div>
 
                     <p className="mt-4 text-xs text-slate-500">
                       Window closes{" "}
-                      <span className="font-bold text-slate-700">
+                      <span className="font-bold text-slate-300">
                         {formatDateTime(endDate)}
                       </span>
                     </p>
@@ -1403,28 +1240,28 @@ router.replace(
                ================================================= */}
 
             {hasEnded && (
-              <div className="rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
+              <div className="rounded-3xl border border-red-400/20 bg-red-500/[0.06] p-6 text-center">
 
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white">
-                  <XCircle className="h-7 w-7 text-red-600" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-400/20 bg-red-500/10">
+                  <XCircle className="h-7 w-7 text-red-400" />
                 </div>
 
-                <p className="mt-4 text-xs font-black uppercase tracking-widest text-red-600">
+                <p className="mt-4 text-xs font-black uppercase tracking-widest text-red-400">
                   Contest Ended
                 </p>
 
-                <h3 className="mt-2 text-2xl font-black text-slate-900">
+                <h3 className="mt-2 text-2xl font-black text-white">
                   Participation window closed
                 </h3>
 
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
                   This contest started on{" "}
-                  <span className="font-bold">
+                  <span className="font-bold text-slate-200">
                     {formatDateTime(startDate)}
                   </span>{" "}
                   and the participation window ended
                   on{" "}
-                  <span className="font-bold">
+                  <span className="font-bold text-slate-200">
                     {formatDateTime(endDate)}
                   </span>
                   .
@@ -1440,34 +1277,36 @@ router.replace(
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
 
               {/* Start */}
-              <div className="rounded-2xl border border-slate-100 p-4">
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                  <CalendarDays className="h-5 w-5 text-blue-600" />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/20 hover:bg-white/[0.04]">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+                  <CalendarDays className="h-5 w-5 text-blue-400" />
                 </div>
 
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">
                   Starts
                 </p>
 
-                <p className="mt-1 text-sm font-bold text-slate-900">
+                <p className="mt-1 text-sm font-bold text-slate-200">
                   {formatDateTime(startDate)}
                 </p>
 
               </div>
 
               {/* Window */}
-              <div className="rounded-2xl border border-slate-100 p-4">
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                  <Clock3 className="h-5 w-5 text-violet-600" />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/20 hover:bg-white/[0.04]">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-400/20 bg-purple-500/10">
+                  <Clock3 className="h-5 w-5 text-purple-400" />
                 </div>
 
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">
                   Window Period
                 </p>
 
-                <p className="mt-1 text-sm font-bold text-slate-900">
+                <p className="mt-1 text-sm font-bold text-slate-200">
                   {windowDays}{" "}
                   {windowDays === 1
                     ? "Day"
@@ -1477,17 +1316,18 @@ router.replace(
               </div>
 
               {/* Ends */}
-              <div className="rounded-2xl border border-slate-100 p-4">
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                  <CalendarDays className="h-5 w-5 text-red-600" />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/20 hover:bg-white/[0.04]">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-400/20 bg-red-500/10">
+                  <CalendarDays className="h-5 w-5 text-red-400" />
                 </div>
 
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">
                   Window Ends
                 </p>
 
-                <p className="mt-1 text-sm font-bold text-slate-900">
+                <p className="mt-1 text-sm font-bold text-slate-200">
                   {formatDateTime(endDate)}
                 </p>
 
@@ -1499,26 +1339,26 @@ router.replace(
                 WINDOW SUMMARY
                ================================================= */}
 
-            <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
 
               <div className="flex items-start gap-3">
 
-                <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+                <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
 
                 <div>
 
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-sm font-bold text-white">
                     Contest Participation Window
                   </p>
 
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                  <p className="mt-1 text-sm leading-6 text-slate-400">
                     Students can enter this contest
                     from{" "}
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-slate-200">
                       {formatDateTime(startDate)}
                     </span>{" "}
                     until{" "}
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-slate-200">
                       {formatDateTime(endDate)}
                     </span>
                     .
@@ -1545,23 +1385,23 @@ router.replace(
             <div
               className={`mt-6 flex gap-3 rounded-2xl border p-4 ${
                 isWithinWindow
-                  ? "border-emerald-100 bg-emerald-50"
+                  ? "border-emerald-400/20 bg-emerald-500/[0.06]"
                   : hasEnded
-                  ? "border-red-100 bg-red-50"
-                  : "border-amber-100 bg-amber-50"
+                  ? "border-red-400/20 bg-red-500/[0.06]"
+                  : "border-amber-400/20 bg-amber-500/[0.06]"
               }`}
             >
 
               {isWithinWindow && (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
               )}
 
               {hasNotStarted && (
-                <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
               )}
 
               {hasEnded && (
-                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
               )}
 
               <div>
@@ -1569,13 +1409,12 @@ router.replace(
                 <p
                   className={`text-sm font-bold ${
                     isWithinWindow
-                      ? "text-emerald-900"
+                      ? "text-emerald-300"
                       : hasEnded
-                      ? "text-red-900"
-                      : "text-amber-900"
+                      ? "text-red-300"
+                      : "text-amber-300"
                   }`}
                 >
-
                   {isWithinWindow &&
                     "Your contest is ready"}
 
@@ -1584,19 +1423,17 @@ router.replace(
 
                   {hasEnded &&
                     "This contest is no longer available"}
-
                 </p>
 
                 <p
                   className={`mt-1 text-sm leading-6 ${
                     isWithinWindow
-                      ? "text-emerald-800"
+                      ? "text-emerald-400/80"
                       : hasEnded
-                      ? "text-red-800"
-                      : "text-amber-800"
+                      ? "text-red-400/80"
+                      : "text-amber-400/80"
                   }`}
                 >
-
                   {isWithinWindow &&
                     "The start date has passed, but the participation window is still open. You can enter the contest now."}
 
@@ -1605,7 +1442,6 @@ router.replace(
 
                   {hasEnded &&
                     "The participation window has expired. You can no longer enter this contest."}
-
                 </p>
 
               </div>
@@ -1617,17 +1453,17 @@ router.replace(
                ================================================= */}
 
             {error && (
-              <div className="mt-6 flex gap-3 rounded-2xl border border-red-100 bg-red-50 p-4">
+              <div className="mt-6 flex gap-3 rounded-2xl border border-red-400/20 bg-red-500/[0.06] p-4">
 
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
 
                 <div>
 
-                  <p className="text-sm font-bold text-red-900">
+                  <p className="text-sm font-bold text-red-300">
                     Unable to continue
                   </p>
 
-                  <p className="mt-1 text-sm leading-6 text-red-700">
+                  <p className="mt-1 text-sm leading-6 text-red-400/80">
                     {error}
                   </p>
 
@@ -1644,7 +1480,7 @@ router.replace(
 
               <Link
                 href="/student/solve-and-win"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-6 text-sm font-bold text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Contests
@@ -1665,10 +1501,10 @@ router.replace(
                   !isWithinWindow ||
                   isStarting
                 }
-                className={`h-12 rounded-xl px-7 font-bold ${
+                className={`h-12 rounded-xl px-7 font-bold transition ${
                   isWithinWindow
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "cursor-not-allowed bg-slate-200 text-slate-400 hover:bg-slate-200"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500"
+                    : "cursor-not-allowed border border-white/10 bg-white/[0.04] text-slate-600 hover:bg-white/[0.04]"
                 }`}
               >
 
@@ -1708,7 +1544,7 @@ router.replace(
 
         <div className="mt-5 text-center">
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600">
             Contest ID:{" "}
             <span className="font-mono font-bold text-slate-500">
               {contestId}

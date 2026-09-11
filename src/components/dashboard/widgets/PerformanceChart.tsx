@@ -1,6 +1,8 @@
 
 
 
+
+
 "use client";
 
 import { TrendingUp } from "lucide-react";
@@ -25,41 +27,55 @@ export default function PerformanceChart({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm",
+        `
+          mx-2
+          w-[calc(100%-1rem)]
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-4
+          shadow-sm
+          sm:mx-3
+          sm:w-[calc(100%-1.5rem)]
+          sm:p-5
+        `,
         className
       )}
     >
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">
+      {/* Header */}
+      <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
             {subtitle}
           </p>
         </div>
 
-        <div className="rounded-xl bg-blue-50 p-3">
-          <TrendingUp className="h-6 w-6 text-blue-600" />
+        <div className="shrink-0 rounded-lg bg-blue-50 p-2 sm:rounded-xl sm:p-2.5">
+          <TrendingUp className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
         </div>
       </div>
 
-      <div className="h-80">
-  <LineChart
-    data={data}
-    height={320}
-    showGrid
-    showLegend={false}
-    series={[
-      {
-        dataKey: "score",
-        name: "Score",
-        color: "#2563EB",
-      },
-    ]}
-  />
-</div>
+      {/* Chart */}
+      <div className="h-64 w-full sm:h-72">
+        <LineChart
+          data={data}
+          height={288}
+          showGrid
+          showLegend={false}
+          series={[
+            {
+              dataKey: "score",
+              name: "Score",
+              color: "#2563EB",
+            },
+          ]}
+        />
+      </div>
     </section>
   );
 }

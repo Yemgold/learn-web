@@ -288,28 +288,6 @@ export async function updateSolveAndWinContestQuestionRemainingTime(
 
 
 
-
-
-/* ============================================================
-   START SOLVE & WIN CONTEST 
-   ============================================================ */
-
-
-// export async function startSolveAndWinContest(
-//   contestId: string,
-//   subjectId: string,
-// ) {
-//   const response = await api.patch(
-//     `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
-//       contestId,
-//     )}/${encodeURIComponent(subjectId)}`,
-//   );
-
-//   return response.data;
-// }
-
-
-
 /* ============================================================
    ENDPOINTS FOR PLAY SOLVE AND WIN PAGE
    UPDATE ANSWERS / FINAL SUBMIT
@@ -372,48 +350,6 @@ export async function submitSolveAndWinContest(
 
   return response.data;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// export async function resumeSolveAndWinContest(
-//   contestId: string,
-//   subjectId: string,
-// ) {
-//   const response = await api.get(
-//     `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
-//       contestId,
-//     )}/${encodeURIComponent(subjectId)}`,
-//   );
-
-//   return response.data;
-// }
-
-// export async function pauseSolveAndWinContest(
-//   contestId: string,
-//   subjectId: string,
-// ) {
-//   const response = await api.patch(
-//     `/solve-and-win/contests/pause-solve-and-win-contest/${encodeURIComponent(
-//       contestId,
-//     )}/${encodeURIComponent(subjectId)}`,
-//   );
-
-//   return response.data;
-// }
-
-
 
 
 

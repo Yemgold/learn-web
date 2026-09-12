@@ -40,8 +40,10 @@ import {
 
 import {
   createContest,
-  type CreateContestPayload,
+
 } from "@/lib/api/solveAndWin";
+
+import { type CreateContestPayload } from "@/types/solveandwin"; 
 
 /* ============================================================
    TYPES

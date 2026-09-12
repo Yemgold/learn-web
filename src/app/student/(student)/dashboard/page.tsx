@@ -60,6 +60,7 @@ export default function StudentDashboardPage() {
       change: 15,
       changeLabel: "from last month",
     },
+    
     {
       title: "Current Rank",
       value: "#18",
@@ -82,12 +83,14 @@ export default function StudentDashboardPage() {
      ============================================================ */
 
   const actions: QuickAction[] = [
+   
+
     {
-      title: "Join Competition",
-      description: "Browse available competitions",
-      href: "/student/competitions",
-      icon: "trophy",
-    },
+  title: "CBT Wallet",
+  description: "Manage your CBT points",
+  href: "/student/practice/cbt-wallet",
+  icon: "wallet",
+},
 
     {
       title: "Solve & Win Questions",

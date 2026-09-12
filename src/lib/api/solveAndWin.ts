@@ -69,24 +69,30 @@ export interface GetAllContestsResponse {
 
 export interface MyJoinedContest {
   contestId: string;
+  [key: string]: any;
+}
+
+export interface MyJoinedContestsData {
+  totalCount: number;
+  totalPages: number;
+  contestParticipationObj: MyJoinedContest[];
 }
 
 export interface MyJoinedContestsResponse {
   success: boolean;
   message?: string;
-  data: MyJoinedContest[];
+  data: MyJoinedContestsData;
 }
 
-export async function getMyJoinedContests(
-  userId: string,
-): Promise<MyJoinedContestsResponse> {
-  const response =
-    await api.get<MyJoinedContestsResponse>(
-      `/contests/my-joined-contests/${userId}`,
-    );
+export const getMyJoinedContests = async (
+  userId: string
+): Promise<MyJoinedContestsResponse> => {
+  const response = await api.get<MyJoinedContestsResponse>(
+    `/solve-and-win/contests/my-joined-contests/${userId}`
+  );
 
   return response.data;
-}
+};
 
 
 /* ============================================================
@@ -305,28 +311,24 @@ export async function updateSolveAndWinContestQuestionRemainingTime(
 
 
 /* ============================================================
-   ENDPOINTS FOR PLAY SOLVE AND WIN PAGE....PAUSE/UPDATE/RESUME/SUBMIT
+   ENDPOINTS FOR PLAY SOLVE AND WIN PAGE
+   UPDATE ANSWERS / FINAL SUBMIT
    ============================================================ */
-
-export async function pauseSolveAndWinContest(
-  contestId: string,
-  subjectId: string,
-) {
-  const response = await api.patch(
-    `/solve-and-win/contests/pause-solve-and-win-contest/${encodeURIComponent(
-      contestId,
-    )}/${encodeURIComponent(subjectId)}`,
-  );
-
-  return response.data;
-}
 
 
 export async function updateSolveAndWinContestQuestionAnswers(
   contestId: string,
   subjectId: string,
-  payload: Record<string, unknown>,
+  payload: SolveAndWinAnswerPayload,
 ) {
+  if (
+    !payload ||
+    !Array.isArray(payload.answers) ||
+    payload.answers.length === 0
+  ) {
+    return null;
+  }
+
   const response = await api.patch(
     `/solve-and-win/contests/update-solve-and-win-contest-question-answers/${encodeURIComponent(
       contestId,
@@ -338,27 +340,34 @@ export async function updateSolveAndWinContestQuestionAnswers(
 }
 
 
-export async function resumeSolveAndWinContest(
-  contestId: string,
-  subjectId: string,
-) {
-  const response = await api.get(
-    `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
-      contestId,
-    )}/${encodeURIComponent(subjectId)}`,
-  );
 
-  return response.data;
-}
+export type SolveAndWinAnswerPayload = {
+  answers: Array<{
+    questionId: string;
+    selectedOption: string;
+  }>;
+};
 
 export async function submitSolveAndWinContest(
   contestId: string,
   subjectId: string,
+  payload: SolveAndWinAnswerPayload,
 ) {
+  if (
+    !payload ||
+    !Array.isArray(payload.answers) ||
+    payload.answers.length === 0
+  ) {
+    throw new Error(
+      "Cannot submit contest: at least one answer is required.",
+    );
+  }
+
   const response = await api.patch(
-    `/solve-and-win/contests/submit-solve-and-win-contest/${encodeURIComponent(
+    `/solve-and-win/contests/submit-solve-and-win-contest-question/${encodeURIComponent(
       contestId,
     )}/${encodeURIComponent(subjectId)}`,
+    payload,
   );
 
   return response.data;
@@ -366,6 +375,43 @@ export async function submitSolveAndWinContest(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+// export async function resumeSolveAndWinContest(
+//   contestId: string,
+//   subjectId: string,
+// ) {
+//   const response = await api.get(
+//     `/solve-and-win/contests/start-solve-and-win-contest/${encodeURIComponent(
+//       contestId,
+//     )}/${encodeURIComponent(subjectId)}`,
+//   );
+
+//   return response.data;
+// }
+
+// export async function pauseSolveAndWinContest(
+//   contestId: string,
+//   subjectId: string,
+// ) {
+//   const response = await api.patch(
+//     `/solve-and-win/contests/pause-solve-and-win-contest/${encodeURIComponent(
+//       contestId,
+//     )}/${encodeURIComponent(subjectId)}`,
+//   );
+
+//   return response.data;
+// }
 
 
 

@@ -5,6 +5,10 @@
 
 
 
+
+
+
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -146,21 +150,24 @@ export default function CompetitionTeamPage() {
     }
   }
 
+  /*
+   * LOADING STATE
+   */
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-slate-950 text-white">
         <div className="container mx-auto max-w-4xl px-4 py-10">
           <Link
             href={`/student/competitions/${competitionId}`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-blue-400"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Competition
           </Link>
 
-          <Card className="mt-8 p-8">
+          <Card className="mt-8 border-white/10 bg-white/[0.04] p-8 shadow-none">
             <div className="flex min-h-[300px] items-center justify-center">
-              <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+              <RefreshCw className="h-7 w-7 animate-spin text-blue-400" />
             </div>
           </Card>
         </div>
@@ -173,28 +180,28 @@ export default function CompetitionTeamPage() {
    */
   if (!team) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-slate-950 pb-16 text-white">
         <div className="container mx-auto max-w-4xl px-4 py-10">
           {/* Back */}
           <Link
             href={`/student/competitions/${competitionId}`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-blue-400"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Competition
           </Link>
 
           {/* Header */}
-          <div className="mt-8 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100">
-              <Users className="h-10 w-10 text-blue-600" />
+          <div className="mt-10 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
+              <Users className="h-10 w-10 text-blue-400" />
             </div>
 
-            <h1 className="mt-6 text-4xl font-bold text-slate-900">
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-white">
               Your Team
             </h1>
 
-            <p className="mx-auto mt-3 max-w-xl text-slate-600">
+            <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-400">
               Join an existing team using a team code, or
               create your own team and invite your friends.
             </p>
@@ -202,7 +209,7 @@ export default function CompetitionTeamPage() {
 
           {/* Error */}
           {error && (
-            <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           )}
@@ -210,27 +217,27 @@ export default function CompetitionTeamPage() {
           {/* Options */}
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             {/* Create Team */}
-            <Card className="p-7 transition hover:-translate-y-1 hover:shadow-lg">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100">
-                <Plus className="h-7 w-7 text-blue-600" />
+            <Card className="border-white/10 bg-white/[0.04] p-7 shadow-none transition hover:-translate-y-1 hover:border-blue-500/20">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
+                <Plus className="h-7 w-7 text-blue-400" />
               </div>
 
-              <h2 className="mt-6 text-2xl font-bold text-slate-900">
+              <h2 className="mt-6 text-2xl font-bold text-white">
                 Create a Team
               </h2>
 
-              <p className="mt-3 leading-6 text-slate-600">
+              <p className="mt-3 leading-6 text-slate-400">
                 Create your own team, become the Team Captain,
                 and invite two friends using your unique team
                 code.
               </p>
 
-              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-semibold text-amber-900">
+              <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                <p className="text-sm font-semibold text-amber-300">
                   Creation Fee: 5 CBT Points
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-amber-800">
+                <p className="mt-1 text-xs leading-5 text-amber-200/70">
                   The 5 CBT points will be deducted from your
                   wallet by the backend when your team is
                   successfully created.
@@ -244,6 +251,7 @@ export default function CompetitionTeamPage() {
                 <Button
                   type="button"
                   fullWidth
+                  className="bg-blue-600 text-white hover:bg-blue-500"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Team
@@ -252,26 +260,26 @@ export default function CompetitionTeamPage() {
             </Card>
 
             {/* Join Team */}
-            <Card className="p-7 transition hover:-translate-y-1 hover:shadow-lg">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100">
-                <UserPlus className="h-7 w-7 text-green-600" />
+            <Card className="border-white/10 bg-white/[0.04] p-7 shadow-none transition hover:-translate-y-1 hover:border-green-500/20">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
+                <UserPlus className="h-7 w-7 text-green-400" />
               </div>
 
-              <h2 className="mt-6 text-2xl font-bold text-slate-900">
+              <h2 className="mt-6 text-2xl font-bold text-white">
                 Join a Team
               </h2>
 
-              <p className="mt-3 leading-6 text-slate-600">
+              <p className="mt-3 leading-6 text-slate-400">
                 Already have an invitation? Enter the team
                 code given to you by the Team Captain.
               </p>
 
-              <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
-                <p className="text-sm font-semibold text-green-900">
+              <div className="mt-5 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                <p className="text-sm font-semibold text-green-300">
                   Joining is Free
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-green-800">
+                <p className="mt-1 text-xs leading-5 text-green-200/70">
                   You don't need to spend CBT points to join an
                   existing team.
                 </p>
@@ -285,6 +293,7 @@ export default function CompetitionTeamPage() {
                   type="button"
                   variant="outline"
                   fullWidth
+                  className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
                 >
                   <LogIn className="mr-2 h-4 w-4" />
                   Join Team
@@ -294,16 +303,16 @@ export default function CompetitionTeamPage() {
           </div>
 
           {/* Information */}
-          <Card className="mt-8 border-blue-200 bg-blue-50 p-5">
+          <Card className="mt-8 border-blue-500/20 bg-blue-500/10 p-5 shadow-none">
             <div className="flex gap-3">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
 
               <div>
-                <h3 className="font-semibold text-blue-900">
+                <h3 className="font-semibold text-blue-300">
                   How teams work
                 </h3>
 
-                <p className="mt-1 text-sm leading-6 text-blue-800">
+                <p className="mt-1 text-sm leading-6 text-blue-200/70">
                   Each team has a maximum of 3 students. If
                   you create the team, you become the captain
                   and receive a unique team code. Share that
@@ -341,12 +350,12 @@ export default function CompetitionTeamPage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-950 pb-16 text-white">
       <div className="container mx-auto max-w-4xl px-4 py-10">
         {/* Back */}
         <Link
           href={`/student/competitions/${competitionId}`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-blue-400"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Competition
@@ -356,23 +365,23 @@ export default function CompetitionTeamPage() {
         <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100">
-                <Trophy className="h-7 w-7 text-blue-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
+                <Trophy className="h-7 w-7 text-blue-400" />
               </div>
 
               <div>
-                <p className="text-sm font-medium text-blue-600">
+                <p className="text-sm font-medium text-blue-400">
                   Competition Team
                 </p>
 
-                <h1 className="text-3xl font-bold text-slate-900">
+                <h1 className="text-3xl font-bold text-white">
                   {team.name}
                 </h1>
               </div>
             </div>
 
             {team.motto && (
-              <p className="mt-3 text-slate-600">
+              <p className="mt-3 text-slate-400">
                 “{team.motto}”
               </p>
             )}
@@ -385,6 +394,7 @@ export default function CompetitionTeamPage() {
               <Button
                 type="button"
                 variant="outline"
+                className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Manage Team
@@ -395,25 +405,25 @@ export default function CompetitionTeamPage() {
 
         {/* Error */}
         {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
         {/* Team Code */}
-        <Card className="mt-8 overflow-hidden border-blue-200">
-          <div className="bg-blue-50 p-6">
+        <Card className="mt-8 overflow-hidden border-blue-500/20 bg-white/[0.04] shadow-none">
+          <div className="bg-blue-500/[0.08] p-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-700">
+                <p className="text-sm font-medium text-blue-400">
                   Team Code
                 </p>
 
-                <p className="mt-1 text-3xl font-bold tracking-[0.2em] text-blue-950">
+                <p className="mt-1 text-3xl font-bold tracking-[0.2em] text-white">
                   {team.code}
                 </p>
 
-                <p className="mt-2 text-sm text-blue-700">
+                <p className="mt-2 text-sm text-slate-400">
                   Share this code with friends to let them
                   join your team.
                 </p>
@@ -423,10 +433,11 @@ export default function CompetitionTeamPage() {
                 type="button"
                 variant="outline"
                 onClick={copyTeamCode}
+                className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
               >
                 {copied ? (
                   <>
-                    <Check className="mr-2 h-4 w-4" />
+                    <Check className="mr-2 h-4 w-4 text-green-400" />
                     Copied
                   </>
                 ) : (
@@ -441,10 +452,10 @@ export default function CompetitionTeamPage() {
         </Card>
 
         {/* Members */}
-        <Card className="mt-6 p-6">
+        <Card className="mt-6 border-white/10 bg-white/[0.04] p-6 shadow-none">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-xl font-bold text-white">
                 Team Members
               </h2>
 
@@ -454,8 +465,8 @@ export default function CompetitionTeamPage() {
               </p>
             </div>
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
-              <Users className="h-5 w-5 text-slate-600" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]">
+              <Users className="h-5 w-5 text-slate-400" />
             </div>
           </div>
 
@@ -463,9 +474,9 @@ export default function CompetitionTeamPage() {
             {team.members.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center gap-4 rounded-xl border border-slate-200 p-4"
+                className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-700">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-lg font-bold text-blue-300">
                   {member.name
                     .charAt(0)
                     .toUpperCase()}
@@ -473,12 +484,12 @@ export default function CompetitionTeamPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-white">
                       {member.name}
                     </p>
 
                     {member.isCaptain && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-300">
                         <Crown className="h-3 w-3" />
                         Captain
                       </span>
@@ -499,14 +510,14 @@ export default function CompetitionTeamPage() {
               (_, index) => (
                 <div
                   key={`empty-${index}`}
-                  className="flex items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4"
+                  className="flex items-center gap-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4"
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
-                    <UserPlus className="h-5 w-5 text-slate-400" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
+                    <UserPlus className="h-5 w-5 text-slate-500" />
                   </div>
 
                   <div>
-                    <p className="font-medium text-slate-700">
+                    <p className="font-medium text-slate-300">
                       Open Team Slot
                     </p>
 
@@ -523,28 +534,28 @@ export default function CompetitionTeamPage() {
 
         {/* Description */}
         {team.description && (
-          <Card className="mt-6 p-6">
-            <h2 className="text-lg font-bold text-slate-900">
+          <Card className="mt-6 border-white/10 bg-white/[0.04] p-6 shadow-none">
+            <h2 className="text-lg font-bold text-white">
               About This Team
             </h2>
 
-            <p className="mt-3 leading-7 text-slate-600">
+            <p className="mt-3 leading-7 text-slate-400">
               {team.description}
             </p>
           </Card>
         )}
 
         {/* Team Status */}
-        <Card className="mt-6 border-green-200 bg-green-50 p-5">
+        <Card className="mt-6 border-green-500/20 bg-green-500/10 p-5 shadow-none">
           <div className="flex gap-3">
-            <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+            <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-400" />
 
             <div>
-              <h3 className="font-semibold text-green-900">
+              <h3 className="font-semibold text-green-300">
                 Team Status
               </h3>
 
-              <p className="mt-1 text-sm leading-6 text-green-800">
+              <p className="mt-1 text-sm leading-6 text-green-200/70">
                 {team.members.length === 3
                   ? "Your team is complete with 3 members."
                   : `Your team has ${slotsRemaining} open ${
@@ -567,6 +578,7 @@ export default function CompetitionTeamPage() {
                 `/student/competitions/${competitionId}/room`
               )
             }
+            className="bg-blue-600 text-white hover:bg-blue-500"
           >
             <Trophy className="mr-2 h-4 w-4" />
             Competition Room
@@ -581,6 +593,7 @@ export default function CompetitionTeamPage() {
                 type="button"
                 variant="outline"
                 fullWidth
+                className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Manage Team
@@ -592,10 +605,3 @@ export default function CompetitionTeamPage() {
     </main>
   );
 }
-
-
-
-
-
-
-

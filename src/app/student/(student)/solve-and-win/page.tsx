@@ -795,23 +795,34 @@ const fetchJoinedContests = async () => {
                           </>
                         ) : (
                           <>
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                            {/* <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-400" /> */}
 
-                              <p className="text-sm font-semibold text-emerald-300">
+                              {/* <p className="text-sm font-semibold text-emerald-300">
                                 You can enter this contest
-                              </p>
-                            </div>
+                              </p> */}
+                            {/* </div> */}
 
-                            <p className="mt-1 text-xs leading-5 text-emerald-200/70">
+<div className="mt-3 flex items-center gap-2">
+  <img
+    src="/images/cash.png"
+    alt="Cash prize"
+    className="h-50 w-50 object-contain"
+  />
+
+                           {/* <p className="mt-1 text-xs leading-5 text-emerald-200/70">
                               Your{" "}
                               {practicePoints.toLocaleString()}{" "}
                               CBT Points cover the{" "}
                               {contest.entryPoints.toLocaleString()}{" "}
                               point entry fee.
-                            </p>
+                            </p> */}
+                            </div>
+
                           </>
+
                         )}
+                        
                       </div>
                     </div>
 

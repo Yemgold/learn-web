@@ -1,5 +1,5 @@
 
-
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\lib\api\solveAndWin.ts
 
 import { api } from "./axios";
 
@@ -21,7 +21,16 @@ export interface ContestSubject {
         name: string;
       };
 
-  questions: unknown[];
+  expectedNoOfQuestions: number;
+  durationInSeconds: number;
+
+  difficultyBreakdown: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+
+  questions?: unknown[];
 }
 
 export interface SolveAndWinContest {
@@ -62,14 +71,14 @@ export interface GetAllContestsResponse {
   };
 }
 
-/* ============================================================
-  MY JOINED CONTEST
-============================================================ */
 
+/* ============================================================
+  MY JOINED CONTESTS
+============================================================ */
 
 export interface MyJoinedContest {
   contestId: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MyJoinedContestsData {
@@ -88,12 +97,21 @@ export const getMyJoinedContests = async (
   userId: string
 ): Promise<MyJoinedContestsResponse> => {
   const response = await api.get<MyJoinedContestsResponse>(
-    `/solve-and-win/contests/my-joined-contests/${userId}`
+    `/solve-and-win/contests/my-joined-contest/${userId}`,
+    {
+      params: {
+        _t: Date.now(),
+      },
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    }
   );
 
   return response.data;
 };
-
 
 /* ============================================================
    CREATE CONTEST
@@ -126,8 +144,11 @@ export async function getAllSolveAndWinContests(): Promise<GetAllContestsRespons
 }
 
 
-export async function getAllActiveContests() {
-  const response = await api.get("/solve-and-win/contests/get-all-active-contests");
+export async function getAllNotCompletedContests(): Promise<GetAllContestsResponse> {
+  const response = await api.get<GetAllContestsResponse>(
+    "/solve-and-win/contests/get-all-not-completed-contests",
+  );
+
   return response.data;
 }
 
@@ -154,6 +175,14 @@ export async function cancelContestById(contestId: string) {
   );
 
   return response.data;
+}
+
+export async function deactivateContest(contestId: string) {
+  const { data } = await api.patch(
+    `/solve-and-win/contests/deactivate-contest-by-contestId/${contestId}`
+  );
+
+  return data;
 }
 
 
@@ -316,6 +345,27 @@ export async function updateSolveAndWinContestQuestionAnswers(
 
   return response.data;
 }
+
+
+
+
+
+
+
+export const startSolveAndWinContest = async (
+  contestId: string,
+  subjectId: string
+) => {
+  const response = await api.get(
+    `/solve-and-win/contests/start-solve-and-win-contest/${contestId}/${subjectId}`
+  );
+
+  return response.data;
+};
+
+
+
+
 
 
 

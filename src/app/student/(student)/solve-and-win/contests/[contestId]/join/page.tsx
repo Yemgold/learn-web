@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  getAllActiveContests,
+  getAllNotCompletedContests,
   type SolveAndWinContest,
 } from "@/lib/api/solveAndWin";
 import { axiosInstance } from "@/lib/api/axios";
@@ -54,7 +54,7 @@ export default function JoinContestPage() {
         setIsLoadingContest(true);
         setError(null);
 
-        const response = await getAllActiveContests();
+        const response = await getAllNotCompletedContests();
 
         if (!response.success) {
           throw new Error(
@@ -62,7 +62,8 @@ export default function JoinContestPage() {
           );
         }
 
-        const contests: SolveAndWinContest[] = response.data ?? [];
+        const contests: SolveAndWinContest[] =
+  response.data?.solveAndWinContestObj ?? [];
 
         const foundContest = contests.find(
           (item: SolveAndWinContest) => item._id === contestId

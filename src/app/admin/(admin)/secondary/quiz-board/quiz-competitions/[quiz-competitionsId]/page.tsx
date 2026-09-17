@@ -3,6 +3,11 @@
 
 
 
+
+
+
+
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -34,22 +39,15 @@ import { Card } from "@/components/ui/card";
 import { axiosInstance } from "@/lib/api/axios";
 import { getSubjectsByPlan, type Subject } from "@/lib/api/subjects";
 
-type QuizBoardStatus =
+type QuizStatus =
   | "DRAFT"
   | "UPCOMING"
   | "OPEN"
   | "FULL"
   | "LIVE"
+  | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED";
-
-type QuizBoardDifficulty =
-  | "EASY"
-  | "MEDIUM"
-  | "HARD"
-  | "MIXED";
-
-type RoundNumber = 1 | 2 | 3 | 4 | 5;
 
 interface DifficultyDistribution {
   easy: number;
@@ -57,91 +55,46 @@ interface DifficultyDistribution {
   hard: number;
 }
 
-interface QuizBoardRound {
-  roundNumber: RoundNumber;
-  name?: string;
-  label?: string;
-  questions: number;
-  playersFrom: number;
-  playersTo: number;
-  status?: string;
-  startedAt?: string;
-  endedAt?: string;
+interface QuizRound {
+  round_number: number;
+  no_of_questions: number;
+  difficultyBreakdown?: DifficultyDistribution;
+  exit_number?: number;
+  exit_reward?: number;
 }
 
-interface QuizBoardParticipant {
-  _id?: string;
-  id?: string;
-  userId?: string;
-  name?: string;
-  fullName?: string;
-  username?: string;
-  avatar?: string;
-  avatarUrl?: string;
-  score?: number;
-  points?: number;
-  rank?: number;
-  status?: string;
-  qualified?: boolean;
-  eliminated?: boolean;
-  responseTime?: number;
+interface FinalRoundInformation {
+  no_of_questions: number;
+  difficultyBreakdown?: DifficultyDistribution;
+  first_position_reward?: number;
+  second_position_reward?: number;
 }
 
-interface QuizBoardQuestion {
-  _id?: string;
-  id?: string;
-  questionNumber?: number;
-  roundNumber?: number;
-  status?: string;
-}
-
-interface QuizBoard {
+interface Quiz {
   _id: string;
-  id?: string;
-
-  title: string;
+  quiz_title: string;
   description?: string;
+  status?: QuizStatus | string;
 
   subject?: string;
-  subjectName?: string;
-  subjectIds?: string[];
 
-  difficulty?: QuizBoardDifficulty | string;
+  time_per_question?: number;
 
-  difficultyDistribution?: DifficultyDistribution;
+  start_date?: string;
 
-  status: QuizBoardStatus | string;
+  no_of_contestants?: number;
 
-  maxPlayers?: number;
-  players?: number;
-  participantCount?: number;
+  number_of_rounds?: number;
 
-  entryFee?: number;
-  entryPoints?: number;
-  entryFeeType?: string;
+  joined_users?: string[];
 
-  winnerReward?: number;
-  rewardPoints?: number;
+  round_information?: QuizRound[];
 
-  questionCount?: number;
-  totalQuestions?: number;
+  final_round_information?: FinalRoundInformation;
 
-  timePerQuestionSeconds?: number;
+  current_round?: number;
 
-  startsAt?: string;
-  startDate?: string;
-
-  endsAt?: string;
-  endDate?: string;
-
-  currentRound?: RoundNumber | number | null;
-
-  rounds?: QuizBoardRound[];
-
-  participants?: QuizBoardParticipant[];
-  playersList?: QuizBoardParticipant[];
-
-  questions?: QuizBoardQuestion[];
+  room_id?: string | null;
 
   createdAt?: string;
   updatedAt?: string;
@@ -152,52 +105,6 @@ interface SubjectResponse {
     subjectObj?: Subject[];
   };
 }
-
-const MAX_PLAYERS = 20;
-const TOTAL_QUESTIONS = 60;
-
-const ROUND_CONFIG: QuizBoardRound[] = [
-  {
-    roundNumber: 1,
-    name: "Round 1",
-    label: "20 → 15",
-    questions: 10,
-    playersFrom: 20,
-    playersTo: 15,
-  },
-  {
-    roundNumber: 2,
-    name: "Round 2",
-    label: "15 → 10",
-    questions: 10,
-    playersFrom: 15,
-    playersTo: 10,
-  },
-  {
-    roundNumber: 3,
-    name: "Round 3",
-    label: "10 → 5",
-    questions: 10,
-    playersFrom: 10,
-    playersTo: 5,
-  },
-  {
-    roundNumber: 4,
-    name: "Round 4",
-    label: "5 → 2",
-    questions: 10,
-    playersFrom: 5,
-    playersTo: 2,
-  },
-  {
-    roundNumber: 5,
-    name: "Final",
-    label: "2 → 1",
-    questions: 20,
-    playersFrom: 2,
-    playersTo: 1,
-  },
-];
 
 const STATUS_CONFIG: Record<
   string,
@@ -211,31 +118,43 @@ const STATUS_CONFIG: Record<
     className:
       "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
   },
+
   UPCOMING: {
     label: "Upcoming",
     className:
       "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300",
   },
+
   OPEN: {
     label: "Open",
     className:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300",
   },
+
   FULL: {
     label: "Full",
     className:
       "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300",
   },
+
+  IN_PROGRESS: {
+    label: "In Progress",
+    className:
+      "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300",
+  },
+
   LIVE: {
     label: "Live",
     className:
       "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300",
   },
+
   COMPLETED: {
     label: "Completed",
     className:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-300",
   },
+
   CANCELLED: {
     label: "Cancelled",
     className:
@@ -243,93 +162,98 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const DIFFICULTY_CONFIG: Record<
-  string,
-  {
-    label: string;
-    className: string;
-  }
-> = {
-  EASY: {
-    label: "Easy",
-    className:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300",
-  },
-  MEDIUM: {
-    label: "Medium",
-    className:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300",
-  },
-  HARD: {
-    label: "Hard",
-    className:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300",
-  },
-  MIXED: {
-    label: "Mixed",
-    className:
-      "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-300",
-  },
-};
-
 function normalizeStatus(value?: string) {
   return String(value ?? "DRAFT").toUpperCase();
 }
 
-function normalizeDifficulty(value?: string) {
-  return String(value ?? "MIXED").toUpperCase();
-}
-
-function getBoardId(board: QuizBoard) {
-  return board._id || board.id || "";
-}
-
-function getPlayerCount(board: QuizBoard) {
+function getApiErrorMessage(error: any) {
   return (
-    board.participantCount ??
-    board.players ??
-    board.participants?.length ??
-    board.playersList?.length ??
-    0
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    "Something went wrong. Please try again."
   );
 }
 
-function getMaxPlayers(board: QuizBoard) {
-  return board.maxPlayers ?? MAX_PLAYERS;
-}
+function extractQuiz(payload: any): Quiz | null {
+  const candidates = [
+    payload?.data,
+    payload?.quiz,
+    payload?.quizObj,
+    payload?.data?.quiz,
+    payload?.data?.quizObj,
+    payload,
+  ];
 
-function getEntryFee(board: QuizBoard) {
-  return board.entryFee ?? board.entryPoints ?? 0;
-}
-
-function getReward(board: QuizBoard) {
-  return board.winnerReward ?? board.rewardPoints ?? 0;
-}
-
-function getQuestionCount(board: QuizBoard) {
-  return board.totalQuestions ?? board.questionCount ?? TOTAL_QUESTIONS;
-}
-
-function getTimePerQuestion(board: QuizBoard) {
-  return board.timePerQuestionSeconds ?? 30;
-}
-
-function getCurrentRound(board: QuizBoard): RoundNumber | null {
-  const value = Number(board.currentRound);
-
-  if (value >= 1 && value <= 5) {
-    return value as RoundNumber;
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      !Array.isArray(candidate) &&
+      (candidate._id || candidate.quiz_title)
+    ) {
+      return candidate as Quiz;
+    }
   }
 
   return null;
 }
 
-function getStartDate(board: QuizBoard) {
-  return board.startsAt ?? board.startDate;
+function getQuizId(quiz: Quiz) {
+  return quiz._id;
 }
 
-function getEndDate(board: QuizBoard) {
-  return board.endsAt ?? board.endDate;
+function getPlayerCount(quiz: Quiz) {
+  return Array.isArray(quiz.joined_users)
+    ? quiz.joined_users.length
+    : 0;
+}
+
+function getMaxPlayers(quiz: Quiz) {
+  return Number(quiz.no_of_contestants ?? 0);
+}
+
+function getTimePerQuestion(quiz: Quiz) {
+  return Number(quiz.time_per_question ?? 0);
+}
+
+function getCurrentRound(quiz: Quiz) {
+  const value = Number(quiz.current_round ?? 0);
+
+  return value > 0 ? value : null;
+}
+
+function getTotalQuestions(quiz: Quiz) {
+  const eliminationQuestions = Array.isArray(
+    quiz.round_information,
+  )
+    ? quiz.round_information.reduce(
+        (total, round) =>
+          total + Number(round.no_of_questions ?? 0),
+        0,
+      )
+    : 0;
+
+  const finalQuestions = Number(
+    quiz.final_round_information?.no_of_questions ?? 0,
+  );
+
+  return eliminationQuestions + finalQuestions;
+}
+
+function getSubjectName(
+  quiz: Quiz,
+  subjects: Subject[],
+) {
+  if (!quiz.subject) {
+    return "Not specified";
+  }
+
+  const foundSubject = subjects.find(
+    (subject) => subject._id === quiz.subject,
+  );
+
+  return foundSubject?.name || quiz.subject;
 }
 
 function formatDateTime(value?: string) {
@@ -365,111 +289,157 @@ function formatPoints(value: number) {
   return new Intl.NumberFormat("en-NG").format(value);
 }
 
-function getApiErrorMessage(error: any) {
-  return (
-    error?.response?.data?.message ||
-    error?.response?.data?.error ||
-    error?.message ||
-    "Something went wrong. Please try again."
+function getRoundLabel(
+  round: QuizRound,
+  index: number,
+  totalPlayers: number,
+) {
+  const nextPlayers =
+    totalPlayers -
+    Number(round.exit_number ?? 0);
+
+  return `Round ${round.round_number || index + 1}`;
+}
+
+function getRoundPlayersFrom(
+  round: QuizRound,
+  index: number,
+  maxPlayers: number,
+) {
+  if (index === 0) {
+    return maxPlayers;
+  }
+
+  const previousRounds = round;
+
+  void previousRounds;
+
+  return Math.max(
+    1,
+    maxPlayers -
+      Array.from(
+        { length: index },
+        (_, previousIndex) =>
+          Number(
+            0 +
+              previousIndex,
+          ),
+      ).reduce(
+        (total, value) => total + value,
+        0,
+      ),
   );
 }
 
-function extractQuizBoard(payload: any): QuizBoard | null {
-  const candidates = [
-    payload?.quizBoard,
-    payload?.quizBoardObj,
-    payload?.data?.quizBoard,
-    payload?.data?.quizBoardObj,
-    payload?.data,
-    payload,
-  ];
+function getRoundQualificationText(
+  round: QuizRound,
+  index: number,
+  rounds: QuizRound[],
+  maxPlayers: number,
+) {
+  if (index === 0) {
+    const exitNumber = Number(
+      round.exit_number ?? 0,
+    );
 
-  for (const candidate of candidates) {
-    if (
-      candidate &&
-      typeof candidate === "object" &&
-      !Array.isArray(candidate) &&
-      (candidate._id || candidate.id || candidate.title)
-    ) {
-      return candidate as QuizBoard;
-    }
+    return exitNumber > 0
+      ? `${maxPlayers} → ${Math.max(
+          1,
+          maxPlayers - exitNumber,
+        )}`
+      : `${maxPlayers} players`;
   }
 
-  return null;
-}
+  let playersBefore = maxPlayers;
 
-function extractParticipants(payload: any): QuizBoardParticipant[] {
-  const candidates = [
-    payload?.participants,
-    payload?.players,
-    payload?.participantObj,
-    payload?.playerObj,
-    payload?.data?.participants,
-    payload?.data?.players,
-    payload?.data?.participantObj,
-    payload?.data?.playerObj,
-    payload?.data,
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return candidate;
-    }
+  for (let i = 0; i < index; i += 1) {
+    playersBefore = Math.max(
+      1,
+      playersBefore -
+        Number(rounds[i].exit_number ?? 0),
+    );
   }
 
-  return [];
-}
-
-function getParticipantName(player: QuizBoardParticipant) {
-  return (
-    player.fullName ||
-    player.name ||
-    player.username ||
-    "Unnamed participant"
+  const exitNumber = Number(
+    round.exit_number ?? 0,
   );
+
+  const playersAfter = Math.max(
+    1,
+    playersBefore - exitNumber,
+  );
+
+  return `${playersBefore} → ${playersAfter}`;
 }
 
-function getParticipantScore(player: QuizBoardParticipant) {
-  return player.score ?? player.points ?? 0;
+function getFinalPlayersText(
+  quiz: Quiz,
+  rounds: QuizRound[],
+) {
+  let players = getMaxPlayers(quiz);
+
+  rounds.forEach((round) => {
+    players = Math.max(
+      1,
+      players -
+        Number(round.exit_number ?? 0),
+    );
+  });
+
+  return players;
 }
 
-function getParticipantStatus(player: QuizBoardParticipant) {
-  if (player.eliminated) return "Eliminated";
-  if (player.qualified) return "Qualified";
+function getDifficultyTotal(
+  distribution?: DifficultyDistribution,
+) {
+  if (!distribution) return 0;
 
-  const status = String(player.status ?? "").toUpperCase();
-
-  if (status === "ELIMINATED") return "Eliminated";
-  if (status === "QUALIFIED") return "Qualified";
-  if (status === "ACTIVE") return "Active";
-
-  return "Active";
+  return (
+    Number(distribution.easy ?? 0) +
+    Number(distribution.medium ?? 0) +
+    Number(distribution.hard ?? 0)
+  );
 }
 
 export default function QuizBoardDetailsPage() {
   const params = useParams();
   const router = useRouter();
 
-  const quizBoardId = String(params["quiz-competitionsId"] ?? "");
+  const quizId = String(
+    params["quiz-competitionsId"] ?? "",
+  );
 
-  const [board, setBoard] = useState<QuizBoard | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [participants, setParticipants] = useState<QuizBoardParticipant[]>([]);
+  const [quiz, setQuiz] = useState<Quiz | null>(
+    null,
+  );
+
+  const [subjects, setSubjects] = useState<
+    Subject[]
+  >([]);
 
   const [loading, setLoading] = useState(true);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] =
+    useState(false);
 
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
+  const [actionError, setActionError] =
+    useState("");
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showStartModal, setShowStartModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCreateRoomModal, setShowCreateRoomModal] =
+    useState(false);
 
-  const fetchBoard = useCallback(async () => {
-    if (!quizBoardId) {
-      setError("Quiz Board ID was not found.");
+  const [showStartModal, setShowStartModal] =
+    useState(false);
+
+  const [showCancelModal, setShowCancelModal] =
+    useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] =
+    useState(false);
+
+  const fetchQuiz = useCallback(async () => {
+    if (!quizId) {
+      setError("Quiz ID was not found.");
       setLoading(false);
       return;
     }
@@ -479,116 +449,154 @@ export default function QuizBoardDetailsPage() {
       setError("");
 
       const response = await axiosInstance.get(
-        `/admin/quiz-board/${quizBoardId}`,
+        `/quiz/get-quiz-by-quizId/${quizId}`,
       );
 
-      const nextBoard = extractQuizBoard(response.data);
+      const nextQuiz = extractQuiz(
+        response.data,
+      );
 
-      if (!nextBoard) {
-        throw new Error("Quiz Board data was not returned by the server.");
+      if (!nextQuiz) {
+        throw new Error(
+          "Quiz data was not returned by the server.",
+        );
       }
 
-      setBoard(nextBoard);
+      setQuiz(nextQuiz);
     } catch (err) {
-      console.error("Failed to load Quiz Board:", err);
-      setError(getApiErrorMessage(err));
+      console.error(
+        "Failed to load Quiz Board:",
+        err,
+      );
+
+      setError(
+        getApiErrorMessage(err),
+      );
     } finally {
       setLoading(false);
     }
-  }, [quizBoardId]);
+  }, [quizId]);
 
-  const fetchParticipants = useCallback(async () => {
-    if (!quizBoardId) return;
+  const fetchSubjects = useCallback(
+    async () => {
+      try {
+        const response =
+          (await getSubjectsByPlan(
+            "SECONDARY",
+            1,
+            100,
+          )) as SubjectResponse;
 
-    try {
-      setLoadingParticipants(true);
-
-      const response = await axiosInstance.get(
-        `/admin/quiz-board/${quizBoardId}/players`,
-      );
-
-      const nextParticipants = extractParticipants(response.data);
-
-      setParticipants(nextParticipants);
-    } catch (err) {
-      console.error("Failed to load Quiz Board participants:", err);
-
-      // Participants are supplementary to the main board.
-      // Do not replace the whole page with an error if this request fails.
-    } finally {
-      setLoadingParticipants(false);
-    }
-  }, [quizBoardId]);
-
-  const fetchSubjects = useCallback(async () => {
-    try {
-      const response = (await getSubjectsByPlan(
-        "SECONDARY",
-        1,
-        100,
-      )) as SubjectResponse;
-
-      setSubjects(response?.data?.subjectObj ?? []);
-    } catch (err) {
-      console.error("Failed to load subjects:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchBoard();
-    fetchParticipants();
-    fetchSubjects();
-  }, [fetchBoard, fetchParticipants, fetchSubjects]);
-
-  const status = normalizeStatus(board?.status);
-  const difficulty = normalizeDifficulty(board?.difficulty);
-
-  const playerCount = board ? getPlayerCount(board) : 0;
-  const maxPlayers = board ? getMaxPlayers(board) : MAX_PLAYERS;
-  const playerPercentage = Math.min(
-    100,
-    Math.round((playerCount / Math.max(maxPlayers, 1)) * 100),
+        setSubjects(
+          response?.data?.subjectObj ?? [],
+        );
+      } catch (err) {
+        console.error(
+          "Failed to load subjects:",
+          err,
+        );
+      }
+    },
+    [],
   );
 
-  const currentRound = board ? getCurrentRound(board) : null;
+  useEffect(() => {
+    fetchQuiz();
+    fetchSubjects();
+  }, [fetchQuiz, fetchSubjects]);
 
-  const selectedSubjects = useMemo(() => {
-    if (!board) return [];
+  const status = normalizeStatus(
+    quiz?.status,
+  );
 
-    if (board.subjectIds?.length) {
-      return subjects.filter((subject) =>
-        board.subjectIds?.includes(subject._id),
-      );
-    }
+  const playerCount = quiz
+    ? getPlayerCount(quiz)
+    : 0;
 
-    const subjectName = board.subjectName || board.subject;
+  const maxPlayers = quiz
+    ? getMaxPlayers(quiz)
+    : 0;
 
-    if (!subjectName) return [];
+  const isFull =
+    maxPlayers > 0 &&
+    playerCount >= maxPlayers;
 
-    return subjects.filter(
-      (subject) =>
-        subject.name?.toLowerCase() === subjectName.toLowerCase(),
-    );
-  }, [board, subjects]);
+  const roomId =
+    quiz?.room_id?.trim() || "";
 
-  const difficultyDistribution =
-    board?.difficultyDistribution ?? {
-      easy: 20,
-      medium: 30,
-      hard: 50,
-    };
+  const roomCreated = Boolean(roomId);
 
-  const currentRoundConfig = currentRound
-    ? ROUND_CONFIG.find(
-        (round) => round.roundNumber === currentRound,
-      )
+  const currentRound = quiz
+    ? getCurrentRound(quiz)
     : null;
 
-  const canStart =
-    status === "DRAFT" ||
-    status === "UPCOMING" ||
-    status === "OPEN" ||
-    status === "FULL";
+  const rounds = useMemo(
+    () =>
+      Array.isArray(quiz?.round_information)
+        ? quiz.round_information
+        : [],
+    [quiz],
+  );
+
+  const totalQuestions = quiz
+    ? getTotalQuestions(quiz)
+    : 0;
+
+  const subjectName = quiz
+    ? getSubjectName(quiz, subjects)
+    : "Not specified";
+
+  const playerPercentage =
+    maxPlayers > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (playerCount / maxPlayers) *
+              100,
+          ),
+        )
+      : 0;
+
+  /*
+   * IMPORTANT:
+   *
+   * room_id means the room has been CREATED.
+   *
+   * current_round === 0 means the competition
+   * has NOT started yet.
+   *
+   * IN_PROGRESS by itself is not enough to make
+   * the student page LIVE.
+   */
+  const competitionStarted =
+    currentRound !== null ||
+    status === "LIVE";
+
+  /*
+   * Create Room is only available when:
+   *
+   * 1. There is no room yet
+   * 2. All contestants have joined
+   * 3. Quiz is not already running/completed
+   */
+  const canCreateRoom =
+    !roomCreated &&
+    isFull &&
+    !competitionStarted &&
+    status !== "COMPLETED" &&
+    status !== "CANCELLED";
+
+  /*
+   * Start Competition is available only after
+   * the room has been created and the competition
+   * has not started.
+   */
+  const canStartCompetition =
+    roomCreated &&
+    !competitionStarted &&
+    isFull &&
+    status !== "COMPLETED" &&
+    status !== "CANCELLED";
 
   const canCancel =
     status !== "COMPLETED" &&
@@ -598,60 +606,120 @@ export default function QuizBoardDetailsPage() {
     status === "DRAFT" ||
     status === "CANCELLED";
 
-  async function startQuizBoard() {
-    if (!board) return;
+  async function createQuizRoom() {
+    if (!quiz) return;
 
     try {
       setActionLoading(true);
       setActionError("");
 
+      const response =
+        await axiosInstance.post(
+          `/quiz/create-room/${getQuizId(quiz)}`,
+        );
+
+      console.log(
+        "Create room response:",
+        response.data,
+      );
+
+      setShowCreateRoomModal(false);
+
+      /*
+       * The API response is:
+
+       * data.data.roomId
+       * data.data.quizId
+       *
+       * Refreshing the quiz is important because
+       * room_id is persisted on the quiz.
+       */
+      await fetchQuiz();
+    } catch (err) {
+      console.error(
+        "Failed to create Quiz Room:",
+        err,
+      );
+
+      setActionError(
+        getApiErrorMessage(err),
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function startQuizBoard() {
+    if (!quiz) return;
+
+    try {
+      setActionLoading(true);
+      setActionError("");
+
+      /*
+       * This is the existing backend action used
+       * to start the competition.
+       *
+       * We do NOT use room creation here.
+       */
       await axiosInstance.post(
-        `/admin/quiz-board/${getBoardId(board)}/start`,
+        `/admin/quiz-board/${getQuizId(quiz)}/start`,
       );
 
       setShowStartModal(false);
 
-      await fetchBoard();
-      await fetchParticipants();
+      await fetchQuiz();
     } catch (err) {
-      console.error("Failed to start Quiz Board:", err);
-      setActionError(getApiErrorMessage(err));
+      console.error(
+        "Failed to start Quiz Board:",
+        err,
+      );
+
+      setActionError(
+        getApiErrorMessage(err),
+      );
     } finally {
       setActionLoading(false);
     }
   }
 
   async function cancelQuizBoard() {
-    if (!board) return;
+    if (!quiz) return;
 
     try {
       setActionLoading(true);
       setActionError("");
 
       await axiosInstance.post(
-        `/admin/quiz-board/${getBoardId(board)}/cancel`,
+        `/admin/quiz-board/${getQuizId(quiz)}/cancel`,
       );
 
       setShowCancelModal(false);
 
-      await fetchBoard();
+      await fetchQuiz();
     } catch (err) {
-      console.error("Failed to cancel Quiz Board:", err);
-      setActionError(getApiErrorMessage(err));
+      console.error(
+        "Failed to cancel Quiz Board:",
+        err,
+      );
+
+      setActionError(
+        getApiErrorMessage(err),
+      );
     } finally {
       setActionLoading(false);
     }
   }
 
   async function deleteQuizBoard() {
-    if (!board) return;
+    if (!quiz) return;
 
     try {
       setActionLoading(true);
       setActionError("");
 
       await axiosInstance.delete(
-        `/admin/quiz-board/${getBoardId(board)}`,
+        `/admin/quiz-board/${getQuizId(quiz)}`,
       );
 
       setShowDeleteModal(false);
@@ -660,8 +728,15 @@ export default function QuizBoardDetailsPage() {
         "/admin/secondary/quiz-board/quiz-competitions",
       );
     } catch (err) {
-      console.error("Failed to delete Quiz Board:", err);
-      setActionError(getApiErrorMessage(err));
+      console.error(
+        "Failed to delete Quiz Board:",
+        err,
+      );
+
+      setActionError(
+        getApiErrorMessage(err),
+      );
+
       setActionLoading(false);
     }
   }
@@ -673,6 +748,7 @@ export default function QuizBoardDetailsPage() {
           <div className="flex min-h-[60vh] items-center justify-center">
             <div className="flex flex-col items-center gap-3 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Loading Quiz Board...
               </p>
@@ -683,7 +759,7 @@ export default function QuizBoardDetailsPage() {
     );
   }
 
-  if (error || !board) {
+  if (error || !quiz) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -714,8 +790,10 @@ export default function QuizBoardDetailsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={fetchBoard}
-                  leftIcon={<RefreshCw className="h-4 w-4" />}
+                  onClick={fetchQuiz}
+                  leftIcon={
+                    <RefreshCw className="h-4 w-4" />
+                  }
                 >
                   Try Again
                 </Button>
@@ -723,7 +801,9 @@ export default function QuizBoardDetailsPage() {
                 <Link href="/admin/secondary/quiz-board/quiz-competitions">
                   <Button
                     type="button"
-                    leftIcon={<ArrowLeft className="h-4 w-4" />}
+                    leftIcon={
+                      <ArrowLeft className="h-4 w-4" />
+                    }
                   >
                     Back to Quiz Boards
                   </Button>
@@ -760,7 +840,7 @@ export default function QuizBoardDetailsPage() {
           <span>/</span>
 
           <span className="font-medium text-slate-900 dark:text-white">
-            {board.title}
+            {quiz.quiz_title}
           </span>
         </div>
 
@@ -783,22 +863,20 @@ export default function QuizBoardDetailsPage() {
                     STATUS_CONFIG.DRAFT.className
                   }`}
                 >
-                  {status === "LIVE" && (
+                  {competitionStarted && (
                     <span className="mr-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
                   )}
 
-                  {STATUS_CONFIG[status]?.label ?? status}
+                  {STATUS_CONFIG[status]?.label ??
+                    status}
                 </span>
 
-                <span
-                  className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-                    DIFFICULTY_CONFIG[difficulty]?.className ??
-                    DIFFICULTY_CONFIG.MIXED.className
-                  }`}
-                >
-                  {DIFFICULTY_CONFIG[difficulty]?.label ??
-                    difficulty}
-                </span>
+                {roomCreated && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Room Created
+                  </span>
+                )}
 
                 {currentRound && (
                   <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-300">
@@ -808,11 +886,11 @@ export default function QuizBoardDetailsPage() {
               </div>
 
               <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-                {board.title}
+                {quiz.quiz_title}
               </h1>
 
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400 sm:text-base">
-                {board.description ||
+                {quiz.description ||
                   "Live competitive Quiz Board with timed questions, elimination rounds, and a final winner."}
               </p>
             </div>
@@ -821,17 +899,12 @@ export default function QuizBoardDetailsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  fetchBoard();
-                  fetchParticipants();
-                }}
-                disabled={loading || loadingParticipants}
+                onClick={fetchQuiz}
+                disabled={loading}
                 leftIcon={
                   <RefreshCw
                     className={`h-4 w-4 ${
-                      loading || loadingParticipants
-                        ? "animate-spin"
-                        : ""
+                      loading ? "animate-spin" : ""
                     }`}
                   />
                 }
@@ -839,46 +912,72 @@ export default function QuizBoardDetailsPage() {
                 Refresh
               </Button>
 
-              {status === "LIVE" && (
+              {competitionStarted && (
                 <Link
-                  href={`/student/quiz-board/${getBoardId(board)}/watch`}
+                  href={`/student/quiz-board/${getQuizId(
+                    quiz,
+                  )}/watch`}
                   target="_blank"
                 >
                   <Button
                     type="button"
                     variant="outline"
-                    leftIcon={<Eye className="h-4 w-4" />}
+                    leftIcon={
+                      <Eye className="h-4 w-4" />
+                    }
                   >
                     Watch Live
                   </Button>
                 </Link>
               )}
 
-              {(status === "DRAFT" ||
-                status === "UPCOMING" ||
-                status === "OPEN") && (
-                <Link
-                  href={`/admin/secondary/quiz-board/quiz-competitions/${getBoardId(
-                    board,
-                  )}/edit`}
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    leftIcon={<Edit3 className="h-4 w-4" />}
+              {!competitionStarted &&
+                status !== "CANCELLED" &&
+                status !== "COMPLETED" && (
+                  <Link
+                    href={`/admin/secondary/quiz-board/quiz-competitions/${getQuizId(
+                      quiz,
+                    )}/edit`}
                   >
-                    Edit
-                  </Button>
-                </Link>
-              )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      leftIcon={
+                        <Edit3 className="h-4 w-4" />
+                      }
+                    >
+                      Edit
+                    </Button>
+                  </Link>
+                )}
 
-              {canStart && (
+              {/* CREATE ROOM */}
+              {canCreateRoom && (
                 <Button
                   type="button"
-                  onClick={() => setShowStartModal(true)}
-                  leftIcon={<Play className="h-4 w-4" />}
+                  onClick={() =>
+                    setShowCreateRoomModal(true)
+                  }
+                  leftIcon={
+                    <Users className="h-4 w-4" />
+                  }
                 >
-                  Start Quiz Board
+                  Create Quiz Room
+                </Button>
+              )}
+
+              {/* START COMPETITION */}
+              {canStartCompetition && (
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setShowStartModal(true)
+                  }
+                  leftIcon={
+                    <Play className="h-4 w-4" />
+                  }
+                >
+                  Open Room / Start Competition
                 </Button>
               )}
 
@@ -886,8 +985,12 @@ export default function QuizBoardDetailsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowCancelModal(true)}
-                  leftIcon={<X className="h-4 w-4" />}
+                  onClick={() =>
+                    setShowCancelModal(true)
+                  }
+                  leftIcon={
+                    <X className="h-4 w-4" />
+                  }
                 >
                   Cancel
                 </Button>
@@ -897,8 +1000,12 @@ export default function QuizBoardDetailsPage() {
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={() => setShowDeleteModal(true)}
-                  leftIcon={<Trash2 className="h-4 w-4" />}
+                  onClick={() =>
+                    setShowDeleteModal(true)
+                  }
+                  leftIcon={
+                    <Trash2 className="h-4 w-4" />
+                  }
                 >
                   Delete
                 </Button>
@@ -910,11 +1017,15 @@ export default function QuizBoardDetailsPage() {
         {actionError && (
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+
             <div className="flex-1">
               <p className="font-semibold">
                 Action failed
               </p>
-              <p className="mt-1">{actionError}</p>
+
+              <p className="mt-1">
+                {actionError}
+              </p>
             </div>
 
             <button
@@ -928,8 +1039,178 @@ export default function QuizBoardDetailsPage() {
           </div>
         )}
 
-        {/* Live banner */}
-        {status === "LIVE" && (
+        {/* ROOM LIFECYCLE CARD */}
+        {!competitionStarted && (
+          <Card className="mb-6 overflow-hidden border-blue-200 dark:border-blue-900">
+            <div className="border-b border-blue-100 bg-blue-50/70 p-5 dark:border-blue-900/50 dark:bg-blue-950/20 sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                  <Play className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Competition Room
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                    The Quiz Board follows a two-step launch process:
+                    create the room first, then open the room to start
+                    the competition.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                {/* STEP 1 */}
+                <div
+                  className={`rounded-xl border p-4 ${
+                    roomCreated
+                      ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20"
+                      : "border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/20"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
+                        roomCreated
+                          ? "bg-emerald-600 text-white"
+                          : "bg-blue-600 text-white"
+                      }`}
+                    >
+                      {roomCreated ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        "1"
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        Create Room
+                      </p>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {roomCreated
+                          ? "Completed"
+                          : isFull
+                            ? "Ready"
+                            : "Waiting for contestants"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 2 */}
+                <div
+                  className={`rounded-xl border p-4 ${
+                    canStartCompetition
+                      ? "border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20"
+                      : competitionStarted
+                        ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20"
+                        : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
+                        canStartCompetition
+                          ? "bg-amber-500 text-white"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      2
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        Open Room
+                      </p>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {canStartCompetition
+                          ? "Ready to start"
+                          : "After room creation"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 3 */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      3
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        Round 1 Starts
+                      </p>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Backend starts the round
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!isFull && (
+                <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+                  <Users className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+
+                  <div>
+                    <p className="font-semibold text-amber-900 dark:text-amber-200">
+                      Waiting for contestants
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-amber-800/80 dark:text-amber-300/80">
+                      {playerCount} of {maxPlayers} contestants
+                      have joined. The room can be created once all
+                      available contestant positions are filled.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {roomCreated && (
+                <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                        Quiz Room ID
+                      </p>
+
+                      <p className="mt-1 break-all font-mono text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                        {roomId}
+                      </p>
+                    </div>
+
+                    {canStartCompetition && (
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          setShowStartModal(true)
+                        }
+                        leftIcon={
+                          <Play className="h-4 w-4" />
+                        }
+                      >
+                        Open Room / Start Competition
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* LIVE BANNER */}
+        {competitionStarted && (
           <div className="mb-6 overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 via-white to-orange-50 p-5 dark:border-red-900/60 dark:from-red-950/20 dark:via-slate-900 dark:to-orange-950/20">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-4">
@@ -940,26 +1221,31 @@ export default function QuizBoardDetailsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+
                     <p className="font-bold text-red-700 dark:text-red-400">
                       Quiz Board is LIVE
                     </p>
                   </div>
 
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    {currentRoundConfig
-                      ? `${currentRoundConfig.name}: ${currentRoundConfig.playersFrom} players competing for ${currentRoundConfig.playersTo} qualifying positions.`
+                    {currentRound
+                      ? `Round ${currentRound} is currently active.`
                       : "Students are currently competing in this Quiz Board."}
                   </p>
                 </div>
               </div>
 
               <Link
-                href={`/student/quiz-board/${getBoardId(board)}/watch`}
+                href={`/student/quiz-board/${getQuizId(
+                  quiz,
+                )}/watch`}
                 target="_blank"
               >
                 <Button
                   type="button"
-                  leftIcon={<Eye className="h-4 w-4" />}
+                  leftIcon={
+                    <Eye className="h-4 w-4" />
+                  }
                 >
                   Open Live Board
                 </Button>
@@ -979,6 +1265,7 @@ export default function QuizBoardDetailsPage() {
 
                 <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                   {playerCount}
+
                   <span className="ml-1 text-base font-medium text-slate-400">
                     / {maxPlayers}
                   </span>
@@ -1008,7 +1295,7 @@ export default function QuizBoardDetailsPage() {
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                  {getQuestionCount(board)}
+                  {totalQuestions}
                 </p>
               </div>
 
@@ -1018,7 +1305,8 @@ export default function QuizBoardDetailsPage() {
             </div>
 
             <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              10 + 10 + 10 + 10 + 20
+              {rounds.length} elimination round
+              {rounds.length === 1 ? "" : "s"} + final
             </p>
           </Card>
 
@@ -1026,21 +1314,21 @@ export default function QuizBoardDetailsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Entry Fee
+                  Time / Question
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                  {formatPoints(getEntryFee(board))}
+                  {getTimePerQuestion(quiz)}
                 </p>
               </div>
 
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
-                <Coins className="h-5 w-5" />
+                <Clock3 className="h-5 w-5" />
               </div>
             </div>
 
             <p className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-              CBT Points
+              seconds
             </p>
           </Card>
 
@@ -1048,11 +1336,11 @@ export default function QuizBoardDetailsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Winner Reward
+                  Current Round
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                  {formatPoints(getReward(board))}
+                  {currentRound ?? "—"}
                 </p>
               </div>
 
@@ -1062,14 +1350,16 @@ export default function QuizBoardDetailsPage() {
             </div>
 
             <p className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-              CBT Points
+              {competitionStarted
+                ? "Competition active"
+                : "Not started"}
             </p>
           </Card>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            {/* Competition configuration */}
+            {/* Configuration */}
             <Card className="p-5 sm:p-6">
               <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
@@ -1078,7 +1368,7 @@ export default function QuizBoardDetailsPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Core settings used for this live competition.
+                    Core settings returned by the Quiz API.
                   </p>
                 </div>
 
@@ -1087,109 +1377,154 @@ export default function QuizBoardDetailsPage() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <InfoItem
-                  icon={<Users className="h-4 w-4" />}
+                  icon={
+                    <Users className="h-4 w-4" />
+                  }
                   label="Maximum Players"
                   value={`${maxPlayers} students`}
                 />
 
                 <InfoItem
-                  icon={<Clock3 className="h-4 w-4" />}
+                  icon={
+                    <Users className="h-4 w-4" />
+                  }
+                  label="Joined Players"
+                  value={`${playerCount} students`}
+                />
+
+                <InfoItem
+                  icon={
+                    <Clock3 className="h-4 w-4" />
+                  }
                   label="Time Per Question"
-                  value={`${getTimePerQuestion(board)} seconds`}
+                  value={`${getTimePerQuestion(
+                    quiz,
+                  )} seconds`}
                 />
 
                 <InfoItem
-                  icon={<FileQuestion className="h-4 w-4" />}
+                  icon={
+                    <FileQuestion className="h-4 w-4" />
+                  }
                   label="Total Questions"
-                  value={`${getQuestionCount(board)} questions`}
+                  value={`${totalQuestions} questions`}
                 />
 
                 <InfoItem
-                  icon={<Coins className="h-4 w-4" />}
-                  label="Entry Type"
-                  value="CBT Points"
+                  icon={
+                    <Trophy className="h-4 w-4" />
+                  }
+                  label="Number of Rounds"
+                  value={`${quiz.number_of_rounds ?? 0} rounds`}
                 />
 
                 <InfoItem
-                  icon={<CalendarDays className="h-4 w-4" />}
+                  icon={
+                    <CalendarDays className="h-4 w-4" />
+                  }
                   label="Scheduled Start"
-                  value={formatDateTime(getStartDate(board))}
+                  value={formatDateTime(
+                    quiz.start_date,
+                  )}
                 />
 
                 <InfoItem
-                  icon={<CalendarDays className="h-4 w-4" />}
+                  icon={
+                    <CalendarDays className="h-4 w-4" />
+                  }
                   label="Created"
-                  value={formatDate(board.createdAt)}
+                  value={formatDate(
+                    quiz.createdAt,
+                  )}
+                />
+
+                <InfoItem
+                  icon={
+                    <ShieldCheck className="h-4 w-4" />
+                  }
+                  label="Subject"
+                  value={subjectName}
                 />
               </div>
+            </Card>
+
+            {/* Room */}
+            <Card className="p-5 sm:p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  <Users className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Quiz Room
+                  </h2>
+
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Room lifecycle and connection state.
+                  </p>
+                </div>
+              </div>
+
+              {roomCreated ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+
+                    <div className="min-w-0">
+                      <p className="font-semibold text-emerald-900 dark:text-emerald-200">
+                        Room created successfully
+                      </p>
+
+                      <p className="mt-2 break-all font-mono text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                        {roomId}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!competitionStarted && (
+                    <div className="mt-4 border-t border-emerald-200 pt-4 dark:border-emerald-900">
+                      <p className="text-sm text-emerald-800/80 dark:text-emerald-300/80">
+                        The room exists, but the competition has not
+                        started yet. Use <strong>Open Room / Start
+                        Competition</strong> to begin Round 1.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700">
+                  <Users className="mx-auto h-8 w-8 text-slate-400" />
+
+                  <p className="mt-3 font-semibold text-slate-900 dark:text-white">
+                    Quiz room has not been created
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {isFull
+                      ? "All contestant positions are filled. The room can now be created."
+                      : `${playerCount} of ${maxPlayers} contestants have joined.`}
+                  </p>
+                </div>
+              )}
             </Card>
 
             {/* Subjects */}
             <Card className="p-5 sm:p-6">
               <div className="mb-5">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Question Subjects
+                  Question Subject
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Questions will be selected from the configured secondary
-                  school subjects.
+                  Subject configured for this Quiz Board.
                 </p>
               </div>
 
-              {selectedSubjects.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  {selectedSubjects.map((subject) => (
-                    <div
-                      key={subject._id}
-                      className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300"
-                    >
-                      <BookOpenIcon />
-                      {subject.name}
-                    </div>
-                  ))}
-                </div>
-              ) : board.subjectName || board.subject ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
-                  {board.subjectName || board.subject}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  No subjects were returned for this Quiz Board.
-                </div>
-              )}
-            </Card>
+              <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
+                <BookOpenIcon />
 
-            {/* Difficulty */}
-            <Card className="p-5 sm:p-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Difficulty Distribution
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Difficulty percentages used when building the question pool.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <DifficultyBox
-                  label="Easy"
-                  value={difficultyDistribution.easy}
-                  total={getQuestionCount(board)}
-                />
-
-                <DifficultyBox
-                  label="Medium"
-                  value={difficultyDistribution.medium}
-                  total={getQuestionCount(board)}
-                />
-
-                <DifficultyBox
-                  label="Hard"
-                  value={difficultyDistribution.hard}
-                  total={getQuestionCount(board)}
-                />
+                {subjectName}
               </div>
             </Card>
 
@@ -1203,116 +1538,292 @@ export default function QuizBoardDetailsPage() {
 
                   <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                      Five-Stage Elimination
+                      Competition Rounds
                     </h2>
 
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Every Quiz Board follows the same qualification path.
+                      Round structure returned by the backend.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                {ROUND_CONFIG.map((round) => {
-                  const isCurrent =
-                    currentRound === round.roundNumber;
+              <div className="space-y-3">
+                {rounds.map(
+                  (round, index) => {
+                    const isCurrent =
+                      currentRound ===
+                      round.round_number;
 
-                  const isPast =
-                    currentRound !== null &&
-                    currentRound !== undefined &&
-                    round.roundNumber < currentRound;
+                    const isPast =
+                      currentRound !== null &&
+                      round.round_number <
+                        currentRound;
 
-                  return (
-                    <div
-                      key={round.roundNumber}
-                      className={`relative overflow-hidden rounded-xl border p-4 transition-colors ${
-                        isCurrent
-                          ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20"
-                          : isPast
-                            ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/10"
-                            : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/30"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                              isCurrent
-                                ? "bg-blue-600 text-white"
-                                : isPast
-                                  ? "bg-emerald-600 text-white"
-                                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                            }`}
-                          >
-                            {isPast ? (
-                              <CheckCircle2 className="h-5 w-5" />
-                            ) : (
-                              round.roundNumber
-                            )}
+                    const qualificationText =
+                      getRoundQualificationText(
+                        round,
+                        index,
+                        rounds,
+                        maxPlayers,
+                      );
+
+                    return (
+                      <div
+                        key={`${round.round_number}-${index}`}
+                        className={`rounded-xl border p-4 ${
+                          isCurrent
+                            ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20"
+                            : isPast
+                              ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/10"
+                              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/30"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                                isCurrent
+                                  ? "bg-blue-600 text-white"
+                                  : isPast
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              }`}
+                            >
+                              {isPast ? (
+                                <CheckCircle2 className="h-5 w-5" />
+                              ) : (
+                                round.round_number
+                              )}
+                            </div>
+
+                            <div>
+                              <p className="font-bold text-slate-900 dark:text-white">
+                                Round{" "}
+                                {
+                                  round.round_number
+                                }
+                              </p>
+
+                              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                                {
+                                  round.no_of_questions
+                                }{" "}
+                                questions
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white">
-                              {round.name}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              {qualificationText}
+                            </span>
 
-                            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                              {round.questions} questions
-                            </p>
+                            {round.exit_number !==
+                              undefined && (
+                              <span className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                                Exit:{" "}
+                                {
+                                  round.exit_number
+                                }
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            {round.playersFrom} players
-                          </span>
+                        {round.difficultyBreakdown && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <DifficultyPill
+                              label="Easy"
+                              value={
+                                round
+                                  .difficultyBreakdown
+                                  .easy
+                              }
+                            />
 
-                          <span className="text-slate-400">→</span>
+                            <DifficultyPill
+                              label="Medium"
+                              value={
+                                round
+                                  .difficultyBreakdown
+                                  .medium
+                              }
+                            />
 
-                          <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                            {round.playersTo} qualify
-                          </span>
+                            <DifficultyPill
+                              label="Hard"
+                              value={
+                                round
+                                  .difficultyBreakdown
+                                  .hard
+                              }
+                            />
+
+                            {round.exit_reward !==
+                              undefined && (
+                              <DifficultyPill
+                                label="Exit reward"
+                                value={
+                                  round.exit_reward
+                                }
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {isCurrent && (
+                          <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
+                            Current Round
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                )}
+
+                {/* FINAL */}
+                {quiz.final_round_information && (
+                  <div
+                    className={`rounded-xl border p-4 ${
+                      currentRound ===
+                      (quiz.number_of_rounds ??
+                        rounds.length)
+                        ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20"
+                        : "border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/10"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-sm font-bold text-white">
+                          F
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">
+                            Final Round
+                          </p>
+
+                          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                            {
+                              quiz
+                                .final_round_information
+                                .no_of_questions
+                            }{" "}
+                            questions
+                          </p>
                         </div>
                       </div>
 
-                      {isCurrent && (
-                        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
-                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
-                          Current Round
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-lg bg-purple-100 px-3 py-2 text-sm font-bold text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                          {
+                            getFinalPlayersText(
+                              quiz,
+                              rounds,
+                            )
+                          }{" "}
+                          finalist
+                          {getFinalPlayersText(
+                            quiz,
+                            rounds,
+                          ) === 1
+                            ? ""
+                            : "s"}
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
-                <div className="flex items-start gap-3">
-                  <Zap className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    {quiz
+                      .final_round_information
+                      .difficultyBreakdown && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <DifficultyPill
+                          label="Easy"
+                          value={
+                            quiz
+                              .final_round_information
+                              .difficultyBreakdown
+                              .easy
+                          }
+                        />
 
-                  <div>
-                    <p className="font-semibold text-blue-900 dark:text-blue-200">
-                      Final winner
-                    </p>
+                        <DifficultyPill
+                          label="Medium"
+                          value={
+                            quiz
+                              .final_round_information
+                              .difficultyBreakdown
+                              .medium
+                          }
+                        />
 
-                    <p className="mt-1 text-sm leading-6 text-blue-800/80 dark:text-blue-300/80">
-                      The final two students compete over 20 questions.
-                      The student with the highest final score becomes the
-                      Quiz Board champion.
-                    </p>
+                        <DifficultyPill
+                          label="Hard"
+                          value={
+                            quiz
+                              .final_round_information
+                              .difficultyBreakdown
+                              .hard
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-white/70 p-3 dark:bg-slate-900/40">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">
+                          1st Position
+                        </p>
+
+                        <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
+                          {formatPoints(
+                            Number(
+                              quiz
+                                .final_round_information
+                                .first_position_reward ??
+                                0,
+                            ),
+                          )}{" "}
+                          <span className="text-xs font-medium text-slate-500">
+                            CBT points
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg bg-white/70 p-3 dark:bg-slate-900/40">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">
+                          2nd Position
+                        </p>
+
+                        <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
+                          {formatPoints(
+                            Number(
+                              quiz
+                                .final_round_information
+                                .second_position_reward ??
+                                0,
+                            ),
+                          )}{" "}
+                          <span className="text-xs font-medium text-slate-500">
+                            CBT points
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
 
-            {/* Participants */}
+            {/* Joined users */}
             <Card className="overflow-hidden">
               <div className="border-b border-slate-200 p-5 dark:border-slate-800 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                      Participants
+                      Joined Contestants
                     </h2>
 
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -1320,71 +1831,42 @@ export default function QuizBoardDetailsPage() {
                     </p>
                   </div>
 
-                  {loadingParticipants && (
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  {isFull && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Full
+                    </span>
                   )}
                 </div>
               </div>
 
-              {participants.length > 0 ? (
+              {quiz.joined_users?.length ? (
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {participants
-                    .slice()
-                    .sort((a, b) => {
-                      const rankA = a.rank ?? 9999;
-                      const rankB = b.rank ?? 9999;
-
-                      if (rankA !== rankB) {
-                        return rankA - rankB;
-                      }
-
-                      return (
-                        getParticipantScore(b) -
-                        getParticipantScore(a)
-                      );
-                    })
-                    .map((player, index) => {
-                      const playerStatus =
-                        getParticipantStatus(player);
-
-                      return (
-                        <div
-                          key={
-                            player._id ||
-                            player.id ||
-                            player.userId ||
-                            `${getParticipantName(player)}-${index}`
-                          }
-                          className="flex items-center gap-3 px-5 py-4 sm:px-6"
-                        >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                            {player.rank ?? index + 1}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                              {getParticipantName(player)}
-                            </p>
-
-                            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                              {playerStatus}
-                            </p>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">
-                              {formatPoints(
-                                getParticipantScore(player),
-                              )}
-                            </p>
-
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              points
-                            </p>
-                          </div>
+                  {quiz.joined_users.map(
+                    (userId, index) => (
+                      <div
+                        key={userId}
+                        className="flex items-center gap-3 px-5 py-4 sm:px-6"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          {index + 1}
                         </div>
-                      );
-                    })}
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Contestant{" "}
+                            {index + 1}
+                          </p>
+
+                          <p className="mt-0.5 break-all font-mono text-xs text-slate-500 dark:text-slate-400">
+                            {userId}
+                          </p>
+                        </div>
+
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                      </div>
+                    ),
+                  )}
                 </div>
               ) : (
                 <div className="px-6 py-12 text-center">
@@ -1393,7 +1875,7 @@ export default function QuizBoardDetailsPage() {
                   </div>
 
                   <p className="mt-4 font-semibold text-slate-900 dark:text-white">
-                    No participants yet
+                    No contestants yet
                   </p>
 
                   <p className="mx-auto mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400">
@@ -1404,9 +1886,9 @@ export default function QuizBoardDetailsPage() {
             </Card>
           </div>
 
-          {/* Right column */}
+          {/* RIGHT COLUMN */}
           <div className="space-y-6">
-            {/* Status card */}
+            {/* Status */}
             <Card className="p-5">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="font-bold text-slate-900 dark:text-white">
@@ -1419,11 +1901,12 @@ export default function QuizBoardDetailsPage() {
                     STATUS_CONFIG.DRAFT.className
                   }`}
                 >
-                  {status === "LIVE" && (
+                  {competitionStarted && (
                     <span className="mr-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
                   )}
 
-                  {STATUS_CONFIG[status]?.label ?? status}
+                  {STATUS_CONFIG[status]?.label ??
+                    status}
                 </span>
               </div>
 
@@ -1434,22 +1917,42 @@ export default function QuizBoardDetailsPage() {
                 />
 
                 <StatusRow
+                  label="Room"
+                  value={
+                    roomCreated
+                      ? "Created"
+                      : "Not created"
+                  }
+                />
+
+                <StatusRow
                   label="Current round"
                   value={
-                    currentRoundConfig
-                      ? currentRoundConfig.name || "Final"
+                    currentRound
+                      ? `Round ${currentRound}`
                       : "Not started"
                   }
                 />
 
                 <StatusRow
+                  label="Competition"
+                  value={
+                    competitionStarted
+                      ? "Started"
+                      : "Waiting to start"
+                  }
+                />
+
+                <StatusRow
                   label="Questions"
-                  value={`${getQuestionCount(board)}`}
+                  value={`${totalQuestions}`}
                 />
 
                 <StatusRow
                   label="Time / question"
-                  value={`${getTimePerQuestion(board)} sec`}
+                  value={`${getTimePerQuestion(
+                    quiz,
+                  )} sec`}
                 />
               </div>
             </Card>
@@ -1472,77 +1975,20 @@ export default function QuizBoardDetailsPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Starts
-                  </p>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Starts
+                </p>
 
-                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatDateTime(getStartDate(board))}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Ends
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatDateTime(getEndDate(board))}
-                  </p>
-                </div>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {formatDateTime(
+                    quiz.start_date,
+                  )}
+                </p>
               </div>
             </Card>
 
-            {/* Economy */}
-            <Card className="p-5">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
-                  <Coins className="h-5 w-5" />
-                </div>
-
-                <div>
-                  <h2 className="font-bold text-slate-900 dark:text-white">
-                    Points
-                  </h2>
-
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Quiz Board economy
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900/50">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Entry Fee
-                  </p>
-
-                  <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
-                    {formatPoints(getEntryFee(board))}
-                    <span className="ml-1 text-sm font-medium text-slate-500">
-                      CBT points
-                    </span>
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/20">
-                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                    Winner Reward
-                  </p>
-
-                  <p className="mt-1 text-xl font-bold text-emerald-700 dark:text-emerald-300">
-                    {formatPoints(getReward(board))}
-                    <span className="ml-1 text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80">
-                      CBT points
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Question plan */}
+            {/* Round Summary */}
             <Card className="p-5">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400">
@@ -1555,26 +2001,47 @@ export default function QuizBoardDetailsPage() {
                   </h2>
 
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Fixed Quiz Board structure
+                    Backend-configured structure
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {ROUND_CONFIG.map((round) => (
-                  <div
-                    key={round.roundNumber}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-900/50"
-                  >
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {round.name}
+                {rounds.map(
+                  (round) => (
+                    <div
+                      key={round.round_number}
+                      className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-900/50"
+                    >
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Round{" "}
+                        {round.round_number}
+                      </span>
+
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {
+                          round.no_of_questions
+                        }
+                      </span>
+                    </div>
+                  ),
+                )}
+
+                {quiz.final_round_information && (
+                  <div className="flex items-center justify-between rounded-lg bg-purple-50 px-3 py-2.5 dark:bg-purple-950/20">
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                      Final
                     </span>
 
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {round.questions}
+                    <span className="text-sm font-bold text-purple-900 dark:text-purple-200">
+                      {
+                        quiz
+                          .final_round_information
+                          .no_of_questions
+                      }
                     </span>
                   </div>
-                ))}
+                )}
 
                 <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
                   <span className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1582,7 +2049,7 @@ export default function QuizBoardDetailsPage() {
                   </span>
 
                   <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    {TOTAL_QUESTIONS} questions
+                    {totalQuestions} questions
                   </span>
                 </div>
               </div>
@@ -1599,9 +2066,9 @@ export default function QuizBoardDetailsPage() {
                   </h3>
 
                   <p className="mt-1 text-sm leading-6 text-blue-800/80 dark:text-blue-300/80">
-                    Answer order, response time, qualification, elimination,
-                    scores, and the final winner should be determined by the
-                    backend rather than this admin page.
+                    Room creation, round starting, answer order,
+                    qualification, elimination, scores, and the final
+                    winner should be controlled by the backend.
                   </p>
                 </div>
               </div>
@@ -1620,34 +2087,48 @@ export default function QuizBoardDetailsPage() {
           </Link>
 
           <div className="flex flex-wrap gap-2">
-            {status === "LIVE" && (
+            {canCreateRoom && (
+              <Button
+                type="button"
+                onClick={() =>
+                  setShowCreateRoomModal(true)
+                }
+                leftIcon={
+                  <Users className="h-4 w-4" />
+                }
+              >
+                Create Quiz Room
+              </Button>
+            )}
+
+            {canStartCompetition && (
+              <Button
+                type="button"
+                onClick={() =>
+                  setShowStartModal(true)
+                }
+                leftIcon={
+                  <Play className="h-4 w-4" />
+                }
+              >
+                Open Room / Start Competition
+              </Button>
+            )}
+
+            {competitionStarted && (
               <Link
-                href={`/student/quiz-board/${getBoardId(board)}/watch`}
+                href={`/student/quiz-board/${getQuizId(
+                  quiz,
+                )}/watch`}
                 target="_blank"
               >
                 <Button
                   type="button"
-                  leftIcon={<Eye className="h-4 w-4" />}
+                  leftIcon={
+                    <Eye className="h-4 w-4" />
+                  }
                 >
                   Watch Live
-                </Button>
-              </Link>
-            )}
-
-            {(status === "DRAFT" ||
-              status === "UPCOMING" ||
-              status === "OPEN") && (
-              <Link
-                href={`/admin/secondary/quiz-board/quiz-competitions/${getBoardId(
-                  board,
-                )}/edit`}
-              >
-                <Button
-                  type="button"
-                  variant="outline"
-                  leftIcon={<Edit3 className="h-4 w-4" />}
-                >
-                  Edit Quiz Board
                 </Button>
               </Link>
             )}
@@ -1655,16 +2136,36 @@ export default function QuizBoardDetailsPage() {
         </div>
       </div>
 
-      {/* Start Modal */}
+      {/* CREATE ROOM MODAL */}
+      {showCreateRoomModal && (
+        <ActionModal
+          title="Create Quiz Room?"
+          description={`All ${maxPlayers} contestant positions are filled. Creating the room will prepare "${quiz.quiz_title}" for the competition. The competition will NOT start until you explicitly open the room.`}
+          icon={
+            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          }
+          iconClassName="bg-blue-100 dark:bg-blue-950/40"
+          confirmLabel="Create Quiz Room"
+          loading={actionLoading}
+          onClose={() => {
+            if (!actionLoading) {
+              setShowCreateRoomModal(false);
+            }
+          }}
+          onConfirm={createQuizRoom}
+        />
+      )}
+
+      {/* START MODAL */}
       {showStartModal && (
         <ActionModal
-          title="Start Quiz Board?"
-          description={`Starting "${board.title}" will make the Quiz Board live. Students will compete through the five-stage elimination system.`}
+          title="Open Room / Start Competition?"
+          description={`The Quiz Room has already been created for "${quiz.quiz_title}". Starting the competition will allow the backend to begin Round 1 and notify connected students that the competition has started.`}
           icon={
             <Play className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           }
           iconClassName="bg-emerald-100 dark:bg-emerald-950/40"
-          confirmLabel="Start Quiz Board"
+          confirmLabel="Open Room / Start Competition"
           loading={actionLoading}
           onClose={() => {
             if (!actionLoading) {
@@ -1675,11 +2176,11 @@ export default function QuizBoardDetailsPage() {
         />
       )}
 
-      {/* Cancel Modal */}
+      {/* CANCEL MODAL */}
       {showCancelModal && (
         <ActionModal
           title="Cancel Quiz Board?"
-          description={`Are you sure you want to cancel "${board.title}"? Students should no longer be able to participate in this Quiz Board.`}
+          description={`Are you sure you want to cancel "${quiz.quiz_title}"? Students should no longer be able to participate in this Quiz Board.`}
           icon={
             <X className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           }
@@ -1695,11 +2196,11 @@ export default function QuizBoardDetailsPage() {
         />
       )}
 
-      {/* Delete Modal */}
+      {/* DELETE MODAL */}
       {showDeleteModal && (
         <ActionModal
           title="Delete Quiz Board?"
-          description={`This will permanently remove "${board.title}". This action cannot be undone.`}
+          description={`This will permanently remove "${quiz.quiz_title}". This action cannot be undone.`}
           icon={
             <Trash2 className="h-6 w-6 text-red-600 dark:text-red-400" />
           }
@@ -1730,7 +2231,9 @@ function InfoItem({
 }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-      <div className="mt-0.5 text-slate-400">{icon}</div>
+      <div className="mt-0.5 text-slate-400">
+        {icon}
+      </div>
 
       <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -1765,44 +2268,17 @@ function StatusRow({
   );
 }
 
-function DifficultyBox({
+function DifficultyPill({
   label,
   value,
-  total,
 }: {
   label: string;
   value: number;
-  total: number;
 }) {
-  const estimatedQuestions = Math.round(
-    (total * value) / 100,
-  );
-
   return (
-    <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-          {label}
-        </span>
-
-        <span className="text-sm font-bold text-slate-900 dark:text-white">
-          {value}%
-        </span>
-      </div>
-
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-        <div
-          className="h-full rounded-full bg-blue-600"
-          style={{
-            width: `${Math.min(100, value)}%`,
-          }}
-        />
-      </div>
-
-      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-        Approximately {estimatedQuestions} questions
-      </p>
-    </div>
+    <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+      {label}: {value}
+    </span>
   );
 }
 
@@ -1886,7 +2362,11 @@ function ActionModal({
 
           <Button
             type="button"
-            variant={destructive ? "destructive" : undefined}
+            variant={
+              destructive
+                ? "destructive"
+                : undefined
+            }
             onClick={onConfirm}
             disabled={loading}
             leftIcon={
@@ -1899,7 +2379,9 @@ function ActionModal({
               )
             }
           >
-            {loading ? "Processing..." : confirmLabel}
+            {loading
+              ? "Processing..."
+              : confirmLabel}
           </Button>
         </div>
       </div>

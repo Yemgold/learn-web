@@ -103,6 +103,15 @@ export default function QuizBoardHero({
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
+
+              <Link
+  href="/student/quiz-board/my-competitions"
+  className="inline-flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-5 py-3 text-sm font-bold text-blue-300 shadow-lg shadow-blue-900/10 transition hover:bg-blue-500/20 hover:text-blue-200"
+>
+  <Trophy className="h-4 w-4" />
+  My Competitions
+</Link>
+
               <Link
                 href="/student/practice/cbtsubjects?exam=jamb"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"

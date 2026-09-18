@@ -2,8 +2,6 @@
 
 
 
-
-
 "use client";
 
 import {
@@ -39,6 +37,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 import { getQuizById } from "@/lib/api/quizCompetition";
+
+import {
+  getQuizSocket,
+  disconnectQuizSocket,
+} from "@/lib/socket/quizSocket";
 
 /* =========================================================
    CONSTANTS
@@ -137,6 +140,56 @@ type LobbyStatus =
   | "error";
 
 /* =========================================================
+   SOCKET EVENT TYPES
+========================================================= */
+
+/*
+ * These payloads are intentionally flexible because the
+ * exact backend Socket.IO payload can vary.
+ *
+ * The important thing is that the event names match the
+ * backend:
+ *
+ * join_room
+ * joined_room_ack
+ * participant_joined_room
+ * round_started
+ */
+
+type SocketRoundStartedPayload = {
+  quizId?: string;
+  quiz_id?: string;
+  roomId?: string;
+  room_id?: string;
+  currentRound?: number;
+  current_round?: number;
+  round?: number;
+  round_number?: number;
+};
+
+type SocketJoinedRoomAckPayload = {
+  success?: boolean;
+  message?: string;
+  roomId?: string;
+  room_id?: string;
+  quizId?: string;
+  quiz_id?: string;
+};
+
+type SocketParticipantJoinedPayload = {
+  userId?: string;
+  user_id?: string;
+  participantId?: string;
+  participant_id?: string;
+  roomId?: string;
+  room_id?: string;
+  joinedCount?: number;
+  joined_count?: number;
+  participantCount?: number;
+  participant_count?: number;
+};
+
+/* =========================================================
    HELPERS
 ========================================================= */
 
@@ -233,9 +286,9 @@ function getUserInitials(
       .toUpperCase();
   }
 
-  return `${parts[0][0]}${parts[
-    parts.length - 1
-  ][0]}`.toUpperCase();
+  return `${parts[0][0]}${
+    parts[parts.length - 1][0]
+  }`.toUpperCase();
 }
 
 function getEntityId(
@@ -295,18 +348,6 @@ function getTotalQuestions(
   );
 }
 
-/*
- * Example:
- *
- * 5 contestants
- * round 1 exit_number = 1 -> 4 remain
- * round 2 exit_number = 1 -> 3 remain
- * round 3 exit_number = 1 -> 2 remain
- * final -> 1 winner
- *
- * Result:
- * 5 → 4 → 3 → 2 → 1
- */
 function getQualificationSequence(
   quiz: QuizCompetition,
 ): number[] {
@@ -456,19 +497,78 @@ export default function QuizWaitingRoomPage() {
     useState<number>(() => Date.now());
 
   /*
-   * Prevent multiple API requests from being
-   * made at the same time.
+   * Socket connection state.
+   *
+   * This tells the UI whether the browser is
+   * actually connected to the Socket.IO server.
+   */
+  const [socketConnected, setSocketConnected] =
+    useState(false);
+
+  /*
+   * This tells us that the backend acknowledged
+   * the student's join_room event.
+   *
+   * This is different from joined_users.
+   */
+  const [socketRoomJoined, setSocketRoomJoined] =
+    useState(false);
+
+  /*
+   * Number of participants reported by Socket.IO.
+   *
+   * This is informational only.
+   */
+  const [socketParticipantCount, setSocketParticipantCount] =
+    useState<number | null>(null);
+
+  /*
+   * Prevent duplicate API requests.
    */
   const requestInFlightRef =
     useRef(false);
 
   /*
-   * Used to prevent the polling timeout
-   * from scheduling another request after
-   * the page has been unmounted.
+   * Polling timeout.
    */
+  const pollingTimeoutRef =
+    useRef<number | null>(null);
 
-    const pollingTimeoutRef = useRef<number | null>(null);
+  /*
+   * Prevent multiple navigation attempts
+   * when both REST polling and Socket.IO
+   * detect the competition start.
+   */
+  const navigatingToPlayRef =
+    useRef(false);
+
+  /*
+   * Store the room ID currently joined through
+   * Socket.IO.
+   */
+  const joinedSocketRoomRef =
+    useRef<string | null>(null);
+
+  /* =======================================================
+     NAVIGATE TO PLAY
+  ======================================================= */
+
+  const enterPlayPage =
+    useCallback(() => {
+      if (!quizId) {
+        return;
+      }
+
+      if (navigatingToPlayRef.current) {
+        return;
+      }
+
+      navigatingToPlayRef.current = true;
+
+      router.push(
+        `/student/quiz-board/${quizId}/play`,
+      );
+    }, [quizId, router]);
 
   /* =======================================================
      UPDATE LOBBY STATE
@@ -523,27 +623,22 @@ export default function QuizWaitingRoomPage() {
         }
 
         /* -----------------------------------------------
-           LIVE
+           STARTED
            
-           current_round > 0 is the reliable signal
-           from the current API that a round has started.
+           REST fallback:
+           current_round > 0.
+           
+           We don't depend on a LIVE status because
+           your backend may not use one.
         ------------------------------------------------ */
 
-        if (
-          currentRound > 0 ||
-          competitionStatus === "LIVE"
-        ) {
+        if (currentRound > 0) {
           setStatus("live");
           return;
         }
 
         /* -----------------------------------------------
            CONTESTANTS NOT FULL
-           
-           IMPORTANT:
-           We do NOT poll automatically here.
-           Polling only begins after the required
-           contestant number has been reached.
         ------------------------------------------------ */
 
         if (!isFull) {
@@ -554,7 +649,7 @@ export default function QuizWaitingRoomPage() {
         }
 
         /* -----------------------------------------------
-           CONTESTANTS FULL BUT NO ROOM
+           FULL BUT ROOM NOT CREATED
         ------------------------------------------------ */
 
         if (!hasRoom) {
@@ -565,7 +660,10 @@ export default function QuizWaitingRoomPage() {
         }
 
         /* -----------------------------------------------
-           ROOM CREATED, WAITING FOR START
+           ROOM CREATED
+           
+           Socket.IO should now be used to wait for
+           the backend round_started event.
         ------------------------------------------------ */
 
         setStatus("waiting_for_start");
@@ -587,9 +685,6 @@ export default function QuizWaitingRoomPage() {
         return;
       }
 
-      /*
-       * Prevent overlapping requests.
-       */
       if (requestInFlightRef.current) {
         return;
       }
@@ -632,10 +727,6 @@ export default function QuizWaitingRoomPage() {
           Date.now(),
         );
 
-        /*
-         * Clear an old error after a successful
-         * automatic refresh.
-         */
         if (silent) {
           setError("");
         }
@@ -651,13 +742,6 @@ export default function QuizWaitingRoomPage() {
           err?.message ||
           "Unable to load the competition.";
 
-        /*
-         * Initial load errors should put the
-         * whole page into error state.
-         *
-         * Silent polling errors should NOT
-         * destroy the current waiting-room UI.
-         */
         if (!silent) {
           setError(message);
           setStatus("error");
@@ -689,23 +773,320 @@ export default function QuizWaitingRoomPage() {
   }, [loadQuiz]);
 
   /* =======================================================
-     30-SECOND POLLING
+     SOCKET.IO CONNECTION
      
-     IMPORTANT FLOW:
+     FLOW:
      
-     1. Contestants join.
-     2. No automatic polling while lobby is
-        still filling.
-     3. Once contestant count is FULL,
-        polling starts.
-     4. Poll every 30 seconds.
-     5. Detect room creation.
-     6. Continue polling.
-     7. Detect current_round > 0 / LIVE.
-     8. Stop polling.
+     1. REST API returns room_id.
+     2. Browser connects to Socket.IO server.
+     3. Browser emits join_room.
+     4. Backend puts this socket into the room.
+     5. Backend sends joined_room_ack.
+     6. Backend sends participant_joined_room
+        when another contestant joins.
+     7. Admin starts the competition.
+     8. Backend emits round_started.
+     9. Student enters /play.
+  ======================================================= */
+
+  useEffect(() => {
+    if (!quizId) {
+      return;
+    }
+
+    const roomId =
+      quiz?.room_id?.trim();
+
+    /*
+     * No room_id means there is no Socket.IO room
+     * to join yet.
+     */
+    if (!roomId) {
+      setSocketConnected(false);
+      setSocketRoomJoined(false);
+      setSocketParticipantCount(null);
+      joinedSocketRoomRef.current = null;
+
+      return;
+    }
+
+    let cancelled = false;
+
+    const socket =
+      getQuizSocket();
+
+    /*
+     * Connection established.
+     */
+    const handleConnect =
+      () => {
+        if (cancelled) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] Connected:",
+          socket.id,
+        );
+
+        setSocketConnected(true);
+
+        /*
+         * Prevent emitting duplicate join_room
+         * for the same room.
+         */
+        if (
+          joinedSocketRoomRef.current !==
+          roomId
+        ) {
+          console.log(
+            "[Quiz Socket] Joining room:",
+            roomId,
+          );
+
+          /*
+           * IMPORTANT:
+           * This payload must match the backend.
+           *
+           * We are using room_id because that is
+           * the naming used by your quiz API.
+           */
+          socket.emit(
+            "join_room",
+            {
+              room_id: roomId,
+            },
+          );
+
+          joinedSocketRoomRef.current =
+            roomId;
+        }
+      };
+
+    /*
+     * Connection lost.
+     */
+    const handleDisconnect =
+      (reason: string) => {
+        if (cancelled) {
+          return;
+        }
+
+        console.warn(
+          "[Quiz Socket] Disconnected:",
+          reason,
+        );
+
+        setSocketConnected(false);
+        setSocketRoomJoined(false);
+      };
+
+    /*
+     * Backend confirms the student joined
+     * the Socket.IO room.
+     */
+    const handleJoinedRoomAck =
+      (
+        payload: SocketJoinedRoomAckPayload,
+      ) => {
+        if (cancelled) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] joined_room_ack:",
+          payload,
+        );
+
+        /*
+         * If backend explicitly says success:false,
+         * don't mark the room as joined.
+         */
+        if (
+          payload &&
+          payload.success === false
+        ) {
+          console.warn(
+            "[Quiz Socket] Room join rejected:",
+            payload.message,
+          );
+
+          setSocketRoomJoined(false);
+          return;
+        }
+
+        setSocketRoomJoined(true);
+      };
+
+    /*
+     * Another participant joined the Socket.IO room.
+     */
+    const handleParticipantJoined =
+      (
+        payload: SocketParticipantJoinedPayload,
+      ) => {
+        if (cancelled) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] participant_joined_room:",
+          payload,
+        );
+
+        const count = Number(
+          payload?.joinedCount ??
+            payload?.joined_count ??
+            payload?.participantCount ??
+            payload?.participant_count ??
+            NaN,
+        );
+
+        if (
+          Number.isFinite(count)
+        ) {
+          setSocketParticipantCount(
+            count,
+          );
+        }
+
+        /*
+         * Refresh the REST quiz data so the
+         * player grid stays synchronized.
+         *
+         * This does NOT wait for the 60-second
+         * polling interval.
+         */
+        void loadQuiz(true);
+      };
+
+    /*
+     * Backend has started a round.
+     */
+    const handleRoundStarted =
+      (
+        payload: SocketRoundStartedPayload,
+      ) => {
+        if (cancelled) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] round_started:",
+          payload,
+        );
+
+        /*
+         * We don't require the payload to contain
+         * quizId because the student is already
+         * connected to the correct room.
+         */
+        setStatus("live");
+
+        /*
+         * Enter the gameplay page immediately.
+         */
+        enterPlayPage();
+      };
+
+    /*
+     * Register listeners.
+     */
+    socket.on(
+      "connect",
+      handleConnect,
+    );
+
+    socket.on(
+      "disconnect",
+      handleDisconnect,
+    );
+
+    socket.on(
+      "joined_room_ack",
+      handleJoinedRoomAck,
+    );
+
+    socket.on(
+      "participant_joined_room",
+      handleParticipantJoined,
+    );
+
+    socket.on(
+      "round_started",
+      handleRoundStarted,
+    );
+
+    /*
+     * If the socket is already connected
+     * before these listeners were registered,
+     * join the room immediately.
+     */
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      cancelled = true;
+
+      socket.off(
+        "connect",
+        handleConnect,
+      );
+
+      socket.off(
+        "disconnect",
+        handleDisconnect,
+      );
+
+      socket.off(
+        "joined_room_ack",
+        handleJoinedRoomAck,
+      );
+
+      socket.off(
+        "participant_joined_room",
+        handleParticipantJoined,
+      );
+
+      socket.off(
+        "round_started",
+        handleRoundStarted,
+      );
+
+      /*
+       * We only disconnect this shared socket
+       * when this waiting-room page is removed.
+       */
+      disconnectQuizSocket();
+
+      joinedSocketRoomRef.current =
+        null;
+
+      setSocketConnected(false);
+      setSocketRoomJoined(false);
+    };
+  }, [
+    quiz?.room_id,
+    quizId,
+    loadQuiz,
+    enterPlayPage,
+  ]);
+
+  /* =======================================================
+     60-SECOND REST FALLBACK
      
-     This avoids unnecessary API traffic while
-     contestants are still joining.
+     Socket.IO is now the primary mechanism for
+     round_started.
+     
+     REST polling remains as a fallback in case:
+     
+     - Socket.IO disconnects.
+     - Backend doesn't emit the event.
+     - The page was opened after the round started.
+     
+     It still only polls after the contestant
+     count is full.
   ======================================================= */
 
   useEffect(() => {
@@ -747,39 +1128,42 @@ export default function QuizWaitingRoomPage() {
         "FINISHED";
 
     const isLive =
-      currentRound > 0 ||
-      competitionStatus === "LIVE";
+      currentRound > 0;
 
     /*
-     * DO NOT POLL until all contestants
-     * have joined.
+     * Cancel an existing timeout.
+     */
+    if (
+      pollingTimeoutRef.current !==
+      null
+    ) {
+      window.clearTimeout(
+        pollingTimeoutRef.current,
+      );
+
+      pollingTimeoutRef.current =
+        null;
+    }
+
+    /*
+     * Don't poll until the lobby is full.
      */
     if (!isContestantsFull) {
-      if (pollingTimeoutRef.current) {
-        window.clearTimeout(
-          pollingTimeoutRef.current,
-        );
-
-        pollingTimeoutRef.current =
-          null;
-      }
-
       return;
     }
 
     /*
-     * Once live or completed, stop polling.
+     * Stop polling when completed.
      */
-    if (isLive || isCompleted) {
-      if (pollingTimeoutRef.current) {
-        window.clearTimeout(
-          pollingTimeoutRef.current,
-        );
+    if (isCompleted) {
+      return;
+    }
 
-        pollingTimeoutRef.current =
-          null;
-      }
-
+    /*
+     * Stop polling after the REST API confirms
+     * that a round has started.
+     */
+    if (isLive) {
       return;
     }
 
@@ -808,19 +1192,14 @@ export default function QuizWaitingRoomPage() {
           );
       };
 
-    /*
-     * Start the first 30-second wait.
-     *
-     * We do NOT immediately call the API again
-     * because the current quiz data was just loaded.
-     */
     scheduleNextPoll();
 
     return () => {
       cancelled = true;
 
       if (
-        pollingTimeoutRef.current
+        pollingTimeoutRef.current !==
+        null
       ) {
         window.clearTimeout(
           pollingTimeoutRef.current,
@@ -837,7 +1216,12 @@ export default function QuizWaitingRoomPage() {
   ]);
 
   /* =======================================================
-     AUTO-ENTER PLAY WHEN ROUND STARTS
+     AUTO-ENTER PLAY WHEN REST DETECTS START
+     
+     Socket.IO normally handles this faster.
+     This is the fallback for:
+     
+     current_round > 0
   ======================================================= */
 
   useEffect(() => {
@@ -849,37 +1233,16 @@ export default function QuizWaitingRoomPage() {
       quiz.current_round ?? 0,
     );
 
-    const competitionStatus =
-      String(
-        quiz.status ?? "",
-      ).toUpperCase();
-
-    if (
-      currentRound > 0 ||
-      competitionStatus === "LIVE"
-    ) {
-      const timer =
-        window.setTimeout(() => {
-          router.push(
-            `/student/quiz-board/${quizId}/play`,
-          );
-        }, 500);
-
-      return () =>
-        window.clearTimeout(timer);
+    if (currentRound > 0) {
+      enterPlayPage();
     }
   }, [
     quiz,
-    quizId,
-    router,
+    enterPlayPage,
   ]);
 
   /* =======================================================
      MANUAL REFRESH
-     
-     Manual refresh is always available.
-     This is useful before the contestant count
-     is full, since automatic polling is disabled.
   ======================================================= */
 
   const handleRefresh =
@@ -975,9 +1338,9 @@ export default function QuizWaitingRoomPage() {
     : "";
 
   /*
-   * Automatic polling is active only when
-   * the contestant count is full and the
-   * competition has not started.
+   * Automatic REST fallback polling is active
+   * only when the lobby is full and the quiz
+   * has not started.
    */
   const isPollingActive =
     Boolean(
@@ -986,7 +1349,6 @@ export default function QuizWaitingRoomPage() {
         ![
           "COMPLETED",
           "FINISHED",
-          "LIVE",
         ].includes(
           String(
             quiz?.status ?? "",
@@ -1016,12 +1378,19 @@ export default function QuizWaitingRoomPage() {
         return "All contestants have joined. Waiting for the Admin to create the competition room.";
       }
 
-      return "The competition room has been created. Waiting for the Admin to start the competition.";
+      if (
+        socketRoomJoined
+      ) {
+        return "You are connected to the competition room. Waiting for the Admin to start the first round.";
+      }
+
+      return "The competition room has been created. Connecting you to the competition room...";
     }, [
       quiz,
       isContestantsFull,
       spotsLeft,
       hasRoom,
+      socketRoomJoined,
     ]);
 
   /* =======================================================
@@ -1030,13 +1399,7 @@ export default function QuizWaitingRoomPage() {
 
   const handleEnterCompetition =
     () => {
-      if (!quizId) {
-        return;
-      }
-
-      router.push(
-        `/student/quiz-board/${quizId}/play`,
-      );
+      enterPlayPage();
     };
 
   /* =======================================================
@@ -1045,6 +1408,8 @@ export default function QuizWaitingRoomPage() {
 
   const handleLeave =
     () => {
+      disconnectQuizSocket();
+
       router.push(
         "/student/quiz-board",
       );
@@ -1155,6 +1520,64 @@ export default function QuizWaitingRoomPage() {
           </Button>
 
           <div className="flex items-center gap-2">
+            {/* SOCKET STATUS */}
+
+            <div
+              className={`hidden items-center gap-2 rounded-full border px-3 py-2 sm:flex ${
+                socketConnected
+                  ? "border-green-500/20 bg-green-500/10"
+                  : "border-yellow-500/20 bg-yellow-500/10"
+              }`}
+            >
+              {socketConnected ? (
+                <>
+                  <Wifi className="h-4 w-4 text-green-400" />
+
+                  <span className="text-xs font-semibold text-green-300">
+                    Socket Connected
+                  </span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 text-yellow-400" />
+
+                  <span className="text-xs font-semibold text-yellow-300">
+                    Socket Offline
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* ROOM JOIN STATUS */}
+
+            {hasRoom && (
+              <div
+                className={`hidden items-center gap-2 rounded-full border px-3 py-2 sm:flex ${
+                  socketRoomJoined
+                    ? "border-green-500/20 bg-green-500/10"
+                    : "border-blue-500/20 bg-blue-500/10"
+                }`}
+              >
+                {socketRoomJoined ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+
+                    <span className="text-xs font-semibold text-green-300">
+                      In Room
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+
+                    <span className="text-xs font-semibold text-blue-300">
+                      Joining Room
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* AUTO REFRESH STATUS */}
 
             <div
@@ -1457,6 +1880,38 @@ export default function QuizWaitingRoomPage() {
                 },
               )}
             </div>
+
+            {/* SOCKET PARTICIPANT INFO */}
+
+            {hasRoom && (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {socketRoomJoined ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                    )}
+
+                    <span className="text-xs font-semibold text-slate-300">
+                      {socketRoomJoined
+                        ? "You are connected to the competition room"
+                        : "Connecting to competition room..."}
+                    </span>
+                  </div>
+
+                  {socketParticipantCount !==
+                    null && (
+                    <span className="text-xs font-bold text-slate-500">
+                      Socket participants:{" "}
+                      {
+                        socketParticipantCount
+                      }
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* COMPETITION INFO */}
@@ -1472,8 +1927,6 @@ export default function QuizWaitingRoomPage() {
               </div>
 
               <div className="space-y-3">
-                {/* PLAYERS */}
-
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
                     Players
@@ -1485,8 +1938,6 @@ export default function QuizWaitingRoomPage() {
                   </span>
                 </div>
 
-                {/* ROUNDS */}
-
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
                     Rounds
@@ -1497,8 +1948,6 @@ export default function QuizWaitingRoomPage() {
                   </span>
                 </div>
 
-                {/* QUESTIONS */}
-
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
                     Total Questions
@@ -1508,8 +1957,6 @@ export default function QuizWaitingRoomPage() {
                     {totalQuestions}
                   </span>
                 </div>
-
-                {/* TIME */}
 
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
@@ -1525,8 +1972,6 @@ export default function QuizWaitingRoomPage() {
                   </span>
                 </div>
 
-                {/* START TIME */}
-
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
                     Scheduled Time
@@ -1538,8 +1983,6 @@ export default function QuizWaitingRoomPage() {
                     )}
                   </span>
                 </div>
-
-                {/* CONTESTANTS */}
 
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
@@ -1563,8 +2006,6 @@ export default function QuizWaitingRoomPage() {
                         } left`}
                   </span>
                 </div>
-
-                {/* ROOM */}
 
                 <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
                   <span className="text-sm text-slate-500">
@@ -1591,6 +2032,43 @@ export default function QuizWaitingRoomPage() {
                     )}
                   </span>
                 </div>
+
+                {/* SOCKET */}
+
+                {hasRoom && (
+                  <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                    <span className="text-sm text-slate-500">
+                      Live Connection
+                    </span>
+
+                    <span
+                      className={`flex items-center gap-1.5 text-xs font-bold ${
+                        socketRoomJoined
+                          ? "text-green-400"
+                          : socketConnected
+                            ? "text-blue-400"
+                            : "text-yellow-400"
+                      }`}
+                    >
+                      {socketRoomJoined ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          In Room
+                        </>
+                      ) : socketConnected ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Joining
+                        </>
+                      ) : (
+                        <>
+                          <WifiOff className="h-3.5 w-3.5" />
+                          Offline
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -1655,9 +2133,7 @@ export default function QuizWaitingRoomPage() {
         ================================================= */}
 
         <section className="mt-6">
-          {/* =================================================
-              WAITING FOR PLAYERS
-          ================================================= */}
+          {/* WAITING FOR PLAYERS */}
 
           {status ===
             "waiting_for_players" && (
@@ -1705,21 +2181,6 @@ export default function QuizWaitingRoomPage() {
                 </p>
               </div>
 
-              {/* IMPORTANT:
-                  NO AUTOMATIC POLLING HERE.
-              */}
-
-              {/* <div className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500">
-                <CheckCircle2 className="h-3.5 w-3.5 text-slate-600" />
-                Automatic checking starts when
-                all contestants have joined.
-              </div>
-
-              <div className="mt-2 text-[11px] text-slate-600">
-                You can use Refresh to check
-                manually.
-              </div> */}
-
               <div className="mt-6 flex justify-center">
                 <Button
                   onClick={handleLeave}
@@ -1733,9 +2194,7 @@ export default function QuizWaitingRoomPage() {
             </Card>
           )}
 
-          {/* =================================================
-              WAITING FOR ROOM
-          ================================================= */}
+          {/* WAITING FOR ROOM */}
 
           {status ===
             "waiting_for_room" && (
@@ -1781,12 +2240,10 @@ export default function QuizWaitingRoomPage() {
                 </p>
               </div>
 
-              {/* 30 SECOND POLLING */}
-
               <div className="mt-5 flex items-center justify-center gap-2 text-xs text-blue-300">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Checking for room creation
-                every 30 seconds
+                every 60 seconds
               </div>
 
               <p className="mt-2 text-[11px] text-slate-600">
@@ -1807,9 +2264,7 @@ export default function QuizWaitingRoomPage() {
             </Card>
           )}
 
-          {/* =================================================
-              WAITING FOR ADMIN TO START
-          ================================================= */}
+          {/* WAITING FOR ADMIN TO START */}
 
           {status ===
             "waiting_for_start" && (
@@ -1819,10 +2274,24 @@ export default function QuizWaitingRoomPage() {
               </div>
 
               <div className="mb-2 flex items-center justify-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <span
+                  className={`h-2 w-2 animate-pulse rounded-full ${
+                    socketRoomJoined
+                      ? "bg-green-400"
+                      : "bg-yellow-400"
+                  }`}
+                />
 
-                <span className="text-xs font-bold uppercase tracking-wider text-green-400">
-                  Room Ready
+                <span
+                  className={`text-xs font-bold uppercase tracking-wider ${
+                    socketRoomJoined
+                      ? "text-green-400"
+                      : "text-yellow-400"
+                  }`}
+                >
+                  {socketRoomJoined
+                    ? "Connected to Room"
+                    : "Connecting to Room"}
                 </span>
               </div>
 
@@ -1836,8 +2305,6 @@ export default function QuizWaitingRoomPage() {
                 created. Stay here while the
                 Admin starts the first round.
               </p>
-
-              {/* STATUS */}
 
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-5 py-3">
@@ -1871,8 +2338,6 @@ export default function QuizWaitingRoomPage() {
                 </div>
               </div>
 
-              {/* REQUIREMENTS */}
-
               <div className="mx-auto mt-5 flex max-w-xl flex-wrap justify-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1.5 text-xs font-semibold text-green-300">
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1884,13 +2349,30 @@ export default function QuizWaitingRoomPage() {
                   Room created
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-3 py-1.5 text-xs font-semibold text-yellow-300">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Round not started
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    socketRoomJoined
+                      ? "border-green-500/20 bg-green-500/10 text-green-300"
+                      : "border-yellow-500/20 bg-yellow-500/10 text-yellow-300"
+                  }`}
+                >
+                  {socketRoomJoined ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  )}
+
+                  {socketRoomJoined
+                    ? "Connected to live room"
+                    : "Connecting to live room"}
                 </span>
               </div>
 
-              {/* ROOM ID */}
+              <div className="mx-auto mt-5 max-w-xl rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-300">
+                  {waitingMessage}
+                </p>
+              </div>
 
               {quiz.room_id && (
                 <div className="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-black/20 px-4 py-3">
@@ -1904,18 +2386,16 @@ export default function QuizWaitingRoomPage() {
                 </div>
               )}
 
-              {/* 30 SECOND POLLING */}
-
               <div className="mt-5 flex items-center justify-center gap-2 text-xs text-blue-300">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Checking for competition start
-                every 30 seconds
+                <Radio className="h-3.5 w-3.5 animate-pulse" />
+                Listening for the Admin to
+                start the first round
               </div>
 
               <p className="mt-2 text-[11px] text-slate-600">
                 The competition will open
-                automatically when the first
-                round starts.
+                automatically when the backend
+                sends the round_started event.
               </p>
 
               <div className="mt-6 flex justify-center">
@@ -1931,9 +2411,7 @@ export default function QuizWaitingRoomPage() {
             </Card>
           )}
 
-          {/* =================================================
-              LIVE
-          ================================================= */}
+          {/* LIVE */}
 
           {status === "live" && (
             <Card className="border-indigo-500/20 bg-indigo-500/[0.06] p-6 text-center shadow-none sm:p-8">
@@ -1979,9 +2457,7 @@ export default function QuizWaitingRoomPage() {
             </Card>
           )}
 
-          {/* =================================================
-              COMPLETED
-          ================================================= */}
+          {/* COMPLETED */}
 
           {status ===
             "completed" && (
@@ -2080,9 +2556,15 @@ export default function QuizWaitingRoomPage() {
             </span>
 
             <span className="flex items-center gap-1">
-              <Wifi className="h-3.5 w-3.5 text-green-500" />
+              {socketConnected ? (
+                <Wifi className="h-3.5 w-3.5 text-green-500" />
+              ) : (
+                <WifiOff className="h-3.5 w-3.5 text-yellow-500" />
+              )}
 
-              API Connected
+              {socketConnected
+                ? "Socket Connected"
+                : "Socket Offline"}
             </span>
 
             <span>

@@ -22,9 +22,9 @@ export default function SecondaryAccessPage() {
 
   const handleSelectPlan = (plan: AccessPlan) => {
   if (plan.id === "secondary-free") {
-    console.log("Free Secondary Plan selected.");
-    return;
-  }
+  router.push("/student/dashboard");
+  return;
+}
 
   if (plan.id === "secondary-standard") {
 

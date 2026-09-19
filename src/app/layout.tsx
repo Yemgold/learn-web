@@ -1,6 +1,7 @@
 
-// C:\Users\Lara Spellman\Jamb\jamb-league\src\app\layout.tsx
 
+
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\app\layout.tsx
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -9,7 +10,6 @@ import "./globals.css";
 
 import AppProviders from "@/providers/AppProviders";
 
-
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -17,27 +17,34 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://jambleague.com"),
-
   title: {
-    default: "JAMB League",
+    default: "JAMB League | Learn, Practice & Compete",
     template: "%s | JAMB League",
   },
 
   description:
-    "JAMB League is Nigeria's premier team-based UTME competition platform. Form a team of three, compete nationwide, practice CBT questions, climb the leaderboard, and win exciting prizes.",
+    "JAMB League is a learning platform where students and learners can take courses, learn new skills, practice with interactive questions, prepare for exams, take quizzes, and compete with other learners.",
 
   keywords: [
-    "JAMB",
-    "UTME",
-    "CBT",
     "JAMB League",
-    "Nigeria",
-    "Examination",
-    "Students",
-    "Practice Test",
-    "Competition",
-    "Education",
+    "learning platform",
+    "online learning",
+    "online courses",
+    "learning platform Nigeria",
+    "education platform",
+    "online education",
+    "study platform",
+    "practice questions",
+    "online quizzes",
+    "CBT practice",
+    "JAMB preparation",
+    "WAEC preparation",
+    "exam preparation",
+    "programming courses",
+    "learn programming",
+    "Go programming",
+    "student learning",
+    "online study",
   ],
 
   authors: [
@@ -51,25 +58,25 @@ export const metadata: Metadata = {
   publisher: "JAMB League",
 
   openGraph: {
-    title: "JAMB League",
+    title: "JAMB League | Learn, Practice & Compete",
 
     description:
-      "Compete with students across Nigeria in the ultimate UTME challenge.",
+      "Learn new skills, study for exams, practice with interactive questions, take courses, and compete with other learners.",
 
     type: "website",
 
     locale: "en_NG",
 
-    siteName: "JAMB League",
+    siteName: "Learning Platform",
   },
 
   twitter: {
     card: "summary_large_image",
 
-    title: "JAMB League",
+    title: "JAMB League | Learn, Practice & Compete",
 
     description:
-      "Nigeria's largest team-based JAMB competition.",
+      "Learn, practice, build skills, prepare for exams, and compete with other learners.",
   },
 
   robots: {

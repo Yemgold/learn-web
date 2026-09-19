@@ -5,86 +5,202 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-import type { QuickAction } from "@/components/dashboard/widgets/QuickActions";
-import type { StatCardProps } from "@/components/dashboard/widgets/StatCard";
-
-import {
-  QuickActions,
-  StatsGrid,
-  UpcomingCompetitions,
-} from "@/components/dashboard/widgets";
-
-import AccessBlocker from "@/components/access/AccessBlocker";
-
-
-import { useAuthStore } from "@/stores";
 import { useRouter } from "next/navigation";
 
-/* ================================================================
-   FREE TRIAL CONFIGURATION
-   ================================================================ */
+import type { QuickAction } from "@/components/dashboard/widgets/QuickActions";
+
+import { QuickActions } from "@/components/dashboard/widgets";
+
+import AccessBlocker from "@/components/access/AccessBlocker";
+import FreeTrialCard from "@/components/access/FreeTrialCard";
+
+import { useAuthStore } from "@/stores";
+
+import { getAllQuizzes } from "@/lib/api/quizCompetition";
+import { getAllNotCompletedContests } from "@/lib/api/solveAndWin";
+
+import UpcomingQuiz from "@/components/dashboard/UpcomingQuiz";
+import UpcomingAndWin from "@/components/dashboard/UpcomingAndWin";
+
+/* =========================================================
+   CONSTANTS
+   ========================================================= */
 
 const FREE_TRIAL_DAYS = 30;
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
+/* =========================================================
+   TYPES
+   ========================================================= */
+
+interface QuizCompetition {
+  _id: string;
+  quiz_title: string;
+  description?: string;
+  status: string;
+
+  subject?: {
+    _id: string;
+    name: string;
+  } | null;
+
+  time_per_question: number;
+  start_date: string;
+  no_of_contestants: number;
+  number_of_rounds: number;
+
+  /*
+   * joined_users is optional because some backend
+   * quiz records may not include the field.
+   */
+  joined_users?: string[];
+
+  /* =======================================================
+     ELIMINATION ROUNDS
+     ======================================================= */
+
+  round_information?: {
+    round_number?: number;
+    no_of_questions?: number;
+
+    difficultyBreakdown?: {
+      easy?: number;
+      medium?: number;
+      hard?: number;
+    };
+
+    exit_number?: number;
+
+    /*
+     * CBT Points awarded to contestants eliminated
+     * from this round.
+     */
+    exit_reward?: number;
+  }[];
+
+  /* =======================================================
+     FINAL ROUND
+     ======================================================= */
+
+  final_round_information?: {
+    no_of_questions?: number;
+
+    difficultyBreakdown?: {
+      easy?: number;
+      medium?: number;
+      hard?: number;
+    };
+
+    /*
+     * CBT Points awarded to final positions.
+     */
+    first_position_reward?: number;
+    second_position_reward?: number;
+  };
+}
+
+interface QuizApiResponse {
+  success?: boolean;
+  message?: string;
+
+  data?: {
+    totalCount?: number;
+    totalPages?: number;
+    quizzesObj?: QuizCompetition[];
+  };
+}
+
+interface SolveAndWinContest {
+  _id: string;
+  title: string;
+  description?: string;
+  category?: string;
+
+  amountToBeWonInKobo: number;
+  entryPoints: number;
+
+  subjects?: {
+    subjectId?: {
+      _id?: string;
+      name?: string;
+    };
+
+    expectedNoOfQuestions?: number;
+    durationInSeconds?: number;
+
+    difficultyBreakdown?: {
+      easy?: number;
+      medium?: number;
+      hard?: number;
+    };
+  }[];
+
+  status: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  windowPeriod?: number;
+}
+
+interface SolveAndWinApiResponse {
+  success?: boolean;
+  message?: string;
+
+  data?: {
+    solveAndWinContestObj?: SolveAndWinContest[];
+    totalCount?: number;
+    totalPages?: number;
+  };
+}
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 export default function StudentDashboardPage() {
-  /* ============================================================
-     AUTH
-     ============================================================ */
-
   const { user } = useAuthStore();
-
   const router = useRouter();
 
-  /* ============================================================
-     PLAN / ACCESS
-     ============================================================ */
+  /* =======================================================
+     SECONDARY PLAN / FREE TRIAL
+     ======================================================= */
 
   const hasSecondaryPlan =
     Array.isArray(user?.plans) &&
     user.plans.includes("SECONDARY");
-
-  /*
-   * The free trial starts from the student's account creation date.
-   *
-   * It does NOT start from:
-   * - first dashboard visit
-   * - first login
-   * - first use of a Secondary feature
-   */
 
   const trialEndsAt = useMemo(() => {
     if (!user?.createdAt) {
       return null;
     }
 
-    const createdAt = new Date(user.createdAt).getTime();
+    const createdAt = new Date(
+      user.createdAt
+    ).getTime();
 
     if (Number.isNaN(createdAt)) {
       return null;
     }
 
-    return createdAt + FREE_TRIAL_DAYS * MILLISECONDS_IN_DAY;
+    return (
+      createdAt +
+      FREE_TRIAL_DAYS * MILLISECONDS_IN_DAY
+    );
   }, [user?.createdAt]);
 
-  /* ============================================================
-     TRIAL COUNTDOWN
-     ============================================================ */
+  const [remainingTime, setRemainingTime] =
+    useState(() => {
+      if (!trialEndsAt) {
+        return 0;
+      }
 
-  const [remainingTime, setRemainingTime] = useState(() => {
-    if (!trialEndsAt) {
-      return 0;
-    }
-
-    return Math.max(0, trialEndsAt - Date.now());
-  });
+      return Math.max(
+        0,
+        trialEndsAt - Date.now()
+      );
+    });
 
   useEffect(() => {
-    /*
-     * Students with a paid SECONDARY plan do not need
-     * the free-trial countdown.
-     */
     if (hasSecondaryPlan || !trialEndsAt) {
       setRemainingTime(0);
       return;
@@ -93,24 +209,17 @@ export default function StudentDashboardPage() {
     const updateCountdown = () => {
       const remaining = Math.max(
         0,
-        trialEndsAt - Date.now(),
+        trialEndsAt - Date.now()
       );
 
       setRemainingTime(remaining);
     };
 
-    /*
-     * Update immediately so the UI does not wait one second.
-     */
     updateCountdown();
 
-    /*
-     * Keep checking every second so the access state changes
-     * automatically when the 30-day trial expires.
-     */
     const interval = window.setInterval(
       updateCountdown,
-      1000,
+      1000
     );
 
     return () => {
@@ -118,952 +227,733 @@ export default function StudentDashboardPage() {
     };
   }, [hasSecondaryPlan, trialEndsAt]);
 
-  /* ============================================================
-     TRIAL / ACCESS STATE
-     ============================================================ */
-
   const isFreeTrialActive =
     !hasSecondaryPlan &&
     trialEndsAt !== null &&
     remainingTime > 0;
 
-  const isFreeTrialExpired =
-    !hasSecondaryPlan &&
-    trialEndsAt !== null &&
-    remainingTime <= 0;
-
-  /*
-   * This is the single access condition used by the dashboard.
-   *
-   * Access is granted when:
-   *
-   * 1. The student has a SECONDARY plan
-   * OR
-   * 2. The student's 30-day free trial is still active.
-   *
-   * This is important because a student on the free trial
-   * must NOT be treated as locked.
-   */
   const hasSecondaryAccess =
     hasSecondaryPlan || isFreeTrialActive;
 
-  /* ============================================================
-     STATISTICS
-     ============================================================ */
+  /* =======================================================
+     QUIZ COMPETITIONS
+     ======================================================= */
 
-  const stats: StatCardProps[] = [
-    {
-      title: "Competitions",
-      value: 12,
-      icon: "trophy",
-      change: 15,
-      changeLabel: "from last month",
-    },
-    {
-      title: "Current Rank",
-      value: "#18",
-      icon: "medal",
-    },
-    {
-      title: "Practice Tests",
-      value: 147,
-      icon: "book",
-    },
-    {
-      title: "Team Members",
-      value: 3,
-      icon: "users",
-    },
-  ];
+  const [upcomingQuizzes, setUpcomingQuizzes] =
+    useState<QuizCompetition[]>([]);
 
-  /* ============================================================
+  const [quizzesLoading, setQuizzesLoading] =
+    useState(true);
+
+  const [quizzesError, setQuizzesError] =
+    useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchUpcomingQuizzes = async () => {
+      try {
+        setQuizzesLoading(true);
+        setQuizzesError(false);
+
+        const response =
+          (await getAllQuizzes(
+            1,
+            10
+          )) as QuizApiResponse;
+
+        if (!mounted) {
+          return;
+        }
+
+        const quizzes =
+          response?.data?.quizzesObj ?? [];
+
+        const now = Date.now();
+
+        const upcoming = quizzes
+          .filter((quiz) => {
+            if (!quiz?.start_date) {
+              return false;
+            }
+
+            const startDate = new Date(
+              quiz.start_date
+            ).getTime();
+
+            if (Number.isNaN(startDate)) {
+              return false;
+            }
+
+            /*
+             * Only display competitions that:
+             *
+             * 1. Have not started yet
+             * 2. Are still WAITING
+             */
+            return (
+              startDate > now &&
+              quiz.status === "WAITING"
+            );
+          })
+          .sort(
+            (a, b) =>
+              new Date(
+                a.start_date
+              ).getTime() -
+              new Date(
+                b.start_date
+              ).getTime()
+          );
+
+        setUpcomingQuizzes(upcoming);
+      } catch (error) {
+        console.error(
+          "Failed to fetch upcoming quizzes:",
+          error
+        );
+
+        if (mounted) {
+          setUpcomingQuizzes([]);
+          setQuizzesError(true);
+        }
+      } finally {
+        if (mounted) {
+          setQuizzesLoading(false);
+        }
+      }
+    };
+
+    fetchUpcomingQuizzes();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =======================================================
+     PREPARE UPCOMING QUIZ COMPETITIONS
+     ======================================================= */
+
+  const competitions = useMemo(() => {
+    return upcomingQuizzes.map((quiz) => {
+      const startDate = new Date(
+        quiz.start_date
+      );
+
+      const joinedCount =
+        Array.isArray(quiz.joined_users)
+          ? quiz.joined_users.length
+          : 0;
+
+      /* =====================================================
+         CALCULATE ELIMINATION ROUND REWARDS
+         =====================================================
+
+         Example:
+
+         Round 1 = 5
+         Round 2 = 10
+         Round 3 = 15
+
+         Total elimination rewards = 30
+      */
+
+      const eliminationRoundRewards =
+        quiz.round_information?.reduce(
+          (total, round) => {
+            return (
+              total +
+              Number(
+                round?.exit_reward ?? 0
+              )
+            );
+          },
+          0
+        ) ?? 0;
+
+      /* =====================================================
+         CALCULATE FINAL POSITION REWARDS
+         =====================================================
+
+         Example:
+
+         1st = 100
+         2nd = 50
+
+         Total final rewards = 150
+      */
+
+      const firstPositionReward = Number(
+        quiz.final_round_information
+          ?.first_position_reward ?? 0
+      );
+
+      const secondPositionReward = Number(
+        quiz.final_round_information
+          ?.second_position_reward ?? 0
+      );
+
+      /* =====================================================
+         TOTAL CBT POINTS AVAILABLE
+         =====================================================
+
+         Example:
+
+         Round 1        5
+         Round 2       10
+         Round 3       15
+         1st Place    100
+         2nd Place     50
+         ----------------
+         TOTAL        180 CBT Points
+      */
+
+      const totalCbtPoints =
+        eliminationRoundRewards +
+        firstPositionReward +
+        secondPositionReward;
+
+      return {
+        id: quiz._id,
+
+        title: quiz.quiz_title,
+
+        date: startDate.toLocaleDateString(
+          "en-NG",
+          {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }
+        ),
+
+        time: startDate.toLocaleTimeString(
+          "en-NG",
+          {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }
+        ),
+
+        teams: joinedCount,
+
+        status: "Upcoming" as const,
+
+        href: `/student/quiz-board/${quiz._id}`,
+
+        /*
+         * TOTAL CBT POINTS
+         *
+         * This is no longer just the first-position
+         * reward.
+         */
+        prize: `${totalCbtPoints} CBT Points`,
+
+        /*
+         * Quiz Board competitions are FREE to enter.
+         */
+        entryFee: "FREE",
+
+        contestants:
+          quiz.no_of_contestants,
+
+        subject:
+          quiz.subject?.name || "General",
+      };
+    });
+  }, [upcomingQuizzes]);
+
+  /* =======================================================
+     SOLVE & WIN CONTESTS
+     ======================================================= */
+
+  const [
+    solveAndWinContests,
+    setSolveAndWinContests,
+  ] = useState<SolveAndWinContest[]>([]);
+
+  const [
+    solveAndWinLoading,
+    setSolveAndWinLoading,
+  ] = useState(true);
+
+  const [
+    solveAndWinError,
+    setSolveAndWinError,
+  ] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchSolveAndWinContests =
+      async () => {
+        try {
+          setSolveAndWinLoading(true);
+          setSolveAndWinError(false);
+
+          const response =
+            (await getAllNotCompletedContests()) as SolveAndWinApiResponse;
+
+          if (!mounted) {
+            return;
+          }
+
+          const contests =
+            response?.data
+              ?.solveAndWinContestObj ?? [];
+
+          setSolveAndWinContests(contests);
+        } catch (error) {
+          console.error(
+            "Failed to fetch Solve & Win contests:",
+            error
+          );
+
+          if (mounted) {
+            setSolveAndWinContests([]);
+            setSolveAndWinError(true);
+          }
+        } finally {
+          if (mounted) {
+            setSolveAndWinLoading(false);
+          }
+        }
+      };
+
+    fetchSolveAndWinContests();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =======================================================
      QUICK ACTIONS
-     ============================================================ */
+     ======================================================= */
 
   const actions: QuickAction[] = [
     {
       title: "CBT Wallet",
-      description: "Manage your CBT points",
+      description:
+        "Manage your CBT points",
       href: "/student/practice/cbt-wallet",
       icon: "wallet",
     },
 
     {
       title: "Solve & Win Questions",
-      description: "Earn While You Learn",
+      description:
+        "Earn While You Learn",
       href: "/student/solve-and-win",
       icon: "trophy",
     },
 
     {
       title: "Learning Arena",
-      description: "Learn through guided lessons",
+      description:
+        "Learn through guided lessons",
       href: "/student/arena",
       icon: "play",
     },
 
     {
       title: "Past Questions Mode",
-      description: "Practice Past Questions",
+      description:
+        "Practice Past Questions",
       href: "/student/practice",
       icon: "book",
     },
   ];
 
-  /* ============================================================
-     COMPETITIONS
-     ============================================================ */
-
-  const competitions = [
-    {
-      id: "1",
-      title: "JAMB League August Challenge",
-      date: "15 August 2026",
-      time: "10:00 AM",
-      teams: 128,
-      status: "Registration Open" as const,
-      href: "/student/competitions/1",
-    },
-
-    {
-      id: "2",
-      title: "Science Quiz Championship",
-      date: "28 August 2026",
-      time: "09:00 AM",
-      teams: 82,
-      status: "Upcoming" as const,
-      href: "/student/competitions/2",
-    },
-  ];
-
-  /* ============================================================
+  /* =======================================================
      RENDER
-     ============================================================ */
+     ======================================================= */
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      {/* ========================================================
-          BACKGROUND ATMOSPHERE
-         ======================================================== */}
 
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
+      {/* ==================================================
+          BACKGROUND
+          ================================================== */}
 
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.1),rgba(2,6,23,0.7))]" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+
+        <div
+          className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full opacity-30 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(99,102,241,0.55) 0%, rgba(99,102,241,0) 70%)",
+          }}
+        />
+
+        <div
+          className="absolute -right-40 top-20 h-[500px] w-[500px] rounded-full opacity-25 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(59,130,246,0) 70%)",
+          }}
+        />
+
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(15,23,42,0.15) 0%, rgba(2,6,23,0.95) 100%)",
+          }}
+        />
+
       </div>
 
-      {/* ========================================================
+      {/* ==================================================
           CONTENT
-         ======================================================== */}
+          ================================================== */}
 
-      <div className="relative space-y-8">
-        {/* ======================================================
-            WELCOME
-           ====================================================== */}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-        <section
-          className="
-            relative
-            overflow-hidden
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/[0.035]
-            p-6
-            shadow-2xl
-            shadow-black/20
-            backdrop-blur-sm
-            sm:p-8
-          "
-        >
-          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="space-y-8">
 
-          <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+          {/* ==================================================
+              WELCOME
+              ================================================== */}
 
-          <div className="relative">
-            <div className="mb-4 inline-flex items-center rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-300">
-              Student Dashboard
+          <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-8">
+
+            <div>
+
+              <p className="text-sm font-medium text-indigo-300">
+                Student Dashboard
+              </p>
+
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                Welcome back 👋
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+                Continue your preparation,
+                practice consistently, and climb
+                the national leaderboard.
+              </p>
+
             </div>
 
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-              Welcome back 👋
-            </h1>
+          </section>
 
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-              Continue your preparation, practice consistently,
-              and climb the national leaderboard.
-            </p>
-          </div>
-        </section>
+          {/* ==================================================
+              ACCESS BLOCKER
+              ================================================== */}
 
+          {!hasSecondaryAccess && (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-2xl shadow-black/30 backdrop-blur-sm">
 
-        {/* ======================================================
-            ACCESS BLOCKER
-           ====================================================== */}
+              <AccessBlocker
+                onSecondaryClick={() =>
+                  router.push(
+                    "/student/access/secondary"
+                  )
+                }
+              />
 
-        {!hasSecondaryAccess && (
-          <div
-            className="
-              overflow-hidden
-              rounded-3xl
-              border
-              border-white/10
-              bg-white/[0.025]
-              shadow-2xl
-              shadow-black/20
-              backdrop-blur-sm
-            "
-          >
-            <AccessBlocker
-              onSecondaryClick={() => {
-                router.push("/student/access/secondary");
-              }}
+            </div>
+          )}
+
+          {/* ==================================================
+              QUICK ACTIONS
+              ================================================== */}
+
+          <section>
+
+            <QuickActions
+              title="Quick Actions"
+              actions={actions}
+              locked={!hasSecondaryAccess}
             />
-          </div>
-        )}
 
-        {/* ======================================================
-            STATISTICS
-           ====================================================== */}
+          </section>
 
-        <section>
-          <div className="mb-3">
-            <h2 className="text-base font-semibold text-white">
-              Your Overview
-            </h2>
+          {/* ==================================================
+              UPCOMING QUIZ COMPETITIONS
+              ================================================== */}
 
-            <p className="mt-1 text-xs text-white/45">
-              Track your competition and practice progress.
-            </p>
-          </div>
+          <section>
 
-          <div className="overflow-hidden">
-            <StatsGrid stats={stats} />
-          </div>
-        </section>
+            {quizzesLoading ? (
 
-        {/* ======================================================
-            QUICK ACTIONS
-           ====================================================== */}
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
 
-        <section>
-          <QuickActions
-            title="Quick Actions"
-            actions={actions}
-            locked={!hasSecondaryAccess}
-          />
-        </section>
+                <div className="h-6 w-56 animate-pulse rounded bg-white/10" />
 
-        {/* ======================================================
-            UPCOMING COMPETITIONS
-           ====================================================== */}
+                <div className="mt-4 h-24 animate-pulse rounded-2xl bg-white/5" />
 
-        <section>
-          <UpcomingCompetitions
-            title="Upcoming Competitions"
-            competitions={competitions}
-          />
-        </section>
+              </div>
 
-        {/* ======================================================
-            DASHBOARD WIDGETS
-           ====================================================== */}
+            ) : quizzesError ? (
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* ====================================================
-              PERFORMANCE
-             ==================================================== */}
+              <div className="rounded-3xl border border-red-400/20 bg-red-400/[0.04] p-6">
 
-          <section
-            className="
-              rounded-3xl
-              border
-              border-white/10
-              bg-white/[0.035]
-              p-6
-              shadow-2xl
-              shadow-black/20
-              backdrop-blur-sm
-              sm:p-8
-            "
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white">
+                <p className="text-sm text-red-400">
+                  Unable to load upcoming quiz
+                  competitions.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <UpcomingQuiz
+                title="Upcoming Quiz Competitions"
+                competitions={competitions}
+              />
+
+            )}
+
+          </section>
+
+          {/* ==================================================
+              SOLVE & WIN
+              ================================================== */}
+
+          <section>
+
+            {solveAndWinLoading ? (
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+
+                <div className="h-6 w-56 animate-pulse rounded bg-white/10" />
+
+                <div className="mt-4 h-24 animate-pulse rounded-2xl bg-white/5" />
+
+              </div>
+
+            ) : solveAndWinError ? (
+
+              <div className="rounded-3xl border border-red-400/20 bg-red-400/[0.04] p-6">
+
+                <p className="text-sm text-red-400">
+                  Unable to load Solve & Win
+                  contests.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <UpcomingAndWin
+                title="Solve & Win Upcoming"
+                contests={solveAndWinContests.map(
+                  (contest) => ({
+                    id: contest._id,
+
+                    title: contest.title,
+
+                    description:
+                      contest.description,
+
+                    category:
+                      contest.category,
+
+                    amountToBeWonInKobo:
+                      contest.amountToBeWonInKobo,
+
+                    entryPoints:
+                      contest.entryPoints,
+
+                    status:
+                      contest.status,
+
+                    isActive:
+                      contest.isActive,
+
+                    startDate:
+                      contest.startDate,
+
+                    endDate:
+                      contest.endDate,
+
+                    windowPeriod:
+                      contest.windowPeriod,
+
+                    subject:
+                      contest.subjects?.[0]
+                        ?.subjectId?.name ||
+                      "General",
+
+                    href:
+                      "/student/solve-and-win",
+                  })
+                )}
+              />
+
+            )}
+
+          </section>
+
+          {/* ==================================================
+              PERFORMANCE + RECENT ACTIVITY
+              ================================================== */}
+
+          <section className="grid gap-6 lg:grid-cols-2">
+
+            {/* =================================================
+                PERFORMANCE OVERVIEW
+                ================================================= */}
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
+
+              <div className="mb-6">
+
+                <h2 className="text-xl font-bold text-white">
                   Performance Overview
                 </h2>
 
-                <p className="mt-2 text-sm leading-6 text-white/50">
-                  Track your CBT scores, ranking progress, and
-                  subject performance.
+                <p className="mt-1 text-sm text-slate-400">
+                  Track your learning and
+                  competition progress.
                 </p>
+
               </div>
 
-              <div className="hidden shrink-0 rounded-xl border border-purple-400/20 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 sm:block">
-                Coming Soon
-              </div>
-            </div>
+              <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
 
-            <div
-              className="
-                mt-7
-                flex
-                h-64
-                items-center
-                justify-center
-                rounded-2xl
-                border
-                border-dashed
-                border-white/10
-                bg-black/10
-              "
-            >
-              <div className="text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <div className="h-2 w-2 rounded-full bg-blue-400 shadow-lg shadow-blue-500/50" />
+                <div className="text-center">
+
+                  <p className="text-sm font-medium text-slate-300">
+                    Performance analytics
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Your detailed performance
+                    chart will appear here.
+                  </p>
+
                 </div>
 
-                <p className="mt-4 text-sm font-medium text-white/60">
-                  Performance Chart
-                </p>
-
-                <p className="mt-1 text-xs text-white/35">
-                  Your performance data will appear here.
-                </p>
               </div>
-            </div>
-          </section>
 
-          {/* ====================================================
-              RECENT ACTIVITY
-             ==================================================== */}
-
-          <section
-            className="
-              rounded-3xl
-              border
-              border-white/10
-              bg-white/[0.035]
-              p-6
-              shadow-2xl
-              shadow-black/20
-              backdrop-blur-sm
-              sm:p-8
-            "
-          >
-            <div>
-              <h2 className="text-xl font-semibold text-white">
-                Recent Activity
-              </h2>
-
-              <p className="mt-2 text-sm text-white/50">
-                Your latest learning and competition activity.
-              </p>
             </div>
 
-            <div className="mt-7 space-y-1">
-              {[
-                {
-                  title: "Completed Mathematics Practice",
-                  time: "Today • 92%",
-                },
-                {
-                  title: "Joined August Challenge",
-                  time: "Yesterday",
-                },
-                {
-                  title: "Team Invitation Accepted",
-                  time: "2 days ago",
-                },
-                {
-                  title: "Moved to Rank #18",
-                  time: "This Week",
-                },
-              ].map((activity, index) => (
-                <div
-                  key={activity.title}
-                  className="
-                    group
-                    flex
-                    items-start
-                    gap-4
-                    rounded-2xl
-                    px-3
-                    py-4
-                    transition
-                    hover:bg-white/[0.035]
-                  "
-                >
-                  {/* Timeline */}
+            {/* =================================================
+                RECENT ACTIVITY
+                ================================================= */}
 
-                  <div className="relative flex shrink-0 flex-col items-center">
-                    <div className="mt-1.5 h-3 w-3 rounded-full bg-blue-500 ring-4 ring-blue-500/10" />
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
 
-                    {index < 3 && (
-                      <div className="absolute top-5 h-10 w-px bg-white/10" />
-                    )}
-                  </div>
+              <div className="mb-6">
 
-                  {/* Activity */}
+                <h2 className="text-xl font-bold text-white">
+                  Recent Activity
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Your latest learning and
+                  competition activity.
+                </p>
+
+              </div>
+
+              <div className="space-y-4">
+
+                {/* Activity 1 */}
+
+                <div className="flex items-start gap-3">
+
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
 
                   <div className="min-w-0">
-                    <p className="font-medium text-white/85 group-hover:text-white">
-                      {activity.title}
+
+                    <p className="text-sm font-medium text-white">
+                      Completed Mathematics Practice
                     </p>
 
-                    <p className="mt-1 text-sm text-white/40">
-                      {activity.time}
+                    <p className="mt-1 text-xs text-slate-500">
+                      Today • 92%
                     </p>
+
                   </div>
+
                 </div>
-              ))}
+
+                {/* Activity 2 */}
+
+                <div className="flex items-start gap-3">
+
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-400" />
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-medium text-white">
+                      Joined August Challenge
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Yesterday
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* Activity 3 */}
+
+                <div className="flex items-start gap-3">
+
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-400" />
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-medium text-white">
+                      Team Invitation Accepted
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      2 days ago
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* Activity 4 */}
+
+                <div className="flex items-start gap-3">
+
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" />
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-medium text-white">
+                      Moved to Rank #18
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      This Week
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
             </div>
+
           </section>
+
         </div>
+
       </div>
+
+      {/* ==================================================
+          FREE TRIAL BANNER
+          ================================================== */}
+
+      {isFreeTrialActive && (
+        <FreeTrialCard
+          createdAt={user?.createdAt}
+        />
+      )}
+
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-// "use client";
-
-// import { useEffect, useMemo, useState } from "react";
-
-// import type { QuickAction } from "@/components/dashboard/widgets/QuickActions";
-// import type { StatCardProps } from "@/components/dashboard/widgets/StatCard";
-
-// import {
-//   QuickActions,
-//   StatsGrid,
-//   UpcomingCompetitions,
-// } from "@/components/dashboard/widgets";
-
-// import AccessBlocker from "@/components/access/AccessBlocker";
-// import FreeTrialCard from "@/components/access/FreeTrialCard";
-
-// import { useAuthStore } from "@/stores";
-// import { useRouter } from "next/navigation";
-
-// /* ================================================================
-//    FREE TRIAL CONFIGURATION
-//    ================================================================ */
-
-// const FREE_TRIAL_DAYS = 30;
-// const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
-
-// export default function StudentDashboardPage() {
-//   /* ============================================================
-//      AUTH
-//      ============================================================ */
-
-//   const { user } = useAuthStore();
-
-//   const router = useRouter();
-
-//   /* ============================================================
-//      PLAN / ACCESS
-//      ============================================================ */
-
-//   const hasSecondaryPlan =
-//     Array.isArray(user?.plans) &&
-//     user.plans.includes("SECONDARY");
-
-//   /*
-//    * The free trial starts from the student's account creation date.
-//    *
-//    * It does NOT start from:
-//    * - first dashboard visit
-//    * - first login
-//    * - first use of a Secondary feature
-//    */
-
-//   const trialEndsAt = useMemo(() => {
-//     if (!user?.createdAt) {
-//       return null;
-//     }
-
-//     const createdAt = new Date(user.createdAt).getTime();
-
-//     if (Number.isNaN(createdAt)) {
-//       return null;
-//     }
-
-//     return createdAt + FREE_TRIAL_DAYS * MILLISECONDS_IN_DAY;
-//   }, [user?.createdAt]);
-
-//   /* ============================================================
-//      TRIAL COUNTDOWN
-//      ============================================================ */
-
-//   const [remainingTime, setRemainingTime] = useState(() => {
-//     if (!trialEndsAt) {
-//       return 0;
-//     }
-
-//     return Math.max(0, trialEndsAt - Date.now());
-//   });
-
-//   useEffect(() => {
-//     /*
-//      * Students with a paid SECONDARY plan do not need
-//      * the free-trial countdown.
-//      */
-//     if (hasSecondaryPlan || !trialEndsAt) {
-//       setRemainingTime(0);
-//       return;
-//     }
-
-//     const updateCountdown = () => {
-//       const remaining = Math.max(
-//         0,
-//         trialEndsAt - Date.now(),
-//       );
-
-//       setRemainingTime(remaining);
-//     };
-
-//     /*
-//      * Update immediately so the UI does not wait one second.
-//      */
-//     updateCountdown();
-
-//     /*
-//      * Keep checking every second so the access state changes
-//      * automatically when the 30-day trial expires.
-//      */
-//     const interval = window.setInterval(
-//       updateCountdown,
-//       1000,
-//     );
-
-//     return () => {
-//       window.clearInterval(interval);
-//     };
-//   }, [hasSecondaryPlan, trialEndsAt]);
-
-//   /* ============================================================
-//      TRIAL / ACCESS STATE
-//      ============================================================ */
-
-//   const isFreeTrialActive =
-//     !hasSecondaryPlan &&
-//     trialEndsAt !== null &&
-//     remainingTime > 0;
-
-//   const isFreeTrialExpired =
-//     !hasSecondaryPlan &&
-//     trialEndsAt !== null &&
-//     remainingTime <= 0;
-
-//   /*
-//    * This is the single access condition used by the dashboard.
-//    *
-//    * Access is granted when:
-//    *
-//    * 1. The student has a SECONDARY plan
-//    * OR
-//    * 2. The student's 30-day free trial is still active.
-//    *
-//    * This is important because a student on the free trial
-//    * must NOT be treated as locked.
-//    */
-//   const hasSecondaryAccess =
-//     hasSecondaryPlan || isFreeTrialActive;
-
-//   /* ============================================================
-//      STATISTICS
-//      ============================================================ */
-
-//   const stats: StatCardProps[] = [
-//     {
-//       title: "Competitions",
-//       value: 12,
-//       icon: "trophy",
-//       change: 15,
-//       changeLabel: "from last month",
-//     },
-//     {
-//       title: "Current Rank",
-//       value: "#18",
-//       icon: "medal",
-//     },
-//     {
-//       title: "Practice Tests",
-//       value: 147,
-//       icon: "book",
-//     },
-//     {
-//       title: "Team Members",
-//       value: 3,
-//       icon: "users",
-//     },
-//   ];
-
-//   /* ============================================================
-//      QUICK ACTIONS
-//      ============================================================ */
-
-//   const actions: QuickAction[] = [
-//     {
-//       title: "CBT Wallet",
-//       description: "Manage your CBT points",
-//       href: "/student/practice/cbt-wallet",
-//       icon: "wallet",
-//     },
-
-//     {
-//       title: "Solve & Win Questions",
-//       description: "Earn While You Learn",
-//       href: "/student/solve-and-win",
-//       icon: "trophy",
-//     },
-
-//     {
-//       title: "Learning Arena",
-//       description: "Learn through guided lessons",
-//       href: "/student/arena",
-//       icon: "play",
-//     },
-
-//     {
-//       title: "Past Questions Mode",
-//       description: "Practice Past Questions",
-//       href: "/student/practice",
-//       icon: "book",
-//     },
-//   ];
-
-//   /* ============================================================
-//      COMPETITIONS
-//      ============================================================ */
-
-//   const competitions = [
-//     {
-//       id: "1",
-//       title: "JAMB League August Challenge",
-//       date: "15 August 2026",
-//       time: "10:00 AM",
-//       teams: 128,
-//       status: "Registration Open" as const,
-//       href: "/student/competitions/1",
-//     },
-
-//     {
-//       id: "2",
-//       title: "Science Quiz Championship",
-//       date: "28 August 2026",
-//       time: "09:00 AM",
-//       teams: 82,
-//       status: "Upcoming" as const,
-//       href: "/student/competitions/2",
-//     },
-//   ];
-
-//   /* ============================================================
-//      RENDER
-//      ============================================================ */
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-//       {/* ========================================================
-//           BACKGROUND ATMOSPHERE
-//          ======================================================== */}
-
-//       <div className="pointer-events-none fixed inset-0">
-//         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
-
-//         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.1),rgba(2,6,23,0.7))]" />
-//       </div>
-
-//       {/* ========================================================
-//           CONTENT
-//          ======================================================== */}
-
-//       <div className="relative space-y-8">
-//         {/* ======================================================
-//             WELCOME
-//            ====================================================== */}
-
-//         <section
-//           className="
-//             relative
-//             overflow-hidden
-//             rounded-3xl
-//             border
-//             border-white/10
-//             bg-white/[0.035]
-//             p-6
-//             shadow-2xl
-//             shadow-black/20
-//             backdrop-blur-sm
-//             sm:p-8
-//           "
-//         >
-//           <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
-
-//           <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
-
-//           <div className="relative">
-//             <div className="mb-4 inline-flex items-center rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-300">
-//               Student Dashboard
-//             </div>
-
-//             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-//               Welcome back 👋
-//             </h1>
-
-//             <p className="mt-3 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-//               Continue your preparation, practice consistently,
-//               and climb the national leaderboard.
-//             </p>
-//           </div>
-//         </section>
-
-//         {/* ======================================================
-//             FREE TRIAL
-//            ====================================================== */}
-
-//         {isFreeTrialActive && (
-//           <FreeTrialCard
-//             createdAt={user?.createdAt}
-//           />
-//         )}
-
-//         {/* ======================================================
-//             ACCESS BLOCKER
-//            ====================================================== */}
-
-//         {!hasSecondaryAccess && (
-//           <div
-//             className="
-//               overflow-hidden
-//               rounded-3xl
-//               border
-//               border-white/10
-//               bg-white/[0.025]
-//               shadow-2xl
-//               shadow-black/20
-//               backdrop-blur-sm
-//             "
-//           >
-//             <AccessBlocker
-//               onSecondaryClick={() => {
-//                 router.push("/student/access/secondary");
-//               }}
-//             />
-//           </div>
-//         )}
-
-//         {/* ======================================================
-//             STATISTICS
-//            ====================================================== */}
-
-//         <section>
-//           <div className="mb-3">
-//             <h2 className="text-base font-semibold text-white">
-//               Your Overview
-//             </h2>
-
-//             <p className="mt-1 text-xs text-white/45">
-//               Track your competition and practice progress.
-//             </p>
-//           </div>
-
-//           <div className="overflow-hidden">
-//             <StatsGrid stats={stats} />
-//           </div>
-//         </section>
-
-//         {/* ======================================================
-//             QUICK ACTIONS
-//            ====================================================== */}
-
-//         <section>
-//           <QuickActions
-//             title="Quick Actions"
-//             actions={actions}
-//             locked={!hasSecondaryAccess}
-//           />
-//         </section>
-
-//         {/* ======================================================
-//             UPCOMING COMPETITIONS
-//            ====================================================== */}
-
-//         <section>
-//           <UpcomingCompetitions
-//             title="Upcoming Competitions"
-//             competitions={competitions}
-//           />
-//         </section>
-
-//         {/* ======================================================
-//             DASHBOARD WIDGETS
-//            ====================================================== */}
-
-//         <div className="grid gap-6 lg:grid-cols-2">
-//           {/* ====================================================
-//               PERFORMANCE
-//              ==================================================== */}
-
-//           <section
-//             className="
-//               rounded-3xl
-//               border
-//               border-white/10
-//               bg-white/[0.035]
-//               p-6
-//               shadow-2xl
-//               shadow-black/20
-//               backdrop-blur-sm
-//               sm:p-8
-//             "
-//           >
-//             <div className="flex items-start justify-between gap-4">
-//               <div>
-//                 <h2 className="text-xl font-semibold text-white">
-//                   Performance Overview
-//                 </h2>
-
-//                 <p className="mt-2 text-sm leading-6 text-white/50">
-//                   Track your CBT scores, ranking progress, and
-//                   subject performance.
-//                 </p>
-//               </div>
-
-//               <div className="hidden shrink-0 rounded-xl border border-purple-400/20 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 sm:block">
-//                 Coming Soon
-//               </div>
-//             </div>
-
-//             <div
-//               className="
-//                 mt-7
-//                 flex
-//                 h-64
-//                 items-center
-//                 justify-center
-//                 rounded-2xl
-//                 border
-//                 border-dashed
-//                 border-white/10
-//                 bg-black/10
-//               "
-//             >
-//               <div className="text-center">
-//                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-//                   <div className="h-2 w-2 rounded-full bg-blue-400 shadow-lg shadow-blue-500/50" />
-//                 </div>
-
-//                 <p className="mt-4 text-sm font-medium text-white/60">
-//                   Performance Chart
-//                 </p>
-
-//                 <p className="mt-1 text-xs text-white/35">
-//                   Your performance data will appear here.
-//                 </p>
-//               </div>
-//             </div>
-//           </section>
-
-//           {/* ====================================================
-//               RECENT ACTIVITY
-//              ==================================================== */}
-
-//           <section
-//             className="
-//               rounded-3xl
-//               border
-//               border-white/10
-//               bg-white/[0.035]
-//               p-6
-//               shadow-2xl
-//               shadow-black/20
-//               backdrop-blur-sm
-//               sm:p-8
-//             "
-//           >
-//             <div>
-//               <h2 className="text-xl font-semibold text-white">
-//                 Recent Activity
-//               </h2>
-
-//               <p className="mt-2 text-sm text-white/50">
-//                 Your latest learning and competition activity.
-//               </p>
-//             </div>
-
-//             <div className="mt-7 space-y-1">
-//               {[
-//                 {
-//                   title: "Completed Mathematics Practice",
-//                   time: "Today • 92%",
-//                 },
-//                 {
-//                   title: "Joined August Challenge",
-//                   time: "Yesterday",
-//                 },
-//                 {
-//                   title: "Team Invitation Accepted",
-//                   time: "2 days ago",
-//                 },
-//                 {
-//                   title: "Moved to Rank #18",
-//                   time: "This Week",
-//                 },
-//               ].map((activity, index) => (
-//                 <div
-//                   key={activity.title}
-//                   className="
-//                     group
-//                     flex
-//                     items-start
-//                     gap-4
-//                     rounded-2xl
-//                     px-3
-//                     py-4
-//                     transition
-//                     hover:bg-white/[0.035]
-//                   "
-//                 >
-//                   {/* Timeline */}
-
-//                   <div className="relative flex shrink-0 flex-col items-center">
-//                     <div className="mt-1.5 h-3 w-3 rounded-full bg-blue-500 ring-4 ring-blue-500/10" />
-
-//                     {index < 3 && (
-//                       <div className="absolute top-5 h-10 w-px bg-white/10" />
-//                     )}
-//                   </div>
-
-//                   {/* Activity */}
-
-//                   <div className="min-w-0">
-//                     <p className="font-medium text-white/85 group-hover:text-white">
-//                       {activity.title}
-//                     </p>
-
-//                     <p className="mt-1 text-sm text-white/40">
-//                       {activity.time}
-//                     </p>
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           </section>
-//         </div>
-//       </div>
-//     </main>
-//   );
-// }

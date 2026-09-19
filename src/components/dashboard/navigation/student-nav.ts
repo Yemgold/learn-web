@@ -52,7 +52,7 @@ export const studentNavigation: NavigationSection[] = [
       {
         label: "Practice Questions",
         description: "Simulate the real JAMB exams",
-        href: "/student/practice/cbtsubjects?exam=jamb",
+        href: "/student/practice",
         icon: BookOpen,
       },
     ],

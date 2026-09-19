@@ -13,3 +13,27 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+
+@keyframes activateLearningBlink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.55;
+    transform: scale(0.98);
+  }
+}
+
+.activate-learning-button {
+  animation: activateLearningBlink 1s ease-in-out infinite;
+}
+
+.activate-learning-button:hover {
+  animation-play-state: paused;
+  opacity: 1;
+  transform: scale(1);
+}

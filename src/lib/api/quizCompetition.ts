@@ -118,9 +118,32 @@ export const getAllMyQuizzes = async (userId: string) => {
     throw new Error("User ID is required.");
   }
 
-  const response = await axiosInstance.get(
-    `/quiz/get-all-my-quizzes/${userId}`,
-  );
+  try {
+    const response = await axiosInstance.get(
+      `/quiz/get-all-my-quizzes/${userId}`,
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    // A 404 here means the user has not joined
+    // any Quiz Board competitions yet.
+    if (
+      error?.response?.status === 404 &&
+      error?.response?.data?.message ===
+        "Quiz participations not found."
+    ) {
+      return {
+        success: true,
+        message: "No quiz participations found.",
+        data: {
+          totalCount: 0,
+          totalPages: 0,
+          quizParticipationObj: [],
+        },
+      };
+    }
+
+    // Preserve all other errors.
+    throw error;
+  }
 };

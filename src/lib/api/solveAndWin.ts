@@ -145,11 +145,31 @@ export async function getAllSolveAndWinContests(): Promise<GetAllContestsRespons
 
 
 export async function getAllNotCompletedContests(): Promise<GetAllContestsResponse> {
-  const response = await api.get<GetAllContestsResponse>(
-    "/solve-and-win/contests/get-all-not-completed-contests",
-  );
+  try {
+    const response = await api.get<GetAllContestsResponse>(
+      "/solve-and-win/contests/get-all-not-completed-contests",
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    if (
+      error?.response?.status === 404 &&
+      error?.response?.data?.message === "No upcoming contests found."
+    ) {
+      return {
+        success: true,
+        message: "No upcoming contests found.",
+        data: {
+          totalCount: 0,
+          totalPages: 0,
+          solveAndWinContestObj: [],
+        },
+      };
+    }
+
+    // Keep all other errors as real errors.
+    throw error;
+  }
 }
 
 export interface GetContestWithSubjectsResponse {

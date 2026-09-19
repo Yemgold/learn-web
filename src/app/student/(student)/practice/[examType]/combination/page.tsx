@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -118,73 +114,73 @@ const subjectIcons = {
 
 const subjectStyles = {
   english: {
-    color: "text-blue-600",
-    bg: "bg-blue-100",
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
     selected:
-      "border-blue-500 bg-blue-50 ring-2 ring-blue-100",
+      "border-blue-500/50 bg-blue-500/[0.08] ring-2 ring-blue-500/10",
   },
 
   useofenglish: {
-    color: "text-blue-600",
-    bg: "bg-blue-100",
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
     selected:
-      "border-blue-500 bg-blue-50 ring-2 ring-blue-100",
+      "border-blue-500/50 bg-blue-500/[0.08] ring-2 ring-blue-500/10",
   },
 
   mathematics: {
-    color: "text-green-600",
-    bg: "bg-green-100",
+    color: "text-green-400",
+    bg: "bg-green-500/10",
     selected:
-      "border-green-500 bg-green-50 ring-2 ring-green-100",
+      "border-green-500/50 bg-green-500/[0.08] ring-2 ring-green-500/10",
   },
 
   maths: {
-    color: "text-green-600",
-    bg: "bg-green-100",
+    color: "text-green-400",
+    bg: "bg-green-500/10",
     selected:
-      "border-green-500 bg-green-50 ring-2 ring-green-100",
+      "border-green-500/50 bg-green-500/[0.08] ring-2 ring-green-500/10",
   },
 
   physics: {
-    color: "text-purple-600",
-    bg: "bg-purple-100",
+    color: "text-purple-400",
+    bg: "bg-purple-500/10",
     selected:
-      "border-purple-500 bg-purple-50 ring-2 ring-purple-100",
+      "border-purple-500/50 bg-purple-500/[0.08] ring-2 ring-purple-500/10",
   },
 
   chemistry: {
-    color: "text-orange-600",
-    bg: "bg-orange-50",
+    color: "text-orange-400",
+    bg: "bg-orange-500/10",
     selected:
-      "border-orange-500 bg-orange-50 ring-2 ring-orange-100",
+      "border-orange-500/50 bg-orange-500/[0.08] ring-2 ring-orange-500/10",
   },
 
   biology: {
-    color: "text-pink-600",
-    bg: "bg-pink-50",
+    color: "text-pink-400",
+    bg: "bg-pink-500/10",
     selected:
-      "border-pink-500 bg-pink-50 ring-2 ring-pink-100",
+      "border-pink-500/50 bg-pink-500/[0.08] ring-2 ring-pink-500/10",
   },
 
   government: {
-    color: "text-red-600",
-    bg: "bg-red-100",
+    color: "text-red-400",
+    bg: "bg-red-500/10",
     selected:
-      "border-red-500 bg-red-50 ring-2 ring-red-100",
+      "border-red-500/50 bg-red-500/[0.08] ring-2 ring-red-500/10",
   },
 
   geography: {
-    color: "text-cyan-600",
-    bg: "bg-cyan-100",
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10",
     selected:
-      "border-cyan-500 bg-cyan-50 ring-2 ring-cyan-100",
+      "border-cyan-500/50 bg-cyan-500/[0.08] ring-2 ring-cyan-500/10",
   },
 
   literature: {
-    color: "text-indigo-600",
-    bg: "bg-indigo-100",
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10",
     selected:
-      "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100",
+      "border-indigo-500/50 bg-indigo-500/[0.08] ring-2 ring-indigo-500/10",
   },
 } as const;
 
@@ -296,10 +292,10 @@ function getSubjectStyle(name: string) {
     subjectStyles[
       key as keyof typeof subjectStyles
     ] ?? {
-      color: "text-slate-600",
-      bg: "bg-slate-100",
+      color: "text-slate-400",
+      bg: "bg-white/[0.04]",
       selected:
-        "border-slate-500 bg-slate-50 ring-2 ring-slate-100",
+        "border-white/20 bg-white/[0.06] ring-2 ring-white/5",
     }
   );
 }
@@ -313,11 +309,11 @@ export default function PracticeCombinationPage() {
 
   /* ==========================================================
      IMPORTANT
-     
+
      The exam comes from:
-     
+
      /practice/[examType]/combination
-     
+
      NOT from ?exam=jamb
      ========================================================== */
 
@@ -329,12 +325,9 @@ export default function PracticeCombinationPage() {
      STATE
      ========================================================== */
 
-  const [subjects, setSubjects] = useState<Subject[]>(
-    [],
-  );
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [error, setError] =
     useState<string | null>(null);
@@ -669,16 +662,25 @@ export default function PracticeCombinationPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-4 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        {/* Background identity */}
 
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-              <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
+
+          <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
+
+          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/[0.06] blur-3xl" />
+        </div>
+
+        <div className="relative container mx-auto flex min-h-[70vh] items-center justify-center px-4">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10">
+              <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
             </div>
 
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-white">
                 Loading{" "}
                 {exam.toUpperCase()}{" "}
                 subjects
@@ -689,7 +691,6 @@ export default function PracticeCombinationPage() {
                 selection...
               </p>
             </div>
-
           </div>
         </div>
       </main>
@@ -702,20 +703,26 @@ export default function PracticeCombinationPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4">
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        {/* Background identity */}
 
-          <Card className="w-full max-w-md p-8 text-center">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
 
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-              <BookOpen className="h-7 w-7 text-red-600" />
+          <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
+        </div>
+
+        <div className="relative container mx-auto flex min-h-[70vh] items-center justify-center px-4">
+          <Card className="w-full max-w-md border border-white/10 bg-white/[0.04] p-8 text-center shadow-none">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10">
+              <BookOpen className="h-7 w-7 text-red-400" />
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-slate-900">
+            <h2 className="mt-5 text-xl font-bold text-white">
               Unable to load subjects
             </h2>
 
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-400">
               {error}
             </p>
 
@@ -727,9 +734,7 @@ export default function PracticeCombinationPage() {
             >
               Try Again
             </Button>
-
           </Card>
-
         </div>
       </main>
     );
@@ -740,68 +745,67 @@ export default function PracticeCombinationPage() {
      ========================================================== */
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      {/* ====================================================
+          BACKGROUND IDENTITY
+         ==================================================== */}
 
-      <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
 
+        <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
+
+        <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/[0.06] blur-3xl" />
+      </div>
+
+      <div className="relative container mx-auto max-w-6xl px-4 py-6 sm:py-8">
         {/* ====================================================
             HEADER
            ==================================================== */}
 
         <section className="mb-6">
-
-          <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+          <div className="flex items-center gap-2 text-sm font-semibold text-blue-400">
             <Sparkles className="h-4 w-4" />
 
             {config.label}
           </div>
 
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {config.title}
           </h1>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
             {config.description}
           </p>
-
         </section>
 
         {/* ====================================================
             COMBINATION SUMMARY
            ==================================================== */}
 
-        <Card className="mb-6 overflow-hidden border-blue-100 bg-white p-0">
-
-          <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white px-5 py-4">
-
+        <Card className="mb-6 overflow-hidden border border-white/10 bg-white/[0.04] p-0 shadow-none">
+          <div className="border-b border-white/5 bg-gradient-to-r from-blue-950/60 via-blue-950/30 to-slate-950 px-5 py-4">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-
               <div>
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
                   {exam === "jamb"
                     ? "Your combination"
                     : "Selected subjects"}
                 </p>
 
-                <h2 className="mt-1 text-lg font-bold text-slate-900">
-
+                <h2 className="mt-1 text-lg font-bold text-white">
                   {combination.length}
 
                   {exam === "jamb"
                     ? ` / ${JAMB_MAX_SUBJECTS}`
-                    : ""}
-
-                  {" "}
+                    : ""}{" "}
 
                   {exam === "jamb"
                     ? "subjects selected"
                     : combination.length === 1
                       ? "subject selected"
                       : "subjects selected"}
-
                 </h2>
-
               </div>
 
               <button
@@ -809,24 +813,19 @@ export default function PracticeCombinationPage() {
                 onClick={
                   handleResetCombination
                 }
-                className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-500 transition hover:text-red-600 sm:self-auto"
+                className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-400 transition hover:text-red-400 sm:self-auto"
               >
                 <RotateCcw className="h-4 w-4" />
 
                 Reset
               </button>
-
             </div>
-
           </div>
 
           <div className="px-5 py-4">
-
             <div className="flex flex-wrap gap-2">
-
               {selectedSubjects.map(
                 (subject, index) => {
-
                   const key =
                     getSubjectKey(
                       subject.name,
@@ -840,9 +839,8 @@ export default function PracticeCombinationPage() {
                   return (
                     <div
                       key={subject._id}
-                      className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800"
+                      className="flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300"
                     >
-
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
                         {index + 1}
                       </span>
@@ -853,11 +851,10 @@ export default function PracticeCombinationPage() {
 
                       {exam === "jamb" &&
                         isEnglish && (
-                          <span className="text-[10px] font-semibold uppercase text-blue-500">
+                          <span className="text-[10px] font-semibold uppercase text-blue-400">
                             Required
                           </span>
                         )}
-
                     </div>
                   );
                 },
@@ -867,7 +864,7 @@ export default function PracticeCombinationPage() {
 
               {!combinationComplete &&
                 exam === "jamb" && (
-                  <div className="flex items-center rounded-full border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">
+                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
                     Select{" "}
                     {JAMB_MAX_SUBJECTS -
                       combination.length}{" "}
@@ -881,16 +878,13 @@ export default function PracticeCombinationPage() {
                 exam !== "jamb" &&
                 combination.length ===
                   0 && (
-                  <div className="flex items-center rounded-full border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">
+                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
                     Select at least one
                     subject
                   </div>
                 )}
-
             </div>
-
           </div>
-
         </Card>
 
         {/* ====================================================
@@ -898,17 +892,13 @@ export default function PracticeCombinationPage() {
            ==================================================== */}
 
         <section>
-
           <div className="mb-4 flex items-end justify-between">
-
             <div>
-
-              <h2 className="text-lg font-bold text-slate-900">
+              <h2 className="text-lg font-bold text-white">
                 Choose your subjects
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-
                 {exam === "jamb"
                   ? `${optionalSelectedCount} of 3 optional subjects selected`
                   : `${combination.length} subject${
@@ -917,25 +907,18 @@ export default function PracticeCombinationPage() {
                         ? ""
                         : "s"
                     } selected`}
-
               </p>
-
             </div>
 
-            <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 sm:block">
-
+            <span className="hidden rounded-full border border-white/5 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-400 sm:block">
               {exam === "jamb"
                 ? "4 subjects maximum"
                 : "Select your subjects"}
-
             </span>
-
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
             {subjects.map((subject) => {
-
               const Icon =
                 getSubjectIcon(
                   subject.name,
@@ -985,20 +968,19 @@ export default function PracticeCombinationPage() {
                     )
                   }
                   className={[
-                    "group relative rounded-xl border bg-white p-4 text-left transition-all duration-200",
-                    "hover:-translate-y-0.5 hover:shadow-md",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                    "group relative rounded-xl border bg-white/[0.04] p-4 text-left transition-all duration-200",
+                    "hover:-translate-y-0.5 hover:bg-white/[0.06] hover:shadow-none",
+                    "focus:outline-none focus:ring-2 focus:ring-blue-500/40",
 
                     isSelected
                       ? style.selected
-                      : "border-slate-200 hover:border-slate-300",
+                      : "border-white/10 hover:border-white/20",
 
                     disabled
-                      ? "cursor-not-allowed opacity-40 hover:translate-y-0 hover:shadow-none"
+                      ? "cursor-not-allowed opacity-40 hover:translate-y-0 hover:bg-white/[0.04]"
                       : "",
                   ].join(" ")}
                 >
-
                   {/* Selected indicator */}
 
                   {isSelected && (
@@ -1010,7 +992,7 @@ export default function PracticeCombinationPage() {
                   {/* Icon */}
 
                   <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${style.bg}`}
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl border border-white/5 ${style.bg}`}
                   >
                     <Icon
                       className={`h-5 w-5 ${style.color}`}
@@ -1019,29 +1001,24 @@ export default function PracticeCombinationPage() {
 
                   {/* Name */}
 
-                  <h3 className="mt-4 pr-5 text-sm font-bold text-slate-900 sm:text-base">
+                  <h3 className="mt-4 pr-5 text-sm font-bold text-white sm:text-base">
                     {displayName}
                   </h3>
 
                   {/* Status */}
 
                   <p className="mt-1 text-xs text-slate-500">
-
                     {exam === "jamb" &&
                     isEnglish
                       ? "Compulsory"
                       : isSelected
                         ? "Selected"
                         : "Tap to select"}
-
                   </p>
-
                 </button>
               );
             })}
-
           </div>
-
         </section>
 
         {/* ====================================================
@@ -1049,23 +1026,16 @@ export default function PracticeCombinationPage() {
            ==================================================== */}
 
         <div className="sticky bottom-4 z-20 mt-6">
-
-          <Card className="border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-
+          <Card className="border border-white/10 bg-slate-950/90 p-3 shadow-none backdrop-blur-xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
               <div className="hidden sm:block">
-
-                <p className="text-sm font-semibold text-slate-900">
-
+                <p className="text-sm font-semibold text-white">
                   {combinationComplete
                     ? `Your ${exam.toUpperCase()} selection is ready`
                     : "Select your subjects"}
-
                 </p>
 
                 <p className="text-xs text-slate-500">
-
                   {combinationComplete
                     ? "You can now continue to practice."
                     : exam === "jamb"
@@ -1080,9 +1050,7 @@ export default function PracticeCombinationPage() {
                             : "s"
                         }.`
                       : "Select at least one subject to continue."}
-
                 </p>
-
               </div>
 
               {/* ==================================================
@@ -1120,18 +1088,1146 @@ export default function PracticeCombinationPage() {
                     : "Select a subject"}
                 </Button>
               )}
-
             </div>
-
           </Card>
-
         </div>
-
       </div>
-
     </main>
   );
 }
+
+
+
+// "use client";
+
+// import { useEffect, useMemo, useState } from "react";
+// import Link from "next/link";
+// import { useParams } from "next/navigation";
+
+// import {
+//   BookOpen,
+//   Calculator,
+//   Atom,
+//   FlaskConical,
+//   Brain,
+//   Globe,
+//   Landmark,
+//   Languages,
+//   ArrowRight,
+//   Check,
+//   Loader2,
+//   RotateCcw,
+//   Sparkles,
+// } from "lucide-react";
+
+// import { Card } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+
+// import {
+//   getSubjectsByPlan,
+//   type Subject,
+// } from "@/lib/api/subjects";
+
+// import { usePracticeStore } from "@/stores/practiceStore";
+
+// /* ============================================================
+//    CONFIG
+//    ============================================================ */
+
+// const ITEMS_PER_PAGE = 50;
+
+// const JAMB_MAX_SUBJECTS = 4;
+
+// const OTHER_EXAM_MAX_SUBJECTS = 20;
+
+// /* ============================================================
+//    EXAM TYPE
+//    ============================================================ */
+
+// type ExamType = "jamb" | "waec" | "neco";
+
+// /* ============================================================
+//    EXAM CONFIG
+//    ============================================================ */
+
+// const examConfig: Record<
+//   ExamType,
+//   {
+//     label: string;
+//     title: string;
+//     description: string;
+//     maxSubjects: number;
+//     requiresEnglish: boolean;
+//   }
+// > = {
+//   jamb: {
+//     label: "JAMB Practice",
+//     title: "Set Your JAMB Combination",
+//     description:
+//       "Select the four subjects you want to practise. Use of English is compulsory.",
+//     maxSubjects: JAMB_MAX_SUBJECTS,
+//     requiresEnglish: true,
+//   },
+
+//   waec: {
+//     label: "WAEC Practice",
+//     title: "Select Your WAEC Subjects",
+//     description:
+//       "Select the WAEC subjects you want to practise.",
+//     maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
+//     requiresEnglish: false,
+//   },
+
+//   neco: {
+//     label: "NECO Practice",
+//     title: "Select Your NECO Subjects",
+//     description:
+//       "Select the NECO subjects you want to practise.",
+//     maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
+//     requiresEnglish: false,
+//   },
+// };
+
+// /* ============================================================
+//    SUBJECT ICONS
+//    ============================================================ */
+
+// const subjectIcons = {
+//   english: BookOpen,
+//   useofenglish: BookOpen,
+
+//   mathematics: Calculator,
+//   maths: Calculator,
+
+//   physics: Atom,
+//   chemistry: FlaskConical,
+//   biology: Brain,
+
+//   government: Landmark,
+//   geography: Globe,
+//   literature: Languages,
+// } as const;
+
+// /* ============================================================
+//    SUBJECT STYLES
+//    ============================================================ */
+
+// const subjectStyles = {
+//   english: {
+//     color: "text-blue-600",
+//     bg: "bg-blue-100",
+//     selected:
+//       "border-blue-500 bg-blue-50 ring-2 ring-blue-100",
+//   },
+
+//   useofenglish: {
+//     color: "text-blue-600",
+//     bg: "bg-blue-100",
+//     selected:
+//       "border-blue-500 bg-blue-50 ring-2 ring-blue-100",
+//   },
+
+//   mathematics: {
+//     color: "text-green-600",
+//     bg: "bg-green-100",
+//     selected:
+//       "border-green-500 bg-green-50 ring-2 ring-green-100",
+//   },
+
+//   maths: {
+//     color: "text-green-600",
+//     bg: "bg-green-100",
+//     selected:
+//       "border-green-500 bg-green-50 ring-2 ring-green-100",
+//   },
+
+//   physics: {
+//     color: "text-purple-600",
+//     bg: "bg-purple-100",
+//     selected:
+//       "border-purple-500 bg-purple-50 ring-2 ring-purple-100",
+//   },
+
+//   chemistry: {
+//     color: "text-orange-600",
+//     bg: "bg-orange-50",
+//     selected:
+//       "border-orange-500 bg-orange-50 ring-2 ring-orange-100",
+//   },
+
+//   biology: {
+//     color: "text-pink-600",
+//     bg: "bg-pink-50",
+//     selected:
+//       "border-pink-500 bg-pink-50 ring-2 ring-pink-100",
+//   },
+
+//   government: {
+//     color: "text-red-600",
+//     bg: "bg-red-100",
+//     selected:
+//       "border-red-500 bg-red-50 ring-2 ring-red-100",
+//   },
+
+//   geography: {
+//     color: "text-cyan-600",
+//     bg: "bg-cyan-100",
+//     selected:
+//       "border-cyan-500 bg-cyan-50 ring-2 ring-cyan-100",
+//   },
+
+//   literature: {
+//     color: "text-indigo-600",
+//     bg: "bg-indigo-100",
+//     selected:
+//       "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100",
+//   },
+// } as const;
+
+// /* ============================================================
+//    HELPERS
+//    ============================================================ */
+
+// function normalizeExam(value: unknown): ExamType {
+//   const exam = String(value ?? "").toLowerCase();
+
+//   if (exam === "waec") {
+//     return "waec";
+//   }
+
+//   if (exam === "neco") {
+//     return "neco";
+//   }
+
+//   return "jamb";
+// }
+
+// /* ============================================================
+//    SUBJECT KEY
+//    ============================================================ */
+
+// function getSubjectKey(name: string): string {
+//   return name
+//     .toLowerCase()
+//     .replace(/\s+/g, "")
+//     .replace(/[^a-z]/g, "");
+// }
+
+// /* ============================================================
+//    SUBJECT DISPLAY NAME
+//    ============================================================ */
+
+// function getSubjectDisplayName(name: string): string {
+//   const names: Record<string, string> = {
+//     english: "Use of English",
+//     useofenglish: "Use of English",
+
+//     mathematics: "Mathematics",
+//     maths: "Mathematics",
+
+//     physics: "Physics",
+//     chemistry: "Chemistry",
+//     biology: "Biology",
+
+//     government: "Government",
+//     geography: "Geography",
+//     literature: "Literature",
+
+//     englishlit: "Literature",
+
+//     crk: "Christian Religious Knowledge",
+//     christianreligiousknowledge:
+//       "Christian Religious Knowledge",
+
+//     irk: "Islamic Religious Knowledge",
+//     islamicreligiousknowledge:
+//       "Islamic Religious Knowledge",
+
+//     economics: "Economics",
+//     currentaffairs: "Current Affairs",
+//     insurance: "Insurance",
+//     civiceducation: "Civic Education",
+//     history: "History",
+//     commerce: "Commerce",
+//     accounting: "Accounting",
+//     agriculturalscience: "Agricultural Science",
+//   };
+
+//   const normalizedName = name
+//     .toLowerCase()
+//     .replace(/\s+/g, "");
+
+//   return (
+//     names[normalizedName] ??
+//     name
+//       .replace(/([a-z])([A-Z])/g, "$1 $2")
+//       .replace(/\b\w/g, (char) =>
+//         char.toUpperCase(),
+//       )
+//   );
+// }
+
+// /* ============================================================
+//    SUBJECT ICON
+//    ============================================================ */
+
+// function getSubjectIcon(name: string) {
+//   const key = getSubjectKey(name);
+
+//   return (
+//     subjectIcons[
+//       key as keyof typeof subjectIcons
+//     ] ?? BookOpen
+//   );
+// }
+
+// /* ============================================================
+//    SUBJECT STYLE
+//    ============================================================ */
+
+// function getSubjectStyle(name: string) {
+//   const key = getSubjectKey(name);
+
+//   return (
+//     subjectStyles[
+//       key as keyof typeof subjectStyles
+//     ] ?? {
+//       color: "text-slate-600",
+//       bg: "bg-slate-100",
+//       selected:
+//         "border-slate-500 bg-slate-50 ring-2 ring-slate-100",
+//     }
+//   );
+// }
+
+// /* ============================================================
+//    PAGE
+//    ============================================================ */
+
+// export default function PracticeCombinationPage() {
+//   const params = useParams();
+
+//   /* ==========================================================
+//      IMPORTANT
+     
+//      The exam comes from:
+     
+//      /practice/[examType]/combination
+     
+//      NOT from ?exam=jamb
+//      ========================================================== */
+
+//   const exam = normalizeExam(params?.examType);
+
+//   const config = examConfig[exam];
+
+//   /* ==========================================================
+//      STATE
+//      ========================================================== */
+
+//   const [subjects, setSubjects] = useState<Subject[]>(
+//     [],
+//   );
+
+//   const [loading, setLoading] =
+//     useState(true);
+
+//   const [error, setError] =
+//     useState<string | null>(null);
+
+//   /* ==========================================================
+//      PRACTICE STORE
+//      ========================================================== */
+
+//   const {
+//     jambCombination,
+//     setJambCombination,
+//     toggleJambSubject,
+//     clearJambCombination,
+
+//     waecCombination,
+//     toggleWaecSubject,
+//     clearWaecCombination,
+
+//     necoCombination,
+//     toggleNecoSubject,
+//     clearNecoCombination,
+//   } = usePracticeStore();
+
+//   /* ==========================================================
+//      ACTIVE COMBINATION
+//      ========================================================== */
+
+//   const combination =
+//     exam === "jamb"
+//       ? jambCombination
+//       : exam === "waec"
+//         ? waecCombination
+//         : necoCombination;
+
+//   /* ==========================================================
+//      LOAD SUBJECTS
+//      ========================================================== */
+
+//   useEffect(() => {
+//     let cancelled = false;
+
+//     async function loadSubjects() {
+//       try {
+//         setLoading(true);
+//         setError(null);
+
+//         const response =
+//           await getSubjectsByPlan(
+//             "SECONDARY",
+//             1,
+//             ITEMS_PER_PAGE,
+//           );
+
+//         if (cancelled) {
+//           return;
+//         }
+
+//         const loadedSubjects =
+//           response.data?.subjectObj ?? [];
+
+//         setSubjects(loadedSubjects);
+
+//         /* ----------------------------------------------------
+//            JAMB ONLY
+
+//            Automatically add Use of English.
+
+//            WAEC and NECO do NOT get English
+//            automatically.
+//            ---------------------------------------------------- */
+
+//         if (exam === "jamb") {
+//           const currentJambCombination =
+//             usePracticeStore.getState()
+//               .jambCombination;
+
+//           if (
+//             currentJambCombination.length === 0
+//           ) {
+//             const englishSubject =
+//               loadedSubjects.find(
+//                 (subject) => {
+//                   const key =
+//                     getSubjectKey(
+//                       subject.name,
+//                     );
+
+//                   return (
+//                     key === "english" ||
+//                     key === "useofenglish"
+//                   );
+//                 },
+//               );
+
+//             if (englishSubject) {
+//               setJambCombination([
+//                 englishSubject._id,
+//               ]);
+//             }
+//           }
+//         }
+//       } catch (err: unknown) {
+//         if (cancelled) {
+//           return;
+//         }
+
+//         console.error(
+//           `Failed to load ${exam} subjects:`,
+//           err,
+//         );
+
+//         const message =
+//           err &&
+//           typeof err === "object" &&
+//           "response" in err &&
+//           typeof (
+//             err as {
+//               response?: {
+//                 data?: {
+//                   message?: string;
+//                 };
+//               };
+//             }
+//           ).response?.data?.message ===
+//             "string"
+//             ? (
+//                 err as {
+//                   response: {
+//                     data: {
+//                       message: string;
+//                     };
+//                   };
+//                 }
+//               ).response.data.message
+//             : `Unable to load ${config.label} subjects.`;
+
+//         setError(message);
+//         setSubjects([]);
+//       } finally {
+//         if (!cancelled) {
+//           setLoading(false);
+//         }
+//       }
+//     }
+
+//     loadSubjects();
+
+//     return () => {
+//       cancelled = true;
+//     };
+
+//     // Zustand combination state intentionally
+//     // does not belong in this dependency array.
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [exam]);
+
+//   /* ==========================================================
+//      ENGLISH SUBJECT
+//      ========================================================== */
+
+//   const englishSubject = useMemo(() => {
+//     return subjects.find((subject) => {
+//       const key = getSubjectKey(subject.name);
+
+//       return (
+//         key === "english" ||
+//         key === "useofenglish"
+//       );
+//     });
+//   }, [subjects]);
+
+//   /* ==========================================================
+//      SELECTED SUBJECTS
+//      ========================================================== */
+
+//   const selectedSubjects = useMemo(() => {
+//     return subjects.filter((subject) =>
+//       combination.includes(subject._id),
+//     );
+//   }, [subjects, combination]);
+
+//   /* ==========================================================
+//      OPTIONAL JAMB COUNT
+//      ========================================================== */
+
+//   const optionalSelectedCount =
+//     exam === "jamb"
+//       ? Math.max(
+//           combination.length -
+//             (englishSubject &&
+//             combination.includes(
+//               englishSubject._id,
+//             )
+//               ? 1
+//               : 0),
+//           0,
+//         )
+//       : combination.length;
+
+//   /* ==========================================================
+//      COMPLETION
+//      ========================================================== */
+
+//   const combinationComplete =
+//     exam === "jamb"
+//       ? combination.length ===
+//         JAMB_MAX_SUBJECTS
+//       : combination.length > 0;
+
+//   /* ==========================================================
+//      SUBJECT TOGGLE
+//      ========================================================== */
+
+//   function handleSubjectToggle(
+//     subject: Subject,
+//   ) {
+//     const subjectKey =
+//       getSubjectKey(subject.name);
+
+//     const isEnglish =
+//       subjectKey === "english" ||
+//       subjectKey === "useofenglish";
+
+//     const isSelected =
+//       combination.includes(subject._id);
+
+//     /* --------------------------------------------------------
+//        JAMB ENGLISH CANNOT BE REMOVED
+//        -------------------------------------------------------- */
+
+//     if (
+//       exam === "jamb" &&
+//       isEnglish
+//     ) {
+//       return;
+//     }
+
+//     /* --------------------------------------------------------
+//        REMOVE
+//        -------------------------------------------------------- */
+
+//     if (isSelected) {
+//       if (exam === "jamb") {
+//         toggleJambSubject(subject._id);
+//       } else if (exam === "waec") {
+//         toggleWaecSubject(subject._id);
+//       } else {
+//         toggleNecoSubject(subject._id);
+//       }
+
+//       return;
+//     }
+
+//     /* --------------------------------------------------------
+//        MAXIMUM
+//        -------------------------------------------------------- */
+
+//     if (
+//       combination.length >=
+//       config.maxSubjects
+//     ) {
+//       return;
+//     }
+
+//     /* --------------------------------------------------------
+//        ADD
+//        -------------------------------------------------------- */
+
+//     if (exam === "jamb") {
+//       toggleJambSubject(subject._id);
+//     } else if (exam === "waec") {
+//       toggleWaecSubject(subject._id);
+//     } else {
+//       toggleNecoSubject(subject._id);
+//     }
+//   }
+
+//   /* ==========================================================
+//      RESET
+//      ========================================================== */
+
+//   function handleResetCombination() {
+//     if (exam === "jamb") {
+//       clearJambCombination();
+
+//       /*
+//        * Restore compulsory Use of English.
+//        */
+
+//       if (englishSubject) {
+//         setJambCombination([
+//           englishSubject._id,
+//         ]);
+//       }
+
+//       return;
+//     }
+
+//     if (exam === "waec") {
+//       clearWaecCombination();
+//       return;
+//     }
+
+//     clearNecoCombination();
+//   }
+
+//   /* ==========================================================
+//      NEXT ROUTE
+//      ==========================================================
+
+//      Current page:
+
+//        /student/practice/[examType]/combination
+
+//      After selecting subjects:
+
+//        /student/practice/[examType]/combination/subjects
+
+//      Therefore:
+
+//        JAMB -> /student/practice/jamb/combination/subjects
+//        WAEC -> /student/practice/waec/combination/subjects
+//        NECO -> /student/practice/neco/combination/subjects
+//   */
+
+//   const nextRoute =
+//     `/student/practice/${exam}/combination/subjects`;
+
+//   /* ==========================================================
+//      LOADING
+//      ========================================================== */
+
+//   if (loading) {
+//     return (
+//       <main className="min-h-screen bg-slate-50">
+//         <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4">
+//           <div className="flex flex-col items-center gap-4 text-center">
+
+//             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+//               <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+//             </div>
+
+//             <div>
+//               <h2 className="font-semibold text-slate-900">
+//                 Loading{" "}
+//                 {exam.toUpperCase()}{" "}
+//                 subjects
+//               </h2>
+
+//               <p className="mt-1 text-sm text-slate-500">
+//                 Preparing your subject
+//                 selection...
+//               </p>
+//             </div>
+
+//           </div>
+//         </div>
+//       </main>
+//     );
+//   }
+
+//   /* ==========================================================
+//      ERROR
+//      ========================================================== */
+
+//   if (error) {
+//     return (
+//       <main className="min-h-screen bg-slate-50">
+//         <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4">
+
+//           <Card className="w-full max-w-md p-8 text-center">
+
+//             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+//               <BookOpen className="h-7 w-7 text-red-600" />
+//             </div>
+
+//             <h2 className="mt-5 text-xl font-bold text-slate-900">
+//               Unable to load subjects
+//             </h2>
+
+//             <p className="mt-2 text-sm text-slate-600">
+//               {error}
+//             </p>
+
+//             <Button
+//               className="mt-6"
+//               onClick={() =>
+//                 window.location.reload()
+//               }
+//             >
+//               Try Again
+//             </Button>
+
+//           </Card>
+
+//         </div>
+//       </main>
+//     );
+//   }
+
+//   /* ==========================================================
+//      PAGE
+//      ========================================================== */
+
+//   return (
+//     <main className="min-h-screen bg-slate-50">
+
+//       <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-8">
+
+//         {/* ====================================================
+//             HEADER
+//            ==================================================== */}
+
+//         <section className="mb-6">
+
+//           <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+//             <Sparkles className="h-4 w-4" />
+
+//             {config.label}
+//           </div>
+
+//           <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+//             {config.title}
+//           </h1>
+
+//           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+//             {config.description}
+//           </p>
+
+//         </section>
+
+//         {/* ====================================================
+//             COMBINATION SUMMARY
+//            ==================================================== */}
+
+//         <Card className="mb-6 overflow-hidden border-blue-100 bg-white p-0">
+
+//           <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white px-5 py-4">
+
+//             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+
+//               <div>
+
+//                 <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+//                   {exam === "jamb"
+//                     ? "Your combination"
+//                     : "Selected subjects"}
+//                 </p>
+
+//                 <h2 className="mt-1 text-lg font-bold text-slate-900">
+
+//                   {combination.length}
+
+//                   {exam === "jamb"
+//                     ? ` / ${JAMB_MAX_SUBJECTS}`
+//                     : ""}
+
+//                   {" "}
+
+//                   {exam === "jamb"
+//                     ? "subjects selected"
+//                     : combination.length === 1
+//                       ? "subject selected"
+//                       : "subjects selected"}
+
+//                 </h2>
+
+//               </div>
+
+//               <button
+//                 type="button"
+//                 onClick={
+//                   handleResetCombination
+//                 }
+//                 className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-500 transition hover:text-red-600 sm:self-auto"
+//               >
+//                 <RotateCcw className="h-4 w-4" />
+
+//                 Reset
+//               </button>
+
+//             </div>
+
+//           </div>
+
+//           <div className="px-5 py-4">
+
+//             <div className="flex flex-wrap gap-2">
+
+//               {selectedSubjects.map(
+//                 (subject, index) => {
+
+//                   const key =
+//                     getSubjectKey(
+//                       subject.name,
+//                     );
+
+//                   const isEnglish =
+//                     key === "english" ||
+//                     key ===
+//                       "useofenglish";
+
+//                   return (
+//                     <div
+//                       key={subject._id}
+//                       className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800"
+//                     >
+
+//                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+//                         {index + 1}
+//                       </span>
+
+//                       {getSubjectDisplayName(
+//                         subject.name,
+//                       )}
+
+//                       {exam === "jamb" &&
+//                         isEnglish && (
+//                           <span className="text-[10px] font-semibold uppercase text-blue-500">
+//                             Required
+//                           </span>
+//                         )}
+
+//                     </div>
+//                   );
+//                 },
+//               )}
+
+//               {/* JAMB remaining */}
+
+//               {!combinationComplete &&
+//                 exam === "jamb" && (
+//                   <div className="flex items-center rounded-full border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">
+//                     Select{" "}
+//                     {JAMB_MAX_SUBJECTS -
+//                       combination.length}{" "}
+//                     more
+//                   </div>
+//                 )}
+
+//               {/* WAEC / NECO empty */}
+
+//               {!combinationComplete &&
+//                 exam !== "jamb" &&
+//                 combination.length ===
+//                   0 && (
+//                   <div className="flex items-center rounded-full border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">
+//                     Select at least one
+//                     subject
+//                   </div>
+//                 )}
+
+//             </div>
+
+//           </div>
+
+//         </Card>
+
+//         {/* ====================================================
+//             SUBJECT SELECTION
+//            ==================================================== */}
+
+//         <section>
+
+//           <div className="mb-4 flex items-end justify-between">
+
+//             <div>
+
+//               <h2 className="text-lg font-bold text-slate-900">
+//                 Choose your subjects
+//               </h2>
+
+//               <p className="mt-1 text-sm text-slate-500">
+
+//                 {exam === "jamb"
+//                   ? `${optionalSelectedCount} of 3 optional subjects selected`
+//                   : `${combination.length} subject${
+//                       combination.length ===
+//                       1
+//                         ? ""
+//                         : "s"
+//                     } selected`}
+
+//               </p>
+
+//             </div>
+
+//             <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 sm:block">
+
+//               {exam === "jamb"
+//                 ? "4 subjects maximum"
+//                 : "Select your subjects"}
+
+//             </span>
+
+//           </div>
+
+//           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
+//             {subjects.map((subject) => {
+
+//               const Icon =
+//                 getSubjectIcon(
+//                   subject.name,
+//                 );
+
+//               const style =
+//                 getSubjectStyle(
+//                   subject.name,
+//                 );
+
+//               const displayName =
+//                 getSubjectDisplayName(
+//                   subject.name,
+//                 );
+
+//               const isSelected =
+//                 combination.includes(
+//                   subject._id,
+//                 );
+
+//               const key =
+//                 getSubjectKey(
+//                   subject.name,
+//                 );
+
+//               const isEnglish =
+//                 key === "english" ||
+//                 key === "useofenglish";
+
+//               const disabled =
+//                 !isSelected &&
+//                 combination.length >=
+//                   config.maxSubjects;
+
+//               return (
+//                 <button
+//                   key={subject._id}
+//                   type="button"
+//                   disabled={
+//                     disabled ||
+//                     (exam === "jamb" &&
+//                       isEnglish)
+//                   }
+//                   onClick={() =>
+//                     handleSubjectToggle(
+//                       subject,
+//                     )
+//                   }
+//                   className={[
+//                     "group relative rounded-xl border bg-white p-4 text-left transition-all duration-200",
+//                     "hover:-translate-y-0.5 hover:shadow-md",
+//                     "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+
+//                     isSelected
+//                       ? style.selected
+//                       : "border-slate-200 hover:border-slate-300",
+
+//                     disabled
+//                       ? "cursor-not-allowed opacity-40 hover:translate-y-0 hover:shadow-none"
+//                       : "",
+//                   ].join(" ")}
+//                 >
+
+//                   {/* Selected indicator */}
+
+//                   {isSelected && (
+//                     <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+//                       <Check className="h-3.5 w-3.5" />
+//                     </div>
+//                   )}
+
+//                   {/* Icon */}
+
+//                   <div
+//                     className={`flex h-11 w-11 items-center justify-center rounded-xl ${style.bg}`}
+//                   >
+//                     <Icon
+//                       className={`h-5 w-5 ${style.color}`}
+//                     />
+//                   </div>
+
+//                   {/* Name */}
+
+//                   <h3 className="mt-4 pr-5 text-sm font-bold text-slate-900 sm:text-base">
+//                     {displayName}
+//                   </h3>
+
+//                   {/* Status */}
+
+//                   <p className="mt-1 text-xs text-slate-500">
+
+//                     {exam === "jamb" &&
+//                     isEnglish
+//                       ? "Compulsory"
+//                       : isSelected
+//                         ? "Selected"
+//                         : "Tap to select"}
+
+//                   </p>
+
+//                 </button>
+//               );
+//             })}
+
+//           </div>
+
+//         </section>
+
+//         {/* ====================================================
+//             BOTTOM ACTION
+//            ==================================================== */}
+
+//         <div className="sticky bottom-4 z-20 mt-6">
+
+//           <Card className="border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+
+//             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+//               <div className="hidden sm:block">
+
+//                 <p className="text-sm font-semibold text-slate-900">
+
+//                   {combinationComplete
+//                     ? `Your ${exam.toUpperCase()} selection is ready`
+//                     : "Select your subjects"}
+
+//                 </p>
+
+//                 <p className="text-xs text-slate-500">
+
+//                   {combinationComplete
+//                     ? "You can now continue to practice."
+//                     : exam === "jamb"
+//                       ? `Select ${
+//                           JAMB_MAX_SUBJECTS -
+//                           combination.length
+//                         } more subject${
+//                           JAMB_MAX_SUBJECTS -
+//                             combination.length ===
+//                           1
+//                             ? ""
+//                             : "s"
+//                         }.`
+//                       : "Select at least one subject to continue."}
+
+//                 </p>
+
+//               </div>
+
+//               {/* ==================================================
+//                   CONTINUE
+//                  ================================================== */}
+
+//               {combinationComplete ? (
+//                 <Link
+//                   href={nextRoute}
+//                   className="w-full sm:w-auto"
+//                 >
+//                   <Button
+//                     fullWidth
+//                     rightIcon={
+//                       <ArrowRight className="h-4 w-4" />
+//                     }
+//                     className="sm:min-w-[220px]"
+//                   >
+//                     Start{" "}
+//                     {exam.toUpperCase()}{" "}
+//                     Practice
+//                   </Button>
+//                 </Link>
+//               ) : (
+//                 <Button
+//                   disabled
+//                   fullWidth
+//                   className="sm:w-auto sm:min-w-[220px]"
+//                 >
+//                   {exam === "jamb"
+//                     ? `Select ${
+//                         JAMB_MAX_SUBJECTS -
+//                         combination.length
+//                       } more`
+//                     : "Select a subject"}
+//                 </Button>
+//               )}
+
+//             </div>
+
+//           </Card>
+
+//         </div>
+
+//       </div>
+
+//     </main>
+//   );
+// }
 
 
 

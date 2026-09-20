@@ -524,13 +524,13 @@ export default function LoginForm({
             SOCIAL LOGIN
         ====================================================== */}
 
-        {!adminOnly && (
+        {/* {!adminOnly && (
           <>
             <Divider />
 
             <SocialLogin />
           </>
-        )}
+        )} */}
 
         {/* ======================================================
             FOOTER

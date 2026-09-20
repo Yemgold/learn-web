@@ -13,11 +13,11 @@ export const appConfig = {
   name: env.APP_NAME,
 
   description:
-    "JAMB League is a nationwide competitive learning platform for secondary school students preparing for UTME.",
+    "Learning League is a nationwide competitive learning platform for secondary school students preparing for UTME.",
 
   version: "1.0.0",
 
-  author: "JAMB League",
+  author: "LearningLeague",
 
   supportEmail: "support@jambleague.com",
 

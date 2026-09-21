@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\symbiotic-interactions.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const SymbioticInteractionsFlashcards: Flashcard[] = [
+  {
+    id: "biology-symbiotic-interactions-001",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is symbiosis?",
+    answer: "Symbiosis is a close association between organisms of different species; in school biology the term is often used broadly for persistent interspecific relationships.",
+    difficulty: "medium",
+    order: 1,
+  },
+  {
+    id: "biology-symbiotic-interactions-002",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is mutualism?",
+    answer: "Mutualism is an interaction in which both participating organisms benefit.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-symbiotic-interactions-003",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is commensalism?",
+    answer: "Commensalism is an interaction in which one organism benefits while the other is not significantly affected.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-symbiotic-interactions-004",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is parasitism?",
+    answer: "Parasitism is an interaction in which a parasite benefits while the host is harmed.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-symbiotic-interactions-005",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is amensalism?",
+    answer: "Amensalism is an interaction in which one organism is inhibited or harmed while the other is not significantly affected.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-symbiotic-interactions-006",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is predation?",
+    answer: "Predation is an interaction in which one organism captures and consumes another organism.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-symbiotic-interactions-007",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is competition?",
+    answer: "Competition occurs when organisms require the same limited resource.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-symbiotic-interactions-008",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is a food chain?",
+    answer: "A food chain shows the transfer of energy and nutrients from one feeding level to another through feeding.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-symbiotic-interactions-009",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What is a trophic level?",
+    answer: "A trophic level is a feeding position in a food chain or food web.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-symbiotic-interactions-010",
+    subject: "Biology",
+    topic: "Symbiotic Interactions of Plants and Animals",
+    question: "What are decomposers?",
+    answer: "Decomposers such as many bacteria and fungi break down dead organic matter and release nutrients.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default SymbioticInteractionsFlashcards;

@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\factors-distribution.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const FactorsDistributionFlashcards: Flashcard[] = [
+  {
+    id: "biology-factors-distribution-001",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "What are abiotic factors?",
+    answer: "Abiotic factors are non-living environmental factors such as temperature, rainfall, pH, salinity and soil conditions.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-factors-distribution-002",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "What are biotic factors?",
+    answer: "Biotic factors are effects of living organisms on one another, such as competition, predation and disease.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-factors-distribution-003",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "How can temperature affect distribution?",
+    answer: "Temperature affects enzyme activity, metabolism, water loss and survival, so organisms have ranges of tolerance.",
+    difficulty: "medium",
+    order: 3,
+  },
+  {
+    id: "biology-factors-distribution-004",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "How can rainfall affect distribution?",
+    answer: "Rainfall influences water availability, plant growth and the organisms that can survive in an area.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-factors-distribution-005",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "How does salinity affect aquatic organisms?",
+    answer: "Salinity affects water balance and the ability of organisms to regulate ions, so different species have different tolerance ranges.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-factors-distribution-006",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "What is a Secchi disc used for?",
+    answer: "A Secchi disc is used to estimate water transparency or turbidity in a body of water.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-factors-distribution-007",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "What is a rain gauge used for?",
+    answer: "It measures the amount of rainfall received over a specified period.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-factors-distribution-008",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "What is a thermometer used for in ecological studies?",
+    answer: "It measures temperature, an important abiotic factor affecting organism distribution.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-factors-distribution-009",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "How can soil pH affect plants?",
+    answer: "Soil pH affects nutrient availability and the activity of soil organisms, influencing which plants can grow successfully.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-factors-distribution-010",
+    subject: "Biology",
+    topic: "Factors Affecting the Distribution of Organisms",
+    question: "How can human activities affect distribution of organisms?",
+    answer: "Activities such as deforestation, pollution, urbanization and overexploitation can destroy habitats or alter environmental conditions.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default FactorsDistributionFlashcards;

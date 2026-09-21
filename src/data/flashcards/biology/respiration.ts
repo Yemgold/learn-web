@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\respiration.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const RespirationFlashcards: Flashcard[] = [
+  {
+    id: "biology-respiration-001",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is respiration?",
+    answer: "Respiration is the controlled release of energy from food molecules in living cells.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-respiration-002",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is aerobic respiration?",
+    answer: "Aerobic respiration releases energy from glucose using oxygen, producing carbon dioxide and water.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-respiration-003",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is the word equation for aerobic respiration?",
+    answer: "Glucose + oxygen \u2192 carbon dioxide + water + energy.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-respiration-004",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is glycolysis?",
+    answer: "Glycolysis is the initial stage of glucose breakdown in the cytoplasm, producing pyruvate and a small yield of ATP.",
+    difficulty: "medium",
+    order: 4,
+  },
+  {
+    id: "biology-respiration-005",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is the Krebs cycle?",
+    answer: "It is a cyclic series of reactions in aerobic respiration that oxidizes carbon-containing compounds and generates reduced coenzymes and some ATP.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-respiration-006",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is ATP?",
+    answer: "ATP is an energy-carrying molecule that supplies usable energy for many cellular processes.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-respiration-007",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is anaerobic respiration in yeast?",
+    answer: "It is the breakdown of glucose without oxygen, producing ethanol, carbon dioxide and a small amount of energy.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-respiration-008",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is anaerobic respiration in human muscle?",
+    answer: "It is the breakdown of glucose without sufficient oxygen, producing lactate and a small amount of energy.",
+    difficulty: "medium",
+    order: 8,
+  },
+  {
+    id: "biology-respiration-009",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "Why does anaerobic respiration release less energy?",
+    answer: "The food molecule is only partially broken down, so much of its chemical energy remains in the end products.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-respiration-010",
+    subject: "Biology",
+    topic: "Respiration",
+    question: "What is oxygen debt?",
+    answer: "It is the additional oxygen required after strenuous activity to help restore normal conditions and process lactate.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default RespirationFlashcards;

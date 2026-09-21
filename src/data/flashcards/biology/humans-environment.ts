@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\humans-environment.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const HumansEnvironmentFlashcards: Flashcard[] = [
+  {
+    id: "biology-humans-environment-001",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is an infectious disease?",
+    answer: "An infectious disease is caused by a pathogen and can be transmitted directly or indirectly between hosts.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-humans-environment-002",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is a vector?",
+    answer: "A vector is an organism that carries and transmits a pathogen between hosts.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-humans-environment-003",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "How can vaccination help control disease?",
+    answer: "Vaccination prepares the immune system to recognize a pathogen or its antigens and develop immune memory.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-humans-environment-004",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is pollution?",
+    answer: "Pollution is the introduction of harmful substances or energy into the environment at levels that cause adverse effects.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-humans-environment-005",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is water pollution?",
+    answer: "Water pollution is contamination of water bodies by substances or organisms that make the water harmful or reduce its quality.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-humans-environment-006",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "Why is sanitation important?",
+    answer: "Good sanitation reduces exposure to pathogens by safely managing human waste, water and the environment.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-humans-environment-007",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is conservation?",
+    answer: "Conservation is the protection and responsible management of natural resources, species and habitats.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-humans-environment-008",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is a game reserve?",
+    answer: "A game reserve is a protected area where wildlife and habitats are managed for conservation.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-humans-environment-009",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "What is a national park?",
+    answer: "A national park is a protected area established to conserve ecosystems, wildlife and natural features while allowing regulated use or visitation.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-humans-environment-010",
+    subject: "Biology",
+    topic: "Humans and Environment",
+    question: "How can deforestation affect humans and the environment?",
+    answer: "It can destroy habitats, reduce biodiversity, increase erosion and alter carbon and water cycles.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default HumansEnvironmentFlashcards;

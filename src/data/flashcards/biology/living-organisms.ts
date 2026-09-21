@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\living-organisms.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const LivingOrganismsFlashcards: Flashcard[] = [
+  {
+    id: "biology-living-organisms-001",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What are the main characteristics of living organisms?",
+    answer: "Common characteristics include nutrition, respiration, movement, excretion, growth, reproduction, sensitivity and regulation; organization is also a fundamental feature of life.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-living-organisms-002",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is a cell?",
+    answer: "A cell is the basic structural and functional unit of life.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-living-organisms-003",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the function of the cell membrane?",
+    answer: "It controls the movement of substances into and out of the cell and helps maintain the cell's internal environment.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-living-organisms-004",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the function of the nucleus?",
+    answer: "It contains genetic material and controls many cellular activities.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-living-organisms-005",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the function of mitochondria?",
+    answer: "They are major sites of aerobic respiration and ATP production.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-living-organisms-006",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the function of chloroplasts?",
+    answer: "They contain chlorophyll and are the main sites of photosynthesis in green plant cells.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-living-organisms-007",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the difference between plant and animal cells?",
+    answer: "Plant cells typically have a cellulose cell wall, chloroplasts and a large permanent vacuole; animal cells lack these structures.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-living-organisms-008",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is the sequence of levels of organization in multicellular organisms?",
+    answer: "Cell \u2192 tissue \u2192 organ \u2192 organ system \u2192 organism.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-living-organisms-009",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is a tissue?",
+    answer: "A tissue is a group of similar cells specialized to perform a particular function.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-living-organisms-010",
+    subject: "Biology",
+    topic: "Living Organisms",
+    question: "What is cell differentiation?",
+    answer: "It is the process by which cells develop specialized structures and functions.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default LivingOrganismsFlashcards;

@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\ecology-populations.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const EcologyPopulationsFlashcards: Flashcard[] = [
+  {
+    id: "biology-ecology-populations-001",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is a population?",
+    answer: "A population is a group of organisms of the same species living in a particular area at a particular time.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-ecology-populations-002",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "How is population density calculated?",
+    answer: "Population density = number of individuals \u00f7 area or volume occupied by the population.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-ecology-populations-003",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is overcrowding?",
+    answer: "Overcrowding occurs when population density becomes high enough that resources and living space become insufficient for individuals.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-ecology-populations-004",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is intraspecific competition?",
+    answer: "It is competition between individuals of the same species.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-ecology-populations-005",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is interspecific competition?",
+    answer: "It is competition between individuals of different species for a shared limited resource.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-ecology-populations-006",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is a limiting factor?",
+    answer: "A limiting factor is an environmental factor that restricts population size, distribution or growth.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-ecology-populations-007",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is ecological succession?",
+    answer: "Ecological succession is the gradual change in community composition and structure over time.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-ecology-populations-008",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is primary succession?",
+    answer: "Primary succession begins on a surface where no developed soil or established community previously existed.",
+    difficulty: "medium",
+    order: 8,
+  },
+  {
+    id: "biology-ecology-populations-009",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is secondary succession?",
+    answer: "Secondary succession occurs where an existing community has been disturbed but soil and some biological remnants remain.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-ecology-populations-010",
+    subject: "Biology",
+    topic: "Ecology of Populations",
+    question: "What is carrying capacity?",
+    answer: "Carrying capacity is the population size an environment can support sustainably under particular conditions.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default EcologyPopulationsFlashcards;

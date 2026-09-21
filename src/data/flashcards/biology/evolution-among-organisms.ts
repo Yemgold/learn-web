@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\evolution-among-organisms.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const EvolutionAmongOrganismsFlashcards: Flashcard[] = [
+  {
+    id: "biology-evolution-among-organisms-001",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What is biological diversity?",
+    answer: "Biological diversity is the variety of living organisms and their differences within and between species and ecosystems.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-evolution-among-organisms-002",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are prokaryotes?",
+    answer: "Prokaryotes are organisms whose cells lack a membrane-bound nucleus; bacteria are common examples.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-evolution-among-organisms-003",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are protozoans?",
+    answer: "Protozoans are traditionally described as mostly unicellular, animal-like protists such as Amoeba and Paramecium.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-evolution-among-organisms-004",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are fungi?",
+    answer: "Fungi are eukaryotic organisms that obtain nutrients by external digestion and absorption; their cell walls typically contain chitin.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-evolution-among-organisms-005",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are bryophytes?",
+    answer: "Bryophytes are non-vascular land plants such as mosses and liverworts that generally require water for sexual reproduction.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-evolution-among-organisms-006",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are pteridophytes?",
+    answer: "Pteridophytes are vascular plants such as ferns that reproduce by spores rather than seeds.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-evolution-among-organisms-007",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are gymnosperms?",
+    answer: "Gymnosperms are seed plants whose seeds are not enclosed within an ovary or fruit; conifers are examples.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-evolution-among-organisms-008",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What are angiosperms?",
+    answer: "Angiosperms are flowering plants whose ovules are enclosed in an ovary and whose seeds develop inside fruits.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-evolution-among-organisms-009",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What is a vertebrate?",
+    answer: "A vertebrate is an animal with a vertebral column or backbone.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-evolution-among-organisms-010",
+    subject: "Biology",
+    topic: "Evolution Among Organisms",
+    question: "What is the general trend in structural complexity from simpler to more complex organisms?",
+    answer: "Across major groups there is an overall increase in specialization and structural complexity, although evolution is branching rather than a single straight ladder.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default EvolutionAmongOrganismsFlashcards;

@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\soil.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const SoilFlashcards: Flashcard[] = [
+  {
+    id: "biology-soil-001",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is soil?",
+    answer: "Soil is the upper layer of the land containing mineral particles, organic matter, air, water and living organisms that support plant growth.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-soil-002",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What are the three common soil types studied in school biology?",
+    answer: "They are sandy, clayey and loamy soils.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-soil-003",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is sandy soil like?",
+    answer: "Sandy soil has relatively large particles, drains quickly, has large air spaces and generally holds less water and nutrients than clay-rich soil.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-soil-004",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is clayey soil like?",
+    answer: "Clayey soil has very small particles, high water-holding capacity and relatively small air spaces.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-soil-005",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is loamy soil?",
+    answer: "Loamy soil is a mixture containing balanced proportions of sand, silt and clay with useful amounts of humus and generally good drainage and water retention.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-soil-006",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is humus?",
+    answer: "Humus is decomposed organic matter in soil that improves soil structure and nutrient availability.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-soil-007",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is soil porosity?",
+    answer: "Soil porosity is the proportion of soil volume occupied by pore spaces containing air or water.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-soil-008",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is leaching?",
+    answer: "Leaching is the downward movement of soluble mineral nutrients through soil with percolating water.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-soil-009",
+    subject: "Biology",
+    topic: "Soil",
+    question: "How can soil fertility be maintained?",
+    answer: "Practices include adding suitable fertilizers or organic matter, crop rotation, mulching, mixed cropping, erosion control and other conservation methods.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-soil-010",
+    subject: "Biology",
+    topic: "Soil",
+    question: "What is soil erosion?",
+    answer: "Soil erosion is the removal and transport of topsoil by agents such as water or wind.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default SoilFlashcards;

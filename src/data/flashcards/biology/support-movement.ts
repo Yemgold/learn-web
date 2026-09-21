@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\support-movement.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const SupportMovementFlashcards: Flashcard[] = [
+  {
+    id: "biology-support-movement-001",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "Why do organisms need support?",
+    answer: "Support maintains body shape, protects organs and provides a framework for movement and growth.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-support-movement-002",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is a tropic movement?",
+    answer: "A tropic movement is a directional growth response of a plant organ to a stimulus such as light or gravity.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-support-movement-003",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is a nastic movement?",
+    answer: "A nastic movement is a plant response whose direction is not determined by the direction of the stimulus, such as some leaf-folding responses.",
+    difficulty: "medium",
+    order: 3,
+  },
+  {
+    id: "biology-support-movement-004",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is a tactic movement?",
+    answer: "Taxis is a directional movement of a whole organism or motile cell toward or away from a stimulus.",
+    difficulty: "medium",
+    order: 4,
+  },
+  {
+    id: "biology-support-movement-005",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is an exoskeleton?",
+    answer: "An exoskeleton is a supporting structure on the outside of the body, as in arthropods.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-support-movement-006",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is an endoskeleton?",
+    answer: "An endoskeleton is an internal supporting framework, as in vertebrates.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-support-movement-007",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is a synovial joint?",
+    answer: "It is a freely movable joint with a joint cavity containing synovial fluid.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-support-movement-008",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is the function of cartilage at joints?",
+    answer: "Cartilage reduces friction and absorbs shock between articulating bones.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-support-movement-009",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "What is a ligament?",
+    answer: "A ligament connects bone to bone and helps stabilize a joint.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-support-movement-010",
+    subject: "Biology",
+    topic: "Support and Movement",
+    question: "How do antagonistic muscles produce movement?",
+    answer: "They work in opposing pairs; contraction of one muscle is accompanied by relaxation of its antagonist.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default SupportMovementFlashcards;

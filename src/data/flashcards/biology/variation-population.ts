@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\variation-population.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const VariationPopulationFlashcards: Flashcard[] = [
+  {
+    id: "biology-variation-population-001",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What is variation?",
+    answer: "Variation is the difference in characteristics among individuals of the same species.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-variation-population-002",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What is continuous variation?",
+    answer: "Continuous variation shows a range of values with many intermediate forms, such as height in a population.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-variation-population-003",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What is discontinuous variation?",
+    answer: "Discontinuous variation places individuals into distinct categories, such as ABO blood groups.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-variation-population-004",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What is morphological variation?",
+    answer: "Morphological variation concerns differences in physical features such as height, body colour or fingerprints.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-variation-population-005",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What is physiological variation?",
+    answer: "Physiological variation concerns differences in body functions, such as blood group or ability to taste PTC.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-variation-population-006",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "Why are fingerprints useful for identification?",
+    answer: "Fingerprint patterns are highly variable among individuals and can be used as identifying evidence.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-variation-population-007",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What determines ABO blood group?",
+    answer: "ABO blood group is determined by inherited alleles that specify the presence or absence of A and B antigens on red blood cells.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-variation-population-008",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "Why is blood-group compatibility important in transfusion?",
+    answer: "Incompatible red-cell antigens and antibodies can cause agglutination and haemolysis, so donor and recipient blood must be appropriately matched.",
+    difficulty: "medium",
+    order: 8,
+  },
+  {
+    id: "biology-variation-population-009",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "How can variation help determine paternity?",
+    answer: "Inherited genetic markers, including blood-group systems, can provide evidence that is consistent or inconsistent with biological parentage, although modern DNA testing is more informative.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-variation-population-010",
+    subject: "Biology",
+    topic: "Variation in Population",
+    question: "What factors contribute to variation?",
+    answer: "Genetic differences, mutation, recombination and environmental conditions all contribute to observed variation.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default VariationPopulationFlashcards;

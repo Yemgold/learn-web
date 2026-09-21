@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\coordination.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const CoordinationFlashcards: Flashcard[] = [
+  {
+    id: "biology-coordination-001",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is coordination?",
+    answer: "Coordination is the organized control of activities so different parts of an organism work together.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-coordination-002",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is a reflex action?",
+    answer: "A reflex action is a rapid, automatic response to a stimulus that usually occurs without conscious control.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-coordination-003",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the central nervous system?",
+    answer: "The central nervous system consists of the brain and spinal cord.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-coordination-004",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the role of a sensory neurone?",
+    answer: "It carries impulses from receptors to the central nervous system.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-coordination-005",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the role of a motor neurone?",
+    answer: "It carries impulses from the central nervous system to an effector such as a muscle or gland.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-coordination-006",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the function of the eye?",
+    answer: "The eye detects light and forms neural signals that provide visual information.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-coordination-007",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the function of the ear?",
+    answer: "The ear is involved in hearing and maintaining balance.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-coordination-008",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is a hormone?",
+    answer: "A hormone is a chemical messenger released by an endocrine gland and transported in the blood to target cells.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-coordination-009",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is homeostasis?",
+    answer: "Homeostasis is the maintenance of a relatively stable internal environment despite external changes.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-coordination-010",
+    subject: "Biology",
+    topic: "Coordination and Control",
+    question: "What is the role of insulin?",
+    answer: "Insulin lowers blood glucose concentration by promoting uptake and storage of glucose when blood glucose is high.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default CoordinationFlashcards;

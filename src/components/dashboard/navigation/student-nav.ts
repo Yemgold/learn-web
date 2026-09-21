@@ -84,6 +84,19 @@ export const studentNavigation: NavigationSection[] = [
   },
 
   {
+  title: "Learn with Flashcards",
+  items: [
+    {
+      label: "Flashcards",
+      description:
+        "Study topics with quick questions, answers and key explanations",
+      href: "/student/flashcards",
+      icon: BookOpen,
+    },
+  ],
+},
+
+  {
     title: "Learn by Watching",
     items: [
       {

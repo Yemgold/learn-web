@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\reproduction.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const ReproductionFlashcards: Flashcard[] = [
+  {
+    id: "biology-reproduction-001",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is reproduction?",
+    answer: "Reproduction is the biological process by which organisms produce new individuals of their species.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-reproduction-002",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is asexual reproduction?",
+    answer: "It produces offspring from one parent without fusion of gametes and often produces genetically similar offspring.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-reproduction-003",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is sexual reproduction?",
+    answer: "It involves formation and fusion of gametes and usually produces genetically varied offspring.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-reproduction-004",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is vegetative propagation?",
+    answer: "It is asexual reproduction in plants using vegetative parts such as stems, roots or leaves.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-reproduction-005",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is grafting?",
+    answer: "Grafting is an artificial vegetative propagation method in which tissues of two plants are joined so they grow as one plant.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-reproduction-006",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is pollination?",
+    answer: "Pollination is the transfer of pollen from anther to stigma.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-reproduction-007",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "Why is cross-pollination important?",
+    answer: "It can increase genetic variation and may reduce the effects of self-pollination in a population.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-reproduction-008",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is fertilization?",
+    answer: "Fertilization is the fusion of male and female gamete nuclei to form a diploid zygote.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-reproduction-009",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is implantation?",
+    answer: "Implantation is the attachment and embedding of the early embryo in the lining of the uterus.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-reproduction-010",
+    subject: "Biology",
+    topic: "Reproduction",
+    question: "What is the role of the placenta?",
+    answer: "It provides an exchange surface between maternal and fetal circulations for oxygen, nutrients and wastes and also has endocrine functions.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default ReproductionFlashcards;

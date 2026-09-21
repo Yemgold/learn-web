@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\transport.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const TransportFlashcards: Flashcard[] = [
+  {
+    id: "biology-transport-001",
+    subject: "Biology",
+    topic: "Transport",
+    question: "Why do larger organisms need specialized transport systems?",
+    answer: "As body size and complexity increase, many cells are too far from exchange surfaces for diffusion alone to meet their needs.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-transport-002",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is diffusion?",
+    answer: "Diffusion is the net movement of particles from a region of higher concentration to a region of lower concentration.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-transport-003",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is osmosis?",
+    answer: "Osmosis is the net movement of water molecules through a selectively permeable membrane from higher water potential to lower water potential.",
+    difficulty: "medium",
+    order: 3,
+  },
+  {
+    id: "biology-transport-004",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is active transport?",
+    answer: "Active transport moves substances against a concentration gradient using energy from cellular respiration.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-transport-005",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What are the main vascular tissues in flowering plants?",
+    answer: "Xylem transports water and mineral ions, while phloem transports organic solutes such as sucrose.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-transport-006",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is the function of red blood cells?",
+    answer: "They transport oxygen, mainly using haemoglobin.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-transport-007",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is the function of white blood cells?",
+    answer: "They defend the body against pathogens through processes including phagocytosis and antibody-mediated responses.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-transport-008",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is the role of platelets?",
+    answer: "Platelets help blood clot and reduce blood loss after injury.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-transport-009",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is plasma?",
+    answer: "Plasma is the liquid component of blood that transports dissolved substances such as nutrients, hormones, carbon dioxide, urea and heat.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-transport-010",
+    subject: "Biology",
+    topic: "Transport",
+    question: "What is the lymph?",
+    answer: "Lymph is a tissue fluid carried in lymphatic vessels; it helps return excess tissue fluid to the blood and participates in immune functions.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default TransportFlashcards;

@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\excretion.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const ExcretionFlashcards: Flashcard[] = [
+  {
+    id: "biology-excretion-001",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is excretion?",
+    answer: "Excretion is the removal of metabolic waste products and substances present in excess from an organism.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-excretion-002",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What are common excretory products in humans?",
+    answer: "They include carbon dioxide, urea, excess water and excess mineral salts.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-excretion-003",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is the function of the contractile vacuole?",
+    answer: "It removes excess water from some freshwater unicellular organisms and helps maintain water balance.",
+    difficulty: "medium",
+    order: 3,
+  },
+  {
+    id: "biology-excretion-004",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is a flame cell?",
+    answer: "A flame cell is an excretory/osmoregulatory structure in some flatworms.",
+    difficulty: "medium",
+    order: 4,
+  },
+  {
+    id: "biology-excretion-005",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is a Malpighian tubule?",
+    answer: "It is an excretory structure in insects that removes nitrogenous wastes and helps regulate water and ion balance.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-excretion-006",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is the functional unit of the mammalian kidney?",
+    answer: "The nephron is the functional unit where filtration and selective reabsorption occur.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-excretion-007",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is ultrafiltration?",
+    answer: "It is pressure-driven filtration of small molecules from blood into Bowman's capsule at the renal corpuscle.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-excretion-008",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What is selective reabsorption?",
+    answer: "Useful substances such as glucose, ions and much water are selectively returned from the filtrate to the blood.",
+    difficulty: "medium",
+    order: 8,
+  },
+  {
+    id: "biology-excretion-009",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What does the skin excrete?",
+    answer: "Sweat contains water, mineral salts and small amounts of urea.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-excretion-010",
+    subject: "Biology",
+    topic: "Excretion",
+    question: "What excretory products can plants release?",
+    answer: "Plants can release substances such as oxygen, carbon dioxide, water vapour, resins, gums and other metabolic products.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default ExcretionFlashcards;

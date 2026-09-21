@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\practical-biology.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const PracticalBiologyFlashcards: Flashcard[] = [
+  {
+    id: "biology-practical-biology-001",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What is a biological drawing?",
+    answer: "A biological drawing is a clear scientific drawing showing important structures with accurate proportions, single clean lines and appropriate labels.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-practical-biology-002",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What is magnification?",
+    answer: "Magnification is the ratio of image size to actual specimen size.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-practical-biology-003",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What does a microscope do?",
+    answer: "A microscope magnifies and resolves structures that are too small to be seen clearly with the unaided eye.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-practical-biology-004",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What does iodine solution test for?",
+    answer: "It tests for starch; a positive result is typically blue-black.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-practical-biology-005",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What does Benedict's reagent test for?",
+    answer: "It tests for reducing sugars; heating a positive sample produces a colored precipitate.",
+    difficulty: "easy",
+    order: 5,
+  },
+  {
+    id: "biology-practical-biology-006",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What does Biuret reagent test for?",
+    answer: "It tests for proteins or peptide bonds; a positive result is violet or purple.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-practical-biology-007",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What does the ethanol emulsion test detect?",
+    answer: "It tests for lipids; a positive result produces a cloudy white emulsion after water is added.",
+    difficulty: "easy",
+    order: 7,
+  },
+  {
+    id: "biology-practical-biology-008",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What is chromatography used for?",
+    answer: "Chromatography separates components of a mixture, such as leaf pigments, so they can be compared or identified.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-practical-biology-009",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What is a quadrat used for?",
+    answer: "A quadrat is used to sample plants or other relatively immobile organisms in a defined area.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-practical-biology-010",
+    subject: "Biology",
+    topic: "Practical Biology (Supplementary)",
+    question: "What is a transect used for?",
+    answer: "A transect is used to study how the distribution or abundance of organisms changes along an environmental gradient.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default PracticalBiologyFlashcards;

@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\adaptations.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const AdaptationsFlashcards: Flashcard[] = [
+  {
+    id: "biology-adaptations-001",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is adaptation?",
+    answer: "An adaptation is an inherited feature or characteristic that increases an organism's ability to survive and reproduce in a particular environment.",
+    difficulty: "easy",
+    order: 1,
+  },
+  {
+    id: "biology-adaptations-002",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is structural adaptation?",
+    answer: "A structural adaptation is a physical feature of an organism that helps it survive, such as a thick cuticle or a specialized beak.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-adaptations-003",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is functional adaptation?",
+    answer: "A functional adaptation is a physiological process that improves survival, such as concentrated urine production in desert mammals.",
+    difficulty: "medium",
+    order: 3,
+  },
+  {
+    id: "biology-adaptations-004",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is behavioural adaptation?",
+    answer: "A behavioural adaptation is an activity or pattern of behaviour that improves survival or reproduction, such as migration or territorial behaviour.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-adaptations-005",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is countershading?",
+    answer: "Countershading is a colour pattern in which the upper surface is darker than the underside, helping reduce visibility in some environments.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-adaptations-006",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "What is warning coloration?",
+    answer: "Warning coloration is conspicuous coloration that signals that an organism may be toxic, distasteful or dangerous.",
+    difficulty: "easy",
+    order: 6,
+  },
+  {
+    id: "biology-adaptations-007",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "How do social insects show behavioural adaptation?",
+    answer: "Different castes such as queens, workers and soldiers perform specialized roles that improve colony survival.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-adaptations-008",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "How can organisms adapt for water conservation?",
+    answer: "They may have features such as reduced leaves, waxy surfaces, deep roots, concentrated urine or waterproof coverings that reduce water loss.",
+    difficulty: "medium",
+    order: 8,
+  },
+  {
+    id: "biology-adaptations-009",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "How can organisms adapt for temperature regulation?",
+    answer: "Features such as insulation, sweating, panting, basking or changing blood flow can help regulate body temperature.",
+    difficulty: "medium",
+    order: 9,
+  },
+  {
+    id: "biology-adaptations-010",
+    subject: "Biology",
+    topic: "Variety of Organisms (Adaptations)",
+    question: "How can structures help animals obtain food?",
+    answer: "Specialized beaks, teeth, claws or mouthparts can match the type of food and feeding method used by an organism.",
+    difficulty: "easy",
+    order: 10,
+  },
+];
+
+export default AdaptationsFlashcards;

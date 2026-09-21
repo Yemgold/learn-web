@@ -1,0 +1,98 @@
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\data\flashcards\biology\internal-structure.ts
+
+import type { Flashcard } from "@/types/flashcard";
+
+export const InternalStructureFlashcards: Flashcard[] = [
+  {
+    id: "biology-internal-structure-001",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What are the main tissues seen in a typical flowering plant root cross-section?",
+    answer: "Common tissues include epidermis, cortex, endodermis, pericycle and vascular tissues containing xylem and phloem.",
+    difficulty: "medium",
+    order: 1,
+  },
+  {
+    id: "biology-internal-structure-002",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What is the main function of the root?",
+    answer: "Roots anchor plants and absorb water and mineral ions; they may also store food.",
+    difficulty: "easy",
+    order: 2,
+  },
+  {
+    id: "biology-internal-structure-003",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What is the main function of the stem?",
+    answer: "The stem supports leaves and reproductive structures and conducts water, mineral ions and organic nutrients.",
+    difficulty: "easy",
+    order: 3,
+  },
+  {
+    id: "biology-internal-structure-004",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What is the main function of the leaf?",
+    answer: "Leaves are specialized for photosynthesis and also allow gaseous exchange and transpiration.",
+    difficulty: "easy",
+    order: 4,
+  },
+  {
+    id: "biology-internal-structure-005",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What are supporting tissues in plants?",
+    answer: "Important supporting tissues include collenchyma, sclerenchyma, xylem and fibres associated with vascular tissues.",
+    difficulty: "medium",
+    order: 5,
+  },
+  {
+    id: "biology-internal-structure-006",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What is the role of collenchyma?",
+    answer: "Collenchyma provides flexible support, especially in young growing parts of plants.",
+    difficulty: "medium",
+    order: 6,
+  },
+  {
+    id: "biology-internal-structure-007",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What is the role of sclerenchyma?",
+    answer: "Sclerenchyma provides strong, rigid support because its cells usually have thick, lignified walls.",
+    difficulty: "medium",
+    order: 7,
+  },
+  {
+    id: "biology-internal-structure-008",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What are the major digestive organs in a mammal?",
+    answer: "They include the mouth, oesophagus, stomach, small intestine, large intestine, rectum and anus, with accessory organs such as the liver and pancreas.",
+    difficulty: "easy",
+    order: 8,
+  },
+  {
+    id: "biology-internal-structure-009",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "What are the major excretory organs in a mammal?",
+    answer: "The kidneys, lungs and skin are major excretory organs.",
+    difficulty: "easy",
+    order: 9,
+  },
+  {
+    id: "biology-internal-structure-010",
+    subject: "Biology",
+    topic: "Internal Structure of a Flowering Plant and a Mammal",
+    question: "Why is internal structure related to function?",
+    answer: "The arrangement and specialization of tissues and organs enable them to perform their particular functions efficiently.",
+    difficulty: "medium",
+    order: 10,
+  },
+];
+
+export default InternalStructureFlashcards;

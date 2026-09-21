@@ -1,4 +1,6 @@
-//C:\student\(student)\practice\[examType]\combination\page.tsx
+
+
+
 
 
 
@@ -7,7 +9,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import {
+  useParams,
+  useSearchParams,
+} from "next/navigation";
 
 import {
   BookOpen,
@@ -33,17 +38,11 @@ import {
   type Subject,
 } from "@/lib/api/subjects";
 
-import { usePracticeStore } from "@/stores/practiceStore";
-
 /* ============================================================
    CONFIG
    ============================================================ */
 
 const ITEMS_PER_PAGE = 50;
-
-const JAMB_MAX_SUBJECTS = 4;
-
-const OTHER_EXAM_MAX_SUBJECTS = 20;
 
 /* ============================================================
    EXAM TYPE
@@ -61,35 +60,27 @@ const examConfig: Record<
     label: string;
     title: string;
     description: string;
-    maxSubjects: number;
-    requiresEnglish: boolean;
   }
 > = {
   jamb: {
     label: "JAMB Practice",
-    title: "Set Your JAMB Combination",
+    title: "Choose a Subject",
     description:
-      "Select the four subjects you want to practise. Use of English is compulsory.",
-    maxSubjects: JAMB_MAX_SUBJECTS,
-    requiresEnglish: true,
+      "Select one subject you want to practise. You can choose any available JAMB subject.",
   },
 
   waec: {
     label: "WAEC Practice",
-    title: "Select Your WAEC Subjects",
+    title: "Choose a Subject",
     description:
-      "Select the WAEC subjects you want to practise.",
-    maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
-    requiresEnglish: false,
+      "Select one WAEC subject you want to practise.",
   },
 
   neco: {
     label: "NECO Practice",
-    title: "Select Your NECO Subjects",
+    title: "Choose a Subject",
     description:
-      "Select the NECO subjects you want to practise.",
-    maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
-    requiresEnglish: false,
+      "Select one NECO subject you want to practise.",
   },
 };
 
@@ -273,6 +264,19 @@ function getSubjectDisplayName(name: string): string {
 }
 
 /* ============================================================
+   SUBJECT SLUG
+   ============================================================ */
+
+function getSubjectSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/* ============================================================
    SUBJECT ICON
    ============================================================ */
 
@@ -309,17 +313,12 @@ function getSubjectStyle(name: string) {
    PAGE
    ============================================================ */
 
-export default function PracticeCombinationPage() {
+export default function PracticeSingleSubjectPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
 
   /* ==========================================================
-     IMPORTANT
-
-     The exam comes from:
-
-     /practice/[examType]/combination
-
-     NOT from ?exam=jamb
+     EXAM TYPE
      ========================================================== */
 
   const exam = normalizeExam(params?.examType);
@@ -327,45 +326,24 @@ export default function PracticeCombinationPage() {
   const config = examConfig[exam];
 
   /* ==========================================================
+     PRACTICE MODE
+     ========================================================== */
+
+  const mode = searchParams.get("mode") ?? "normal";
+
+  /* ==========================================================
      STATE
      ========================================================== */
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
 
+  const [selectedSubjectId, setSelectedSubjectId] =
+    useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
 
   const [error, setError] =
     useState<string | null>(null);
-
-  /* ==========================================================
-     PRACTICE STORE
-     ========================================================== */
-
-  const {
-    jambCombination,
-    setJambCombination,
-    toggleJambSubject,
-    clearJambCombination,
-
-    waecCombination,
-    toggleWaecSubject,
-    clearWaecCombination,
-
-    necoCombination,
-    toggleNecoSubject,
-    clearNecoCombination,
-  } = usePracticeStore();
-
-  /* ==========================================================
-     ACTIVE COMBINATION
-     ========================================================== */
-
-  const combination =
-    exam === "jamb"
-      ? jambCombination
-      : exam === "waec"
-        ? waecCombination
-        : necoCombination;
 
   /* ==========================================================
      LOAD SUBJECTS
@@ -394,46 +372,6 @@ export default function PracticeCombinationPage() {
           response.data?.subjectObj ?? [];
 
         setSubjects(loadedSubjects);
-
-        /* ----------------------------------------------------
-           JAMB ONLY
-
-           Automatically add Use of English.
-
-           WAEC and NECO do NOT get English
-           automatically.
-           ---------------------------------------------------- */
-
-        if (exam === "jamb") {
-          const currentJambCombination =
-            usePracticeStore.getState()
-              .jambCombination;
-
-          if (
-            currentJambCombination.length === 0
-          ) {
-            const englishSubject =
-              loadedSubjects.find(
-                (subject) => {
-                  const key =
-                    getSubjectKey(
-                      subject.name,
-                    );
-
-                  return (
-                    key === "english" ||
-                    key === "useofenglish"
-                  );
-                },
-              );
-
-            if (englishSubject) {
-              setJambCombination([
-                englishSubject._id,
-              ]);
-            }
-          }
-        }
       } catch (err: unknown) {
         if (cancelled) {
           return;
@@ -483,183 +421,70 @@ export default function PracticeCombinationPage() {
     return () => {
       cancelled = true;
     };
-
-    // Zustand combination state intentionally
-    // does not belong in this dependency array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exam]);
+  }, [exam, config.label]);
 
   /* ==========================================================
-     ENGLISH SUBJECT
+     SELECTED SUBJECT
      ========================================================== */
 
-  const englishSubject = useMemo(() => {
-    return subjects.find((subject) => {
-      const key = getSubjectKey(subject.name);
+  const selectedSubject = useMemo(() => {
+    if (!selectedSubjectId) {
+      return null;
+    }
 
-      return (
-        key === "english" ||
-        key === "useofenglish"
-      );
-    });
-  }, [subjects]);
-
-  /* ==========================================================
-     SELECTED SUBJECTS
-     ========================================================== */
-
-  const selectedSubjects = useMemo(() => {
-    return subjects.filter((subject) =>
-      combination.includes(subject._id),
+    return (
+      subjects.find(
+        (subject) =>
+          subject._id === selectedSubjectId,
+      ) ?? null
     );
-  }, [subjects, combination]);
+  }, [subjects, selectedSubjectId]);
 
   /* ==========================================================
-     OPTIONAL JAMB COUNT
+     SUBJECT SELECT
      ========================================================== */
 
-  const optionalSelectedCount =
-    exam === "jamb"
-      ? Math.max(
-          combination.length -
-            (englishSubject &&
-            combination.includes(
-              englishSubject._id,
-            )
-              ? 1
-              : 0),
-          0,
-        )
-      : combination.length;
-
-  /* ==========================================================
-     COMPLETION
-     ========================================================== */
-
-  const combinationComplete =
-    exam === "jamb"
-      ? combination.length ===
-        JAMB_MAX_SUBJECTS
-      : combination.length > 0;
-
-  /* ==========================================================
-     SUBJECT TOGGLE
-     ========================================================== */
-
-  function handleSubjectToggle(
+  function handleSubjectSelect(
     subject: Subject,
   ) {
-    const subjectKey =
-      getSubjectKey(subject.name);
-
-    const isEnglish =
-      subjectKey === "english" ||
-      subjectKey === "useofenglish";
-
-    const isSelected =
-      combination.includes(subject._id);
-
-    /* --------------------------------------------------------
-       JAMB ENGLISH CANNOT BE REMOVED
-       -------------------------------------------------------- */
-
-    if (
-      exam === "jamb" &&
-      isEnglish
-    ) {
-      return;
-    }
-
-    /* --------------------------------------------------------
-       REMOVE
-       -------------------------------------------------------- */
-
-    if (isSelected) {
-      if (exam === "jamb") {
-        toggleJambSubject(subject._id);
-      } else if (exam === "waec") {
-        toggleWaecSubject(subject._id);
-      } else {
-        toggleNecoSubject(subject._id);
-      }
-
-      return;
-    }
-
-    /* --------------------------------------------------------
-       MAXIMUM
-       -------------------------------------------------------- */
-
-    if (
-      combination.length >=
-      config.maxSubjects
-    ) {
-      return;
-    }
-
-    /* --------------------------------------------------------
-       ADD
-       -------------------------------------------------------- */
-
-    if (exam === "jamb") {
-      toggleJambSubject(subject._id);
-    } else if (exam === "waec") {
-      toggleWaecSubject(subject._id);
-    } else {
-      toggleNecoSubject(subject._id);
-    }
+    setSelectedSubjectId(subject._id);
   }
 
   /* ==========================================================
      RESET
      ========================================================== */
 
-  function handleResetCombination() {
-    if (exam === "jamb") {
-      clearJambCombination();
-
-      /*
-       * Restore compulsory Use of English.
-       */
-
-      if (englishSubject) {
-        setJambCombination([
-          englishSubject._id,
-        ]);
-      }
-
-      return;
-    }
-
-    if (exam === "waec") {
-      clearWaecCombination();
-      return;
-    }
-
-    clearNecoCombination();
+  function handleReset() {
+    setSelectedSubjectId(null);
   }
 
   /* ==========================================================
      NEXT ROUTE
      ==========================================================
 
-     Current page:
-
-       /student/practice/[examType]/combination
-
-     After selecting subjects:
-
-       /student/practice/[examType]/combination/subjects
-
-     Therefore:
-
-       JAMB -> /student/practice/jamb/combination/subjects
-       WAEC -> /student/practice/waec/combination/subjects
-       NECO -> /student/practice/neco/combination/subjects
+      /student/practice/jamb/combination
   */
 
-  const nextRoute =
-    `/student/practice/${exam}/combination/subjects`;
+  const nextRoute = useMemo(() => {
+    if (!selectedSubject) {
+      return "#";
+    }
+
+    const subjectSlug = getSubjectSlug(
+      selectedSubject.name,
+    );
+
+    const query = new URLSearchParams();
+
+    query.set(
+      "subjectId",
+      selectedSubject._id,
+    );
+
+    query.set("mode", mode);
+
+    return `/student/practice/${exam}/${subjectSlug}?${query.toString()}`;
+  }, [selectedSubject, exam, mode]);
 
   /* ==========================================================
      LOADING
@@ -687,13 +512,11 @@ export default function PracticeCombinationPage() {
             <div>
               <h2 className="font-semibold text-white">
                 Loading{" "}
-                {exam.toUpperCase()}{" "}
-                subjects
+                {exam.toUpperCase()} subjects
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Preparing your subject
-                selection...
+                Preparing your subject selection...
               </p>
             </div>
           </div>
@@ -782,10 +605,18 @@ export default function PracticeCombinationPage() {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
             {config.description}
           </p>
+
+          {/* Mode */}
+
+          <div className="mt-4 inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-300">
+            {mode === "quick"
+              ? "Quick Practice"
+              : "Practice Mode"}
+          </div>
         </section>
 
         {/* ====================================================
-            COMBINATION SUMMARY
+            SELECTION SUMMARY
            ==================================================== */}
 
         <Card className="mb-6 overflow-hidden border border-white/10 bg-white/[0.04] p-0 shadow-none">
@@ -793,102 +624,50 @@ export default function PracticeCombinationPage() {
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
-                  {exam === "jamb"
-                    ? "Your combination"
-                    : "Selected subjects"}
+                  Your selection
                 </p>
 
                 <h2 className="mt-1 text-lg font-bold text-white">
-                  {combination.length}
-
-                  {exam === "jamb"
-                    ? ` / ${JAMB_MAX_SUBJECTS}`
-                    : ""}{" "}
-
-                  {exam === "jamb"
-                    ? "subjects selected"
-                    : combination.length === 1
-                      ? "subject selected"
-                      : "subjects selected"}
+                  {selectedSubject
+                    ? getSubjectDisplayName(
+                        selectedSubject.name,
+                      )
+                    : "No subject selected"}
                 </h2>
               </div>
 
-              <button
-                type="button"
-                onClick={
-                  handleResetCombination
-                }
-                className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-400 transition hover:text-red-400 sm:self-auto"
-              >
-                <RotateCcw className="h-4 w-4" />
+              {selectedSubject && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-400 transition hover:text-red-400 sm:self-auto"
+                >
+                  <RotateCcw className="h-4 w-4" />
 
-                Reset
-              </button>
+                  Reset
+                </button>
+              )}
             </div>
           </div>
 
           <div className="px-5 py-4">
-            <div className="flex flex-wrap gap-2">
-              {selectedSubjects.map(
-                (subject, index) => {
-                  const key =
-                    getSubjectKey(
-                      subject.name,
-                    );
+            {selectedSubject ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                  1
+                </span>
 
-                  const isEnglish =
-                    key === "english" ||
-                    key ===
-                      "useofenglish";
-
-                  return (
-                    <div
-                      key={subject._id}
-                      className="flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-                        {index + 1}
-                      </span>
-
-                      {getSubjectDisplayName(
-                        subject.name,
-                      )}
-
-                      {exam === "jamb" &&
-                        isEnglish && (
-                          <span className="text-[10px] font-semibold uppercase text-blue-400">
-                            Required
-                          </span>
-                        )}
-                    </div>
-                  );
-                },
-              )}
-
-              {/* JAMB remaining */}
-
-              {!combinationComplete &&
-                exam === "jamb" && (
-                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
-                    Select{" "}
-                    {JAMB_MAX_SUBJECTS -
-                      combination.length}{" "}
-                    more
-                  </div>
+                {getSubjectDisplayName(
+                  selectedSubject.name,
                 )}
 
-              {/* WAEC / NECO empty */}
-
-              {!combinationComplete &&
-                exam !== "jamb" &&
-                combination.length ===
-                  0 && (
-                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
-                    Select at least one
-                    subject
-                  </div>
-                )}
-            </div>
+                <Check className="ml-1 h-4 w-4 text-blue-400" />
+              </div>
+            ) : (
+              <div className="inline-flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
+                Select one subject below
+              </div>
+            )}
           </div>
         </Card>
 
@@ -900,25 +679,16 @@ export default function PracticeCombinationPage() {
           <div className="mb-4 flex items-end justify-between">
             <div>
               <h2 className="text-lg font-bold text-white">
-                Choose your subjects
+                Choose one subject
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                {exam === "jamb"
-                  ? `${optionalSelectedCount} of 3 optional subjects selected`
-                  : `${combination.length} subject${
-                      combination.length ===
-                      1
-                        ? ""
-                        : "s"
-                    } selected`}
+                Select the subject you want to practise.
               </p>
             </div>
 
             <span className="hidden rounded-full border border-white/5 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-400 sm:block">
-              {exam === "jamb"
-                ? "4 subjects maximum"
-                : "Select your subjects"}
+              1 subject only
             </span>
           </div>
 
@@ -940,35 +710,15 @@ export default function PracticeCombinationPage() {
                 );
 
               const isSelected =
-                combination.includes(
-                  subject._id,
-                );
-
-              const key =
-                getSubjectKey(
-                  subject.name,
-                );
-
-              const isEnglish =
-                key === "english" ||
-                key === "useofenglish";
-
-              const disabled =
-                !isSelected &&
-                combination.length >=
-                  config.maxSubjects;
+                selectedSubjectId ===
+                subject._id;
 
               return (
                 <button
                   key={subject._id}
                   type="button"
-                  disabled={
-                    disabled ||
-                    (exam === "jamb" &&
-                      isEnglish)
-                  }
                   onClick={() =>
-                    handleSubjectToggle(
+                    handleSubjectSelect(
                       subject,
                     )
                   }
@@ -980,10 +730,6 @@ export default function PracticeCombinationPage() {
                     isSelected
                       ? style.selected
                       : "border-white/10 hover:border-white/20",
-
-                    disabled
-                      ? "cursor-not-allowed opacity-40 hover:translate-y-0 hover:bg-white/[0.04]"
-                      : "",
                   ].join(" ")}
                 >
                   {/* Selected indicator */}
@@ -1013,12 +759,9 @@ export default function PracticeCombinationPage() {
                   {/* Status */}
 
                   <p className="mt-1 text-xs text-slate-500">
-                    {exam === "jamb" &&
-                    isEnglish
-                      ? "Compulsory"
-                      : isSelected
-                        ? "Selected"
-                        : "Tap to select"}
+                    {isSelected
+                      ? "Selected"
+                      : "Tap to select"}
                   </p>
                 </button>
               );
@@ -1035,26 +778,17 @@ export default function PracticeCombinationPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="hidden sm:block">
                 <p className="text-sm font-semibold text-white">
-                  {combinationComplete
-                    ? `Your ${exam.toUpperCase()} selection is ready`
-                    : "Select your subjects"}
+                  {selectedSubject
+                    ? `${getSubjectDisplayName(
+                        selectedSubject.name,
+                      )} is ready`
+                    : "Select one subject"}
                 </p>
 
                 <p className="text-xs text-slate-500">
-                  {combinationComplete
+                  {selectedSubject
                     ? "You can now continue to practice."
-                    : exam === "jamb"
-                      ? `Select ${
-                          JAMB_MAX_SUBJECTS -
-                          combination.length
-                        } more subject${
-                          JAMB_MAX_SUBJECTS -
-                            combination.length ===
-                          1
-                            ? ""
-                            : "s"
-                        }.`
-                      : "Select at least one subject to continue."}
+                    : "Choose one subject to continue."}
                 </p>
               </div>
 
@@ -1062,7 +796,7 @@ export default function PracticeCombinationPage() {
                   CONTINUE
                  ================================================== */}
 
-              {combinationComplete ? (
+              {selectedSubject ? (
                 <Link
                   href={nextRoute}
                   className="w-full sm:w-auto"
@@ -1075,7 +809,9 @@ export default function PracticeCombinationPage() {
                     className="sm:min-w-[220px]"
                   >
                     Start{" "}
-                    {exam.toUpperCase()}{" "}
+                    {getSubjectDisplayName(
+                      selectedSubject.name,
+                    )}{" "}
                     Practice
                   </Button>
                 </Link>
@@ -1085,12 +821,7 @@ export default function PracticeCombinationPage() {
                   fullWidth
                   className="sm:w-auto sm:min-w-[220px]"
                 >
-                  {exam === "jamb"
-                    ? `Select ${
-                        JAMB_MAX_SUBJECTS -
-                        combination.length
-                      } more`
-                    : "Select a subject"}
+                  Select a Subject
                 </Button>
               )}
             </div>
@@ -1100,5 +831,4 @@ export default function PracticeCombinationPage() {
     </main>
   );
 }
-
 

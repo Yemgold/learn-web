@@ -299,14 +299,14 @@ export default function JambPracticePage() {
                 yourself without starting a full session.
               </p>
 
-              <Link
-                // href="/student/practice/combination?exam=jamb&mode=quick"
-                href="/student/practice/jamb/combination/subjects"
+              {/* <Link
+                 href="/student/practice/combination?exam=jamb&mode=quick"
+                // href="/student/practice/jamb/combination/subjects"
                 className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-400 transition-colors hover:text-blue-300"
               >
                 Practice Now
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </Link> */}
             </Card>
 
             {/* ==================================================
@@ -328,13 +328,13 @@ export default function JambPracticePage() {
                 your performance one subject at a time.
               </p>
 
-              <Link
-                href="/student/practice/jamb/combination"
+              {/* <Link
+                href="/student/practice/jamb/single"
                 className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-400 transition-colors hover:text-blue-300"
               >
                 Choose Subject
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </Link> */}
             </Card>
 
             {/* ==================================================
@@ -356,13 +356,13 @@ export default function JambPracticePage() {
                 and monitor your improvement.
               </p>
 
-              <Link
+              {/* <Link
                 href="/student/practice/history?exam=jamb"
                 className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-400 transition-colors hover:text-blue-300"
               >
                 View Performance
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </Link> */}
             </Card>
           </div>
         </div>

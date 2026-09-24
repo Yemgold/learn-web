@@ -1,16 +1,9 @@
-// Give me the complete replacement and when the Status is in progress remove ....Cancel, View and Manage btn.........Just let the Start Btn......<Link 
-//   href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`} 
-//   className="..." 
-// > 
-//   Start Quiz 
-// </Link>..........................."use client"; 
- 
-
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import {
   Plus,
   Search,
@@ -49,6 +42,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 import { axiosInstance } from "@/lib/api/axios";
+import { activateQuizRoom } from "@/lib/quiz-board/admin/activateQuizRoom";
 
 /* ============================================================
    TYPES
@@ -441,13 +435,19 @@ function extractQuizBoards(payload: unknown): QuizBoard[] {
 ============================================================ */
 
 export default function AdminQuizCompetitionsPage() {
-  const [quizBoards, setQuizBoards] = useState<QuizBoard[]>([]);
+  const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [quizBoards, setQuizBoards] =
+    useState<QuizBoard[]>([]);
 
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] =
+    useState(true);
 
-  const [search, setSearch] = useState("");
+  const [error, setError] =
+    useState("");
+
+  const [search, setSearch] =
+    useState("");
 
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("ALL");
@@ -462,17 +462,21 @@ export default function AdminQuizCompetitionsPage() {
   const [isCreatingRoom, setIsCreatingRoom] =
     useState(false);
 
-  const [roomError, setRoomError] = useState("");
+  const [roomError, setRoomError] =
+    useState("");
 
   /* ==========================================================
      ACTIVATE ROOM STATE
+
+     No activation modal is used.
+
+     We only keep:
+       - the currently activating room ID
+       - an activation error
   ========================================================== */
 
-  const [activatingRoomBoard, setActivatingRoomBoard] =
-    useState<QuizBoard | null>(null);
-
-  const [isActivatingRoom, setIsActivatingRoom] =
-    useState(false);
+  const [activatingRoomId, setActivatingRoomId] =
+    useState<string | null>(null);
 
   const [activateRoomError, setActivateRoomError] =
     useState("");
@@ -490,7 +494,8 @@ export default function AdminQuizCompetitionsPage() {
   const [isProcessing, setIsProcessing] =
     useState(false);
 
-  const [actionError, setActionError] = useState("");
+  const [actionError, setActionError] =
+    useState("");
 
   /* ==========================================================
      LOAD QUIZZES
@@ -511,7 +516,8 @@ export default function AdminQuizCompetitionsPage() {
         response.data,
       );
 
-      const boards = extractQuizBoards(response.data);
+      const boards =
+        extractQuizBoards(response.data);
 
       setQuizBoards(boards);
     } catch (err) {
@@ -522,7 +528,9 @@ export default function AdminQuizCompetitionsPage() {
 
       setQuizBoards([]);
 
-      setError(getApiErrorMessage(err));
+      setError(
+        getApiErrorMessage(err),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -540,96 +548,135 @@ export default function AdminQuizCompetitionsPage() {
      FILTER
   ========================================================== */
 
-  const filteredQuizBoards = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const filteredQuizBoards =
+    useMemo(() => {
+      const query =
+        search.trim().toLowerCase();
 
-    return quizBoards.filter((board) => {
-      const title =
-        board.quiz_title?.toLowerCase() || "";
+      return quizBoards.filter((board) => {
+        const title =
+          board.quiz_title?.toLowerCase() || "";
 
-      const description =
-        board.description?.toLowerCase() || "";
+        const description =
+          board.description?.toLowerCase() || "";
 
-      const subject =
-        getSubjectLabel(board).toLowerCase();
+        const subject =
+          getSubjectLabel(board).toLowerCase();
 
-      const status =
-        normalizeStatus(board.status).toLowerCase();
+        const status =
+          normalizeStatus(
+            board.status,
+          ).toLowerCase();
 
-      const matchesSearch =
-        !query ||
-        title.includes(query) ||
-        description.includes(query) ||
-        subject.includes(query) ||
-        status.includes(query);
+        const matchesSearch =
+          !query ||
+          title.includes(query) ||
+          description.includes(query) ||
+          subject.includes(query) ||
+          status.includes(query);
 
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        normalizeStatus(board.status) ===
-          statusFilter;
+        const matchesStatus =
+          statusFilter === "ALL" ||
+          normalizeStatus(
+            board.status,
+          ) === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [quizBoards, search, statusFilter]);
+        return (
+          matchesSearch &&
+          matchesStatus
+        );
+      });
+    }, [
+      quizBoards,
+      search,
+      statusFilter,
+    ]);
 
   /* ==========================================================
      STATISTICS
   ========================================================== */
 
   const statistics = useMemo(() => {
-    const total = quizBoards.length;
+    const total =
+      quizBoards.length;
 
-    const draft = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) === "DRAFT",
-    ).length;
+    const draft =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "DRAFT",
+      ).length;
 
-    const waiting = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) === "WAITING",
-    ).length;
+    const waiting =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "WAITING",
+      ).length;
 
-    const inProgress = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) ===
-        "IN_PROGRESS",
-    ).length;
+    const inProgress =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "IN_PROGRESS",
+      ).length;
 
-    const upcoming = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) === "UPCOMING",
-    ).length;
+    const upcoming =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "UPCOMING",
+      ).length;
 
-    const live = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) === "LIVE",
-    ).length;
+    const live =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "LIVE",
+      ).length;
 
-    const completed = quizBoards.filter(
-      (board) =>
-        normalizeStatus(board.status) ===
-        "COMPLETED",
-    ).length;
+    const completed =
+      quizBoards.filter(
+        (board) =>
+          normalizeStatus(
+            board.status,
+          ) === "COMPLETED",
+      ).length;
 
-    const fullBoards = quizBoards.filter(
-      (board) => isQuizFull(board),
-    ).length;
+    const fullBoards =
+      quizBoards.filter(
+        (board) =>
+          isQuizFull(board),
+      ).length;
 
-    const roomsCreated = quizBoards.filter(
-      (board) => hasRoom(board),
-    ).length;
+    const roomsCreated =
+      quizBoards.filter(
+        (board) =>
+          hasRoom(board),
+      ).length;
 
-    const totalParticipants = quizBoards.reduce(
-      (total, board) =>
-        total + getJoinedCount(board),
-      0,
-    );
+    const totalParticipants =
+      quizBoards.reduce(
+        (total, board) =>
+          total +
+          getJoinedCount(board),
+        0,
+      );
 
-    const totalQuestions = quizBoards.reduce(
-      (total, board) =>
-        total + getTotalQuestionCount(board),
-      0,
-    );
+    const totalQuestions =
+      quizBoards.reduce(
+        (total, board) =>
+          total +
+          getTotalQuestionCount(
+            board,
+          ),
+        0,
+      );
 
     return {
       total,
@@ -650,7 +697,9 @@ export default function AdminQuizCompetitionsPage() {
      CREATE ROOM
   ========================================================== */
 
-  const openCreateRoom = (board: QuizBoard) => {
+  const openCreateRoom = (
+    board: QuizBoard,
+  ) => {
     setRoomError("");
 
     if (hasRoom(board)) {
@@ -683,168 +732,219 @@ export default function AdminQuizCompetitionsPage() {
     setRoomError("");
   };
 
-  const handleCreateRoom = async () => {
-    if (!roomBoard) {
-      return;
-    }
+  const handleCreateRoom =
+    async () => {
+      if (!roomBoard) {
+        return;
+      }
 
-    const quizId = getBoardId(roomBoard);
+      const quizId =
+        getBoardId(roomBoard);
 
-    if (!quizId) {
-      setRoomError("Quiz ID is missing.");
-      return;
-    }
+      if (!quizId) {
+        setRoomError(
+          "Quiz ID is missing.",
+        );
+        return;
+      }
 
-    const joined = getJoinedCount(roomBoard);
-    const capacity = getContestantCapacity(roomBoard);
+      const joined =
+        getJoinedCount(roomBoard);
 
-    if (joined < capacity) {
-      setRoomError(
-        `All contestants must join before creating the room. ${joined} of ${capacity} have joined.`,
-      );
-      return;
-    }
+      const capacity =
+        getContestantCapacity(
+          roomBoard,
+        );
 
-    if (hasRoom(roomBoard)) {
-      setRoomError(
-        "A room has already been created for this quiz.",
-      );
-      return;
-    }
+      if (joined < capacity) {
+        setRoomError(
+          `All contestants must join before creating the room. ${joined} of ${capacity} have joined.`,
+        );
+        return;
+      }
 
-    try {
-      setIsCreatingRoom(true);
-      setRoomError("");
+      if (hasRoom(roomBoard)) {
+        setRoomError(
+          "A room has already been created for this quiz.",
+        );
+        return;
+      }
 
-      const response = await axiosInstance.post(
-        `/quiz/create-room/${quizId}`,
-      );
+      try {
+        setIsCreatingRoom(true);
+        setRoomError("");
 
-      console.log(
-        "Create quiz room response:",
-        response.data,
-      );
+        const response =
+          await axiosInstance.post(
+            `/quiz/create-room/${quizId}`,
+          );
 
-      await loadQuizBoards();
+        console.log(
+          "Create quiz room response:",
+          response.data,
+        );
 
-      setRoomBoard(null);
-    } catch (err) {
-      console.error(
-        "Failed to create quiz room:",
-        err,
-      );
+        await loadQuizBoards();
 
-      setRoomError(getApiErrorMessage(err));
-    } finally {
-      setIsCreatingRoom(false);
-    }
-  };
+        setRoomBoard(null);
+      } catch (err) {
+        console.error(
+          "Failed to create quiz room:",
+          err,
+        );
+
+        setRoomError(
+          getApiErrorMessage(err),
+        );
+      } finally {
+        setIsCreatingRoom(false);
+      }
+    };
 
   /* ==========================================================
      ACTIVATE ROOM
 
-     IMPORTANT:
-     This intentionally calls the SAME endpoint again:
+     FLOW:
 
-     POST /quiz/create-room/{quizId}
+       1. Quiz must be IN_PROGRESS.
+       2. Existing room_id must exist.
+       3. activateQuizRoom() emits:
+            activate_room
+       4. Wait for:
+            room_activation_ack
+            room_activated
+       5. Navigate host to:
+            /student/quiz-board/{quizId}/play
+              ?role=host
+              &roomId={roomId}
+
+     IMPORTANT:
+       This does NOT call create-room again.
   ========================================================== */
 
-  const openActivateRoom = (board: QuizBoard) => {
-    setActivateRoomError("");
+  const handleActivateRoom =
+    async (board: QuizBoard) => {
+      const quizId =
+        getBoardId(board);
 
-    if (!hasRoom(board)) {
-      setActivateRoomError(
-        "The quiz room has not been created yet.",
-      );
-      return;
-    }
+      const roomId =
+        board.room_id?.trim() || "";
 
-    if (
-      normalizeStatus(board.status) !==
-      "IN_PROGRESS"
-    ) {
-      setActivateRoomError(
-        "The room can only be activated while the Quiz Board is in progress.",
-      );
-      return;
-    }
+      /* ----------------------------------------------
+         Validate quiz ID
+      ---------------------------------------------- */
 
-    setActivatingRoomBoard(board);
-  };
+      if (!quizId) {
+        setActivateRoomError(
+          "Quiz ID is missing.",
+        );
+        return;
+      }
 
-  const closeActivateRoom = () => {
-    if (isActivatingRoom) {
-      return;
-    }
+      /* ----------------------------------------------
+         Validate room ID
+      ---------------------------------------------- */
 
-    setActivatingRoomBoard(null);
-    setActivateRoomError("");
-  };
+      if (!roomId) {
+        setActivateRoomError(
+          "This Quiz Board does not have a created room yet.",
+        );
+        return;
+      }
 
-  const handleActivateRoom = async () => {
-    if (!activatingRoomBoard) {
-      return;
-    }
+      /* ----------------------------------------------
+         Validate status
+      ---------------------------------------------- */
 
-    const quizId = getBoardId(
-      activatingRoomBoard,
-    );
+      if (
+        normalizeStatus(
+          board.status,
+        ) !== "IN_PROGRESS"
+      ) {
+        setActivateRoomError(
+          `The room can only be activated when the Quiz Board status is IN_PROGRESS. Current status: ${getStatusLabel(
+            board.status,
+          )}.`,
+        );
+        return;
+      }
 
-    if (!quizId) {
-      setActivateRoomError("Quiz ID is missing.");
-      return;
-    }
+      try {
+        setActivatingRoomId(roomId);
+        setActivateRoomError("");
 
-    try {
-      setIsActivatingRoom(true);
-      setActivateRoomError("");
+        console.log(
+          "Activating quiz room:",
+          {
+            quizId,
+            roomId,
+            status: board.status,
+          },
+        );
 
-      const response = await axiosInstance.post(
-        `/quiz/create-room/${quizId}`,
-      );
+        /*
+         * This is the ONLY activation call.
+         *
+         * activateQuizRoom() handles the Socket.IO
+         * activate_room event and waits for the
+         * server's activation confirmation.
+         */
+        await activateQuizRoom(
+          quizId,
+          roomId,
+        );
 
-      console.log(
-        "Activate quiz room response:",
-        response.data,
-      );
+        console.log(
+          "Quiz room activated successfully:",
+          {
+            quizId,
+            roomId,
+          },
+        );
 
-      await loadQuizBoards();
+        /*
+         * The admin now becomes the HOST of the
+         * same live Quiz Arena.
+         */
+        router.replace(
+          `/student/quiz-board/${encodeURIComponent(
+            quizId,
+          )}/play?role=host&roomId=${encodeURIComponent(
+            roomId,
+          )}`,
+        );
+      } catch (err) {
+        console.error(
+          "Failed to activate quiz room:",
+          err,
+        );
 
-      setActivatingRoomBoard(null);
-    } catch (err) {
-      console.error(
-        "Failed to activate quiz room:",
-        err,
-      );
-
-      setActivateRoomError(
-        getApiErrorMessage(err),
-      );
-    } finally {
-      setIsActivatingRoom(false);
-    }
-  };
+        setActivateRoomError(
+          getApiErrorMessage(err),
+        );
+      } finally {
+        setActivatingRoomId(null);
+      }
+    };
 
   /* ==========================================================
      OTHER ACTION MODAL
-
-     IMPORTANT:
-     There is NO "start" action here.
-
-     Start Quiz is a Link only.
   ========================================================== */
 
   const openActionModal = (
     board: QuizBoard,
-    type: "delete" | "cancel",
+    type:
+      | "delete"
+      | "cancel",
   ) => {
     /*
-     * IN_PROGRESS boards must never open the
-     * cancel/delete action modal from the card.
+     * IN_PROGRESS boards must never open
+     * the cancel/delete action modal.
      */
     if (
-      normalizeStatus(board.status) ===
-      "IN_PROGRESS"
+      normalizeStatus(
+        board.status,
+      ) === "IN_PROGRESS"
     ) {
       return;
     }
@@ -868,88 +968,104 @@ export default function AdminQuizCompetitionsPage() {
      OTHER ACTIONS
   ========================================================== */
 
-  const handleBoardAction = async () => {
-    if (!actionBoard || !actionType) {
-      return;
-    }
-
-    const boardId = getBoardId(actionBoard);
-
-    if (!boardId) {
-      setActionError(
-        "Quiz Board ID is missing.",
-      );
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setActionError("");
-
-      if (actionType === "delete") {
-        await axiosInstance.delete(
-          `/quiz-board/quiz-competitions/${boardId}`,
-        );
-
-        setQuizBoards((current) =>
-          current.filter(
-            (board) =>
-              getBoardId(board) !== boardId,
-          ),
-        );
+  const handleBoardAction =
+    async () => {
+      if (
+        !actionBoard ||
+        !actionType
+      ) {
+        return;
       }
 
-      if (actionType === "cancel") {
-        await axiosInstance.post(
-          `/quiz-board/quiz-competitions/${boardId}/cancel`,
-        );
+      const boardId =
+        getBoardId(actionBoard);
 
-        await loadQuizBoards();
+      if (!boardId) {
+        setActionError(
+          "Quiz Board ID is missing.",
+        );
+        return;
       }
 
-      setActionBoard(null);
-      setActionType(null);
-      setActionError("");
-    } catch (err) {
-      console.error(
-        `Failed to ${actionType} Quiz Board:`,
-        err,
-      );
+      try {
+        setIsProcessing(true);
+        setActionError("");
 
-      setActionError(
-        getApiErrorMessage(err),
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+        if (
+          actionType === "delete"
+        ) {
+          await axiosInstance.delete(
+            `/quiz-board/quiz-competitions/${boardId}`,
+          );
+
+          setQuizBoards(
+            (current) =>
+              current.filter(
+                (board) =>
+                  getBoardId(board) !==
+                  boardId,
+              ),
+          );
+        }
+
+        if (
+          actionType === "cancel"
+        ) {
+          await axiosInstance.post(
+            `/quiz-board/quiz-competitions/${boardId}/cancel`,
+          );
+
+          await loadQuizBoards();
+        }
+
+        setActionBoard(null);
+        setActionType(null);
+        setActionError("");
+      } catch (err) {
+        console.error(
+          `Failed to ${actionType} Quiz Board:`,
+          err,
+        );
+
+        setActionError(
+          getApiErrorMessage(err),
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+    };
 
   /* ==========================================================
      ACTION MODAL TEXT
   ========================================================== */
 
-  const actionModal = useMemo(() => {
-    switch (actionType) {
-      case "cancel":
-        return {
-          title: "Cancel Quiz Board?",
-          description:
-            "This will prevent the Quiz Board from continuing.",
-          button: "Cancel Quiz Board",
-        };
+  const actionModal =
+    useMemo(() => {
+      switch (actionType) {
+        case "cancel":
+          return {
+            title:
+              "Cancel Quiz Board?",
+            description:
+              "This will prevent the Quiz Board from continuing.",
+            button:
+              "Cancel Quiz Board",
+          };
 
-      case "delete":
-        return {
-          title: "Delete Quiz Board?",
-          description:
-            "This action cannot be undone.",
-          button: "Delete Quiz Board",
-        };
+        case "delete":
+          return {
+            title:
+              "Delete Quiz Board?",
+            description:
+              "This action cannot be undone.",
+            button:
+              "Delete Quiz Board",
+          };
 
-      default:
-        return null;
-    }
-  }, [actionType]);
+        default:
+          return null;
+      }
+    }, [actionType]);
 
   /* ==========================================================
      RENDER
@@ -977,8 +1093,9 @@ export default function AdminQuizCompetitionsPage() {
             <p className="mt-3 max-w-3xl text-lg leading-7 text-slate-600">
               Manage Quiz Board competitions,
               monitor contestant registration,
-              create and activate rooms, and
-              control the competition lifecycle.
+              create rooms and activate
+              competitions when they are ready
+              to go live.
             </p>
           </div>
 
@@ -986,7 +1103,9 @@ export default function AdminQuizCompetitionsPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={loadQuizBoards}
+              onClick={
+                loadQuizBoards
+              }
               disabled={isLoading}
               leftIcon={
                 <RefreshCw
@@ -1014,6 +1133,39 @@ export default function AdminQuizCompetitionsPage() {
         </div>
 
         {/* ==================================================
+            ACTIVATION ERROR
+        ================================================== */}
+
+        {activateRoomError && (
+          <Card className="mb-8 border-red-200 bg-red-50 p-5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-red-900">
+                  Unable to activate quiz room
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-red-700">
+                  {activateRoomError}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setActivateRoomError("")
+                }
+                className="rounded-lg p-1.5 text-red-500 hover:bg-red-100"
+                aria-label="Dismiss activation error"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {/* ==================================================
             STATISTICS
         ================================================== */}
 
@@ -1023,7 +1175,9 @@ export default function AdminQuizCompetitionsPage() {
               <Trophy className="h-5 w-5" />
             }
             label="Total Boards"
-            value={statistics.total}
+            value={
+              statistics.total
+            }
             description="All competitions"
           />
 
@@ -1032,7 +1186,9 @@ export default function AdminQuizCompetitionsPage() {
               <Users className="h-5 w-5" />
             }
             label="Participants"
-            value={statistics.totalParticipants}
+            value={
+              statistics.totalParticipants
+            }
             description="Joined contestants"
           />
 
@@ -1041,7 +1197,9 @@ export default function AdminQuizCompetitionsPage() {
               <CircleDot className="h-5 w-5" />
             }
             label="Waiting"
-            value={statistics.waiting}
+            value={
+              statistics.waiting
+            }
             description="Awaiting room/start"
           />
 
@@ -1050,9 +1208,13 @@ export default function AdminQuizCompetitionsPage() {
               <Radio className="h-5 w-5" />
             }
             label="Live"
-            value={statistics.live}
+            value={
+              statistics.live
+            }
             description="Currently running"
-            live={statistics.live > 0}
+            live={
+              statistics.live > 0
+            }
           />
 
           <StatCard
@@ -1060,7 +1222,9 @@ export default function AdminQuizCompetitionsPage() {
               <DoorOpen className="h-5 w-5" />
             }
             label="Rooms Created"
-            value={statistics.roomsCreated}
+            value={
+              statistics.roomsCreated
+            }
             description="Competition rooms"
           />
         </div>
@@ -1089,7 +1253,9 @@ export default function AdminQuizCompetitionsPage() {
                   type="button"
                   variant="outline"
                   className="mt-4"
-                  onClick={loadQuizBoards}
+                  onClick={
+                    loadQuizBoards
+                  }
                   leftIcon={
                     <RefreshCw className="h-4 w-4" />
                   }
@@ -1105,79 +1271,94 @@ export default function AdminQuizCompetitionsPage() {
             SEARCH / FILTER
         ================================================== */}
 
-        {!isLoading && !error && (
-          <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-              <div className="min-w-0 flex-1">
-                <Input
-                  placeholder="Search by title, subject or status..."
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(event.target.value)
+        {!isLoading &&
+          !error && (
+            <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    placeholder="Search by title, subject or status..."
+                    value={search}
+                    onChange={(event) =>
+                      setSearch(
+                        event.target.value,
+                      )
+                    }
+                    leftIcon={
+                      <Search className="h-4 w-4" />
+                    }
+                  />
+                </div>
+
+                <select
+                  value={
+                    statusFilter
                   }
-                  leftIcon={
-                    <Search className="h-4 w-4" />
+                  onChange={(
+                    event,
+                  ) =>
+                    setStatusFilter(
+                      event.target
+                        .value as StatusFilter,
+                    )
                   }
-                />
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  aria-label="Filter by status"
+                >
+                  {STATUS_OPTIONS.map(
+                    (status) => (
+                      <option
+                        key={status}
+                        value={status}
+                      >
+                        {status ===
+                        "ALL"
+                          ? "All Statuses"
+                          : getStatusLabel(
+                              status,
+                            )}
+                      </option>
+                    ),
+                  )}
+                </select>
               </div>
 
-              <select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target
-                      .value as StatusFilter,
-                  )
-                }
-                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                aria-label="Filter by status"
-              >
-                {STATUS_OPTIONS.map(
-                  (status) => (
-                    <option
-                      key={status}
-                      value={status}
-                    >
-                      {status === "ALL"
-                        ? "All Statuses"
-                        : getStatusLabel(
-                            status,
-                          )}
-                    </option>
-                  ),
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+                <span>
+                  Showing{" "}
+                  <strong className="text-slate-900">
+                    {
+                      filteredQuizBoards.length
+                    }
+                  </strong>{" "}
+                  of{" "}
+                  <strong className="text-slate-900">
+                    {
+                      quizBoards.length
+                    }
+                  </strong>{" "}
+                  Quiz Boards
+                </span>
+
+                {(search ||
+                  statusFilter !==
+                    "ALL") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter(
+                        "ALL",
+                      );
+                    }}
+                    className="font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    Clear filters
+                  </button>
                 )}
-              </select>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-              <span>
-                Showing{" "}
-                <strong className="text-slate-900">
-                  {filteredQuizBoards.length}
-                </strong>{" "}
-                of{" "}
-                <strong className="text-slate-900">
-                  {quizBoards.length}
-                </strong>{" "}
-                Quiz Boards
-              </span>
-
-              {(search ||
-                statusFilter !== "ALL") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setStatusFilter("ALL");
-                  }}
-                  className="font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          </section>
-        )}
+              </div>
+            </section>
+          )}
 
         {/* ==================================================
             LOADING
@@ -1207,18 +1388,32 @@ export default function AdminQuizCompetitionsPage() {
 
         {!isLoading &&
           !error &&
-          filteredQuizBoards.length > 0 && (
+          filteredQuizBoards.length >
+            0 && (
             <div className="space-y-6">
               {filteredQuizBoards.map(
                 (board) => (
                   <QuizBoardCard
-                    key={getBoardId(board)}
+                    key={getBoardId(
+                      board,
+                    )}
                     board={board}
                     onCreateRoom={() =>
-                      openCreateRoom(board)
+                      openCreateRoom(
+                        board,
+                      )
                     }
                     onActivateRoom={() =>
-                      openActivateRoom(board)
+                      handleActivateRoom(
+                        board,
+                      )
+                    }
+                    activatingRoom={
+                      Boolean(
+                        board.room_id &&
+                          activatingRoomId ===
+                            board.room_id,
+                      )
                     }
                     onCancel={() =>
                       openActionModal(
@@ -1244,8 +1439,10 @@ export default function AdminQuizCompetitionsPage() {
 
         {!isLoading &&
           !error &&
-          quizBoards.length > 0 &&
-          filteredQuizBoards.length === 0 && (
+          quizBoards.length >
+            0 &&
+          filteredQuizBoards.length ===
+            0 && (
             <Card className="p-12 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
                 <Search className="h-8 w-8 text-slate-400" />
@@ -1256,8 +1453,8 @@ export default function AdminQuizCompetitionsPage() {
               </h2>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                No Quiz Board matches your current
-                search or filter.
+                No Quiz Board matches your
+                current search or filter.
               </p>
             </Card>
           )}
@@ -1268,7 +1465,8 @@ export default function AdminQuizCompetitionsPage() {
 
         {!isLoading &&
           !error &&
-          quizBoards.length === 0 && (
+          quizBoards.length ===
+            0 && (
             <Card className="p-12 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100">
                 <Trophy className="h-8 w-8 text-blue-600" />
@@ -1303,60 +1501,70 @@ export default function AdminQuizCompetitionsPage() {
             STRUCTURE
         ================================================== */}
 
-        {!isLoading && !error && (
-          <section className="mt-10 rounded-2xl border border-blue-100 bg-blue-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
-                <Layers3 className="h-5 w-5" />
-              </div>
+        {!isLoading &&
+          !error && (
+            <section className="mt-10 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                  <Layers3 className="h-5 w-5" />
+                </div>
 
-              <div>
-                <h2 className="font-bold text-slate-900">
-                  Quiz Board room flow
-                </h2>
+                <div>
+                  <h2 className="font-bold text-slate-900">
+                    Quiz Board room flow
+                  </h2>
 
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Students first join the competition.
-                  Once the required number of contestants
-                  has been reached, the administrator can
-                  create and activate the quiz room before
-                  starting the quiz.
-                </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Students first join the
+                    competition. Once the required
+                    number of contestants has been
+                    reached, the administrator creates
+                    the room. When the Quiz Board
+                    becomes IN_PROGRESS, the
+                    administrator activates the room
+                    and enters the shared Quiz Arena
+                    as host.
+                  </p>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <StructurePill
-                    label="1"
-                    value="Students Join"
-                  />
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <StructurePill
+                      label="1"
+                      value="Students Join"
+                    />
 
-                  <StructurePill
-                    label="2"
-                    value="Reach Capacity"
-                  />
+                    <StructurePill
+                      label="2"
+                      value="Reach Capacity"
+                    />
 
-                  <StructurePill
-                    label="3"
-                    value="Create Room"
-                  />
+                    <StructurePill
+                      label="3"
+                      value="Create Room"
+                    />
 
-                  <StructurePill
-                    label="4"
-                    value="Activate Room"
-                  />
+                    <StructurePill
+                      label="4"
+                      value="Activate Room"
+                    />
 
-                  <StructurePill
-                    label="5"
-                    value="Start Quiz"
-                  />
+                    <StructurePill
+                      label="5"
+                      value="Host Quiz Arena"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
       </div>
 
       {/* ======================================================
           CREATE ROOM MODAL
+
+          This remains because room creation is still a
+          separate REST operation.
+
+          Activation does NOT use this modal.
       ====================================================== */}
 
       {roomBoard && (
@@ -1378,16 +1586,21 @@ export default function AdminQuizCompetitionsPage() {
                   </h2>
 
                   <p className="mt-1 text-sm leading-5 text-slate-500">
-                    All required contestants have joined.
-                    You can now create the competition room.
+                    All required contestants have
+                    joined. You can now create the
+                    competition room.
                   </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={closeCreateRoom}
-                disabled={isCreatingRoom}
+                onClick={
+                  closeCreateRoom
+                }
+                disabled={
+                  isCreatingRoom
+                }
                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                 aria-label="Close dialog"
               >
@@ -1411,7 +1624,9 @@ export default function AdminQuizCompetitionsPage() {
                   </p>
 
                   <p className="mt-1 text-xl font-bold text-slate-900">
-                    {getJoinedCount(roomBoard)}
+                    {getJoinedCount(
+                      roomBoard,
+                    )}
                   </p>
                 </div>
 
@@ -1456,16 +1671,24 @@ export default function AdminQuizCompetitionsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={closeCreateRoom}
-                disabled={isCreatingRoom}
+                onClick={
+                  closeCreateRoom
+                }
+                disabled={
+                  isCreatingRoom
+                }
               >
                 Cancel
               </Button>
 
               <Button
                 type="button"
-                onClick={handleCreateRoom}
-                disabled={isCreatingRoom}
+                onClick={
+                  handleCreateRoom
+                }
+                disabled={
+                  isCreatingRoom
+                }
                 leftIcon={
                   isCreatingRoom ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1484,288 +1707,191 @@ export default function AdminQuizCompetitionsPage() {
       )}
 
       {/* ======================================================
-          ACTIVATE ROOM MODAL
-      ====================================================== */}
-
-      {activatingRoomBoard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
-          <div
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                  <Power className="h-6 w-6" />
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    Activate Quiz Room
-                  </h2>
-
-                  <p className="mt-1 text-sm leading-5 text-slate-500">
-                    This will activate the existing room
-                    for this Quiz Board.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeActivateRoom}
-                disabled={isActivatingRoom}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-                aria-label="Close dialog"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
-                Quiz Competition
-              </p>
-
-              <p className="mt-1 font-bold text-slate-900">
-                {activatingRoomBoard.quiz_title}
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                    activatingRoomBoard.status,
-                  )}`}
-                >
-                  {getStatusLabel(
-                    activatingRoomBoard.status,
-                  )}
-                </span>
-
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                  Room Created
-                </span>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3">
-                <p className="text-xs text-slate-500">
-                  Room ID
-                </p>
-
-                <p className="mt-1 break-all font-mono text-sm font-bold text-slate-900">
-                  {activatingRoomBoard.room_id ||
-                    "—"}
-                </p>
-              </div>
-            </div>
-
-            {activateRoomError && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-
-                  <div>
-                    <p className="text-sm font-semibold text-red-900">
-                      Unable to activate room
-                    </p>
-
-                    <p className="mt-1 text-sm leading-5 text-red-700">
-                      {activateRoomError}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeActivateRoom}
-                disabled={isActivatingRoom}
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="button"
-                onClick={handleActivateRoom}
-                disabled={isActivatingRoom}
-                leftIcon={
-                  isActivatingRoom ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Power className="h-4 w-4" />
-                  )
-                }
-              >
-                {isActivatingRoom
-                  ? "Activating Room..."
-                  : "Activate Room"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================
           ACTION MODAL
       ====================================================== */}
 
-      {actionBoard && actionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
-          <div
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-                    actionType === "delete"
-                      ? "bg-red-100 text-red-600"
-                      : "bg-orange-100 text-orange-600"
-                  }`}
-                >
-                  {actionType === "delete" ? (
-                    <Trash2 className="h-6 w-6" />
-                  ) : (
-                    <Square className="h-6 w-6" />
-                  )}
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {actionModal.title}
-                  </h2>
-
-                  <p className="mt-1 text-sm leading-5 text-slate-500">
-                    {actionModal.description}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeActionModal}
-                disabled={isProcessing}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-                aria-label="Close dialog"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Quiz Board
-              </p>
-
-              <p className="mt-1 font-bold text-slate-900">
-                {actionBoard.quiz_title}
-              </p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                    actionBoard.status,
-                  )}`}
-                >
-                  {getStatusLabel(
-                    actionBoard.status,
-                  )}
-                </span>
-
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {getJoinedCount(actionBoard)} /{" "}
-                  {getContestantCapacity(
-                    actionBoard,
-                  )}{" "}
-                  Joined
-                </span>
-
-                {hasRoom(actionBoard) && (
-                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                    Room Created
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {actionType === "delete" && (
-              <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">
-                    This cannot be undone
-                  </p>
-
-                  <p className="mt-1 text-sm leading-5 text-amber-800">
-                    Make sure you no longer need this
-                    Quiz Board.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {actionError && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+      {actionBoard &&
+        actionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+            <div
+              className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+                      actionType ===
+                      "delete"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-orange-100 text-orange-600"
+                    }`}
+                  >
+                    {actionType ===
+                    "delete" ? (
+                      <Trash2 className="h-6 w-6" />
+                    ) : (
+                      <Square className="h-6 w-6" />
+                    )}
+                  </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-red-900">
-                      Action failed
-                    </p>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {
+                        actionModal.title
+                      }
+                    </h2>
 
-                    <p className="mt-1 text-sm leading-5 text-red-700">
-                      {actionError}
+                    <p className="mt-1 text-sm leading-5 text-slate-500">
+                      {
+                        actionModal.description
+                      }
                     </p>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeActionModal
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                  aria-label="Close dialog"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            )}
 
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeActionModal}
-                disabled={isProcessing}
-              >
-                Close
-              </Button>
+              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Quiz Board
+                </p>
 
-              <Button
-                type="button"
-                variant={
-                  actionType === "delete"
-                    ? "destructive"
-                    : "default"
-                }
-                onClick={handleBoardAction}
-                disabled={isProcessing}
-                leftIcon={
-                  isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : actionType === "delete" ? (
-                    <Trash2 className="h-4 w-4" />
-                  ) : (
-                    <Square className="h-4 w-4" />
-                  )
-                }
-              >
-                {isProcessing
-                  ? "Processing..."
-                  : actionModal.button}
-              </Button>
+                <p className="mt-1 font-bold text-slate-900">
+                  {
+                    actionBoard.quiz_title
+                  }
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
+                      actionBoard.status,
+                    )}`}
+                  >
+                    {getStatusLabel(
+                      actionBoard.status,
+                    )}
+                  </span>
+
+                  <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {getJoinedCount(
+                      actionBoard,
+                    )}{" "}
+                    /{" "}
+                    {getContestantCapacity(
+                      actionBoard,
+                    )}{" "}
+                    Joined
+                  </span>
+
+                  {hasRoom(
+                    actionBoard,
+                  ) && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                      Room Created
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {actionType ===
+                "delete" && (
+                <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">
+                      This cannot be undone
+                    </p>
+
+                    <p className="mt-1 text-sm leading-5 text-amber-800">
+                      Make sure you no longer
+                      need this Quiz Board.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {actionError && (
+                <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                    <div>
+                      <p className="text-sm font-semibold text-red-900">
+                        Action failed
+                      </p>
+
+                      <p className="mt-1 text-sm leading-5 text-red-700">
+                        {actionError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={
+                    closeActionModal
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                >
+                  Close
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={
+                    actionType ===
+                    "delete"
+                      ? "destructive"
+                      : "default"
+                  }
+                  onClick={
+                    handleBoardAction
+                  }
+                  disabled={
+                    isProcessing
+                  }
+                  leftIcon={
+                    isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : actionType ===
+                      "delete" ? (
+                      <Trash2 className="h-4 w-4" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )
+                  }
+                >
+                  {isProcessing
+                    ? "Processing..."
+                    : actionModal.button}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </main>
   );
 }
@@ -1821,7 +1947,9 @@ function StatCard({
       </p>
 
       <p className="mt-1 text-3xl font-bold text-slate-900">
-        {value.toLocaleString("en-NG")}
+        {value.toLocaleString(
+          "en-NG",
+        )}
       </p>
 
       <p className="mt-1 text-xs text-slate-500">
@@ -1863,6 +1991,7 @@ interface QuizBoardCardProps {
   board: QuizBoard;
   onCreateRoom: () => void;
   onActivateRoom: () => void;
+  activatingRoom: boolean;
   onCancel: () => void;
   onDelete: () => void;
 }
@@ -1871,30 +2000,46 @@ function QuizBoardCard({
   board,
   onCreateRoom,
   onActivateRoom,
+  activatingRoom,
   onCancel,
   onDelete,
 }: QuizBoardCardProps) {
-  const status = normalizeStatus(board.status);
+  const status =
+    normalizeStatus(
+      board.status,
+    );
 
-  const boardId = getBoardId(board);
+  const boardId =
+    getBoardId(board);
 
   const contestants =
-    getContestantCapacity(board);
+    getContestantCapacity(
+      board,
+    );
 
-  const joined = getJoinedCount(board);
+  const joined =
+    getJoinedCount(board);
 
-  const isFull = isQuizFull(board);
+  const isFull =
+    isQuizFull(board);
 
-  const roomCreated = hasRoom(board);
+  const roomCreated =
+    hasRoom(board);
 
   const eliminationQuestions =
-    getTotalEliminationQuestions(board);
+    getTotalEliminationQuestions(
+      board,
+    );
 
   const finalQuestions =
-    getFinalQuestionCount(board);
+    getFinalQuestionCount(
+      board,
+    );
 
   const totalQuestions =
-    getTotalQuestionCount(board);
+    getTotalQuestionCount(
+      board,
+    );
 
   const totalRewards =
     getTotalRewards(board);
@@ -1903,27 +2048,17 @@ function QuizBoardCard({
     getCurrentRound(board);
 
   const numberOfRounds =
-    Number(board.number_of_rounds || 0);
+    Number(
+      board.number_of_rounds || 0,
+    );
 
   const canCreateRoom =
     isFull && !roomCreated;
 
   const canActivateRoom =
     roomCreated &&
-    status === "IN_PROGRESS";
-
-  /*
-   * IMPORTANT:
-   *
-   * IN_PROGRESS action area contains ONLY
-   * the Start Quiz Link.
-   *
-   * No View.
-   * No Manage.
-   * No Cancel.
-   * No Delete.
-   * No API call for Start Quiz.
-   */
+    status ===
+      "IN_PROGRESS";
 
   return (
     <Card
@@ -1931,9 +2066,11 @@ function QuizBoardCard({
       className={`overflow-hidden p-0 ${
         status === "LIVE"
           ? "border-red-200"
-          : status === "IN_PROGRESS"
+          : status ===
+              "IN_PROGRESS"
             ? "border-blue-200"
-            : isFull && !roomCreated
+            : isFull &&
+                !roomCreated
               ? "border-blue-200"
               : ""
       }`}
@@ -1942,7 +2079,8 @@ function QuizBoardCard({
           LIVE HEADER
       ==================================================== */}
 
-      {status === "LIVE" && (
+      {status ===
+        "LIVE" && (
         <div className="flex items-center justify-between bg-red-600 px-6 py-2.5 text-white">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
             <span className="relative flex h-2.5 w-2.5">
@@ -1966,7 +2104,8 @@ function QuizBoardCard({
           IN PROGRESS HEADER
       ==================================================== */}
 
-      {status === "IN_PROGRESS" && (
+      {status ===
+        "IN_PROGRESS" && (
         <div className="flex items-center justify-between bg-blue-600 px-6 py-2.5 text-white">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
             <span className="relative flex h-2.5 w-2.5">
@@ -1979,7 +2118,9 @@ function QuizBoardCard({
           </div>
 
           <span className="text-xs font-semibold">
-            Ready to Start
+            {canActivateRoom
+              ? "Ready to Activate"
+              : "Room Required"}
           </span>
         </div>
       )}
@@ -2023,7 +2164,9 @@ function QuizBoardCard({
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
               <span className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-blue-600" />
-                {getSubjectLabel(board)}
+                {getSubjectLabel(
+                  board,
+                )}
               </span>
 
               <span className="flex items-center gap-2">
@@ -2033,33 +2176,24 @@ function QuizBoardCard({
 
               <span className="flex items-center gap-2">
                 <Timer className="h-4 w-4 text-blue-600" />
-                {board.time_per_question}s /
-                Question
+                {board.time_per_question}
+                s / Question
               </span>
-
-              {/* <span className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-blue-600" />
-                {totalQuestions} Questions
-              </span> */}
 
               <span className="flex items-center gap-2">
                 <Layers3 className="h-4 w-4 text-blue-600" />
-                {numberOfRounds} Rounds
+                {numberOfRounds}{" "}
+                Rounds
               </span>
             </div>
           </div>
 
           {/* ==================================================
               TOP RIGHT ACTION
-
-              IN_PROGRESS:
-              NOTHING HERE.
-
-              Other statuses:
-              Manage remains available.
           ================================================== */}
 
-          {status !== "IN_PROGRESS" && (
+          {status !==
+            "IN_PROGRESS" && (
             <div className="flex shrink-0 flex-wrap gap-2">
               <Link
                 href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
@@ -2168,7 +2302,8 @@ function QuizBoardCard({
                 }`}
                 style={{
                   width: `${
-                    contestants > 0
+                    contestants >
+                    0
                       ? Math.min(
                           100,
                           (joined /
@@ -2192,14 +2327,21 @@ function QuizBoardCard({
                 <span className="font-semibold text-green-700">
                   Room ID:{" "}
                   <span className="font-mono">
-                    {board.room_id}
+                    {
+                      board.room_id
+                    }
                   </span>
                 </span>
               ) : (
                 <>
-                  {joined < contestants
-                    ? `${contestants - joined} more contestant${
-                        contestants - joined ===
+                  {joined <
+                  contestants
+                    ? `${
+                        contestants -
+                        joined
+                      } more contestant${
+                        contestants -
+                          joined ===
                         1
                           ? ""
                           : "s"
@@ -2226,20 +2368,35 @@ function QuizBoardCard({
                   {canActivateRoom && (
                     <Button
                       type="button"
-                      onClick={onActivateRoom}
+                      onClick={
+                        onActivateRoom
+                      }
+                      disabled={
+                        activatingRoom
+                      }
                       leftIcon={
-                        <Power className="h-4 w-4" />
+                        activatingRoom ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Power className="h-4 w-4" />
+                        )
                       }
                     >
-                      Activate Room
+                      {activatingRoom
+                        ? "Activating..."
+                        : "Activate Room"}
                     </Button>
                   )}
                 </>
               ) : (
                 <Button
                   type="button"
-                  onClick={onCreateRoom}
-                  disabled={!canCreateRoom}
+                  onClick={
+                    onCreateRoom
+                  }
+                  disabled={
+                    !canCreateRoom
+                  }
                   leftIcon={
                     canCreateRoom ? (
                       <DoorOpen className="h-4 w-4" />
@@ -2299,7 +2456,8 @@ function QuizBoardCard({
             }
             label="Final Winner"
             value={`${formatPoints(
-              board.final_round_information
+              board
+                .final_round_information
                 ?.first_position_reward,
             )} Points`}
           />
@@ -2317,79 +2475,95 @@ function QuizBoardCard({
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
-                {board.round_information
+                {board
+                  .round_information
                   ?.length || 0}{" "}
-                elimination rounds + Final
+                elimination rounds +
+                Final
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-                {eliminationQuestions} Elimination
-                Questions
+                {eliminationQuestions}{" "}
+                Elimination Questions
               </span>
 
               <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-                {finalQuestions} Final Questions
+                {finalQuestions}{" "}
+                Final Questions
               </span>
             </div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {(board.round_information || []).map(
-              (round) => (
-                <div
-                  key={round.round_number}
-                  className="rounded-xl border border-slate-200 bg-white p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
-                      Round{" "}
-                      {round.round_number}
-                    </p>
-
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
-                      Exit {round.exit_number}
-                    </span>
-                  </div>
-
-                  <p className="mt-2 text-lg font-bold text-slate-900">
-                    {round.no_of_questions}{" "}
-                    Questions
+            {(
+              board.round_information ||
+              []
+            ).map((round) => (
+              <div
+                key={
+                  round.round_number
+                }
+                className="rounded-xl border border-slate-200 bg-white p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                    Round{" "}
+                    {
+                      round.round_number
+                    }
                   </p>
 
-                  <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold">
-                    <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
-                      E{" "}
-                      {round
-                        .difficultyBreakdown
-                        ?.easy ?? 0}
-                    </span>
-
-                    <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-700">
-                      M{" "}
-                      {round
-                        .difficultyBreakdown
-                        ?.medium ?? 0}
-                    </span>
-
-                    <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
-                      H{" "}
-                      {round
-                        .difficultyBreakdown
-                        ?.hard ?? 0}
-                    </span>
-                  </div>
-
-                  <p className="mt-3 text-xs text-slate-500">
-                    Exit reward:{" "}
-                    <strong className="text-slate-800">
-                      {round.exit_reward} Points
-                    </strong>
-                  </p>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
+                    Exit{" "}
+                    {
+                      round.exit_number
+                    }
+                  </span>
                 </div>
-              ),
-            )}
+
+                <p className="mt-2 text-lg font-bold text-slate-900">
+                  {
+                    round.no_of_questions
+                  }{" "}
+                  Questions
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold">
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+                    E{" "}
+                    {round
+                      .difficultyBreakdown
+                      ?.easy ?? 0}
+                  </span>
+
+                  <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-700">
+                    M{" "}
+                    {round
+                      .difficultyBreakdown
+                      ?.medium ?? 0}
+                  </span>
+
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
+                    H{" "}
+                    {round
+                      .difficultyBreakdown
+                      ?.hard ?? 0}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-xs text-slate-500">
+                  Exit reward:{" "}
+                  <strong className="text-slate-800">
+                    {
+                      round.exit_reward
+                    }{" "}
+                    Points
+                  </strong>
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* FINAL */}
@@ -2415,26 +2589,32 @@ function QuizBoardCard({
                 <div className="flex flex-wrap gap-2 text-xs font-semibold">
                   <span className="rounded-full bg-white px-3 py-1.5 text-green-700">
                     Easy{" "}
-                    {board
-                      .final_round_information
-                      .difficultyBreakdown
-                      ?.easy ?? 0}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.easy ?? 0
+                    }
                   </span>
 
                   <span className="rounded-full bg-white px-3 py-1.5 text-yellow-700">
                     Medium{" "}
-                    {board
-                      .final_round_information
-                      .difficultyBreakdown
-                      ?.medium ?? 0}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.medium ?? 0
+                    }
                   </span>
 
                   <span className="rounded-full bg-white px-3 py-1.5 text-red-700">
                     Hard{" "}
-                    {board
-                      .final_round_information
-                      .difficultyBreakdown
-                      ?.hard ?? 0}
+                    {
+                      board
+                        .final_round_information
+                        .difficultyBreakdown
+                        ?.hard ?? 0
+                    }
                   </span>
 
                   <span className="rounded-full bg-purple-700 px-3 py-1.5 text-white">
@@ -2481,10 +2661,12 @@ function QuizBoardCard({
             }
             label="Final Rewards"
             value={`${formatPoints(
-              board.final_round_information
+              board
+                .final_round_information
                 ?.first_position_reward,
             )} / ${formatPoints(
-              board.final_round_information
+              board
+                .final_round_information
                 ?.second_position_reward,
             )} Points`}
           />
@@ -2492,17 +2674,6 @@ function QuizBoardCard({
 
         {/* ==================================================
             ACTIONS
-
-            IMPORTANT:
-
-            IN_PROGRESS:
-              ONLY Start Quiz
-
-            NO:
-              View
-              Manage
-              Cancel
-              Delete
         ================================================== */}
 
         <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5">
@@ -2510,25 +2681,46 @@ function QuizBoardCard({
           {/* ==================================================
               IN_PROGRESS
 
-              START QUIZ IS ONLY A LINK.
+              Activation is the only primary action.
 
-              NO API REQUEST.
-              NO MODAL.
+              Successful activation sends the admin to:
+              /student/quiz-board/{quizId}/play?role=host
           ================================================== */}
 
-          {status === "IN_PROGRESS" ? (
-            <Link
-              href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
-            >
+          {status ===
+          "IN_PROGRESS" ? (
+            roomCreated ? (
               <Button
                 type="button"
+                onClick={
+                  onActivateRoom
+                }
+                disabled={
+                  activatingRoom
+                }
                 leftIcon={
-                  <Play className="h-4 w-4" />
+                  activatingRoom ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Power className="h-4 w-4" />
+                  )
                 }
               >
-                Start Quiz
+                {activatingRoom
+                  ? "Activating Room..."
+                  : "Activate Room"}
               </Button>
-            </Link>
+            ) : (
+              <Button
+                type="button"
+                disabled
+                leftIcon={
+                  <Lock className="h-4 w-4" />
+                }
+              >
+                Create Room First
+              </Button>
+            )
           ) : (
             <>
               {/* ============================================
@@ -2552,9 +2744,12 @@ function QuizBoardCard({
                   EDIT
               ============================================ */}
 
-              {(status === "DRAFT" ||
-                status === "WAITING" ||
-                status === "UPCOMING") && (
+              {(status ===
+                "DRAFT" ||
+                status ===
+                  "WAITING" ||
+                status ===
+                  "UPCOMING") && (
                 <Link
                   href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}/edit`}
                 >
@@ -2573,7 +2768,8 @@ function QuizBoardCard({
                   LIVE
               ============================================ */}
 
-              {status === "LIVE" && (
+              {status ===
+                "LIVE" && (
                 <Link
                   href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
                 >
@@ -2590,19 +2786,24 @@ function QuizBoardCard({
 
               {/* ============================================
                   CANCEL
-
-                  IN_PROGRESS NEVER REACHES THIS BRANCH.
               ============================================ */}
 
-              {(status === "WAITING" ||
-                status === "UPCOMING" ||
-                status === "OPEN" ||
-                status === "FULL" ||
-                status === "LIVE") && (
+              {(status ===
+                "WAITING" ||
+                status ===
+                  "UPCOMING" ||
+                status ===
+                  "OPEN" ||
+                status ===
+                  "FULL" ||
+                status ===
+                  "LIVE") && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={onCancel}
+                  onClick={
+                    onCancel
+                  }
                   leftIcon={
                     <Square className="h-4 w-4" />
                   }
@@ -2615,13 +2816,18 @@ function QuizBoardCard({
                   DELETE
               ============================================ */}
 
-              {(status === "DRAFT" ||
-                status === "WAITING" ||
-                status === "UPCOMING") && (
+              {(status ===
+                "DRAFT" ||
+                status ===
+                  "WAITING" ||
+                status ===
+                  "UPCOMING") && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={onDelete}
+                  onClick={
+                    onDelete
+                  }
                   leftIcon={
                     <Trash2 className="h-4 w-4" />
                   }
@@ -2676,15 +2882,7 @@ function InfoTile({
 
 
 
-
-
-
-
-
-
-
-
-//  "use client";
+// "use client";
 
 // import { useCallback, useEffect, useMemo, useState } from "react";
 // import Link from "next/link";
@@ -2709,8 +2907,6 @@ function InfoTile({
 //   Square,
 //   CheckCircle2,
 //   CircleDot,
-//   Zap,
-//   Target,
 //   Layers3,
 //   RefreshCw,
 //   Timer,
@@ -2719,6 +2915,7 @@ function InfoTile({
 //   DoorOpen,
 //   Lock,
 //   Check,
+//   Zap,
 //   Power,
 // } from "lucide-react";
 
@@ -3163,9 +3360,10 @@ function InfoTile({
 //     useState<QuizBoard | null>(null);
 
 //   const [actionType, setActionType] =
-//     useState<"delete" | "start" | "cancel" | null>(null);
+//     useState<"delete" | "cancel" | null>(null);
 
-//   const [isProcessing, setIsProcessing] = useState(false);
+//   const [isProcessing, setIsProcessing] =
+//     useState(false);
 
 //   const [actionError, setActionError] = useState("");
 
@@ -3242,7 +3440,8 @@ function InfoTile({
 
 //       const matchesStatus =
 //         statusFilter === "ALL" ||
-//         normalizeStatus(board.status) === statusFilter;
+//         normalizeStatus(board.status) ===
+//           statusFilter;
 
 //       return matchesSearch && matchesStatus;
 //     });
@@ -3267,7 +3466,8 @@ function InfoTile({
 
 //     const inProgress = quizBoards.filter(
 //       (board) =>
-//         normalizeStatus(board.status) === "IN_PROGRESS",
+//         normalizeStatus(board.status) ===
+//         "IN_PROGRESS",
 //     ).length;
 
 //     const upcoming = quizBoards.filter(
@@ -3282,7 +3482,8 @@ function InfoTile({
 
 //     const completed = quizBoards.filter(
 //       (board) =>
-//         normalizeStatus(board.status) === "COMPLETED",
+//         normalizeStatus(board.status) ===
+//         "COMPLETED",
 //     ).length;
 
 //     const fullBoards = quizBoards.filter(
@@ -3408,9 +3609,7 @@ function InfoTile({
 //         err,
 //       );
 
-//       setRoomError(
-//         getApiErrorMessage(err),
-//       );
+//       setRoomError(getApiErrorMessage(err));
 //     } finally {
 //       setIsCreatingRoom(false);
 //     }
@@ -3418,10 +3617,10 @@ function InfoTile({
 
 //   /* ==========================================================
 //      ACTIVATE ROOM
-     
+
 //      IMPORTANT:
 //      This intentionally calls the SAME endpoint again:
-     
+
 //      POST /quiz/create-room/{quizId}
 //   ========================================================== */
 
@@ -3467,9 +3666,7 @@ function InfoTile({
 //     );
 
 //     if (!quizId) {
-//       setActivateRoomError(
-//         "Quiz ID is missing.",
-//       );
+//       setActivateRoomError("Quiz ID is missing.");
 //       return;
 //     }
 
@@ -3477,10 +3674,6 @@ function InfoTile({
 //       setIsActivatingRoom(true);
 //       setActivateRoomError("");
 
-//       /*
-//        * The backend uses the same endpoint for
-//        * room activation.
-//        */
 //       const response = await axiosInstance.post(
 //         `/quiz/create-room/${quizId}`,
 //       );
@@ -3490,10 +3683,6 @@ function InfoTile({
 //         response.data,
 //       );
 
-//       /*
-//        * Refresh the competitions so the latest
-//        * backend status/room information is shown.
-//        */
 //       await loadQuizBoards();
 
 //       setActivatingRoomBoard(null);
@@ -3513,12 +3702,28 @@ function InfoTile({
 
 //   /* ==========================================================
 //      OTHER ACTION MODAL
+
+//      IMPORTANT:
+//      There is NO "start" action here.
+
+//      Start Quiz is a Link only.
 //   ========================================================== */
 
 //   const openActionModal = (
 //     board: QuizBoard,
-//     type: "delete" | "start" | "cancel",
+//     type: "delete" | "cancel",
 //   ) => {
+//     /*
+//      * IN_PROGRESS boards must never open the
+//      * cancel/delete action modal from the card.
+//      */
+//     if (
+//       normalizeStatus(board.status) ===
+//       "IN_PROGRESS"
+//     ) {
+//       return;
+//     }
+
 //     setActionBoard(board);
 //     setActionType(type);
 //     setActionError("");
@@ -3539,7 +3744,7 @@ function InfoTile({
 //   ========================================================== */
 
 //   const handleBoardAction = async () => {
-//     if (!actionBoard) {
+//     if (!actionBoard || !actionType) {
 //       return;
 //     }
 
@@ -3569,17 +3774,6 @@ function InfoTile({
 //         );
 //       }
 
-//       if (actionType === "start") {
-//         await axiosInstance.post(
-//           `/quiz-board/quiz-competitions/${boardId}/start`,
-
-//            // href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
-
-//         );
-
-//         await loadQuizBoards();
-//       }
-
 //       if (actionType === "cancel") {
 //         await axiosInstance.post(
 //           `/quiz-board/quiz-competitions/${boardId}/cancel`,
@@ -3588,12 +3782,6 @@ function InfoTile({
 //         await loadQuizBoards();
 //       }
 
-//       /*
-//        * Close the modal directly here.
-//        * This avoids the React state timing issue
-//        * where closeActionModal() could see
-//        * isProcessing as still true.
-//        */
 //       setActionBoard(null);
 //       setActionType(null);
 //       setActionError("");
@@ -3617,14 +3805,6 @@ function InfoTile({
 
 //   const actionModal = useMemo(() => {
 //     switch (actionType) {
-//       case "start":
-//         return {
-//           title: "Start Quiz Board?",
-//           description:
-//             "Starting this Quiz Board will make the competition live for participating students.",
-//           button: "Start Quiz Board",
-//         };
-
 //       case "cancel":
 //         return {
 //           title: "Cancel Quiz Board?",
@@ -3820,22 +4000,27 @@ function InfoTile({
 //                 value={statusFilter}
 //                 onChange={(event) =>
 //                   setStatusFilter(
-//                     event.target.value as StatusFilter,
+//                     event.target
+//                       .value as StatusFilter,
 //                   )
 //                 }
 //                 className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
 //                 aria-label="Filter by status"
 //               >
-//                 {STATUS_OPTIONS.map((status) => (
-//                   <option
-//                     key={status}
-//                     value={status}
-//                   >
-//                     {status === "ALL"
-//                       ? "All Statuses"
-//                       : getStatusLabel(status)}
-//                   </option>
-//                 ))}
+//                 {STATUS_OPTIONS.map(
+//                   (status) => (
+//                     <option
+//                       key={status}
+//                       value={status}
+//                     >
+//                       {status === "ALL"
+//                         ? "All Statuses"
+//                         : getStatusLabel(
+//                             status,
+//                           )}
+//                     </option>
+//                   ),
+//                 )}
 //               </select>
 //             </div>
 
@@ -3899,36 +4084,32 @@ function InfoTile({
 //           !error &&
 //           filteredQuizBoards.length > 0 && (
 //             <div className="space-y-6">
-//               {filteredQuizBoards.map((board) => (
-//                 <QuizBoardCard
-//                   key={getBoardId(board)}
-//                   board={board}
-//                   onCreateRoom={() =>
-//                     openCreateRoom(board)
-//                   }
-//                   onActivateRoom={() =>
-//                     openActivateRoom(board)
-//                   }
-//                   onStart={() =>
-//                     openActionModal(
-//                       board,
-//                       "start",
-//                     )
-//                   }
-//                   onCancel={() =>
-//                     openActionModal(
-//                       board,
-//                       "cancel",
-//                     )
-//                   }
-//                   onDelete={() =>
-//                     openActionModal(
-//                       board,
-//                       "delete",
-//                     )
-//                   }
-//                 />
-//               ))}
+//               {filteredQuizBoards.map(
+//                 (board) => (
+//                   <QuizBoardCard
+//                     key={getBoardId(board)}
+//                     board={board}
+//                     onCreateRoom={() =>
+//                       openCreateRoom(board)
+//                     }
+//                     onActivateRoom={() =>
+//                       openActivateRoom(board)
+//                     }
+//                     onCancel={() =>
+//                       openActionModal(
+//                         board,
+//                         "cancel",
+//                       )
+//                     }
+//                     onDelete={() =>
+//                       openActionModal(
+//                         board,
+//                         "delete",
+//                       )
+//                     }
+//                   />
+//                 ),
+//               )}
 //             </div>
 //           )}
 
@@ -4115,7 +4296,9 @@ function InfoTile({
 //                   </p>
 
 //                   <p className="mt-1 text-xl font-bold text-slate-900">
-//                     {getContestantCapacity(roomBoard)}
+//                     {getContestantCapacity(
+//                       roomBoard,
+//                     )}
 //                   </p>
 //                 </div>
 //               </div>
@@ -4318,17 +4501,13 @@ function InfoTile({
 //                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
 //                     actionType === "delete"
 //                       ? "bg-red-100 text-red-600"
-//                       : actionType === "cancel"
-//                         ? "bg-orange-100 text-orange-600"
-//                         : "bg-blue-100 text-blue-600"
+//                       : "bg-orange-100 text-orange-600"
 //                   }`}
 //                 >
 //                   {actionType === "delete" ? (
 //                     <Trash2 className="h-6 w-6" />
-//                   ) : actionType === "cancel" ? (
-//                     <Square className="h-6 w-6" />
 //                   ) : (
-//                     <Play className="h-6 w-6" />
+//                     <Square className="h-6 w-6" />
 //                   )}
 //                 </div>
 
@@ -4449,10 +4628,8 @@ function InfoTile({
 //                     <Loader2 className="h-4 w-4 animate-spin" />
 //                   ) : actionType === "delete" ? (
 //                     <Trash2 className="h-4 w-4" />
-//                   ) : actionType === "cancel" ? (
-//                     <Square className="h-4 w-4" />
 //                   ) : (
-//                     <Play className="h-4 w-4" />
+//                     <Square className="h-4 w-4" />
 //                   )
 //                 }
 //               >
@@ -4561,7 +4738,6 @@ function InfoTile({
 //   board: QuizBoard;
 //   onCreateRoom: () => void;
 //   onActivateRoom: () => void;
-//   onStart: () => void;
 //   onCancel: () => void;
 //   onDelete: () => void;
 // }
@@ -4570,7 +4746,6 @@ function InfoTile({
 //   board,
 //   onCreateRoom,
 //   onActivateRoom,
-//   onStart,
 //   onCancel,
 //   onDelete,
 // }: QuizBoardCardProps) {
@@ -4605,48 +4780,25 @@ function InfoTile({
 //   const numberOfRounds =
 //     Number(board.number_of_rounds || 0);
 
-//   /*
-//    * Create Room is ONLY available when:
-//    *
-//    * joined_users.length >= no_of_contestants
-//    *
-//    * and there is no room_id yet.
-//    */
 //   const canCreateRoom =
 //     isFull && !roomCreated;
 
-//   /*
-//    * IMPORTANT:
-//    *
-//    * Start Quiz must be visible when the backend
-//    * returns IN_PROGRESS.
-//    *
-//    * The button is disabled until a room exists.
-//    */
-//   const canStart =
-//     status === "IN_PROGRESS";
-
-//   /*
-//    * Activate Room is available when:
-//    *
-//    * 1. A room already exists
-//    * 2. Status is IN_PROGRESS
-//    *
-//    * It calls:
-//    *
-//    * POST /quiz/create-room/{quizId}
-//    */
 //   const canActivateRoom =
 //     roomCreated &&
 //     status === "IN_PROGRESS";
 
-//   const canCancel =
-//     status === "WAITING" ||
-//     status === "UPCOMING" ||
-//     status === "OPEN" ||
-//     status === "FULL" ||
-//     status === "IN_PROGRESS" ||
-//     status === "LIVE";
+//   /*
+//    * IMPORTANT:
+//    *
+//    * IN_PROGRESS action area contains ONLY
+//    * the Start Quiz Link.
+//    *
+//    * No View.
+//    * No Manage.
+//    * No Cancel.
+//    * No Delete.
+//    * No API call for Start Quiz.
+//    */
 
 //   return (
 //     <Card
@@ -4702,7 +4854,7 @@ function InfoTile({
 //           </div>
 
 //           <span className="text-xs font-semibold">
-//             Awaiting Start
+//             Ready to Start
 //           </span>
 //         </div>
 //       )}
@@ -4760,10 +4912,10 @@ function InfoTile({
 //                 Question
 //               </span>
 
-//               <span className="flex items-center gap-2">
+//               {/* <span className="flex items-center gap-2">
 //                 <Target className="h-4 w-4 text-blue-600" />
 //                 {totalQuestions} Questions
-//               </span>
+//               </span> */}
 
 //               <span className="flex items-center gap-2">
 //                 <Layers3 className="h-4 w-4 text-blue-600" />
@@ -4772,22 +4924,32 @@ function InfoTile({
 //             </div>
 //           </div>
 
-//           <div className="flex shrink-0 flex-wrap gap-2">
-//             <Link
-//               href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
+//           {/* ==================================================
+//               TOP RIGHT ACTION
 
+//               IN_PROGRESS:
+//               NOTHING HERE.
 
-//             >
-//               <Button
-//                 leftIcon={
-//                   <Settings2 className="h-4 w-4" />
-//                 }
+//               Other statuses:
+//               Manage remains available.
+//           ================================================== */}
+
+//           {status !== "IN_PROGRESS" && (
+//             <div className="flex shrink-0 flex-wrap gap-2">
+//               <Link
+//                 href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
 //               >
-//                 Manage
-//                 <ChevronRight className="ml-1 h-4 w-4" />
-//               </Button>
-//             </Link>
-//           </div>
+//                 <Button
+//                   leftIcon={
+//                     <Settings2 className="h-4 w-4" />
+//                   }
+//                 >
+//                   Manage
+//                   <ChevronRight className="ml-1 h-4 w-4" />
+//                 </Button>
+//               </Link>
+//             </div>
+//           )}
 //         </div>
 
 //         {/* ==================================================
@@ -4925,10 +5087,6 @@ function InfoTile({
 //             <div className="flex flex-wrap items-center gap-2">
 //               {roomCreated ? (
 //                 <>
-//                   {/* ========================================
-//                       ROOM CREATED STATUS
-//                   ======================================== */}
-
 //                   <Button
 //                     type="button"
 //                     variant="outline"
@@ -4939,13 +5097,6 @@ function InfoTile({
 //                   >
 //                     Room Created
 //                   </Button>
-
-//                   {/* ========================================
-//                       ACTIVATE ROOM
-                      
-//                       Visible when:
-//                       room exists + status IN_PROGRESS
-//                   ======================================== */}
 
 //                   {canActivateRoom && (
 //                     <Button
@@ -5041,10 +5192,8 @@ function InfoTile({
 //               </p>
 
 //               <p className="mt-1 text-xs text-slate-500">
-//                 {
-//                   board.round_information
-//                     ?.length || 0
-//                 }{" "}
+//                 {board.round_information
+//                   ?.length || 0}{" "}
 //                 elimination rounds + Final
 //               </p>
 //             </div>
@@ -5218,115 +5367,145 @@ function InfoTile({
 
 //         {/* ==================================================
 //             ACTIONS
+
+//             IMPORTANT:
+
+//             IN_PROGRESS:
+//               ONLY Start Quiz
+
+//             NO:
+//               View
+//               Manage
+//               Cancel
+//               Delete
 //         ================================================== */}
 
 //         <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5">
 
-//           <Link
-//             href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
-//           >
-//             <Button
-//               variant="outline"
-//               leftIcon={
-//                 <Eye className="h-4 w-4" />
-//               }
-//             >
-//               View
-//             </Button>
-//           </Link>
+//           {/* ==================================================
+//               IN_PROGRESS
 
-//           {(status === "DRAFT" ||
-//             status === "WAITING" ||
-//             status === "UPCOMING") && (
-//             <Link
-//               href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}/edit`}
-//             >
-//               <Button
-//                 variant="outline"
-//                 leftIcon={
-//                   <Pencil className="h-4 w-4" />
-//                 }
-//               >
-//                 Edit
-//               </Button>
-//             </Link>
-//           )}
+//               START QUIZ IS ONLY A LINK.
 
-//           {status === "LIVE" && (
+//               NO API REQUEST.
+//               NO MODAL.
+//           ================================================== */}
+
+//           {status === "IN_PROGRESS" ? (
 //             <Link
 //               href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
 //             >
 //               <Button
-//                 variant="outline"
+//                 type="button"
 //                 leftIcon={
-//                   <Radio className="h-4 w-4 text-red-600" />
+//                   <Play className="h-4 w-4" />
 //                 }
 //               >
-//                 Monitor Live
+//                 Start Quiz
 //               </Button>
 //             </Link>
+//           ) : (
+//             <>
+//               {/* ============================================
+//                   VIEW
+//               ============================================ */}
+
+//               <Link
+//                 href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
+//               >
+//                 <Button
+//                   variant="outline"
+//                   leftIcon={
+//                     <Eye className="h-4 w-4" />
+//                   }
+//                 >
+//                   View
+//                 </Button>
+//               </Link>
+
+//               {/* ============================================
+//                   EDIT
+//               ============================================ */}
+
+//               {(status === "DRAFT" ||
+//                 status === "WAITING" ||
+//                 status === "UPCOMING") && (
+//                 <Link
+//                   href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}/edit`}
+//                 >
+//                   <Button
+//                     variant="outline"
+//                     leftIcon={
+//                       <Pencil className="h-4 w-4" />
+//                     }
+//                   >
+//                     Edit
+//                   </Button>
+//                 </Link>
+//               )}
+
+//               {/* ============================================
+//                   LIVE
+//               ============================================ */}
+
+//               {status === "LIVE" && (
+//                 <Link
+//                   href={`/admin/secondary/quiz-board/quiz-competitions/${boardId}`}
+//                 >
+//                   <Button
+//                     variant="outline"
+//                     leftIcon={
+//                       <Radio className="h-4 w-4 text-red-600" />
+//                     }
+//                   >
+//                     Monitor Live
+//                   </Button>
+//                 </Link>
+//               )}
+
+//               {/* ============================================
+//                   CANCEL
+
+//                   IN_PROGRESS NEVER REACHES THIS BRANCH.
+//               ============================================ */}
+
+//               {(status === "WAITING" ||
+//                 status === "UPCOMING" ||
+//                 status === "OPEN" ||
+//                 status === "FULL" ||
+//                 status === "LIVE") && (
+//                 <Button
+//                   type="button"
+//                   variant="outline"
+//                   onClick={onCancel}
+//                   leftIcon={
+//                     <Square className="h-4 w-4" />
+//                   }
+//                 >
+//                   Cancel
+//                 </Button>
+//               )}
+
+//               {/* ============================================
+//                   DELETE
+//               ============================================ */}
+
+//               {(status === "DRAFT" ||
+//                 status === "WAITING" ||
+//                 status === "UPCOMING") && (
+//                 <Button
+//                   type="button"
+//                   variant="outline"
+//                   onClick={onDelete}
+//                   leftIcon={
+//                     <Trash2 className="h-4 w-4" />
+//                   }
+//                 >
+//                   Delete
+//                 </Button>
+//               )}
+//             </>
 //           )}
-
-//           {/* ==================================================
-//               START QUIZ
-              
-//               IMPORTANT:
-//               Visible whenever status === IN_PROGRESS.
-              
-//               Disabled only when room has not yet been
-//               created.
-//           ================================================== */}
-
-//           {canStart && (
-//             <Button
-//               type="button"
-//               onClick={onStart}
-//               disabled={!roomCreated}
-//               leftIcon={
-//                 <Play className="h-4 w-4" />
-//               }
-//               title={
-//                 roomCreated
-//                   ? "Start Quiz"
-//                   : "Create the quiz room before starting the quiz"
-//               }
-//             >
-//               Start Quiz
-//             </Button>
-//           )}
-
-//           {canCancel && (
-//             <Button
-//               type="button"
-//               variant="outline"
-//               onClick={onCancel}
-//               leftIcon={
-//                 <Square className="h-4 w-4" />
-//               }
-//             >
-//               Cancel
-//             </Button>
-//           )}
-
-//           {/* ==================================================
-//               DELETE
-//           ================================================== */}
-
-//           {(status === "DRAFT" ||
-//             status === "WAITING" ||
-//             status === "UPCOMING") && (
-//             <Button
-//               type="button"
-//               variant="outline"
-//               onClick={onDelete}
-//               leftIcon={
-//                 <Trash2 className="h-4 w-4" />
-//               }
-//             >
-//               Delete
-//             </Button>
-//           )}
-
 //         </div>
 //       </div>
 //     </Card>
@@ -5364,5 +5543,10 @@ function InfoTile({
 //     </div>
 //   );
 // }
+
+
+
+
+
 
 

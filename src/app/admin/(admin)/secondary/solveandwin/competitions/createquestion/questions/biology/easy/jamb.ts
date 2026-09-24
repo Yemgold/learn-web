@@ -1,14 +1,6 @@
 
 import type { QuestionBankItem } from "../../types";
 
-/**
- * ============================================================
- * BIOLOGY — JAMB QUESTION BANK
- * PHASE 1 — EASY
- * A01 — LIVING ORGANISMS
- * A01.1 — CHARACTERISTICS OF LIVING ORGANISMS
- * ============================================================
- */
 
 export const jambBiologyQuestions: QuestionBankItem[] = [
   {

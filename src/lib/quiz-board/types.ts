@@ -3,7 +3,6 @@
 
 
 
-
 // src/lib/quiz-board/types.ts
 
 export type QuizApiStatus =
@@ -105,10 +104,7 @@ export interface QuizApiItem {
 
   status: QuizApiStatus;
 
-  subject?:
-    | QuizApiSubject
-    | string
-    | null;
+  subject?: QuizApiSubject | string | null;
 
   exam_type?: string;
   examType?: string;
@@ -136,8 +132,8 @@ export interface QuizApiItem {
 
   current_round?: number;
 
-  room_id?: string;
-  roomId?: string;
+  room_id?: string | null;
+  roomId?: string | null;
 
   winner_reward?: number;
   first_reward?: number;
@@ -228,8 +224,47 @@ export interface QuizBoard {
   timePerQuestion: number;
 
   roomId: string | null;
-}
 
+  /**
+   * Contestant identifier assigned to this user's
+   * participation in the competition.
+   *
+   * Example:
+   * AT-SUWI20S9
+   */
+  contestantId: string | null;
+
+  /**
+   * Current backend room status.
+   *
+   * Example:
+   * WAITING, ACTIVE, IN_PROGRESS, COMPLETED
+   */
+  roomStatus?: string | null;
+
+  /**
+   * Current round reported by the backend.
+   */
+  currentRound?: number;
+
+  /**
+   * Current number of registered/joined contestants.
+   */
+  joined_users?: string[];
+
+  /**
+   * Maximum number of contestants allowed.
+   */
+  max_contestants?: number;
+
+  /**
+   * Original participation object.
+   *
+   * Useful when a component needs information that
+   * isn't part of the normalized QuizBoard fields.
+   */
+  participation?: QuizParticipation;
+}
 
 export interface QuizBoardFilters {
   searchQuery: string;
@@ -273,15 +308,26 @@ export interface QuizBoardAction {
     | "users";
 }
 
-
-
-
 export interface QuizParticipation {
   _id: string;
 
+  /**
+   * Competition/quiz this participation belongs to.
+   */
   quizId: QuizApiItem;
 
+  /**
+   * Authenticated user who owns this participation.
+   */
   userId: string;
+
+  /**
+   * Contestant identifier assigned to this participation.
+   *
+   * Example:
+   * AT-SUWI20S9
+   */
+  contestantId?: string | null;
 
   status?: string;
 

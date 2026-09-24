@@ -3,6 +3,7 @@
 
 
 
+
 "use client";
 
 import { useMemo } from "react";
@@ -28,6 +29,18 @@ import {
   chemistryFlashcardDecks,
 } from "@/data/flashcards/chemistry";
 
+import {
+  physicsFlashcardDecks,
+} from "@/data/flashcards/physics";
+
+import {
+  mathematicsFlashcardDecks,
+} from "@/data/flashcards/mathematics";
+
+import {
+  englishFlashcardDecks,
+} from "@/data/flashcards/english";
+
 import type { FlashcardDeck as FlashcardDeckType } from "@/types/flashcard";
 
 /* ============================================================
@@ -37,6 +50,9 @@ import type { FlashcardDeck as FlashcardDeckType } from "@/types/flashcard";
 const allFlashcardDecks: FlashcardDeckType[] = [
   ...biologyFlashcardDecks,
   ...chemistryFlashcardDecks,
+  ...physicsFlashcardDecks,
+  ...mathematicsFlashcardDecks,
+  ...englishFlashcardDecks,
 ];
 
 /* ============================================================

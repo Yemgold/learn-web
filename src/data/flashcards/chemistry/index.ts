@@ -1,4 +1,7 @@
-import type { Flashcard, FlashcardDeck, FlashcardTopic } from "@/types/flashcard";
+import type { 
+  Flashcard, 
+  FlashcardDeck,
+   FlashcardTopic } from "@/types/flashcard";
 
 import MatterFlashcards from "./matter";
 import AtomicStructureFlashcards from "./atomic-structure";

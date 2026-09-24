@@ -1,16 +1,10 @@
 
 
-
-
-
-
-// src/components/quiz-board/MyCompetitions.tsx
-
 "use client";
 
 import Link from "next/link";
+
 import {
-  ArrowRight,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -39,7 +33,6 @@ import {
 } from "@/lib/quiz-board/helpers";
 
 import {
-  getQuizBoardPath,
   getQuizBoardWatchPath,
 } from "@/lib/quiz-board/constants";
 
@@ -51,87 +44,344 @@ interface MyCompetitionsProps {
   onRetry?: () => void;
 }
 
+type CompetitionWithRoomData = QuizBoard & {
+  roomId?: string | null;
+  room_id?: string | null;
+  roomStatus?: string | null;
+  room_status?: string | null;
+  currentRound?: number | null;
+  current_round?: number | null;
+
+  joined_users?: unknown[];
+  joinedUsers?: unknown[];
+
+  maxContestants?: number | null;
+  max_contestants?: number | null;
+
+  numberOfContestants?: number | null;
+  number_of_contestants?: number | null;
+
+  maxPlayers?: number | null;
+  max_players?: number | null;
+
+  players?: number | null;
+  playerCount?: number | null;
+  player_count?: number | null;
+
+  /**
+   * Participation-level contestant identifier.
+   *
+   * Example:
+   * AT-SUWI20S9
+   */
+  contestantId?: string | null;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Competition data                                                           */
+/* -------------------------------------------------------------------------- */
+
+function getCompetitionData(
+  competition: QuizBoard,
+): CompetitionWithRoomData {
+  return competition as CompetitionWithRoomData;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Contestant ID                                                              */
+/* -------------------------------------------------------------------------- */
+
+function getContestantId(
+  competition: QuizBoard,
+): string | null {
+  const data = getCompetitionData(competition);
+
+  const contestantId = data.contestantId;
+
+  if (
+    typeof contestantId !== "string" ||
+    !contestantId.trim()
+  ) {
+    return null;
+  }
+
+  return contestantId.trim();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Room status                                                                */
+/* -------------------------------------------------------------------------- */
+
+function getRoomStatus(
+  competition: QuizBoard,
+): string | null {
+  const data = getCompetitionData(competition);
+
+  const status =
+    data.roomStatus ??
+    data.room_status ??
+    null;
+
+  if (!status) {
+    return null;
+  }
+
+  return String(status)
+    .trim()
+    .toUpperCase();
+}
+
+function isRoomActivated(
+  competition: QuizBoard,
+): boolean {
+  const roomStatus = getRoomStatus(competition);
+
+  if (!roomStatus) {
+    return false;
+  }
+
+  return [
+    "ACTIVE",
+    "STARTED",
+    "LIVE",
+    "IN_PROGRESS",
+  ].includes(roomStatus);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Contestant count                                                           */
+/* -------------------------------------------------------------------------- */
+
+function getContestantCount(
+  competition: QuizBoard,
+): number | null {
+  const data = getCompetitionData(competition);
+
+  const joinedUsers =
+    data.joined_users ??
+    data.joinedUsers;
+
+  if (Array.isArray(joinedUsers)) {
+    return joinedUsers.length;
+  }
+
+  const values = [
+    data.numberOfContestants,
+    data.number_of_contestants,
+    data.players,
+    data.playerCount,
+    data.player_count,
+  ];
+
+  for (const value of values) {
+    if (
+      value !== null &&
+      value !== undefined
+    ) {
+      const number = Number(value);
+
+      if (Number.isFinite(number)) {
+        return number;
+      }
+    }
+  }
+
+  /*
+   * Some API responses expose the player count
+   * as a string such as:
+   *
+   * 5/5 players
+   * 5 / 5
+   * 5/5
+   */
+  const playerLabel = String(
+    getPlayerCountLabel(competition),
+  );
+
+  const match = playerLabel.match(
+    /(\d+)\s*\/\s*(\d+)/,
+  );
+
+  if (match) {
+    return Number(match[1]);
+  }
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Maximum contestants                                                        */
+/* -------------------------------------------------------------------------- */
+
+function getMaximumContestants(
+  competition: QuizBoard,
+): number | null {
+  const data = getCompetitionData(competition);
+
+  const values = [
+    data.maxContestants,
+    data.max_contestants,
+    data.maxPlayers,
+    data.max_players,
+  ];
+
+  for (const value of values) {
+    if (
+      value !== null &&
+      value !== undefined
+    ) {
+      const number = Number(value);
+
+      if (
+        Number.isFinite(number) &&
+        number > 0
+      ) {
+        return number;
+      }
+    }
+  }
+
+  /*
+   * Fallback:
+   *
+   * 5/5 players
+   *
+   * means maximum = 5.
+   */
+  const playerLabel = String(
+    getPlayerCountLabel(competition),
+  );
+
+  const match = playerLabel.match(
+    /(\d+)\s*\/\s*(\d+)/,
+  );
+
+  if (match) {
+    return Number(match[2]);
+  }
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Competition full state                                                     */
+/* -------------------------------------------------------------------------- */
+
+function isCompetitionFull(
+  competition: QuizBoard,
+): boolean {
+  /*
+   * Explicit FULL status always wins.
+   */
+  if (competition.status === "FULL") {
+    return true;
+  }
+
+  const contestantCount =
+    getContestantCount(competition);
+
+  const maximumContestants =
+    getMaximumContestants(competition);
+
+  if (
+    contestantCount !== null &&
+    maximumContestants !== null
+  ) {
+    return (
+      contestantCount >=
+      maximumContestants
+    );
+  }
+
+  return false;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Current round                                                              */
+/* -------------------------------------------------------------------------- */
+
+function getCurrentRound(
+  competition: QuizBoard,
+): number {
+  const data = getCompetitionData(competition);
+
+  const value =
+    data.currentRound ??
+    data.current_round ??
+    0;
+
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Status icon                                                                */
+/* -------------------------------------------------------------------------- */
+
 function getStatusIcon(
   status: QuizBoard["status"],
 ) {
   switch (status) {
     case "LIVE":
-      return <Radio className="h-4 w-4" />;
+      return (
+        <Radio className="h-4 w-4" />
+      );
 
     case "COMPLETED":
-      return <CheckCircle2 className="h-4 w-4" />;
+      return (
+        <CheckCircle2 className="h-4 w-4" />
+      );
 
     case "FULL":
-      return <Users className="h-4 w-4" />;
+      return (
+        <Users className="h-4 w-4" />
+      );
 
     case "UPCOMING":
-      return <Clock3 className="h-4 w-4" />;
+      return (
+        <Clock3 className="h-4 w-4" />
+      );
 
     case "OPEN":
     default:
-      return <Zap className="h-4 w-4" />;
+      return (
+        <Zap className="h-4 w-4" />
+      );
   }
 }
 
-function getAction(
+/* -------------------------------------------------------------------------- */
+/* Waiting room path                                                          */
+/* -------------------------------------------------------------------------- */
+
+function getWaitingRoomPath(
   competition: QuizBoard,
-) {
-  switch (competition.status) {
-    case "LIVE":
-      return {
-        label: "Enter Competition",
-        href: getQuizBoardPath(competition.id),
-        icon: (
-          <ArrowRight className="h-4 w-4" />
-        ),
-      };
+): string | null {
+  const contestantId =
+    getContestantId(competition);
 
-    case "COMPLETED":
-      return {
-        label: "View Results",
-        href: getQuizBoardWatchPath(
-          competition.id,
-        ),
-        icon: (
-          <Eye className="h-4 w-4" />
-        ),
-      };
-
-    case "UPCOMING":
-      return {
-        label: "View Competition",
-        href: getQuizBoardPath(
-          competition.id,
-        ),
-        icon: (
-          <Eye className="h-4 w-4" />
-        ),
-      };
-
-    case "FULL":
-      return {
-        label: "View Competition",
-        href: getQuizBoardPath(
-          competition.id,
-        ),
-        icon: (
-          <Eye className="h-4 w-4" />
-        ),
-      };
-
-    case "OPEN":
-    default:
-      return {
-        label: "Open Competition",
-        href: getQuizBoardPath(
-          competition.id,
-        ),
-        icon: (
-          <ArrowRight className="h-4 w-4" />
-        ),
-      };
+  /*
+   * We cannot safely enter the contestant
+   * waiting room without the participation-level
+   * contestantId.
+   */
+  if (!contestantId) {
+    return null;
   }
+
+  return `/student/quiz-board/${encodeURIComponent(
+    competition.id,
+  )}/waiting-room?contestantId=${encodeURIComponent(
+    contestantId,
+  )}`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Component                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export default function MyCompetitions({
   competitions,
@@ -140,6 +390,10 @@ export default function MyCompetitions({
   currentTime = Date.now(),
   onRetry,
 }: MyCompetitionsProps) {
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                  */
+  /* ------------------------------------------------------------------------ */
+
   if (isLoading) {
     return (
       <section className="mt-8">
@@ -179,6 +433,10 @@ export default function MyCompetitions({
       </section>
     );
   }
+
+  /* ------------------------------------------------------------------------ */
+  /* Error                                                                    */
+  /* ------------------------------------------------------------------------ */
 
   if (error) {
     return (
@@ -236,6 +494,10 @@ export default function MyCompetitions({
     );
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Empty                                                                    */
+  /* ------------------------------------------------------------------------ */
+
   if (!competitions.length) {
     return (
       <section className="mt-8">
@@ -282,12 +544,13 @@ export default function MyCompetitions({
     );
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Main                                                                     */
+  /* ------------------------------------------------------------------------ */
+
   return (
     <section className="mt-8">
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* Header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -299,12 +562,11 @@ export default function MyCompetitions({
           </div>
 
           <p className="mt-1 text-sm text-slate-400">
-            Competitions you have joined or participated in.
+            Track your competitions and enter the waiting room when all contestant slots are filled.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Reload Button */}
           {onRetry && (
             <Button
               type="button"
@@ -329,7 +591,6 @@ export default function MyCompetitions({
             </Button>
           )}
 
-          {/* Competition Count */}
           <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300">
             {competitions.length}{" "}
             {competitions.length === 1
@@ -339,240 +600,404 @@ export default function MyCompetitions({
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Competition cards                                                  */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* Competition cards */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {competitions.map(
-          (competition) => {
-            const action =
-              getAction(competition);
+        {competitions.map((competition) => {
+          const roomActivated =
+            isRoomActivated(competition);
 
-            return (
-              <article
-                key={competition.id}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-xl shadow-black/10 transition duration-300 hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-slate-900"
-              >
-                {/* Top glow */}
-                <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl transition duration-300 group-hover:bg-violet-500/20" />
+          const competitionFull =
+            isCompetitionFull(competition);
 
-                {/* ------------------------------------------------------ */}
-                {/* Header                                                   */}
-                {/* ------------------------------------------------------ */}
+          const contestantCount =
+            getContestantCount(competition);
 
-                <div className="relative flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClasses(
-                          competition.status,
-                        )}`}
-                      >
-                        {getStatusIcon(
-                          competition.status,
-                        )}
+          const maximumContestants =
+            getMaximumContestants(competition);
 
-                        {getStatusLabel(
-                          competition.status,
-                        )}
-                      </span>
+          const currentRound =
+            getCurrentRound(competition);
 
-                      <span
-                        className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getDifficultyClasses(
-                          competition.difficulty,
-                        )}`}
-                      >
-                        {getDifficultyLabel(
-                          competition.difficulty,
-                        )}
-                      </span>
-                    </div>
+          const roomStatus =
+            getRoomStatus(competition);
 
-                    <h3 className="line-clamp-2 text-base font-bold leading-6 text-white transition group-hover:text-violet-200">
-                      {competition.title}
-                    </h3>
+          const contestantId =
+            getContestantId(competition);
 
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
-                      {competition.description}
-                    </p>
+          const waitingRoomPath =
+            getWaitingRoomPath(competition);
+
+          const isCompleted =
+            competition.status === "COMPLETED";
+
+          return (
+            <article
+              key={competition.id}
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-xl shadow-black/10 transition duration-300 hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-slate-900"
+            >
+              {/* Glow */}
+              <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl transition duration-300 group-hover:bg-violet-500/20" />
+
+              {/* Header */}
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClasses(
+                        competition.status,
+                      )}`}
+                    >
+                      {getStatusIcon(
+                        competition.status,
+                      )}
+
+                      {getStatusLabel(
+                        competition.status,
+                      )}
+                    </span>
+
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getDifficultyClasses(
+                        competition.difficulty,
+                      )}`}
+                    >
+                      {getDifficultyLabel(
+                        competition.difficulty,
+                      )}
+                    </span>
+
+                    {roomActivated &&
+                      !isCompleted && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+                          <Radio className="h-3.5 w-3.5" />
+                          Room Active
+                        </span>
+                      )}
+
+                    {competitionFull &&
+                      !isCompleted && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+                          <Users className="h-3.5 w-3.5" />
+                          Contestants Full
+                        </span>
+                      )}
                   </div>
 
-                  <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 sm:flex">
-                    <Trophy className="h-5 w-5 text-violet-400" />
+                  <h3 className="line-clamp-2 text-base font-bold leading-6 text-white transition group-hover:text-violet-200">
+                    {competition.title}
+                  </h3>
+
+                  <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
+                    {competition.description}
+                  </p>
+                </div>
+
+                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 sm:flex">
+                  <Trophy className="h-5 w-5 text-violet-400" />
+                </div>
+              </div>
+
+              {/* Information */}
+              <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Subject
+                  </p>
+
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-200">
+                    {competition.subject}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Players
+                  </p>
+
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-slate-500" />
+
+                    <p className="text-sm font-semibold text-slate-200">
+                      {getPlayerCountLabel(
+                        competition,
+                      )}
+                    </p>
                   </div>
                 </div>
 
-                {/* ------------------------------------------------------ */}
-                {/* Competition information                                 */}
-                {/* ------------------------------------------------------ */}
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Questions
+                  </p>
 
-                <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                      Subject
-                    </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-200">
+                    {competition.totalQuestions ||
+                      "—"}
+                  </p>
+                </div>
 
-                    <p className="mt-1 truncate text-sm font-semibold text-slate-200">
-                      {competition.subject}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Rounds
+                  </p>
 
-                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                      Players
-                    </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-200">
+                    {competition.numberOfRounds ||
+                      "—"}
+                  </p>
+                </div>
+              </div>
 
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 text-slate-500" />
+              {/* Contestant status */}
+              {!isCompleted && (
+                <div className="relative mt-4 rounded-xl border border-white/5 bg-black/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        competitionFull
+                          ? roomActivated
+                            ? "bg-emerald-500/10"
+                            : "bg-amber-500/10"
+                          : "bg-violet-500/10"
+                      }`}
+                    >
+                      {competitionFull ? (
+                        roomActivated ? (
+                          <Radio className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Clock3 className="h-4 w-4 text-amber-400" />
+                        )
+                      ) : (
+                        <Users className="h-4 w-4 text-violet-400" />
+                      )}
+                    </div>
 
-                      <p className="text-sm font-semibold text-slate-200">
-                        {getPlayerCountLabel(
-                          competition,
-                        )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p
+                          className={`text-sm font-semibold ${
+                            competitionFull
+                              ? roomActivated
+                                ? "text-emerald-300"
+                                : "text-amber-300"
+                              : "text-violet-300"
+                          }`}
+                        >
+                          {competitionFull
+                            ? roomActivated
+                              ? "Room Active — Enter Waiting Room"
+                              : "Enter Waiting Room"
+                            : "Waiting for Contestants"}
+                        </p>
+
+                        {contestantCount !== null &&
+                          maximumContestants !== null && (
+                            <span className="text-xs font-semibold text-slate-400">
+                              {contestantCount}/
+                              {maximumContestants}
+                            </span>
+                          )}
+                      </div>
+
+                      <p className="mt-1 text-xs leading-5 text-slate-400">
+                        {competitionFull
+                          ? roomActivated
+                            ? "The host has activated the room. Enter the waiting room and your registered contestant ID will be used automatically."
+                            : "All contestant slots are filled. Enter the waiting room and wait for the host to activate the room."
+                          : contestantCount !== null &&
+                              maximumContestants !== null
+                            ? `${contestantCount}/${maximumContestants} players. Waiting for more contestants to join.`
+                            : "Waiting for more contestants to join the competition."}
                       </p>
+
+                      {roomStatus && (
+                        <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                          Room: {roomStatus}
+                        </p>
+                      )}
+
+                      {currentRound > 0 && (
+                        <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                          Round {currentRound}
+                        </p>
+                      )}
+
+                      {competitionFull && (
+                        <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                          Contestant ID:{" "}
+                          {contestantId ?? "Unavailable"}
+                        </p>
+                      )}
                     </div>
                   </div>
+                </div>
+              )}
 
-                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                      Questions
+              {/* Rewards */}
+              <div className="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/5 pt-4">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-amber-400" />
+
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                      1st Prize
                     </p>
 
-                    <p className="mt-1 text-sm font-semibold text-slate-200">
-                      {competition.totalQuestions ||
-                        "—"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                      Rounds
-                    </p>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-200">
-                      {competition.numberOfRounds ||
-                        "—"}
+                    <p className="text-sm font-bold text-white">
+                      {competition.winnerReward}
                     </p>
                   </div>
                 </div>
 
-                {/* ------------------------------------------------------ */}
-                {/* Rewards / timing                                        */}
-                {/* ------------------------------------------------------ */}
-
-                <div className="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/5 pt-4">
+                {competition.secondReward > 0 && (
                   <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-amber-400" />
+                    <Trophy className="h-4 w-4 text-slate-400" />
 
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                        1st Prize
+                        2nd Prize
                       </p>
 
-                      <p className="text-sm font-bold text-white">
-                        {competition.winnerReward}
+                      <p className="text-sm font-semibold text-slate-200">
+                        {competition.secondReward}
                       </p>
                     </div>
-                  </div>
-
-                  {competition.secondReward >
-                    0 && (
-                    <div className="flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-slate-400" />
-
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                          2nd Prize
-                        </p>
-
-                        <p className="text-sm font-semibold text-slate-200">
-                          {competition.secondReward}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {competition.durationMinutes >
-                    0 && (
-                    <div className="flex items-center gap-2">
-                      <Clock3 className="h-4 w-4 text-slate-500" />
-
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                          Duration
-                        </p>
-
-                        <p className="text-sm font-semibold text-slate-200">
-                          {
-                            competition.durationMinutes
-                          }{" "}
-                          min
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ------------------------------------------------------ */}
-                {/* Date                                                     */}
-                {/* ------------------------------------------------------ */}
-
-                {(competition.startsAt ||
-                  competition.createdAt) && (
-                  <div className="relative mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/10 px-3 py-2.5">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
-
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                          {competition.startsAt
-                            ? "Competition"
-                            : "Joined"}
-                        </p>
-
-                        <p className="truncate text-xs font-medium text-slate-300">
-                          {formatDate(
-                            competition.startsAt ||
-                              competition.createdAt,
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    {competition.startsAt && (
-                      <span className="shrink-0 text-xs font-medium text-violet-400">
-                        {getRelativeTime(
-                          competition.startsAt,
-                          currentTime,
-                        )}
-                      </span>
-                    )}
                   </div>
                 )}
 
-                {/* ------------------------------------------------------ */}
-                {/* Action                                                   */}
-                {/* ------------------------------------------------------ */}
+                {competition.durationMinutes > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="h-4 w-4 text-slate-500" />
 
-                <div className="relative mt-5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                        Duration
+                      </p>
+
+                      <p className="text-sm font-semibold text-slate-200">
+                        {competition.durationMinutes} min
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Date */}
+              {(competition.startsAt ||
+                competition.createdAt) && (
+                <div className="relative mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/10 px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
+
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                        {competition.startsAt
+                          ? "Competition"
+                          : "Joined"}
+                      </p>
+
+                      <p className="truncate text-xs font-medium text-slate-300">
+                        {formatDate(
+                          competition.startsAt ||
+                            competition.createdAt,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {competition.startsAt && (
+                    <span className="shrink-0 text-xs font-medium text-violet-400">
+                      {getRelativeTime(
+                        competition.startsAt,
+                        currentTime,
+                      )}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Action */}
+              <div className="relative mt-5">
+                {isCompleted ? (
                   <Link
-                    href={action.href}
+                    href={getQuizBoardWatchPath(
+                      competition.id,
+                    )}
                     className="block"
                   >
                     <Button
                       type="button"
-                      className="w-full gap-2 bg-violet-600 text-white hover:bg-violet-500"
+                      className="w-full gap-2 bg-slate-700 text-white hover:bg-slate-600"
                     >
-                      {action.label}
-                      {action.icon}
+                      View Results
+                      <Eye className="h-4 w-4" />
                     </Button>
                   </Link>
-                </div>
-              </article>
-            );
-          },
-        )}
+                ) : competitionFull ? (
+                  /*
+                   * IMPORTANT:
+                   *
+                   * A full competition ALWAYS enters
+                   * the waiting room first.
+                   *
+                   * The contestantId belongs to the
+                   * participation returned by:
+                   *
+                   * GET /quiz/get-all-my-quizzes/{userId}
+                   *
+                   * Example:
+                   *
+                   * AT-SUWI20S9
+                   *
+                   * It is passed to the waiting room as:
+                   *
+                   * ?contestantId=AT-SUWI20S9
+                   *
+                   * The Waiting Room will use this ID when
+                   * requesting contestant authorization/join.
+                   */
+                  waitingRoomPath ? (
+                    <Link
+                      href={waitingRoomPath}
+                      className="block"
+                    >
+                      <Button
+                        type="button"
+                        className={`w-full gap-2 ${
+                          roomActivated
+                            ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                            : "border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                        }`}
+                      >
+                        Enter Waiting Room
+                        <Clock3 className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled
+                      title="Your contestant ID is not available yet."
+                      className="w-full cursor-not-allowed gap-2 border border-red-500/20 bg-red-500/10 text-red-300"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Contestant ID Unavailable
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    type="button"
+                    disabled
+                    className="w-full cursor-not-allowed gap-2 border border-violet-500/20 bg-violet-500/10 text-violet-300"
+                  >
+                    <Users className="h-4 w-4" />
+                    Waiting for Contestants
+                  </Button>
+                )}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

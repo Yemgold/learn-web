@@ -9,6 +9,7 @@ import {
 import {
   usePathname,
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 
 import DashboardSidebar from "../DashboardSidebar";
@@ -35,6 +36,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [sidebarOpen, setSidebarOpen] =
     useState(false);
@@ -46,6 +48,21 @@ export default function DashboardLayout({
     user,
     isAuthenticated,
   } = useAuthStore();
+
+  /* ============================================================
+     QUIZ HOST DETECTION
+  ============================================================ */
+
+  const isQuizHost =
+    pathname.startsWith(
+      "/student/quiz-board/",
+    ) &&
+    pathname.endsWith("/play") &&
+    searchParams.get("role") === "host";
+
+  const isAdminQuizHost =
+    isQuizHost &&
+    user?.role === "ADMIN";
 
   /* ============================================================
      AUTHENTICATION / AUTHORIZATION
@@ -70,12 +87,33 @@ export default function DashboardLayout({
     }
 
     /*
+     * ==========================================================
+     * ADMIN QUIZ HOST
+     * ==========================================================
+     *
+     * An ADMIN can enter the student quiz-board play route
+     * ONLY when explicitly entering as the host:
+     *
+     * /student/quiz-board/[quizId]/play?role=host&roomId=...
+     *
+     * This does NOT give ADMIN access to the normal student
+     * dashboard.
+     */
+
+    if (isAdminQuizHost) {
+      setCheckingAuth(false);
+      return;
+    }
+
+    /*
+     * ==========================================================
      * STUDENT DASHBOARD
+     * ==========================================================
      *
      * Backend uses USER as the normal student role.
      *
-     * STUDENT is also accepted in case older
-     * accounts use that role.
+     * STUDENT is also accepted in case older accounts use
+     * that role.
      */
 
     if (role === "student") {
@@ -101,7 +139,9 @@ export default function DashboardLayout({
     }
 
     /*
+     * ==========================================================
      * ADMIN DASHBOARD
+     * ==========================================================
      */
 
     if (role === "admin") {
@@ -128,6 +168,7 @@ export default function DashboardLayout({
     role,
     pathname,
     router,
+    isAdminQuizHost,
   ]);
 
   /* ============================================================
@@ -231,7 +272,6 @@ export default function DashboardLayout({
 
 
 
-
 // "use client";
 
 // import {
@@ -240,16 +280,17 @@ export default function DashboardLayout({
 //   type ReactNode,
 // } from "react";
 
-// import { usePathname, useRouter } from "next/navigation";
+// import {
+//   usePathname,
+//   useRouter,
+// } from "next/navigation";
 
 // import DashboardSidebar from "../DashboardSidebar";
 // import DashboardHeader from "../DashboardHeader";
 
 // import { cn } from "@/lib/utils";
 
-
-
-// import { useAuthStore } from "@/stores"; 
+// import { useAuthStore } from "@/stores";
 
 // export type DashboardRole =
 //   | "student"
@@ -282,7 +323,7 @@ export default function DashboardLayout({
 
 //   /* ============================================================
 //      AUTHENTICATION / AUTHORIZATION
-//      ============================================================ */
+//   ============================================================ */
 
 //   useEffect(() => {
 //     /*
@@ -365,7 +406,7 @@ export default function DashboardLayout({
 
 //   /* ============================================================
 //      SIDEBAR
-//      ============================================================ */
+//   ============================================================ */
 
 //   const closeSidebar = () => {
 //     setSidebarOpen(false);
@@ -379,9 +420,9 @@ export default function DashboardLayout({
 
 //   /* ============================================================
 //      LOADING STATE
-//      ============================================================ */
+//   ============================================================ */
 
-//   if (checkingAuth) {
+//   if (checkingAuth || !user) {
 //     return (
 //       <div className="flex min-h-screen items-center justify-center bg-slate-950">
 //         <div className="text-center">
@@ -396,8 +437,20 @@ export default function DashboardLayout({
 //   }
 
 //   /* ============================================================
+//      USER DISPLAY NAME
+//   ============================================================ */
+
+//   const userName = [
+//     user.firstName,
+//     user.lastName,
+//   ]
+//     .filter(Boolean)
+//     .join(" ")
+//     .trim();
+
+//   /* ============================================================
 //      DASHBOARD
-//      ============================================================ */
+//   ============================================================ */
 
 //   return (
 //     <div className="min-h-screen bg-slate-50">
@@ -425,6 +478,7 @@ export default function DashboardLayout({
 
 //           <DashboardHeader
 //             role={role}
+//             userName={userName || "Student"}
 //             onMenuClick={toggleSidebar}
 //           />
 
@@ -446,3 +500,6 @@ export default function DashboardLayout({
 //     </div>
 //   );
 // }
+
+
+

@@ -1,7 +1,5 @@
 
 
-
-
 "use client";
 
 import { useState } from "react";
@@ -16,6 +14,9 @@ import type {
   Flashcard as FlashcardType,
   FlashcardDifficulty,
 } from "@/types/flashcard";
+
+import MotionSimulation from "@/components/flashcards/simulations/MotionSimulation";
+import ReproductionSimulation from "@/components/flashcards/simulations/ReproductionSimulation";
 
 interface FlashcardProps {
   card: FlashcardType;
@@ -78,17 +79,167 @@ const difficultyConfig: Record<
     className:
       "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
   },
+
   medium: {
     label: "Medium",
     className:
       "border-amber-400/20 bg-amber-400/10 text-amber-300",
   },
+
   hard: {
     label: "Hard",
     className:
       "border-rose-400/20 bg-rose-400/10 text-rose-300",
   },
 };
+
+/* -------------------------------------------------------------------------- */
+/* Interactive simulation renderer                                            */
+/* -------------------------------------------------------------------------- */
+
+function FlashcardSimulation({
+  card,
+}: {
+  card: FlashcardType;
+}) {
+  const simulation = card.simulation;
+
+  /**
+   * No simulation or explicitly disabled simulation.
+   */
+  if (!simulation || simulation.enabled === false) {
+    return null;
+  }
+
+  /**
+   * Prevent clicks inside the simulation from flipping
+   * the entire flashcard.
+   */
+  const stopSimulationPropagation = (
+    event: React.SyntheticEvent,
+  ) => {
+    event.stopPropagation();
+  };
+
+  switch (simulation.type) {
+    /* ====================================================================== */
+    /* MOTION                                                                 */
+    /* ====================================================================== */
+
+    case "motion": {
+      const initialValues =
+        simulation.initialValues ?? {};
+
+      return (
+        <div
+          className="mt-8"
+          onClick={stopSimulationPropagation}
+          onPointerDown={stopSimulationPropagation}
+          onMouseDown={stopSimulationPropagation}
+          onTouchStart={stopSimulationPropagation}
+          onKeyDown={stopSimulationPropagation}
+        >
+          <MotionSimulation
+            initialVelocity={
+              typeof initialValues.velocity === "number"
+                ? initialValues.velocity
+                : 0
+            }
+            initialAcceleration={
+              typeof initialValues.acceleration === "number"
+                ? initialValues.acceleration
+                : 2
+            }
+            initialTime={
+              typeof initialValues.time === "number"
+                ? initialValues.time
+                : 5
+            }
+          />
+        </div>
+      );
+    }
+
+    /* ====================================================================== */
+    /* REPRODUCTION                                                           */
+    /* ====================================================================== */
+
+    case "reproduction":
+      return (
+        <div
+          className="mt-8"
+          onClick={stopSimulationPropagation}
+          onPointerDown={stopSimulationPropagation}
+          onMouseDown={stopSimulationPropagation}
+          onTouchStart={stopSimulationPropagation}
+          onKeyDown={stopSimulationPropagation}
+        >
+          <ReproductionSimulation
+            simulation={simulation}
+          />
+        </div>
+      );
+
+    /* ====================================================================== */
+    /* OSMOSIS                                                                */
+    /* ====================================================================== */
+
+    case "osmosis":
+      return (
+        <div
+          className="mt-8 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5 text-center"
+          onClick={stopSimulationPropagation}
+          onPointerDown={stopSimulationPropagation}
+          onMouseDown={stopSimulationPropagation}
+          onTouchStart={stopSimulationPropagation}
+          onKeyDown={stopSimulationPropagation}
+        >
+          <p className="text-sm font-semibold text-cyan-300">
+            Osmosis Simulation
+          </p>
+
+          <p className="mt-2 text-xs leading-6 text-white/40">
+            The osmosis simulation will appear here.
+          </p>
+        </div>
+      );
+
+    /* ====================================================================== */
+    /* REACTION RATE                                                          */
+    /* ====================================================================== */
+
+    case "reaction-rate":
+      return (
+        <div
+          className="mt-8 rounded-2xl border border-orange-400/10 bg-orange-400/[0.04] p-5 text-center"
+          onClick={stopSimulationPropagation}
+          onPointerDown={stopSimulationPropagation}
+          onMouseDown={stopSimulationPropagation}
+          onTouchStart={stopSimulationPropagation}
+          onKeyDown={stopSimulationPropagation}
+        >
+          <p className="text-sm font-semibold text-orange-300">
+            Reaction Rate Simulation
+          </p>
+
+          <p className="mt-2 text-xs leading-6 text-white/40">
+            The reaction-rate simulation will appear here.
+          </p>
+        </div>
+      );
+
+    /* ====================================================================== */
+    /* UNKNOWN                                                                */
+    /* ====================================================================== */
+
+    default:
+      return null;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Flashcard                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export default function Flashcard({
   card,
@@ -102,7 +253,8 @@ export default function Flashcard({
   showExplanation = true,
   className = "",
 }: FlashcardProps) {
-  const [flipped, setFlipped] = useState(initialFlipped);
+  const [flipped, setFlipped] =
+    useState(initialFlipped);
 
   const difficulty = card.difficulty
     ? difficultyConfig[card.difficulty]
@@ -125,8 +277,10 @@ export default function Flashcard({
 
   return (
     <div
-      className={`w-full max-w-3xl mx-auto ${className}`}
-      style={{ perspective: "1400px" }}
+      className={`mx-auto w-full max-w-3xl ${className}`}
+      style={{
+        perspective: "1400px",
+      }}
     >
       {/* ============================================================
           CARD
@@ -136,7 +290,10 @@ export default function Flashcard({
         className="relative min-h-[520px] w-full cursor-pointer select-none"
         onClick={flipCard}
         onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
             event.preventDefault();
             flipCard();
           }
@@ -153,7 +310,9 @@ export default function Flashcard({
           className="relative h-full min-h-[520px] w-full transition-transform duration-500 ease-out"
           style={{
             transformStyle: "preserve-3d",
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            transform: flipped
+              ? "rotateY(180deg)"
+              : "rotateY(0deg)",
           }}
         >
           {/* ========================================================
@@ -168,10 +327,13 @@ export default function Flashcard({
             }}
           >
             {/* Decorative background */}
+
             <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+
             <div className="pointer-events-none absolute -bottom-32 -left-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
 
             {/* Header */}
+
             <div className="relative flex items-center justify-between border-b border-white/10 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -209,12 +371,16 @@ export default function Flashcard({
             </div>
 
             {/* Content */}
+
             <div className="relative flex flex-1 flex-col items-center justify-center px-7 py-10 text-center sm:px-12">
               {card.image && (
                 <div className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-xl">
                   <img
                     src={card.image}
-                    alt={card.imageAlt || card.question}
+                    alt={
+                      card.imageAlt ||
+                      card.question
+                    }
                     className="max-h-52 w-auto max-w-full object-contain"
                   />
                 </div>
@@ -230,11 +396,15 @@ export default function Flashcard({
 
               <div className="mt-10 flex items-center gap-2 text-sm text-white/35">
                 <RotateCcw className="h-4 w-4" />
-                <span>Tap the card to reveal the answer</span>
+
+                <span>
+                  Tap the card to reveal the answer
+                </span>
               </div>
             </div>
 
             {/* Footer */}
+
             <div className="relative border-t border-white/10 px-6 py-4 text-center sm:px-8">
               <p className="text-xs text-white/30">
                 Click or press Enter to flip
@@ -255,10 +425,13 @@ export default function Flashcard({
             }}
           >
             {/* Decorative background */}
+
             <div className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+
             <div className="pointer-events-none absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
 
             {/* Header */}
+
             <div className="relative flex items-center justify-between border-b border-white/10 px-6 py-5 sm:px-8">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
@@ -284,13 +457,17 @@ export default function Flashcard({
             </div>
 
             {/* Answer content */}
+
             <div className="relative flex-1 overflow-y-auto px-7 py-9 sm:px-12">
               {card.image && (
                 <div className="mb-7 flex justify-center">
                   <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
                     <img
                       src={card.image}
-                      alt={card.imageAlt || card.question}
+                      alt={
+                        card.imageAlt ||
+                        card.question
+                      }
                       className="max-h-44 w-auto max-w-full object-contain"
                     />
                   </div>
@@ -298,46 +475,65 @@ export default function Flashcard({
               )}
 
               <div className="mx-auto max-w-2xl">
+                {/* Answer */}
+
                 <div className="rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.04] p-6 sm:p-7">
                   <p className="text-base font-semibold leading-7 text-white sm:text-lg sm:leading-8">
                     {card.answer}
                   </p>
                 </div>
 
-                {showExplanation && card.explanation && (
-                  <div className="mt-6">
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <ChevronDown className="h-4 w-4" />
+                {/* Explanation */}
+
+                {showExplanation &&
+                  card.explanation && (
+                    <div className="mt-6">
+                      <div className="mb-3 flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <ChevronDown className="h-4 w-4" />
+                        </div>
+
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">
+                          Explanation
+                        </h3>
                       </div>
 
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">
-                        Explanation
-                      </h3>
+                      <p className="text-sm leading-7 text-white/55 sm:text-base">
+                        {card.explanation}
+                      </p>
                     </div>
+                  )}
 
-                    <p className="text-sm leading-7 text-white/55 sm:text-base">
-                      {card.explanation}
-                    </p>
-                  </div>
-                )}
+                {/* Tags */}
 
-                {card.tags && card.tags.length > 0 && (
-                  <div className="mt-7 flex flex-wrap gap-2">
-                    {card.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/40"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
+                {card.tags &&
+                  card.tags.length > 0 && (
+                    <div className="mt-7 flex flex-wrap gap-2">
+                      {card.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/40"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                {/* ==================================================
+                    INTERACTIVE SIMULATION
+                    ================================================== */}
+
+                {card.simulation && (
+                  <FlashcardSimulation
+                    card={card}
+                  />
                 )}
               </div>
             </div>
 
             {/* Actions */}
+
             {showActions && (
               <div className="relative border-t border-white/10 bg-black/10 p-5 sm:p-6">
                 <div className="mx-auto flex max-w-2xl flex-col gap-3 sm:flex-row">
@@ -372,4 +568,4 @@ export default function Flashcard({
       </div>
     </div>
   );
-}
+}  

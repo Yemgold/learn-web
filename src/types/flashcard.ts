@@ -2,14 +2,59 @@
 
 
 
-
-
-// C:\Users\Lara Spellman\Jamb\jamb-league\src\types\flashcard.ts
-
 /**
  * Difficulty level of a flashcard.
  */
 export type FlashcardDifficulty = "easy" | "medium" | "hard";
+
+/* -------------------------------------------------------------------------- */
+/* Interactive simulations                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Supported interactive simulation types.
+ *
+ * Add new simulation types here as more simulations are created.
+ */
+export type FlashcardSimulationType =
+  | "motion"
+  | "osmosis"
+  | "reaction-rate"
+  | "reproduction";
+
+/**
+ * Configuration passed to an interactive simulation.
+ */
+export interface FlashcardSimulation {
+  /**
+   * Type of simulation to render.
+   */
+  type: FlashcardSimulationType;
+
+  /**
+   * Whether the simulation is enabled for this card.
+   *
+   * Defaults to true when omitted.
+   */
+  enabled?: boolean;
+
+  /**
+   * Optional initial values used by the simulation.
+   *
+   * Different simulations may use different values.
+   */
+  initialValues?: Record<string, number>;
+
+  /**
+   * Optional title displayed above the simulation.
+   */
+  title?: string;
+
+  /**
+   * Optional short description displayed below the title.
+   */
+  description?: string;
+}
 
 /**
  * A single educational flashcard.
@@ -82,6 +127,14 @@ export interface Flashcard {
    * Optional order of the card within a topic.
    */
   order?: number;
+
+  /**
+   * Optional interactive simulation.
+   *
+   * When provided, Flashcard.tsx can render an interactive
+   * learning simulation for this card.
+   */
+  simulation?: FlashcardSimulation;
 }
 
 /**
@@ -241,4 +294,3 @@ export interface FlashcardDeckProgress {
    */
   cards: FlashcardProgress[];
 }
-

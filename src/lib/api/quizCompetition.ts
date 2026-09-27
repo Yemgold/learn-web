@@ -39,7 +39,7 @@ export async function createQuizCompetition(
 
 // 
 // 
-// 
+ 
 
 export const getAllQuizzes = async (
   page = 1,

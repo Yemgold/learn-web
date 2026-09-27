@@ -1,3 +1,1192 @@
+// "use client";
+
+// import {
+//   AlertCircle,
+//   ArrowLeft,
+//   CheckCircle2,
+//   Clock3,
+//   Loader2,
+//   Radio,
+//   RefreshCw,
+//   Trophy,
+//   Users,
+//   Wifi,
+//   WifiOff,
+//   XCircle,
+// } from "lucide-react";
+// import {
+//   useCallback,
+//   useEffect,
+//   useMemo,
+// } from "react";
+// import Link from "next/link";
+// import { useParams, useRouter } from "next/navigation";
+
+// import { useQuizGame } from "@/hooks/quiz-board/useQuizGame";
+
+// import type {
+//   QuizGameOption,
+//   QuizGameParticipant,
+//   QuizLeaderboardEntry,
+// } from "@/lib/quiz-board/shared/quizGameTypes";
+
+// /* ============================================================
+//    TYPES
+//    ============================================================ */
+
+// type Params = {
+//   quizId: string;
+// };
+
+// /* ============================================================
+//    SAFE DISPLAY HELPERS
+//    ============================================================ */
+
+// function getParticipantName(
+//   participant: QuizGameParticipant,
+// ): string {
+//   return (
+//     participant.username ||
+//     participant.name ||
+//     "Participant"
+//   );
+// }
+
+// function getParticipantId(
+//   participant: QuizGameParticipant,
+// ): string {
+//   return (
+//     participant.userId ||
+//     getParticipantName(participant)
+//   );
+// }
+
+// function getLeaderboardName(
+//   entry: QuizLeaderboardEntry,
+// ): string {
+//   return (
+//     entry.username ||
+//     entry.name ||
+//     "Participant"
+//   );
+// }
+
+// function getLeaderboardId(
+//   entry: QuizLeaderboardEntry,
+// ): string {
+//   return (
+//     entry.userId ||
+//     entry.participantId ||
+//     getLeaderboardName(entry)
+//   );
+// }
+
+// function getOptionValue(
+//   option: QuizGameOption,
+// ): string {
+//   return (
+//     option.value ||
+//     option.label ||
+//     ""
+//   );
+// }
+
+// function getOptionLabel(
+//   option: QuizGameOption,
+// ): string {
+//   return (
+//     option.label ||
+//     option.value ||
+//     ""
+//   );
+// }
+
+// function formatSeconds(
+//   seconds: number,
+// ): string {
+//   const safeSeconds = Math.max(
+//     0,
+//     Math.floor(seconds),
+//   );
+
+//   const minutes = Math.floor(
+//     safeSeconds / 60,
+//   );
+
+//   const remainingSeconds =
+//     safeSeconds % 60;
+
+//   return `${String(minutes).padStart(
+//     2,
+//     "0",
+//   )}:${String(
+//     remainingSeconds,
+//   ).padStart(2, "0")}`;
+// }
+
+// /* ============================================================
+//    PAGE
+//    ============================================================ */
+
+// export default function QuizGamePlayPage() {
+//   const params = useParams<Params>();
+//   const router = useRouter();
+
+//   const quizId =
+//     typeof params?.quizId === "string"
+//       ? params.quizId
+//       : "";
+
+//   const game = useQuizGame({
+//     quizId,
+//     role: "CONTESTANT",
+//     autoJoin: true,
+//   });
+
+//   const {
+//     state,
+//     connected,
+//     roomJoined,
+//     roomActivated,
+//     currentRound,
+//     currentQuestion,
+//     currentQuestionData,
+//     participants,
+//     leaderboard,
+//     questionStarted,
+//     questionLocked,
+//     selectedAnswer,
+//     answerSubmitted,
+//     actionLoading,
+//     loading,
+//     error,
+//     canAnswer,
+//     clearError,
+//     refreshRoom,
+//     submitAnswer,
+//   } = game;
+
+//   /* ==========================================================
+//      CURRENT QUESTION
+//      ========================================================== */
+
+//   const question =
+//     currentQuestionData ??
+//     currentQuestion?.question ??
+//     null;
+
+//   const options = useMemo(
+//     () =>
+//       question?.options ?? [],
+//     [question],
+//   );
+
+//   const questionNumber =
+//     currentQuestion?.questionNumber ??
+//     null;
+
+//   const roundNumber =
+//     currentQuestion?.roundNumber ??
+//     currentRound ??
+//     null;
+
+//   const timeLimit =
+//     currentQuestion?.timeLimit ?? 0;
+
+//   const remainingSeconds =
+//     currentQuestion?.timer
+//       ?.remainingSeconds ?? 0;
+
+//   const hasQuestion =
+//     question !== null;
+
+//   const timerRunning =
+//     questionStarted &&
+//     !questionLocked &&
+//     remainingSeconds > 0;
+
+//   const waitingForRoom =
+//     !roomJoined ||
+//     !roomActivated;
+
+//   const waitingForQuestion =
+//     roomJoined &&
+//     roomActivated &&
+//     !hasQuestion;
+
+//   /*
+//    * Keep state referenced so TypeScript does not
+//    * complain about an unused destructured value
+//    * if the shared state grows later.
+//    */
+//   void state;
+
+//   /* ==========================================================
+//      ERROR AUTO CLEAR
+//      ========================================================== */
+
+//   useEffect(() => {
+//     if (!error) {
+//       return;
+//     }
+
+//     const timeout =
+//       window.setTimeout(() => {
+//         clearError();
+//       }, 6000);
+
+//     return () => {
+//       window.clearTimeout(timeout);
+//     };
+//   }, [error, clearError]);
+
+//   /* ==========================================================
+//      ANSWER
+//      ========================================================== */
+
+//   const handleAnswer = useCallback(
+//     (answer: string) => {
+//       if (!canAnswer) {
+//         return;
+//       }
+
+//       if (answerSubmitted) {
+//         return;
+//       }
+
+//       if (questionLocked) {
+//         return;
+//       }
+
+//       submitAnswer(answer);
+//     },
+//     [
+//       canAnswer,
+//       answerSubmitted,
+//       questionLocked,
+//       submitAnswer,
+//     ],
+//   );
+
+//   /* ==========================================================
+//      BACK
+//      ========================================================== */
+
+//   const handleBack = useCallback(() => {
+//     router.push(
+//       "/student/quiz-board",
+//     );
+//   }, [router]);
+
+//   /* ==========================================================
+//      INVALID QUIZ
+//      ========================================================== */
+
+//   if (!quizId) {
+//     return (
+//       <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
+//         <div className="mx-auto max-w-3xl">
+//           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6">
+//             <div className="flex items-start gap-3">
+//               <AlertCircle className="mt-0.5 h-5 w-5 text-red-400" />
+
+//               <div>
+//                 <h1 className="font-semibold">
+//                   Unable to load quiz
+//                 </h1>
+
+//                 <p className="mt-1 text-sm text-slate-400">
+//                   No quiz competition ID was
+//                   provided.
+//                 </p>
+//               </div>
+//             </div>
+
+//             <button
+//               type="button"
+//               onClick={handleBack}
+//               className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-slate-200"
+//             >
+//               <ArrowLeft className="h-4 w-4" />
+//               Back to Quiz Board
+//             </button>
+//           </div>
+//         </div>
+//       </main>
+//     );
+//   }
+
+//   /* ==========================================================
+//      PAGE
+//      ========================================================== */
+
+//   return (
+//     <main className="min-h-screen bg-slate-950 text-white">
+//       {/* ======================================================
+//           HEADER
+//          ====================================================== */}
+
+//       <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 backdrop-blur">
+//         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+//           <div className="flex min-w-0 items-center gap-3">
+//             <button
+//               type="button"
+//               onClick={handleBack}
+//               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+//               aria-label="Back to Quiz Board"
+//             >
+//               <ArrowLeft className="h-4 w-4" />
+//             </button>
+
+//             <div className="min-w-0">
+//               <p className="truncate text-sm font-semibold text-white">
+//                 Quiz Competition
+//               </p>
+
+//               <p className="truncate text-xs text-slate-500">
+//                 {quizId}
+//               </p>
+//             </div>
+//           </div>
+
+//           <div className="flex items-center gap-2">
+//             <div
+//               className={[
+//                 "hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:flex",
+//                 connected
+//                   ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+//                   : "border-red-400/20 bg-red-400/10 text-red-300",
+//               ].join(" ")}
+//             >
+//               {connected ? (
+//                 <Wifi className="h-3.5 w-3.5" />
+//               ) : (
+//                 <WifiOff className="h-3.5 w-3.5" />
+//               )}
+
+//               {connected
+//                 ? "Connected"
+//                 : "Disconnected"}
+//             </div>
+
+//             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300">
+//               <Users className="h-3.5 w-3.5" />
+//               {participants.length}
+//             </div>
+//           </div>
+//         </div>
+//       </header>
+
+//       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+//         {/* ====================================================
+//             ERROR
+//            ==================================================== */}
+
+//         {error && (
+//           <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+//             <div className="flex items-start gap-3">
+//               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+
+//               <div>
+//                 <p className="text-sm font-medium text-red-200">
+//                   Quiz error
+//                 </p>
+
+//                 <p className="mt-1 text-sm text-red-300/80">
+//                   {error}
+//                 </p>
+//               </div>
+//             </div>
+
+//             <button
+//               type="button"
+//               onClick={clearError}
+//               className="rounded-md p-1 text-red-300 transition hover:bg-red-400/10"
+//               aria-label="Dismiss error"
+//             >
+//               <XCircle className="h-4 w-4" />
+//             </button>
+//           </div>
+//         )}
+
+//         {/* ====================================================
+//             TOP STATUS
+//            ==================================================== */}
+
+//         <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+//           <StatusCard
+//             icon={
+//               connected ? (
+//                 <Wifi className="h-4 w-4" />
+//               ) : (
+//                 <WifiOff className="h-4 w-4" />
+//               )
+//             }
+//             label="Connection"
+//             value={
+//               connected
+//                 ? "Live"
+//                 : "Offline"
+//             }
+//             valueClassName={
+//               connected
+//                 ? "text-emerald-300"
+//                 : "text-red-300"
+//             }
+//           />
+
+//           <StatusCard
+//             icon={
+//               <Users className="h-4 w-4" />
+//             }
+//             label="Players"
+//             value={String(
+//               participants.length,
+//             )}
+//           />
+
+//           <StatusCard
+//             icon={
+//               <Radio className="h-4 w-4" />
+//             }
+//             label="Round"
+//             value={
+//               roundNumber !== null
+//                 ? String(roundNumber)
+//                 : "—"
+//             }
+//           />
+
+//           <StatusCard
+//             icon={
+//               <Trophy className="h-4 w-4" />
+//             }
+//             label="Leaderboard"
+//             value={String(
+//               leaderboard.length,
+//             )}
+//           />
+//         </section>
+
+//         {/* ====================================================
+//             WAITING FOR ROOM
+//            ==================================================== */}
+
+//         {waitingForRoom && (
+//           <WaitingRoom
+//             connected={connected}
+//             roomJoined={roomJoined}
+//             roomActivated={roomActivated}
+//             loading={loading}
+//             onRefresh={refreshRoom}
+//           />
+//         )}
+
+//         {/* ====================================================
+//             ACTIVE GAME
+//            ==================================================== */}
+
+//         {!waitingForRoom && (
+//           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+//             {/* ================================================
+//                 QUESTION
+//                ================================================ */}
+
+//             <section className="min-w-0">
+//               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+//                 <div>
+//                   <div className="flex flex-wrap items-center gap-2">
+//                     <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-300">
+//                       Round{" "}
+//                       {roundNumber ?? "—"}
+//                     </span>
+
+//                     {questionNumber !==
+//                       null && (
+//                       <span className="text-sm text-slate-500">
+//                         Question{" "}
+//                         {questionNumber}
+//                       </span>
+//                     )}
+//                   </div>
+
+//                   <h1 className="mt-2 text-xl font-bold sm:text-2xl">
+//                     {hasQuestion
+//                       ? "Answer the Question"
+//                       : "Waiting for the next question"}
+//                   </h1>
+//                 </div>
+
+//                 {hasQuestion && (
+//                   <div
+//                     className={[
+//                       "flex items-center gap-2 rounded-xl border px-4 py-2",
+//                       timerRunning
+//                         ? "border-cyan-400/20 bg-cyan-400/10"
+//                         : "border-white/10 bg-white/5",
+//                     ].join(" ")}
+//                   >
+//                     <Clock3
+//                       className={[
+//                         "h-4 w-4",
+//                         timerRunning
+//                           ? "text-cyan-300"
+//                           : "text-slate-500",
+//                       ].join(" ")}
+//                     />
+
+//                     <span
+//                       className={[
+//                         "font-mono text-lg font-bold",
+//                         timerRunning
+//                           ? "text-cyan-300"
+//                           : "text-slate-400",
+//                       ].join(" ")}
+//                     >
+//                       {formatSeconds(
+//                         remainingSeconds,
+//                       )}
+//                     </span>
+//                   </div>
+//                 )}
+//               </div>
+
+//               {hasQuestion ? (
+//                 <QuestionCard
+//                   question={
+//                     question?.question ??
+//                     ""
+//                   }
+//                   options={options}
+//                   selectedAnswer={
+//                     selectedAnswer
+//                   }
+//                   answerSubmitted={
+//                     answerSubmitted
+//                   }
+//                   questionStarted={
+//                     questionStarted
+//                   }
+//                   questionLocked={
+//                     questionLocked
+//                   }
+//                   canAnswer={
+//                     canAnswer
+//                   }
+//                   actionLoading={
+//                     actionLoading
+//                   }
+//                   onAnswer={
+//                     handleAnswer
+//                   }
+//                 />
+//               ) : (
+//                 <WaitingQuestion
+//                   loading={
+//                     loading ||
+//                     waitingForQuestion
+//                   }
+//                   onRefresh={
+//                     refreshRoom
+//                   }
+//                 />
+//               )}
+
+//               {hasQuestion &&
+//                 timeLimit > 0 && (
+//                   <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-slate-500">
+//                     <span>
+//                       Time limit
+//                     </span>
+
+//                     <span className="font-medium text-slate-300">
+//                       {formatSeconds(
+//                         timeLimit,
+//                       )}
+//                     </span>
+//                   </div>
+//                 )}
+//             </section>
+
+//             {/* ================================================
+//                 SIDEBAR
+//                ================================================ */}
+
+//             <aside className="space-y-5">
+//               <LeaderboardPanel
+//                 leaderboard={
+//                   leaderboard
+//                 }
+//               />
+
+//               <ParticipantsPanel
+//                 participants={
+//                   participants
+//                 }
+//               />
+//             </aside>
+//           </div>
+//         )}
+//       </div>
+//     </main>
+//   );
+// }
+
+// /* ============================================================
+//    STATUS CARD
+//    ============================================================ */
+
+// function StatusCard({
+//   icon,
+//   label,
+//   value,
+//   valueClassName,
+// }: {
+//   icon: React.ReactNode;
+//   label: string;
+//   value: string;
+//   valueClassName?: string;
+// }) {
+//   return (
+//     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+//       <div className="flex items-center gap-2 text-xs text-slate-500">
+//         {icon}
+//         {label}
+//       </div>
+
+//       <p
+//         className={[
+//           "mt-2 text-lg font-bold",
+//           valueClassName ??
+//             "text-white",
+//         ].join(" ")}
+//       >
+//         {value}
+//       </p>
+//     </div>
+//   );
+// }
+
+// /* ============================================================
+//    WAITING ROOM
+//    ============================================================ */
+
+// function WaitingRoom({
+//   connected,
+//   roomJoined,
+//   roomActivated,
+//   loading,
+//   onRefresh,
+// }: {
+//   connected: boolean;
+//   roomJoined: boolean;
+//   roomActivated: boolean;
+//   loading: boolean;
+//   onRefresh: () => void;
+// }) {
+//   const message = !connected
+//     ? "Connecting to the quiz server..."
+//     : !roomJoined
+//       ? "Joining the quiz room..."
+//       : !roomActivated
+//         ? "Waiting for the host to activate the room..."
+//         : "Preparing the quiz...";
+
+//   return (
+//     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+//       <div className="mx-auto flex max-w-lg flex-col items-center text-center">
+//         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10">
+//           {loading || !connected ? (
+//             <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
+//           ) : (
+//             <Radio className="h-6 w-6 text-cyan-300" />
+//           )}
+//         </div>
+
+//         <h2 className="mt-5 text-lg font-bold">
+//           {message}
+//         </h2>
+
+//         <p className="mt-2 text-sm leading-6 text-slate-500">
+//           Stay on this page. The quiz will
+//           appear when the room is ready.
+//         </p>
+
+//         <button
+//           type="button"
+//           onClick={onRefresh}
+//           disabled={loading}
+//           className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+//         >
+//           <RefreshCw className="h-4 w-4" />
+//           Refresh
+//         </button>
+
+//         <div className="mt-5 grid w-full gap-2 sm:grid-cols-3">
+//           <RoomStep
+//             label="Connection"
+//             complete={connected}
+//           />
+
+//           <RoomStep
+//             label="Joined"
+//             complete={roomJoined}
+//           />
+
+//           <RoomStep
+//             label="Activated"
+//             complete={roomActivated}
+//           />
+//         </div>
+//       </div>
+//     </section>
+//   );
+// }
+
+// function RoomStep({
+//   label,
+//   complete,
+// }: {
+//   label: string;
+//   complete: boolean;
+// }) {
+//   return (
+//     <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+//       <div className="flex items-center gap-2">
+//         {complete ? (
+//           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+//         ) : (
+//           <div className="h-4 w-4 rounded-full border border-slate-600" />
+//         )}
+
+//         <span
+//           className={
+//             complete
+//               ? "text-xs text-emerald-300"
+//               : "text-xs text-slate-500"
+//           }
+//         >
+//           {label}
+//         </span>
+//       </div>
+//     </div>
+//   );
+// }
+
+// /* ============================================================
+//    WAITING QUESTION
+//    ============================================================ */
+
+// function WaitingQuestion({
+//   loading,
+//   onRefresh,
+// }: {
+//   loading: boolean;
+//   onRefresh: () => void;
+// }) {
+//   return (
+//     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+//       <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+//         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
+//           {loading ? (
+//             <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
+//           ) : (
+//             <Clock3 className="h-6 w-6 text-slate-500" />
+//           )}
+//         </div>
+
+//         <h2 className="mt-5 text-lg font-semibold">
+//           Waiting for the host
+//         </h2>
+
+//         <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+//           The next question will appear
+//           when the host starts it.
+//         </p>
+
+//         <button
+//           type="button"
+//           onClick={onRefresh}
+//           disabled={loading}
+//           className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
+//         >
+//           <RefreshCw className="h-4 w-4" />
+//           Refresh
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
+// /* ============================================================
+//    QUESTION CARD
+//    ============================================================ */
+
+// function QuestionCard({
+//   question,
+//   options,
+//   selectedAnswer,
+//   answerSubmitted,
+//   questionStarted,
+//   questionLocked,
+//   canAnswer,
+//   actionLoading,
+//   onAnswer,
+// }: {
+//   question: string;
+//   options: QuizGameOption[];
+//   selectedAnswer: string | null;
+//   answerSubmitted: boolean;
+//   questionStarted: boolean;
+//   questionLocked: boolean;
+//   canAnswer: boolean;
+//   actionLoading: boolean;
+//   onAnswer: (answer: string) => void;
+// }) {
+//   return (
+//     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+//       {/* Question status */}
+//       <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+//         <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+//           <span className="relative flex h-2 w-2">
+//             {questionStarted &&
+//               !questionLocked && (
+//                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+//               )}
+
+//             <span
+//               className={[
+//                 "relative inline-flex h-2 w-2 rounded-full",
+//                 questionLocked
+//                   ? "bg-amber-400"
+//                   : questionStarted
+//                     ? "bg-emerald-400"
+//                     : "bg-slate-600",
+//               ].join(" ")}
+//             />
+//           </span>
+
+//           {questionLocked
+//             ? "Question locked"
+//             : questionStarted
+//               ? "Question live"
+//               : "Question ready"}
+//         </div>
+
+//         {answerSubmitted && (
+//           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+//             <CheckCircle2 className="h-3.5 w-3.5" />
+//             Answer submitted
+//           </span>
+//         )}
+//       </div>
+
+//       {/* Question */}
+//       <div className="p-5 sm:p-7">
+//         <h2 className="text-lg font-semibold leading-8 text-white sm:text-xl">
+//           {question}
+//         </h2>
+
+//         {/* Options */}
+//         <div className="mt-7 grid gap-3">
+//           {options.length > 0 ? (
+//             options.map(
+//               (
+//                 option,
+//                 index,
+//               ) => {
+//                 const value =
+//                   getOptionValue(
+//                     option,
+//                   );
+
+//                 const label =
+//                   getOptionLabel(
+//                     option,
+//                   );
+
+//                 const selected =
+//                   selectedAnswer ===
+//                     value ||
+//                   selectedAnswer ===
+//                     label;
+
+//                 const disabled =
+//                   !canAnswer ||
+//                   answerSubmitted ||
+//                   questionLocked ||
+//                   actionLoading;
+
+//                 return (
+//                   <button
+//                     key={`${value}-${index}`}
+//                     type="button"
+//                     disabled={disabled}
+//                     onClick={() =>
+//                       onAnswer(value)
+//                     }
+//                     className={[
+//                       "group flex w-full items-center gap-4 rounded-xl border p-4 text-left transition",
+//                       selected
+//                         ? "border-cyan-400/50 bg-cyan-400/10"
+//                         : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]",
+//                       disabled
+//                         ? "cursor-not-allowed"
+//                         : "cursor-pointer",
+//                     ].join(" ")}
+//                   >
+//                     <span
+//                       className={[
+//                         "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-bold",
+//                         selected
+//                           ? "border-cyan-400/50 bg-cyan-400/20 text-cyan-200"
+//                           : "border-white/10 bg-white/5 text-slate-400",
+//                       ].join(" ")}
+//                     >
+//                       {String.fromCharCode(
+//                         65 + index,
+//                       )}
+//                     </span>
+
+//                     <span
+//                       className={[
+//                         "text-sm leading-6",
+//                         selected
+//                           ? "text-cyan-100"
+//                           : "text-slate-300",
+//                       ].join(" ")}
+//                     >
+//                       {label}
+//                     </span>
+
+//                     {selected && (
+//                       <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-cyan-300" />
+//                     )}
+//                   </button>
+//                 );
+//               },
+//             )
+//           ) : (
+//             <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-200">
+//               No answer options are available
+//               for this question.
+//             </div>
+//           )}
+//         </div>
+
+//         {/* Submission */}
+//         {answerSubmitted && (
+//           <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-4">
+//             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+
+//             <div>
+//               <p className="text-sm font-medium text-emerald-200">
+//                 Answer submitted
+//               </p>
+
+//               <p className="mt-1 text-xs leading-5 text-emerald-300/70">
+//                 Your answer has been sent to
+//                 the quiz server.
+//               </p>
+//             </div>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// /* ============================================================
+//    LEADERBOARD
+//    ============================================================ */
+
+// function LeaderboardPanel({
+//   leaderboard,
+// }: {
+//   leaderboard: QuizLeaderboardEntry[];
+// }) {
+//   return (
+//     <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+//       <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+//         <div className="flex items-center gap-2">
+//           <Trophy className="h-4 w-4 text-amber-300" />
+
+//           <h2 className="text-sm font-semibold">
+//             Leaderboard
+//           </h2>
+//         </div>
+
+//         <span className="text-xs text-slate-500">
+//           {leaderboard.length}
+//         </span>
+//       </div>
+
+//       <div className="max-h-[420px] overflow-y-auto p-2">
+//         {leaderboard.length ===
+//         0 ? (
+//           <div className="px-3 py-8 text-center text-xs text-slate-500">
+//             No leaderboard data yet.
+//           </div>
+//         ) : (
+//           leaderboard.map(
+//             (entry, index) => {
+//               const name =
+//                 getLeaderboardName(
+//                   entry,
+//                 );
+
+//               const score =
+//                 entry.score ?? 0;
+
+//               const current =
+//                 entry.isCurrentUser ===
+//                 true;
+
+//               return (
+//                 <div
+//                   key={`${getLeaderboardId(
+//                     entry,
+//                   )}-${index}`}
+//                   className={[
+//                     "flex items-center gap-3 rounded-xl px-3 py-3",
+//                     current
+//                       ? "bg-cyan-400/10"
+//                       : "hover:bg-white/[0.03]",
+//                   ].join(" ")}
+//                 >
+//                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-slate-400">
+//                     {index + 1}
+//                   </span>
+
+//                   <div className="min-w-0 flex-1">
+//                     <p
+//                       className={[
+//                         "truncate text-sm font-medium",
+//                         current
+//                           ? "text-cyan-200"
+//                           : "text-slate-300",
+//                       ].join(" ")}
+//                     >
+//                       {name}
+//                     </p>
+
+//                     {entry.eliminated && (
+//                       <p className="text-[11px] text-red-400">
+//                         Eliminated
+//                       </p>
+//                     )}
+//                   </div>
+
+//                   <span className="text-sm font-bold text-white">
+//                     {score}
+//                   </span>
+//                 </div>
+//               );
+//             },
+//           )
+//         )}
+//       </div>
+//     </section>
+//   );
+// }
+
+// /* ============================================================
+//    PARTICIPANTS
+//    ============================================================ */
+
+// function ParticipantsPanel({
+//   participants,
+// }: {
+//   participants: QuizGameParticipant[];
+// }) {
+//   return (
+//     <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+//       <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+//         <div className="flex items-center gap-2">
+//           <Users className="h-4 w-4 text-cyan-300" />
+
+//           <h2 className="text-sm font-semibold">
+//             Participants
+//           </h2>
+//         </div>
+
+//         <span className="text-xs text-slate-500">
+//           {participants.length}
+//         </span>
+//       </div>
+
+//       <div className="max-h-[320px] overflow-y-auto p-2">
+//         {participants.length ===
+//         0 ? (
+//           <div className="px-3 py-8 text-center text-xs text-slate-500">
+//             No participants yet.
+//           </div>
+//         ) : (
+//           participants.map(
+//             (participant, index) => {
+//               const name =
+//                 getParticipantName(
+//                   participant,
+//                 );
+
+//               return (
+//                 <div
+//                   key={`${getParticipantId(
+//                     participant,
+//                   )}-${index}`}
+//                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[0.03]"
+//                 >
+//                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-slate-300">
+//                     {name
+//                       .charAt(0)
+//                       .toUpperCase()}
+//                   </div>
+
+//                   <div className="min-w-0 flex-1">
+//                     <p className="truncate text-sm text-slate-300">
+//                       {name}
+//                     </p>
+
+//                     {participant.eliminated && (
+//                       <p className="text-[11px] text-red-400">
+//                         Eliminated
+//                       </p>
+//                     )}
+//                   </div>
+
+//                   <span
+//                     className={[
+//                       "h-2 w-2 rounded-full",
+//                       participant.eliminated
+//                         ? "bg-red-400"
+//                         : "bg-emerald-400",
+//                     ].join(" ")}
+//                   />
+//                 </div>
+//               );
+//             },
+//           )
+//         )}
+//       </div>
+//     </section>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 "use client";
@@ -9,179 +1198,144 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 
 import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  CircleDot,
-  Loader2,
-  Radio,
-  RefreshCw,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+  useParams,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-
+import { axiosInstance } from "@/lib/api/axios";
 import { getQuizSocket } from "@/lib/socket/quizSocket";
 
-/* ============================================================
+import {
+  getQuizCurrentRound,
+  getQuizId,
+  getQuizNumberOfRounds,
+  getQuizRoomId,
+  getQuizTimePerQuestion,
+  getQuizTitle,
+  type Quiz,
+} from "@/types/quiz-board/quiz";
+
+import type { QuizGameRole } from "@/types/quiz-board/quiz-role";
+
+import HostQuizShow from "@/components/quiz-board/host/HostQuizShow";
+
+import type {
+  HostQuestionListItem,
+} from "@/components/quiz-board/host/HostQuestionList";
+
+import type {
+  HostQuestionPreviewQuestion,
+} from "@/components/quiz-board/host/HostQuestionPreview";
+
+import type {
+  HostParticipant,
+} from "@/components/quiz-board/host/HostParticipantPanel";
+
+import type {
+  HostLeaderboardEntry,
+} from "@/components/quiz-board/host/HostLeaderboardPanel";
+
+import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQuizShow";
+
+import SpectatorQuizShow from "@/components/quiz-board/spectator/SpectatorQuizShow";
+
+import type { QuizOption } from "@/components/quiz-board/shared/QuizOptions";
+
+/* =========================================================
    TYPES
-   ============================================================ */
+   ========================================================= */
 
-interface QuizPlaySession {
-  quizId: string;
-  quiz_title: string;
-  subject: string;
-  description: string;
-  current_round: number;
-  number_of_rounds: number;
-  time_per_question: number;
-  no_of_contestants: number;
-  joined_count: number;
-  room_id: string | null;
-  start_date: string;
-}
+type SocketPayload = {
+  data?: any;
 
-interface QuizOption {
-  label: string;
-  value: string;
-  text: string;
-}
+  roomId?: string;
+  room_id?: string;
+
+  quizId?: string;
+  quiz_id?: string;
+
+  role?: string;
+
+  roundNumber?: number;
+  round_number?: number;
+
+  questionNumber?: number;
+  question_number?: number;
+
+  questionId?: string;
+  question_id?: string;
+
+  question?: any;
+  currentQuestion?: any;
+  questions?: any[];
+
+  participants?: any[];
+  participantList?: any[];
+
+  leaderboard?: any[];
+  entries?: any[];
+
+  startedAt?: string | null;
+  started_at?: string | null;
+
+  expiresAt?: string | null;
+  expires_at?: string | null;
+
+  timeLimit?: number | null;
+  time_limit?: number | null;
+
+  activated?: boolean;
+  roomActivated?: boolean;
+
+  message?: string;
+  error?: string;
+};
 
 interface LiveQuestion {
   id: string;
   question: string;
   options: QuizOption[];
+
   questionNumber: number | null;
   totalQuestions: number | null;
+
+  timeLimit: number | null;
+
+  startedAt: string | null;
+  expiresAt: string | null;
 }
 
-interface SocketRoundStartedPayload {
-  quizId?: string;
-  quiz_id?: string;
-  roomId?: string;
-  room_id?: string;
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
-  currentRound?: number;
-  current_round?: number;
-  round?: number;
-  round_number?: number;
-  roundNumber?: number;
-
-  question?: unknown;
-  data?: unknown;
-}
-
-interface SocketJoinedRoomAckPayload {
-  success?: boolean;
-  message?: string;
-  roomId?: string;
-  room_id?: string;
-  quizId?: string;
-  quiz_id?: string;
-}
-
-/* ============================================================
-   QUESTION FIELD KEYS
-   ============================================================ */
-
-const QUESTION_TEXT_KEYS = [
-  "question_text",
-  "questionText",
-  "question",
-  "text",
-  "prompt",
-  "questionTitle",
-  "question_title",
-];
-
-const OPTION_KEYS = [
-  "options",
-  "answer_options",
-  "answerOptions",
-  "choices",
-  "answers",
-  "question_options",
-  "questionOptions",
-  "optionsList",
-];
-
-const QUESTION_NUMBER_KEYS = [
-  "questionNumber",
-  "question_number",
-  "questionNo",
-  "question_no",
-  "currentQuestionNumber",
-  "current_question_number",
-];
-
-const TOTAL_QUESTION_KEYS = [
-  "totalQuestions",
-  "total_questions",
-  "questionCount",
-  "question_count",
-  "total",
-];
-
-/* ============================================================
-   GENERIC HELPERS
-   ============================================================ */
-
-function isRecord(
-  value: unknown,
-): value is Record<string, unknown> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value)
-  );
-}
-
-function firstDefined(
-  record: Record<string, unknown>,
-  keys: string[],
-): unknown {
-  for (const key of keys) {
-    if (
-      Object.prototype.hasOwnProperty.call(
-        record,
-        key,
-      ) &&
-      record[key] !== undefined &&
-      record[key] !== null
-    ) {
-      return record[key];
-    }
+function unwrapPayload(
+  payload: SocketPayload | null | undefined,
+): any {
+  if (!payload) {
+    return null;
   }
 
-  return undefined;
-}
-
-function toCleanString(
-  value: unknown,
-): string {
   if (
-    typeof value === "string" ||
-    typeof value === "number"
+    payload.data &&
+    typeof payload.data === "object"
   ) {
-    return String(value).trim();
+    return payload.data;
   }
 
-  return "";
+  return payload;
 }
 
-function toPositiveNumber(
+function getNumber(
   value: unknown,
+  fallback: number | null = null,
 ): number | null {
   if (
     typeof value === "number" &&
-    Number.isFinite(value) &&
-    value > 0
+    Number.isFinite(value)
   ) {
     return value;
   }
@@ -189,922 +1343,1248 @@ function toPositiveNumber(
   if (typeof value === "string") {
     const parsed = Number(value);
 
-    if (
-      Number.isFinite(parsed) &&
-      parsed > 0
-    ) {
+    if (Number.isFinite(parsed)) {
       return parsed;
     }
   }
 
-  return null;
+  return fallback;
 }
 
-/* ============================================================
-   OPTION NORMALIZATION
-   ============================================================ */
-
-function deriveOptionLabel(
-  index: number,
-  rawLabel?: unknown,
-): string {
-  const label = toCleanString(rawLabel);
-
-  if (label) {
-    return label;
-  }
-
-  return String.fromCharCode(
-    65 + index,
-  );
-}
-
-function normalizeOptions(
-  rawOptions: unknown,
-): QuizOption[] {
-  if (!rawOptions) {
-    return [];
-  }
-
-  const result: QuizOption[] = [];
-
-  /* ----------------------------------------------------------
-     ARRAY
-     ---------------------------------------------------------- */
-
-  if (Array.isArray(rawOptions)) {
-    rawOptions.forEach(
-      (item, index) => {
-        if (isRecord(item)) {
-          const value =
-            toCleanString(
-              firstDefined(item, [
-                "value",
-                "id",
-                "answer",
-                "option",
-                "text",
-                "label",
-              ]),
-            );
-
-          const text =
-            toCleanString(
-              firstDefined(item, [
-                "text",
-                "value",
-                "answer",
-                "option",
-                "label",
-              ]),
-            );
-
-          if (!value && !text) {
-            return;
-          }
-
-          result.push({
-            label: deriveOptionLabel(
-              index,
-              firstDefined(item, [
-                "label",
-                "key",
-                "letter",
-                "optionLabel",
-                "option_label",
-              ]),
-            ),
-            value: value || text,
-            text: text || value,
-          });
-
-          return;
-        }
-
-        const text =
-          toCleanString(item);
-
-        if (!text) {
-          return;
-        }
-
-        result.push({
-          label: deriveOptionLabel(index),
-          value: text,
-          text,
-        });
-      },
-    );
-
-    return result;
-  }
-
-  /* ----------------------------------------------------------
-     OBJECT
-     ---------------------------------------------------------- */
-
-  if (isRecord(rawOptions)) {
-    const entries = Object.entries(
-      rawOptions,
-    );
-
-    entries.forEach(
-      ([key, value], index) => {
-        if (
-          value === undefined ||
-          value === null
-        ) {
-          return;
-        }
-
-        if (isRecord(value)) {
-          const text =
-            toCleanString(
-              firstDefined(value, [
-                "text",
-                "value",
-                "answer",
-                "option",
-                "label",
-              ]),
-            );
-
-          const optionValue =
-            toCleanString(
-              firstDefined(value, [
-                "value",
-                "id",
-                "answer",
-                "option",
-                "text",
-                "label",
-              ]),
-            );
-
-          if (!text && !optionValue) {
-            return;
-          }
-
-          result.push({
-            label:
-              deriveOptionLabel(
-                index,
-                firstDefined(value, [
-                  "label",
-                  "key",
-                  "letter",
-                ]),
-              ),
-            value:
-              optionValue || text,
-            text:
-              text || optionValue,
-          });
-
-          return;
-        }
-
-        const text =
-          toCleanString(value);
-
-        if (!text) {
-          return;
-        }
-
-        result.push({
-          label:
-            deriveOptionLabel(
-              index,
-              key,
-            ),
-          value: text,
-          text,
-        });
-      },
-    );
-  }
-
-  return result;
-}
-
-/* ============================================================
-   BUILD QUESTION FROM OBJECT
-   ============================================================ */
-
-function buildQuestionFromRecord(
-  record: Record<string, unknown>,
+function normalizeQuestion(
+  raw: any,
+  fallbackNumber: number | null = null,
+  fallbackTotal: number | null = null,
 ): LiveQuestion | null {
-  const rawQuestion =
-    firstDefined(
-      record,
-      QUESTION_TEXT_KEYS,
-    );
-
-  const questionText =
-    toCleanString(rawQuestion);
-
-  const rawOptions =
-    firstDefined(
-      record,
-      OPTION_KEYS,
-    );
-
-  const options =
-    normalizeOptions(
-      rawOptions,
-    );
-
-  /*
-   * Some APIs may send:
-   *
-   * optionA
-   * optionB
-   * optionC
-   * optionD
-   *
-   * instead of an options array.
-   */
-
-  if (options.length === 0) {
-    const fallbackOptions: QuizOption[] = [];
-
-    const optionKeys = [
-      "optionA",
-      "optionB",
-      "optionC",
-      "optionD",
-      "optionE",
-      "option_a",
-      "option_b",
-      "option_c",
-      "option_d",
-      "option_e",
-    ];
-
-    optionKeys.forEach(
-      (key, index) => {
-        const value =
-          toCleanString(
-            record[key],
-          );
-
-        if (!value) {
-          return;
-        }
-
-        fallbackOptions.push({
-          label:
-            String.fromCharCode(
-              65 + index,
-            ),
-          value,
-          text: value,
-        });
-      },
-    );
-
-    if (
-      fallbackOptions.length > 0
-    ) {
-      options.push(
-        ...fallbackOptions,
-      );
-    }
-  }
-
-  if (
-    !questionText ||
-    options.length === 0
-  ) {
+  if (!raw) {
     return null;
   }
 
   const id =
-    toCleanString(
-      firstDefined(record, [
-        "id",
-        "_id",
-        "questionId",
-        "question_id",
-      ]),
-    ) ||
-    `question-${Date.now()}`;
+    raw.id ??
+    raw._id ??
+    raw.questionId ??
+    raw.question_id;
 
-  const questionNumber =
-    toPositiveNumber(
-      firstDefined(
-        record,
-        QUESTION_NUMBER_KEYS,
-      ),
-    );
+  if (!id) {
+    return null;
+  }
 
-  const totalQuestions =
-    toPositiveNumber(
-      firstDefined(
-        record,
-        TOTAL_QUESTION_KEYS,
-      ),
-    );
+  const rawOptions =
+    raw.options ??
+    raw.answers ??
+    raw.choices ??
+    [];
+
+  const options: QuizOption[] =
+    Array.isArray(rawOptions)
+      ? rawOptions.map(
+          (option: any, index: number) => ({
+            label:
+              option?.label ??
+              option?.key ??
+              String.fromCharCode(
+                65 + index,
+              ),
+
+            value:
+              option?.value ??
+              option?.answer ??
+              option?.text ??
+              String(option),
+          }),
+        )
+      : [];
 
   return {
-    id,
-    question: questionText,
+    id: String(id),
+
+    question:
+      raw.question ??
+      raw.questionText ??
+      raw.question_text ??
+      "",
+
     options,
-    questionNumber,
-    totalQuestions,
+
+    questionNumber: getNumber(
+      raw.questionNumber ??
+        raw.question_number,
+      fallbackNumber,
+    ),
+
+    totalQuestions: getNumber(
+      raw.totalQuestions ??
+        raw.total_questions,
+      fallbackTotal,
+    ),
+
+    timeLimit: getNumber(
+      raw.timeLimit ??
+        raw.time_limit,
+      null,
+    ),
+
+    startedAt:
+      raw.startedAt ??
+      raw.started_at ??
+      null,
+
+    expiresAt:
+      raw.expiresAt ??
+      raw.expires_at ??
+      null,
   };
 }
 
-/* ============================================================
-   RECURSIVE QUESTION SEARCH
-   ============================================================ */
-
-function findQuestionInPayload(
-  payload: unknown,
-  depth = 0,
-): LiveQuestion | null {
+function readStoredUser(): any {
   if (
-    payload === null ||
-    payload === undefined ||
-    depth > 7
+    typeof window === "undefined"
   ) {
     return null;
   }
 
-  /* ----------------------------------------------------------
-     DIRECT OBJECT
-     ---------------------------------------------------------- */
+  const keys = [
+    "user",
+    "auth-user",
+    "jamb_user",
+    "jamb_auth_user",
+  ];
 
-  if (isRecord(payload)) {
-    const directQuestion =
-      buildQuestionFromRecord(
-        payload,
-      );
+  for (const key of keys) {
+    try {
+      const value =
+        window.localStorage.getItem(key);
 
-    if (directQuestion) {
-      return directQuestion;
-    }
-
-    /*
-     * Search common nested containers first.
-     */
-
-    const priorityKeys = [
-      "question",
-      "questionData",
-      "currentQuestion",
-      "current_question",
-      "questionObj",
-      "question_obj",
-      "data",
-      "payload",
-      "result",
-      "quizQuestion",
-      "quiz_question",
-    ];
-
-    for (const key of priorityKeys) {
-      if (
-        payload[key] ===
-        undefined
-      ) {
-        continue;
+      if (value) {
+        return JSON.parse(value);
       }
-
-      const nested =
-        findQuestionInPayload(
-          payload[key],
-          depth + 1,
-        );
-
-      if (nested) {
-        return nested;
-      }
-    }
-
-    /*
-     * Search any remaining object values.
-     */
-
-    for (const [
-      key,
-      value,
-    ] of Object.entries(payload)) {
-      if (
-        priorityKeys.includes(
-          key,
-        )
-      ) {
-        continue;
-      }
-
-      const nested =
-        findQuestionInPayload(
-          value,
-          depth + 1,
-        );
-
-      if (nested) {
-        return nested;
-      }
-    }
-
-    return null;
-  }
-
-  /* ----------------------------------------------------------
-     ARRAY
-     ---------------------------------------------------------- */
-
-  if (Array.isArray(payload)) {
-    for (const item of payload) {
-      const nested =
-        findQuestionInPayload(
-          item,
-          depth + 1,
-        );
-
-      if (nested) {
-        return nested;
-      }
+    } catch {
+      // Ignore malformed values.
     }
   }
 
   return null;
 }
 
-/* ============================================================
-   ROUND HELPERS
-   ============================================================ */
+function getApplicationRole(
+  user: any,
+): string {
+  return String(
+    user?.role ??
+      user?.userRole ??
+      user?.user_role ??
+      user?.accountType ??
+      user?.account_type ??
+      "",
+  ).toUpperCase();
+}
 
-function extractRound(
-  payload: unknown,
-): number | null {
-  if (!isRecord(payload)) {
-    return null;
+function getSocketRole(
+  user: any,
+  requestedRole: string | null,
+): QuizGameRole {
+  if (
+    requestedRole?.toLowerCase() ===
+    "spectator"
+  ) {
+    return "SPECTATOR";
   }
 
-  return toPositiveNumber(
-    firstDefined(payload, [
-      "currentRound",
-      "current_round",
-      "round",
-      "round_number",
-      "roundNumber",
-    ]),
+  const applicationRole =
+    getApplicationRole(user);
+
+  if (
+    applicationRole === "ADMIN" ||
+    applicationRole === "HOST"
+  ) {
+    return "HOST";
+  }
+
+  return "CONTESTANT";
+}
+
+function mapParticipants(
+  participants: any[],
+): HostParticipant[] {
+  return participants.map(
+    (participant, index) => ({
+      id: String(
+        participant?.id ??
+          participant?._id ??
+          participant?.participantId ??
+          participant?.userId ??
+          `participant-${index}`,
+      ),
+
+      userId:
+        participant?.userId ??
+        participant?.user_id ??
+        null,
+
+      participantId:
+        participant?.participantId ??
+        participant?.participant_id ??
+        null,
+
+      name:
+        participant?.name ??
+        participant?.fullName ??
+        participant?.full_name ??
+        participant?.username ??
+        "Participant",
+
+      username:
+        participant?.username ??
+        null,
+
+      email:
+        participant?.email ??
+        null,
+
+      avatarUrl:
+        participant?.avatarUrl ??
+        participant?.avatar_url ??
+        null,
+
+      connected:
+        participant?.connected ??
+        participant?.isConnected ??
+        participant?.is_connected ??
+        undefined,
+
+      joinedAt:
+        participant?.joinedAt ??
+        participant?.joined_at ??
+        null,
+
+      score:
+        participant?.score ??
+        participant?.points ??
+        0,
+
+      rank:
+        participant?.rank ??
+        null,
+
+      answeredQuestions:
+        participant?.answeredQuestions ??
+        participant?.answered_questions ??
+        0,
+
+      correctAnswers:
+        participant?.correctAnswers ??
+        participant?.correct_answers ??
+        0,
+
+      isEliminated:
+        participant?.isEliminated ??
+        participant?.is_eliminated ??
+        false,
+
+      isActive:
+        participant?.isActive ??
+        participant?.is_active ??
+        true,
+    }),
   );
 }
 
-function extractEventQuizId(
-  payload: unknown,
-): string | null {
-  if (!isRecord(payload)) {
-    return null;
-  }
+function mapLeaderboard(
+  entries: any[],
+): HostLeaderboardEntry[] {
+  return entries.map(
+    (entry, index) => ({
+      id: String(
+        entry?.id ??
+          entry?._id ??
+          entry?.participantId ??
+          entry?.userId ??
+          `leader-${index}`,
+      ),
 
-  const id =
-    toCleanString(
-      firstDefined(payload, [
-        "quizId",
-        "quiz_id",
-      ]),
-    );
+      userId:
+        entry?.userId ??
+        entry?.user_id ??
+        null,
 
-  return id || null;
+      participantId:
+        entry?.participantId ??
+        entry?.participant_id ??
+        null,
+
+      name:
+        entry?.name ??
+        entry?.fullName ??
+        entry?.full_name ??
+        entry?.username ??
+        "Participant",
+
+      username:
+        entry?.username ??
+        null,
+
+      avatarUrl:
+        entry?.avatarUrl ??
+        entry?.avatar_url ??
+        null,
+
+      score:
+        entry?.score ??
+        entry?.points ??
+        0,
+
+      correctAnswers:
+        entry?.correctAnswers ??
+        entry?.correct_answers ??
+        0,
+
+      answeredQuestions:
+        entry?.answeredQuestions ??
+        entry?.answered_questions ??
+        0,
+
+      rank:
+        entry?.rank ??
+        index + 1,
+
+      isCurrentLeader:
+        entry?.isCurrentLeader ??
+        entry?.is_current_leader ??
+        index === 0,
+
+      isEliminated:
+        entry?.isEliminated ??
+        entry?.is_eliminated ??
+        false,
+
+      isConnected:
+        entry?.isConnected ??
+        entry?.is_connected ??
+        undefined,
+    }),
+  );
 }
 
-/* ============================================================
+/* =========================================================
    PAGE
-   ============================================================ */
+   ========================================================= */
 
 export default function QuizPlayPage() {
   const params =
-    useParams<{
-      quizId: string;
-    }>();
+    useParams<{ quizId: string }>();
 
-  const router =
-    useRouter();
+  const searchParams =
+    useSearchParams();
 
-  const quizId =
-    String(
-      params?.quizId ?? "",
-    ).trim();
+  const router = useRouter();
 
-  /* ==========================================================
-     STATE
-     ========================================================== */
+  const quizId = params.quizId;
 
-  const [session, setSession] =
-    useState<QuizPlaySession | null>(
-      null,
-    );
+  const requestedRole =
+    searchParams.get("role");
 
-  const [sessionError, setSessionError] =
-    useState("");
+  /* =======================================================
+     CORE STATE
+     ======================================================= */
 
-  const [socketConnected, setSocketConnected] =
+  const [quiz, setQuiz] =
+    useState<Quiz | null>(null);
+
+  const [role, setRole] =
+    useState<QuizGameRole | null>(null);
+
+  const [connected, setConnected] =
     useState(false);
 
-  const [socketRoomJoined, setSocketRoomJoined] =
+  const [roomJoined, setRoomJoined] =
     useState(false);
 
-  const [socketError, setSocketError] =
-    useState("");
-
-  const [lastSocketEvent, setLastSocketEvent] =
-    useState("");
+  const [roomActivated, setRoomActivated] =
+    useState(false);
 
   const [currentRound, setCurrentRound] =
     useState(1);
 
-  const [question, setQuestion] =
-    useState<LiveQuestion | null>(
+  const [questions, setQuestions] =
+    useState<HostQuestionListItem[]>([]);
+
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<HostQuestionPreviewQuestion | null>(
       null,
     );
+
+  const [question, setQuestion] =
+    useState<LiveQuestion | null>(null);
+
+  const [currentQuestionNumber, setCurrentQuestionNumber] =
+    useState<number | null>(null);
+
+  const [questionStarted, setQuestionStarted] =
+    useState(false);
+
+  const [questionLocked, setQuestionLocked] =
+    useState(false);
+
+  const [timeLimit, setTimeLimit] =
+    useState(30);
 
   const [selectedAnswer, setSelectedAnswer] =
-    useState<string | null>(
+    useState<string | null>(null);
+
+  const [answerSubmitted, setAnswerSubmitted] =
+    useState(false);
+
+  const [submittingAnswer, setSubmittingAnswer] =
+    useState(false);
+
+  const [participants, setParticipants] =
+    useState<HostParticipant[]>([]);
+
+  const [leaderboard, setLeaderboard] =
+    useState<HostLeaderboardEntry[]>([]);
+
+  const [feedEvents, setFeedEvents] =
+    useState<any[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [questionLoading, setQuestionLoading] =
+    useState(false);
+
+  const [actionLoading, setActionLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  const [socketError, setSocketError] =
+    useState<string | null>(null);
+
+  /* =======================================================
+     STABLE REFS
+
+     These prevent the socket effect from being recreated
+     every time quiz/currentRound changes.
+     ======================================================= */
+
+  const quizRef =
+    useRef<Quiz | null>(null);
+
+  const currentRoundRef =
+    useRef(currentRound);
+
+  const roleRef =
+    useRef<QuizGameRole | null>(null);
+
+  const roomIdRef =
+    useRef<string | null>(null);
+
+  const selectedQuestionRef =
+    useRef<HostQuestionPreviewQuestion | null>(
       null,
     );
 
-  /* ==========================================================
-     REFS
-     ========================================================== */
+  const questionRef =
+    useRef<LiveQuestion | null>(null);
 
-  const mountedRef =
-    useRef(false);
-
-  const joinedSocketRoomRef =
-    useRef<string | null>(
-      null,
-    );
-
-  const lastQuestionFingerprintRef =
-    useRef<string | null>(
-      null,
-    );
-
-  /* ==========================================================
-     LOAD SESSION
-     ========================================================== */
+  const timeLimitRef =
+    useRef(timeLimit);
 
   useEffect(() => {
-    mountedRef.current = true;
+    quizRef.current = quiz;
+  }, [quiz]);
 
-    if (!quizId) {
-      setSessionError(
-        "Quiz ID is missing.",
-      );
+  useEffect(() => {
+    currentRoundRef.current =
+      currentRound;
+  }, [currentRound]);
 
-      return () => {
-        mountedRef.current = false;
-      };
-    }
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
 
-    try {
-      const storageKey =
-        `quiz-play-${quizId}`;
+  useEffect(() => {
+    selectedQuestionRef.current =
+      selectedQuestion;
+  }, [selectedQuestion]);
 
-      const raw =
-        sessionStorage.getItem(
-          storageKey,
-        );
+  useEffect(() => {
+    questionRef.current =
+      question;
+  }, [question]);
 
-      if (!raw) {
-        setSessionError(
-          "Your quiz session could not be found. Please return to the waiting room and enter the competition again.",
-        );
+  useEffect(() => {
+    timeLimitRef.current =
+      timeLimit;
+  }, [timeLimit]);
 
-        return () => {
-          mountedRef.current = false;
-        };
+  /* =======================================================
+     DERIVED VALUES
+     ======================================================= */
+
+  const requestedRoomId = searchParams.get("roomId");
+
+const roomId = useMemo(() => {
+  const urlRoomId = requestedRoomId?.trim();
+
+  if (urlRoomId) {
+    return urlRoomId;
+  }
+
+  return quiz ? getQuizRoomId(quiz) : null;
+}, [requestedRoomId, quiz]);
+
+  useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
+
+  const totalRounds = useMemo(
+    () =>
+      quiz
+        ? getQuizNumberOfRounds(
+            quiz,
+          )
+        : 1,
+    [quiz],
+  );
+
+  const quizTitle = useMemo(
+    () =>
+      quiz
+        ? getQuizTitle(quiz)
+        : "Quiz Competition",
+    [quiz],
+  );
+
+  const subject =
+    quiz?.subject ??
+    "Quiz Board";
+
+  /* =======================================================
+     LOAD QUIZ
+
+     Runs once for this quiz ID.
+     ======================================================= */
+
+  const loadQuiz =
+    useCallback(async () => {
+      if (!quizId) {
+        return;
       }
 
-      const parsed =
-        JSON.parse(raw) as QuizPlaySession;
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (
-        !parsed ||
-        parsed.quizId !== quizId
-      ) {
-        setSessionError(
-          "This quiz session is invalid or belongs to another competition.",
-        );
-
-        return () => {
-          mountedRef.current = false;
-        };
-      }
-
-      setSession(parsed);
-
-      setCurrentRound(
-        parsed.current_round > 0
-          ? parsed.current_round
-          : 1,
-      );
-    } catch (error) {
-      console.error(
-        "[Quiz Play] Failed to read session:",
-        error,
-      );
-
-      setSessionError(
-        "Unable to restore your quiz session.",
-      );
-    }
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [quizId]);
-
-  /* ==========================================================
-     APPLY QUESTION
-     ========================================================== */
-
-  const applyQuestion =
-    useCallback(
-      (
-        nextQuestion: LiveQuestion,
-      ) => {
-        const fingerprint =
-          JSON.stringify({
-            id: nextQuestion.id,
-            question:
-              nextQuestion.question,
-            options:
-              nextQuestion.options.map(
-                (option) => ({
-                  value:
-                    option.value,
-                  text:
-                    option.text,
-                }),
-              ),
-          });
-
-        /*
-         * Avoid processing the exact same question repeatedly
-         * if the backend emits it through more than one event.
-         */
-
-        if (
-          lastQuestionFingerprintRef.current ===
-          fingerprint
-        ) {
-          console.log(
-            "[Quiz Play] Duplicate question ignored:",
-            nextQuestion.id,
+        const response =
+          await axiosInstance.get(
+            `/quiz/get-quiz-by-quizId/${encodeURIComponent(
+              quizId,
+            )}`,
           );
 
-          return;
+        const rawQuiz =
+          response?.data?.data ??
+          response?.data?.quiz ??
+          response?.data;
+
+        if (!rawQuiz) {
+          throw new Error(
+            "Quiz competition could not be found.",
+          );
         }
 
-        lastQuestionFingerprintRef.current =
-          fingerprint;
+        const normalizedQuiz: Quiz = {
+          ...rawQuiz,
 
-        console.log(
-          "[Quiz Play] QUESTION RECEIVED:",
-          nextQuestion,
+          id: getQuizId({
+            id:
+              rawQuiz.id ??
+              rawQuiz._id ??
+              quizId,
+
+            _id:
+              rawQuiz._id,
+          }),
+
+          title:
+            rawQuiz.title ??
+            rawQuiz.quiz_title ??
+            "Quiz Competition",
+
+          status:
+            rawQuiz.status ??
+            "WAITING",
+
+          numberOfRounds:
+            getQuizNumberOfRounds(
+              rawQuiz,
+            ),
+
+          timePerQuestion:
+            getQuizTimePerQuestion(
+              rawQuiz,
+            ),
+
+          noOfContestants:
+            rawQuiz.noOfContestants ??
+            rawQuiz.no_of_contestants ??
+            20,
+        };
+
+        setQuiz(normalizedQuiz);
+
+        const initialRound =
+          Math.max(
+            1,
+            getQuizCurrentRound(
+              normalizedQuiz,
+            ) || 1,
+          );
+
+        setCurrentRound(
+          initialRound,
         );
 
-        setQuestion(
-          nextQuestion,
+        setTimeLimit(
+          getQuizTimePerQuestion(
+            normalizedQuiz,
+          ),
         );
-
-        setSelectedAnswer(
-          null,
+      } catch (err: any) {
+        setError(
+          err?.response?.data
+            ?.message ??
+            err?.message ??
+            "Unable to load competition.",
         );
-      },
-      [],
-    );
+      } finally {
+        setLoading(false);
+      }
+    }, [quizId]);
 
-  /* ==========================================================
-     SOCKET CONNECTION
-     ========================================================== */
+  useEffect(() => {
+    void loadQuiz();
+  }, [loadQuiz]);
+
+  /* =======================================================
+     DETERMINE ROLE
+
+     Runs independently from quiz loading.
+     ======================================================= */
 
   useEffect(() => {
     if (
-      !session ||
-      !quizId
+      typeof window ===
+      "undefined"
     ) {
       return;
     }
 
-    const roomId =
-      session.room_id
-        ? String(
-            session.room_id,
-          ).trim()
-        : "";
+    const user =
+      readStoredUser();
 
-    if (!roomId) {
-      setSocketError(
-        "This competition does not have a room ID yet.",
+    const resolvedRole =
+      getSocketRole(
+        user,
+        requestedRole,
       );
 
+    setRole(resolvedRole);
+    roleRef.current =
+      resolvedRole;
+  }, [requestedRole]);
+
+  
+  
+  
+  
+  
+  
+  /* =======================================================
+     LOAD HOST QUESTIONS
+
+     IMPORTANT:
+     Backend currently returns:
+
+       data: Array(10)
+
+     not:
+
+       data: { questions: Array(10) }
+
+     We explicitly support both.
+     ======================================================= */
+
+  const loadRoundQuestions =
+    useCallback(
+      async (roundNumber: number) => {
+        if (
+          !quizId ||
+          roleRef.current !==
+            "HOST"
+        ) {
+          return;
+        }
+
+        try {
+          setQuestionLoading(true);
+
+          const response =
+            await axiosInstance.get(
+              `/quiz/get-round-questions/${encodeURIComponent(
+                quizId,
+              )}`,
+              {
+                params: {
+                  roundNumber,
+                },
+              },
+            );
+
+          const payload =
+            response?.data?.data ??
+            response?.data;
+
+          let rawQuestions: any[] =
+            [];
+
+          if (
+            Array.isArray(
+              payload,
+            )
+          ) {
+            rawQuestions =
+              payload;
+          } else if (
+            payload &&
+            typeof payload ===
+              "object"
+          ) {
+            rawQuestions =
+              payload.questions ??
+              payload.questionObj ??
+              payload.roundQuestions ??
+              [];
+          }
+
+          const normalized: HostQuestionListItem[] =
+            Array.isArray(
+              rawQuestions,
+            )
+              ? rawQuestions.map(
+                  (
+                    item: any,
+                    index: number,
+                  ) => ({
+                    id: String(
+                      item?.id ??
+                        item?._id ??
+                        `question-${
+                          index + 1
+                        }`,
+                    ),
+
+                    questionNumber:
+                      getNumber(
+                        item?.questionNumber ??
+                          item?.question_number,
+                        index + 1,
+                      ) ??
+                      index + 1,
+
+                    question:
+                      item?.question ??
+                      item?.questionText ??
+                      item?.question_text ??
+                      "",
+
+                    options:
+                      Array.isArray(
+                        item?.options,
+                      )
+                        ? item.options
+                        : [],
+
+                    timeLimit:
+                      getNumber(
+                        item?.timeLimit ??
+                          item?.time_limit,
+                        timeLimitRef.current,
+                      ),
+
+                    status:
+                      item?.status ??
+                      "READY",
+
+                    answeredCount:
+                      getNumber(
+                        item?.answeredCount ??
+                          item?.answered_count,
+                        0,
+                      ) ?? 0,
+
+                    correctCount:
+                      getNumber(
+                        item?.correctCount ??
+                          item?.correct_count,
+                        0,
+                      ) ?? 0,
+                  }),
+                )
+              : [];
+
+          setQuestions(
+            normalized,
+          );
+
+          /*
+           * Preserve the currently selected question
+           * when refreshing the same round.
+           */
+          const existingNumber =
+            selectedQuestionRef
+              .current
+              ?.questionNumber;
+
+          const selected =
+            normalized.find(
+              (item) =>
+                item.questionNumber ===
+                existingNumber,
+            ) ??
+            normalized[0] ??
+            null;
+
+          if (selected) {
+            const preview: HostQuestionPreviewQuestion =
+              {
+                id:
+                  selected.id,
+
+                questionNumber:
+                  selected.questionNumber,
+
+                question:
+                  selected.question,
+
+                options:
+                  selected.options?.map(
+                    (option: any) => ({
+                      label:
+                        option?.label,
+
+                      value:
+                        option?.value ??
+                        option?.answer ??
+                        "",
+
+                      isCorrect:
+                        option?.isCorrect ??
+                        option?.is_correct,
+                    }),
+                  ) ?? [],
+
+                timeLimit:
+                  selected.timeLimit,
+
+                status:
+                  selected.status,
+
+                answeredCount:
+                  selected.answeredCount,
+
+                correctCount:
+                  selected.correctCount,
+              };
+
+            setSelectedQuestion(
+              preview,
+            );
+
+            selectedQuestionRef.current =
+              preview;
+          } else {
+            setSelectedQuestion(
+              null,
+            );
+
+            selectedQuestionRef.current =
+              null;
+          }
+        } catch (err: any) {
+          setError(
+            err?.response?.data
+              ?.message ??
+              err?.message ??
+              "Unable to load round questions.",
+          );
+        } finally {
+          setQuestionLoading(
+            false,
+          );
+        }
+      },
+      [quizId],
+    );
+
+  /*
+   * Only load host questions when the round changes.
+   *
+   * timeLimit is intentionally NOT a dependency.
+   */
+  useEffect(() => {
+    if (
+      role !== "HOST" ||
+      !quiz ||
+      !currentRound
+    ) {
       return;
     }
 
-    console.log(
-      "[Quiz Play] Initializing socket for quiz:",
-      quizId,
+    void loadRoundQuestions(
+      currentRound,
     );
+  }, [
+    role,
+    quiz,
+    currentRound,
+    loadRoundQuestions,
+  ]);
 
-    console.log(
-      "[Quiz Play] Room:",
-      roomId,
-    );
+  /* =======================================================
+     SOCKET CONNECTION
+
+     IMPORTANT:
+     This effect deliberately depends ONLY on stable
+     connection identity.
+
+     It must NOT depend on:
+       quiz
+       currentRound
+       timeLimit
+       selectedQuestion
+       question
+     ======================================================= */
+
+  useEffect(() => {
+    if (
+      !quizId ||
+      !roomId ||
+      !role
+    ) {
+      return;
+    }
 
     const socket =
       getQuizSocket();
 
-    /* ========================================================
-       CONNECT HANDLER
-       ======================================================== */
+    let disposed = false;
+
+   
+   
+    const joinRoom = () => {
+  if (disposed) {
+    return;
+  }
+
+  const currentRole = roleRef.current;
+
+  if (!currentRole) {
+    console.warn("[HOST] Cannot join room: role is missing.");
+    return;
+  }
+
+  if (!quizId) {
+    console.warn("[HOST] Cannot join room: quizId is missing.");
+    return;
+  }
+
+  if (!roomId) {
+    console.warn("[HOST] Cannot join room: roomId is missing.");
+    return;
+  }
+
+  if (!socket.connected) {
+    console.warn("[HOST] Cannot join room: socket is not connected.");
+    return;
+  }
+
+  const payload = {
+    roomId,
+    room_id: roomId,
+
+    quizId,
+    quiz_id: quizId,
+
+    role: currentRole,
+  };
+
+  console.log("========================================");
+  console.log("[HOST] ABOUT TO JOIN QUIZ ROOM");
+  console.log("quizId:", quizId);
+  console.log("roomId:", roomId);
+  console.log("requestedRoomId:", requestedRoomId);
+  console.log("role:", currentRole);
+  console.log("socket.id:", socket.id);
+  console.log("socket.connected:", socket.connected);
+  console.log("========================================");
+
+  console.log("[HOST JOIN ROOM]", {
+    quizId,
+    roomId,
+    urlRoomId: requestedRoomId,
+    role: currentRole,
+    socketConnected: socket.connected,
+    payload,
+  });
+
+  socket.emit("join_room", payload);
+
+  console.log("[HOST] join_room EMITTED", {
+    socketId: socket.id,
+    quizId,
+    roomId,
+    role: currentRole,
+  });
+};
+
+
+
 
     const handleConnect =
       () => {
-        console.log(
-          "[Quiz Play] Socket connected.",
-        );
-
-        console.log(
-          "[Quiz Play] Socket ID:",
-          socket.id,
-        );
-
-        setSocketConnected(
-          true,
-        );
-
-        setSocketError("");
-
-        /*
-         * Join the quiz room if we haven't already joined
-         * this exact room with this socket.
-         */
-
-        if (
-          joinedSocketRoomRef.current !==
-          roomId
-        ) {
-          console.log(
-            "[Quiz Play] Joining room:",
-            roomId,
-          );
-
-          socket.emit(
-            "join_room",
-            {
-              room_id: roomId,
-            },
-          );
-
-          /*
-           * Do not mark it as joined yet.
-           *
-           * We wait for joined_room_ack.
-           */
-
-          joinedSocketRoomRef.current =
-            null;
-        }
-      };
-
-    /* ========================================================
-       CONNECT ERROR
-       ======================================================== */
-
-    const handleConnectError =
-      (error: Error) => {
-        console.error(
-          "[Quiz Play] Socket connection error:",
-          error,
-        );
-
-        setSocketConnected(
-          false,
-        );
-
-        setSocketRoomJoined(
-          false,
-        );
-
-        setSocketError(
-          error.message ||
-            "Unable to connect to the quiz server.",
-        );
-      };
-
-    /* ========================================================
-       DISCONNECT
-       ======================================================== */
-
-    const handleDisconnect =
-      (reason: string) => {
-        console.warn(
-          "[Quiz Play] Socket disconnected:",
-          reason,
-        );
-
-        setSocketConnected(
-          false,
-        );
-
-        setSocketRoomJoined(
-          false,
-        );
-
-        /*
-         * Do not destroy the singleton here.
-         *
-         * quizSocket.ts handles reconnection.
-         */
-
-        joinedSocketRoomRef.current =
-          null;
-      };
-
-    /* ========================================================
-       JOINED ROOM ACK
-       ======================================================== */
-
-    const handleJoinedRoomAck =
-      (
-        payload: SocketJoinedRoomAckPayload,
-      ) => {
-        console.log(
-          "[Quiz Play] joined_room_ack:",
-          payload,
-        );
-
-        if (
-          payload?.success ===
-          false
-        ) {
-          setSocketRoomJoined(
-            false,
-          );
-
-          setSocketError(
-            payload.message ||
-              "The quiz room could not be joined.",
-          );
-
+        if (disposed) {
           return;
         }
 
-        setSocketRoomJoined(
-          true,
-        );
+        setConnected(true);
+        setSocketError(null);
 
-        joinedSocketRoomRef.current =
-          roomId;
+        /*
+         * All three quiz roles join the room.
+         *
+         * HOST needs room membership too because the host
+         * controls the live room through Socket.IO.
+         */
+        joinRoom();
 
-        setSocketError("");
+ 
+      };
 
-        console.log(
-          "[Quiz Play] Successfully joined room:",
-          roomId,
+    const handleDisconnect =
+      () => {
+        if (disposed) {
+          return;
+        }
+
+        setConnected(false);
+        setRoomJoined(false);
+      };
+
+    const handleConnectError =
+      (err: Error) => {
+        if (disposed) {
+          return;
+        }
+
+        setConnected(false);
+
+        setSocketError(
+          err?.message ??
+            "Unable to connect to quiz server.",
         );
       };
 
-    /* ========================================================
-       ROUND STARTED
-       ======================================================== */
+    const handleJoinedRoom =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        setRoomJoined(true);
+
+        if (
+          Array.isArray(
+            data?.participants,
+          )
+        ) {
+          setParticipants(
+            mapParticipants(
+              data.participants,
+            ),
+          );
+        }
+      };
+
+    const handleRoomActivated =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        setRoomActivated(
+          true,
+        );
+
+        if (
+          Array.isArray(
+            data?.participants,
+          )
+        ) {
+          setParticipants(
+            mapParticipants(
+              data.participants,
+            ),
+          );
+        }
+      };
+
+    const handleRoomState =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        if (
+          typeof data?.activated ===
+          "boolean"
+        ) {
+          setRoomActivated(
+            data.activated,
+          );
+        }
+
+        if (
+          typeof data?.roomActivated ===
+          "boolean"
+        ) {
+          setRoomActivated(
+            data.roomActivated,
+          );
+        }
+
+        if (
+          Array.isArray(
+            data?.participants,
+          )
+        ) {
+          setParticipants(
+            mapParticipants(
+              data.participants,
+            ),
+          );
+        }
+
+        const leaderboardEntries =
+          data?.leaderboard ??
+          data?.entries;
+
+        if (
+          Array.isArray(
+            leaderboardEntries,
+          )
+        ) {
+          setLeaderboard(
+            mapLeaderboard(
+              leaderboardEntries,
+            ),
+          );
+        }
+
+        /*
+         * Some backends include the current live question
+         * inside room_state when reconnecting.
+         */
+        const rawQuestion =
+          data?.question ??
+          data?.currentQuestion;
+
+        if (rawQuestion) {
+          const normalized =
+            normalizeQuestion(
+              rawQuestion,
+              getNumber(
+                data?.questionNumber ??
+                  data?.question_number,
+                null,
+              ),
+              getNumber(
+                data?.totalQuestions ??
+                  data?.total_questions,
+                null,
+              ),
+            );
+
+          if (normalized) {
+            setQuestion(
+              normalized,
+            );
+
+            questionRef.current =
+              normalized;
+
+            setCurrentQuestionNumber(
+              normalized.questionNumber,
+            );
+
+            setTimeLimit(
+              normalized.timeLimit ??
+                timeLimitRef.current,
+            );
+
+            setQuestionStarted(
+              true,
+            );
+
+            setQuestionLocked(
+              false,
+            );
+          }
+        }
+      };
 
     const handleRoundStarted =
       (
-        payload: SocketRoundStartedPayload,
+        payload: SocketPayload,
       ) => {
-        console.log(
-          "[Quiz Play] round_started:",
-          payload,
-        );
-
-        const eventQuizId =
-          extractEventQuizId(
-            payload,
-          );
-
-        if (
-          eventQuizId &&
-          eventQuizId !== quizId
-        ) {
-          console.log(
-            "[Quiz Play] Ignoring round_started for another quiz:",
-            eventQuizId,
-          );
-
+        if (disposed) {
           return;
         }
 
-        const round =
-          extractRound(
+        const data =
+          unwrapPayload(
             payload,
+          );
+
+        const round =
+          getNumber(
+            data?.roundNumber ??
+              data?.round_number,
+            currentRoundRef.current,
           );
 
         if (round) {
@@ -1113,186 +2593,342 @@ export default function QuizPlayPage() {
           );
         }
 
-        /*
-         * Some backends may send the first question together
-         * with round_started.
-         */
+        setQuestion(
+          null,
+        );
 
-        const embeddedQuestion =
-          findQuestionInPayload(
-            payload,
-          );
+        questionRef.current =
+          null;
 
-        if (
-          embeddedQuestion
-        ) {
-          console.log(
-            "[Quiz Play] Question found inside round_started.",
-          );
+        setCurrentQuestionNumber(
+          null,
+        );
 
-          applyQuestion(
-            embeddedQuestion,
-          );
-        }
+        setSelectedAnswer(
+          null,
+        );
+
+        setAnswerSubmitted(
+          false,
+        );
+
+        setQuestionStarted(
+          false,
+        );
+
+        setQuestionLocked(
+          false,
+        );
       };
 
-    /* ========================================================
-       ANY EVENT
-       --------------------------------------------------------
-       This is intentionally kept while the backend event
-       contract is being confirmed.
-
-       It allows the frontend to discover whether the backend
-       sends:
-
-       question_started
-       new_question
-       next_question
-       question
-       current_question
-       etc.
-
-       without hard-coding an incorrect event name.
-       ======================================================== */
-
-    const handleAnyEvent =
+    const handleQuestionStarted =
       (
-        eventName: string,
-        ...args: unknown[]
+        payload: SocketPayload,
       ) => {
-        console.log(
-          "[Quiz Play] SOCKET EVENT:",
-          eventName,
-          args,
-        );
-
-        setLastSocketEvent(
-          eventName,
-        );
-
-        /*
-         * Ignore purely technical Socket.IO events.
-         */
-
-        if (
-          eventName ===
-            "connect" ||
-          eventName ===
-            "disconnect" ||
-          eventName ===
-            "connect_error"
-        ) {
+        if (disposed) {
           return;
         }
 
-        /*
-         * Search all event arguments for a question.
-         */
-
-        for (const arg of args) {
-          const foundQuestion =
-            findQuestionInPayload(
-              arg,
-            );
-
-          if (
-            foundQuestion
-          ) {
-            console.log(
-              "[Quiz Play] Question discovered from event:",
-              eventName,
-            );
-
-            applyQuestion(
-              foundQuestion,
-            );
-
-            return;
-          }
-        }
-      };
-
-    /* ========================================================
-       KNOWN QUESTION EVENTS
-       --------------------------------------------------------
-       Register explicit listeners in addition to onAny.
-       ======================================================== */
-
-    const handleQuestionStarted =
-      (payload: unknown) => {
-        console.log(
-          "[Quiz Play] question_started:",
-          payload,
-        );
-
-        const foundQuestion =
-          findQuestionInPayload(
+        const data =
+          unwrapPayload(
             payload,
           );
 
-        if (
-          foundQuestion
-        ) {
-          applyQuestion(
-            foundQuestion,
+        const rawQuestion =
+          data?.question ??
+          data?.currentQuestion ??
+          data;
+
+        const normalized =
+          normalizeQuestion(
+            rawQuestion,
+
+            getNumber(
+              data?.questionNumber ??
+                data?.question_number,
+              null,
+            ),
+
+            getNumber(
+              data?.totalQuestions ??
+                data?.total_questions,
+              null,
+            ),
+          );
+
+        if (normalized) {
+          setQuestion(
+            normalized,
+          );
+
+          questionRef.current =
+            normalized;
+
+          setCurrentQuestionNumber(
+            normalized.questionNumber,
+          );
+
+          setTimeLimit(
+            normalized.timeLimit ??
+              timeLimitRef.current,
           );
         }
-      };
 
-    const handleNewQuestion =
-      (payload: unknown) => {
-        console.log(
-          "[Quiz Play] new_question:",
-          payload,
+        setQuestionStarted(
+          true,
         );
 
-        const foundQuestion =
-          findQuestionInPayload(
+        setQuestionLocked(
+          false,
+        );
+
+        setSelectedAnswer(
+          null,
+        );
+
+        setAnswerSubmitted(
+          false,
+        );
+
+        setSubmittingAnswer(
+          false,
+        );
+      };
+
+    const handleQuestionLocked =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
             payload,
           );
 
+        setQuestionLocked(
+          true,
+        );
+
         if (
-          foundQuestion
+          Array.isArray(
+            data?.leaderboard,
+          )
         ) {
-          applyQuestion(
-            foundQuestion,
+          setLeaderboard(
+            mapLeaderboard(
+              data.leaderboard,
+            ),
           );
         }
       };
 
     const handleNextQuestion =
-      (payload: unknown) => {
-        console.log(
-          "[Quiz Play] next_question:",
-          payload,
-        );
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
 
-        const foundQuestion =
-          findQuestionInPayload(
+        const data =
+          unwrapPayload(
             payload,
           );
 
+        const nextNumber =
+          getNumber(
+            data?.questionNumber ??
+              data?.question_number,
+            null,
+          );
+
+        setCurrentQuestionNumber(
+          nextNumber,
+        );
+
+        setQuestion(
+          null,
+        );
+
+        questionRef.current =
+          null;
+
+        setQuestionStarted(
+          false,
+        );
+
+        setQuestionLocked(
+          false,
+        );
+
+        setSelectedAnswer(
+          null,
+        );
+
+        setAnswerSubmitted(
+          false,
+        );
+      };
+
+    const handleParticipants =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        const list =
+          data?.participants ??
+          data?.participantList;
+
         if (
-          foundQuestion
+          Array.isArray(list)
         ) {
-          applyQuestion(
-            foundQuestion,
+          setParticipants(
+            mapParticipants(
+              list,
+            ),
           );
         }
       };
 
-    /* ========================================================
-       REGISTER SOCKET LISTENERS
-       ======================================================== */
+    const handleLeaderboard =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        const entries =
+          data?.entries ??
+          data?.leaderboard ??
+          [];
+
+        if (
+          Array.isArray(entries)
+        ) {
+          setLeaderboard(
+            mapLeaderboard(
+              entries,
+            ),
+          );
+        }
+      };
+
+    const handleFirstCorrect =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        setFeedEvents(
+          (previous) => [
+            ...previous.slice(-49),
+
+            {
+              type:
+                "FIRST_CORRECT_ANSWER",
+
+              ...data,
+
+              createdAt:
+                new Date().toISOString(),
+            },
+          ],
+        );
+      };
+
+    const handleEliminations =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        setFeedEvents(
+          (previous) => [
+            ...previous.slice(-49),
+
+            {
+              type:
+                "PARTICIPANTS_ELIMINATED",
+
+              ...data,
+
+              createdAt:
+                new Date().toISOString(),
+            },
+          ],
+        );
+
+        if (
+          Array.isArray(
+            data?.participants,
+          )
+        ) {
+          setParticipants(
+            mapParticipants(
+              data.participants,
+            ),
+          );
+        }
+      };
+
+    const handleSocketError =
+      (
+        payload: SocketPayload,
+      ) => {
+        if (disposed) {
+          return;
+        }
+
+        const data =
+          unwrapPayload(
+            payload,
+          );
+
+        setSocketError(
+          data?.message ??
+            data?.error ??
+            "Quiz socket error.",
+        );
+      };
+
+    /* =====================================================
+       LISTENERS
+       ===================================================== */
 
     socket.on(
       "connect",
       handleConnect,
-    );
-
-    socket.on(
-      "connect_error",
-      handleConnectError,
     );
 
     socket.on(
@@ -1301,8 +2937,28 @@ export default function QuizPlayPage() {
     );
 
     socket.on(
+      "connect_error",
+      handleConnectError,
+    );
+
+    socket.on(
       "joined_room_ack",
-      handleJoinedRoomAck,
+      handleJoinedRoom,
+    );
+
+    socket.on(
+      "room_activated",
+      handleRoomActivated,
+    );
+
+    socket.on(
+      "room_activation_ack",
+      handleRoomActivated,
+    );
+
+    socket.on(
+      "room_state",
+      handleRoomState,
     );
 
     socket.on(
@@ -1316,8 +2972,8 @@ export default function QuizPlayPage() {
     );
 
     socket.on(
-      "new_question",
-      handleNewQuestion,
+      "question_locked",
+      handleQuestionLocked,
     );
 
     socket.on(
@@ -1325,48 +2981,56 @@ export default function QuizPlayPage() {
       handleNextQuestion,
     );
 
-    socket.onAny(
-      handleAnyEvent,
+    socket.on(
+      "participant_joined_room",
+      handleParticipants,
     );
 
-    /* ========================================================
-       IF ALREADY CONNECTED
-       ======================================================== */
+    socket.on(
+      "participant_left_room",
+      handleParticipants,
+    );
+
+    socket.on(
+      "leaderboard_updated",
+      handleLeaderboard,
+    );
+
+    socket.on(
+      "first_correct_answer",
+      handleFirstCorrect,
+    );
+
+    socket.on(
+      "participants_eliminated",
+      handleEliminations,
+    );
+
+    socket.on(
+      "socket_error",
+      handleSocketError,
+    );
+
+    /* =====================================================
+       CONNECT / REUSE EXISTING CONNECTION
+       ===================================================== */
 
     if (socket.connected) {
-      console.log(
-        "[Quiz Play] Socket was already connected.",
-      );
-
       handleConnect();
+    } else {
+      socket.connect();
     }
 
-    /* ========================================================
+    /* =====================================================
        CLEANUP
-       --------------------------------------------------------
-       IMPORTANT:
-
-       We remove THIS PAGE'S listeners only.
-
-       We DO NOT call disconnectQuizSocket().
-
-       The waiting room and play page share the singleton
-       connection.
-       ======================================================== */
+       ===================================================== */
 
     return () => {
-      console.log(
-        "[Quiz Play] Removing play-page socket listeners.",
-      );
+      disposed = true;
 
       socket.off(
         "connect",
         handleConnect,
-      );
-
-      socket.off(
-        "connect_error",
-        handleConnectError,
       );
 
       socket.off(
@@ -1375,8 +3039,28 @@ export default function QuizPlayPage() {
       );
 
       socket.off(
+        "connect_error",
+        handleConnectError,
+      );
+
+      socket.off(
         "joined_room_ack",
-        handleJoinedRoomAck,
+        handleJoinedRoom,
+      );
+
+      socket.off(
+        "room_activated",
+        handleRoomActivated,
+      );
+
+      socket.off(
+        "room_activation_ack",
+        handleRoomActivated,
+      );
+
+      socket.off(
+        "room_state",
+        handleRoomState,
       );
 
       socket.off(
@@ -1390,8 +3074,8 @@ export default function QuizPlayPage() {
       );
 
       socket.off(
-        "new_question",
-        handleNewQuestion,
+        "question_locked",
+        handleQuestionLocked,
       );
 
       socket.off(
@@ -1399,585 +3083,872 @@ export default function QuizPlayPage() {
         handleNextQuestion,
       );
 
-      socket.offAny(
-        handleAnyEvent,
+      socket.off(
+        "participant_joined_room",
+        handleParticipants,
+      );
+
+      socket.off(
+        "participant_left_room",
+        handleParticipants,
+      );
+
+      socket.off(
+        "leaderboard_updated",
+        handleLeaderboard,
+      );
+
+      socket.off(
+        "first_correct_answer",
+        handleFirstCorrect,
+      );
+
+      socket.off(
+        "participants_eliminated",
+        handleEliminations,
+      );
+
+      socket.off(
+        "socket_error",
+        handleSocketError,
+      );
+    };
+  }, [
+    quizId,
+    roomId,
+    role,
+  ]);
+
+  /* =======================================================
+     QUESTION SELECTION
+     ======================================================= */
+
+  const selectQuestion =
+    useCallback(
+      (
+        item: HostQuestionListItem,
+      ) => {
+        const preview: HostQuestionPreviewQuestion =
+          {
+            id: item.id,
+
+            questionNumber:
+              item.questionNumber,
+
+            question:
+              item.question,
+
+            options:
+              item.options?.map(
+                (option: any) => ({
+                  label:
+                    option?.label,
+
+                  value:
+                    option?.value ??
+                    option?.answer ??
+                    "",
+
+                  isCorrect:
+                    option?.isCorrect ??
+                    option?.is_correct,
+                }),
+              ) ?? [],
+
+            timeLimit:
+              item.timeLimit,
+
+            status:
+              item.status,
+
+            answeredCount:
+              item.answeredCount,
+
+            correctCount:
+              item.correctCount,
+          };
+
+        setSelectedQuestion(
+          preview,
+        );
+
+        selectedQuestionRef.current =
+          preview;
+      },
+      [],
+    );
+
+  /* =======================================================
+     START QUESTION
+     ======================================================= */
+
+  const startQuestion =
+    useCallback(() => {
+      const currentRole =
+        roleRef.current;
+
+      const currentRoomId =
+        roomIdRef.current;
+
+      const currentSelectedQuestion =
+        selectedQuestionRef.current;
+
+      if (
+        currentRole !== "HOST" ||
+        !currentRoomId ||
+        !currentSelectedQuestion ||
+        !connected
+      ) {
+        return;
+      }
+
+      const socket =
+        getQuizSocket();
+
+      setActionLoading(true);
+
+      socket.emit(
+        "start_question",
+        {
+          roomId:
+            currentRoomId,
+
+          room_id:
+            currentRoomId,
+
+          quizId,
+
+          quiz_id:
+            quizId,
+
+          roundNumber:
+            currentRoundRef.current,
+
+          round_number:
+            currentRoundRef.current,
+
+          questionNumber:
+            currentSelectedQuestion.questionNumber,
+
+          question_number:
+            currentSelectedQuestion.questionNumber,
+
+          questionId:
+            currentSelectedQuestion.id,
+
+          question_id:
+            currentSelectedQuestion.id,
+
+          timeLimit:
+            timeLimitRef.current,
+
+          time_limit:
+            timeLimitRef.current,
+        },
       );
 
       /*
-       * DO NOT:
+       * Do not set questionStarted here.
        *
-       * disconnectQuizSocket();
+       * The backend is authoritative.
        *
-       * The socket must remain alive while the quiz flow
-       * is active.
+       * We wait for:
+       *
+       *     question_started
+       *
+       * before changing the live question state.
        */
-    };
-  }, [
-    session,
-    quizId,
-    applyQuestion,
-  ]);
+      setActionLoading(false);
+    }, [
+      quizId,
+      connected,
+    ]);
 
-  /* ==========================================================
-     SELECT ANSWER
-     ========================================================== */
+  /* =======================================================
+     LOCK QUESTION
+     ======================================================= */
 
-  const handleSelectAnswer =
+  const lockQuestion =
+    useCallback(() => {
+      if (
+        roleRef.current !==
+          "HOST" ||
+        !roomIdRef.current ||
+        currentQuestionNumber ==
+          null ||
+        !connected
+      ) {
+        return;
+      }
+
+      const socket =
+        getQuizSocket();
+
+      socket.emit(
+        "question_locked",
+        {
+          roomId:
+            roomIdRef.current,
+
+          room_id:
+            roomIdRef.current,
+
+          quizId,
+
+          quiz_id:
+            quizId,
+
+          roundNumber:
+            currentRoundRef.current,
+
+          round_number:
+            currentRoundRef.current,
+
+          questionNumber:
+            currentQuestionNumber,
+
+          question_number:
+            currentQuestionNumber,
+        },
+      );
+    }, [
+      quizId,
+      connected,
+      currentQuestionNumber,
+    ]);
+
+  /* =======================================================
+     NEXT QUESTION
+     ======================================================= */
+
+  const nextQuestion =
+    useCallback(() => {
+      if (
+        roleRef.current !==
+          "HOST" ||
+        !roomIdRef.current ||
+        currentQuestionNumber ==
+          null ||
+        !connected
+      ) {
+        return;
+      }
+
+      const socket =
+        getQuizSocket();
+
+      socket.emit(
+        "next_question",
+        {
+          roomId:
+            roomIdRef.current,
+
+          room_id:
+            roomIdRef.current,
+
+          quizId,
+
+          quiz_id:
+            quizId,
+
+          roundNumber:
+            currentRoundRef.current,
+
+          round_number:
+            currentRoundRef.current,
+
+          questionNumber:
+            currentQuestionNumber,
+
+          question_number:
+            currentQuestionNumber,
+        },
+      );
+    }, [
+      quizId,
+      connected,
+      currentQuestionNumber,
+    ]);
+
+  /* =======================================================
+     SUBMIT CONTESTANT ANSWER
+     ======================================================= */
+
+  const submitAnswer =
     useCallback(
-      (
-        option: QuizOption,
-      ) => {
-        if (!question) {
+      (answer: string) => {
+        const currentRole =
+          roleRef.current;
+
+        const currentRoomId =
+          roomIdRef.current;
+
+        const currentQuestion =
+          questionRef.current;
+
+        if (
+          currentRole !==
+            "CONTESTANT" ||
+          !currentRoomId ||
+          !currentQuestion ||
+          answerSubmitted ||
+          submittingAnswer
+        ) {
           return;
         }
 
-        console.log(
-          "[Quiz Play] Answer selected:",
+        setSelectedAnswer(
+          answer,
+        );
+
+        setSubmittingAnswer(
+          true,
+        );
+
+        getQuizSocket().emit(
+          "submit_answer",
           {
+            roomId:
+              currentRoomId,
+
+            room_id:
+              currentRoomId,
+
             quizId,
+
+            quiz_id:
+              quizId,
+
             questionId:
-              question.id,
-            option,
+              currentQuestion.id,
+
+            question_id:
+              currentQuestion.id,
+
+            roundNumber:
+              currentRoundRef.current,
+
+            round_number:
+              currentRoundRef.current,
+
+            questionNumber:
+              currentQuestion.questionNumber,
+
+            question_number:
+              currentQuestion.questionNumber,
+
+            answer,
+
+            selectedAnswer:
+              answer,
           },
         );
 
-        setSelectedAnswer(
-          option.value,
+        /*
+         * The existing UI treats the answer as submitted
+         * immediately after emitting.
+         *
+         * Backend remains authoritative for correctness.
+         */
+        setAnswerSubmitted(
+          true,
         );
 
-        /*
-         * IMPORTANT:
-         *
-         * We intentionally do not emit an "answer_submitted"
-         * event here yet because the exact backend payload
-         * contract has not been confirmed.
-         *
-         * Once the backend contract is known, this is where
-         * the socket.emit(...) should be added.
-         */
+        setSubmittingAnswer(
+          false,
+        );
       },
       [
-        question,
         quizId,
+        answerSubmitted,
+        submittingAnswer,
       ],
     );
 
-  /* ==========================================================
-     LEAVE QUIZ
-     ========================================================== */
+  /* =======================================================
+     NAVIGATION
+     ======================================================= */
 
-  const handleLeaveQuiz =
+  const back =
     useCallback(() => {
-      console.log(
-        "[Quiz Play] Leaving quiz:",
-        quizId,
-      );
+      router.back();
+    }, [router]);
 
-      router.push(
-        `/student/quiz-board/${quizId}`,
-      );
+  /* =======================================================
+     REFRESH
+
+     Explicit user action only.
+     ======================================================= */
+
+  const refresh =
+    useCallback(() => {
+      void loadQuiz();
+
+      if (
+        roleRef.current ===
+        "HOST"
+      ) {
+        void loadRoundQuestions(
+          currentRoundRef.current,
+        );
+      }
     }, [
-      router,
+      loadQuiz,
+      loadRoundQuestions,
+    ]);
+
+  /* =======================================================
+     CURRENT USER SCORE
+     ======================================================= */
+
+  const currentUser =
+    useMemo(
+      () =>
+        readStoredUser(),
+      [],
+    );
+
+  const currentUserId =
+    String(
+      currentUser?.id ??
+        currentUser?._id ??
+        "",
+    );
+
+  const currentUserEntry =
+    useMemo(
+      () =>
+        leaderboard.find(
+          (entry) =>
+            String(
+              entry.userId ??
+                entry.participantId ??
+                "",
+            ) ===
+            currentUserId,
+        ),
+      [
+        leaderboard,
+        currentUserId,
+      ],
+    );
+
+  /* =======================================================
+     LOADING
+     ======================================================= */
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+
+          <p className="text-sm text-slate-400">
+            Loading quiz...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  /* =======================================================
+     ERROR / INVALID ROOM
+     ======================================================= */
+
+  if (
+    error ||
+    !quiz ||
+    !role ||
+    !roomId
+  ) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
+        <div className="w-full max-w-lg rounded-2xl border border-red-500/20 bg-slate-900 p-6 text-center">
+          <h1 className="text-lg font-semibold">
+            Unable to load competition
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-400">
+            {error ??
+              "No quiz room is available for this competition."}
+          </p>
+
+          <button
+            type="button"
+            onClick={back}
+            className="mt-6 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+
+
+const canStartQuestion =
+  connected &&
+  roomJoined &&
+  roomActivated &&
+  Boolean(selectedQuestion) &&
+  !questionStarted;
+
+console.log("[HOST START CONDITIONS]", {
+  role,
+  connected,
+  roomJoined,
+  roomActivated,
+  selectedQuestion: Boolean(selectedQuestion),
+  selectedQuestionNumber:
+    selectedQuestion?.questionNumber ?? null,
+  questionStarted,
+  questionLocked,
+  actionLoading,
+  canStartQuestion,
+});
+
+
+
+
+
+
+  /* =======================================================
+     HOST
+     ======================================================= */
+
+  if (role === "HOST") {
+    return (
+      <HostQuizShow
+        quizId={quizId}
+        roomId={roomId}
+
+        quizTitle={
+          quizTitle
+        }
+
+        subject={
+          subject
+        }
+
+        description={
+          quiz.description ??
+          ""
+        }
+
+        currentRound={
+          currentRound
+        }
+
+        totalRounds={
+          totalRounds
+        }
+
+        questions={
+          questions
+        }
+
+        selectedQuestionNumber={
+          selectedQuestion?.questionNumber ??
+          null
+        }
+
+        currentQuestionNumber={
+          currentQuestionNumber
+        }
+
+        totalQuestions={
+          questions.length ||
+          null
+        }
+
+        selectedQuestion={
+          selectedQuestion
+        }
+
+        questionStarted={
+          questionStarted
+        }
+
+        questionLocked={
+          questionLocked
+        }
+
+        timeLimit={
+          timeLimit
+        }
+
+        connected={
+          connected
+        }
+
+        roomActivated={
+          roomActivated
+        }
+
+        participants={
+          participants
+        }
+
+        leaderboard={
+          leaderboard
+        }
+
+        loading={
+          loading
+        }
+
+        questionLoading={
+          questionLoading
+        }
+
+        actionLoading={
+          actionLoading
+        }
+
+        error={
+          error ??
+          socketError
+        }
+
+       canStartQuestion={
+  canStartQuestion
+}
+
+        canLockQuestion={
+          connected &&
+          roomJoined &&
+          questionStarted &&
+          !questionLocked
+        }
+
+        canNextQuestion={
+          connected &&
+          roomJoined &&
+          questionLocked
+        }
+
+        onBack={
+          back
+        }
+
+        onSelectQuestion={
+          selectQuestion
+        }
+
+        onStartQuestion={
+          startQuestion
+        }
+
+        onLockQuestion={
+          lockQuestion
+        }
+
+        onNextQuestion={
+          nextQuestion
+        }
+
+        onTimeLimitChange={
+          setTimeLimit
+        }
+
+        onRefresh={
+          refresh
+        }
+      />
+    );
+  }
+
+  /* =======================================================
+     SPECTATOR
+     ======================================================= */
+
+  if (role === "SPECTATOR") {
+    const spectatorProps = {
       quizId,
-    ]);
 
-  /* ==========================================================
-     QUESTION PROGRESS
-     ========================================================== */
+      roomId,
 
-  const questionProgress =
-    useMemo(() => {
-      if (!question) {
-        return "";
-      }
+      quizTitle,
 
-      if (
-        question.questionNumber &&
-        question.totalQuestions
-      ) {
-        return `Question ${question.questionNumber} of ${question.totalQuestions}`;
-      }
+      subject,
 
-      if (
-        question.questionNumber
-      ) {
-        return `Question ${question.questionNumber}`;
-      }
+      description:
+        quiz.description ??
+        "",
 
-      return "Current Question";
-    }, [
+      currentRound,
+
+      totalRounds,
+
+      currentQuestionNumber,
+
+      totalQuestions:
+        question?.totalQuestions ??
+        questions.length ??
+        null,
+
       question,
-    ]);
 
-  /* ==========================================================
-     SESSION ERROR
-     ========================================================== */
+      questionStarted,
 
-  if (sessionError) {
+      questionLocked,
+
+      timeLimit:
+        question?.timeLimit ??
+        timeLimit,
+
+      startedAt:
+        question?.startedAt ??
+        null,
+
+      expiresAt:
+        question?.expiresAt ??
+        null,
+
+      connected,
+
+      connectionStatus:
+        connected
+          ? "CONNECTED"
+          : "DISCONNECTED",
+
+      roomActivated,
+
+      participants,
+
+      leaderboard,
+
+      feedEvents,
+
+      loading,
+
+      questionLoading,
+
+      error:
+        error ??
+        socketError,
+
+      onBack:
+        back,
+
+      onRefresh:
+        refresh,
+    } as React.ComponentProps<
+      typeof SpectatorQuizShow
+    >;
+
     return (
-      <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
-        <div className="mx-auto max-w-2xl">
-          <Card className="border-red-500/20 bg-white/[0.03] p-6">
-            <div className="flex items-start gap-4">
-              <div className="rounded-xl bg-red-500/10 p-3">
-                <AlertCircle className="h-6 w-6 text-red-400" />
-              </div>
-
-              <div className="flex-1">
-                <h1 className="text-lg font-semibold">
-                  Quiz Session Unavailable
-                </h1>
-
-                <p className="mt-2 text-sm text-slate-400">
-                  {sessionError}
-                </p>
-
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <Button
-                    onClick={() =>
-                      router.push(
-                        `/student/quiz-board/${quizId}`,
-                      )
-                    }
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Return to Waiting Room
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      window.location.reload()
-                    }
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Reload
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </main>
+      <SpectatorQuizShow
+        {...spectatorProps}
+      />
     );
   }
 
-  /* ==========================================================
-     LOADING SESSION
-     ========================================================== */
+  /* =======================================================
+     CONTESTANT
+     ======================================================= */
 
-  if (!session) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
-        <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center">
-          <Card className="border-white/10 bg-white/[0.03] p-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-cyan-400" />
+  const contestantProps = {
+    quizId,
 
-            <h1 className="mt-4 text-lg font-semibold">
-              Preparing Quiz
-            </h1>
+    roomId,
 
-            <p className="mt-2 text-sm text-slate-400">
-              Connecting you to the competition room...
-            </p>
-          </Card>
-        </div>
-      </main>
-    );
-  }
+    quizTitle,
 
-  /* ==========================================================
-     MAIN UI
-     ========================================================== */
+    subject,
+
+    description:
+      quiz.description ??
+      "",
+
+    currentRound,
+
+    totalRounds,
+
+    question,
+
+    selectedAnswer,
+
+    answerSubmitted,
+
+    questionStarted,
+
+    questionLocked,
+
+    submittingAnswer,
+
+    connected,
+
+    roomJoined,
+
+    roomActivated,
+
+    timerStartedAt:
+      question?.startedAt ??
+      null,
+
+    timerExpiresAt:
+      question?.expiresAt ??
+      null,
+
+    timeLimit:
+      question?.timeLimit ??
+      timeLimit,
+
+    score:
+      currentUserEntry?.score ??
+      0,
+
+    rank:
+      currentUserEntry?.rank ??
+      null,
+
+    participantCount:
+      participants.length,
+
+    answerStatus:
+      answerSubmitted
+        ? "SUBMITTED"
+        : questionStarted
+          ? "WAITING"
+          : "IDLE",
+
+    eliminated:
+      false,
+
+    loading,
+
+    error:
+      error ??
+      socketError,
+
+    onBack:
+      back,
+
+    onSelectAnswer:
+      setSelectedAnswer,
+
+    onSubmitAnswer:
+      () => {
+        if (
+          !selectedAnswer
+        ) {
+          return;
+        }
+
+        submitAnswer(
+          selectedAnswer,
+        );
+      },
+  } as React.ComponentProps<
+    typeof ContestantQuizShow
+  >;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      {/* ======================================================
-          HEADER
-          ====================================================== */}
-
-      <header className="border-b border-white/10 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-cyan-400">
-              <Radio className="h-4 w-4" />
-              Live Quiz
-            </div>
-
-            <h1 className="mt-1 truncate text-lg font-bold sm:text-xl">
-              {session.quiz_title}
-            </h1>
-
-            <p className="mt-1 text-xs text-slate-400">
-              {session.subject}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            {socketConnected ? (
-              <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs text-emerald-300">
-                <Wifi className="h-3.5 w-3.5" />
-                Connected
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-xs text-red-300">
-                <WifiOff className="h-3.5 w-3.5" />
-                Disconnected
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ======================================================
-          CONTENT
-          ====================================================== */}
-
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-        {/* ====================================================
-            SOCKET STATUS
-            ==================================================== */}
-
-        <section className="mb-6 grid gap-3 sm:grid-cols-3">
-          <Card className="border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-slate-500">
-                Connection
-              </span>
-
-              {socketConnected ? (
-                <Wifi className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-red-400" />
-              )}
-            </div>
-
-            <p className="mt-2 text-sm font-semibold">
-              {socketConnected
-                ? "Socket Connected"
-                : "Connecting..."}
-            </p>
-          </Card>
-
-          <Card className="border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-slate-500">
-                Room
-              </span>
-
-              {socketRoomJoined ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-              )}
-            </div>
-
-            <p className="mt-2 text-sm font-semibold">
-              {socketRoomJoined
-                ? "Room Joined"
-                : "Joining Room..."}
-            </p>
-          </Card>
-
-          <Card className="border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-slate-500">
-                Round
-              </span>
-
-              <CircleDot className="h-4 w-4 text-cyan-400" />
-            </div>
-
-            <p className="mt-2 text-sm font-semibold">
-              Round {currentRound}
-              {session.number_of_rounds
-                ? ` / ${session.number_of_rounds}`
-                : ""}
-            </p>
-          </Card>
-        </section>
-
-        {/* ====================================================
-            SOCKET ERROR
-            ==================================================== */}
-
-        {socketError && (
-          <Card className="mb-6 border-amber-500/20 bg-amber-500/[0.05] p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-
-              <div>
-                <p className="text-sm font-medium text-amber-200">
-                  Connection Notice
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-amber-100/70">
-                  {socketError}
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* ====================================================
-            DEBUG / LIVE STATUS
-            ==================================================== */}
-
-        <Card className="mb-6 border-white/10 bg-white/[0.03] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-slate-500">
-                Competition Status
-              </p>
-
-              <p className="mt-1 text-sm font-semibold text-slate-100">
-                {question
-                  ? "Question Live"
-                  : "Waiting for Question"}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  question
-                    ? "animate-pulse bg-emerald-400"
-                    : "bg-amber-400"
-                }`}
-              />
-
-              <span className="text-xs text-slate-400">
-                {question
-                  ? "Question received"
-                  : "Waiting for first question"}
-              </span>
-            </div>
-          </div>
-
-          {lastSocketEvent && (
-            <div className="mt-3 border-t border-white/5 pt-3">
-              <p className="text-[11px] text-slate-500">
-                Last socket event
-              </p>
-
-              <p className="mt-1 font-mono text-xs text-cyan-300">
-                {lastSocketEvent}
-              </p>
-            </div>
-          )}
-        </Card>
-
-        {/* ====================================================
-            QUESTION AREA
-            ==================================================== */}
-
-        {!question ? (
-          <Card className="border-white/10 bg-white/[0.03] p-8 sm:p-12">
-            <div className="mx-auto max-w-xl text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-400/10">
-                <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-              </div>
-
-              <h2 className="mt-6 text-xl font-bold sm:text-2xl">
-                Waiting for the First Question
-              </h2>
-
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">
-                You are connected to the competition room.
-                The question will appear here when the
-                administrator starts the round.
-              </p>
-
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-500">
-                <span className="rounded-full border border-white/10 px-3 py-1.5">
-                  Round {currentRound}
-                </span>
-
-                <span className="rounded-full border border-white/10 px-3 py-1.5">
-                  {session.time_per_question}s per question
-                </span>
-
-                {socketRoomJoined && (
-                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/5 px-3 py-1.5 text-emerald-300">
-                    Room joined
-                  </span>
-                )}
-              </div>
-            </div>
-          </Card>
-        ) : (
-          <Card className="border-white/10 bg-white/[0.03] p-5 sm:p-8">
-            {/* ================================================
-                QUESTION HEADER
-                ================================================ */}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                  {questionProgress}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Round {currentRound}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-300">
-                <Radio className="h-3.5 w-3.5" />
-                Live
-              </div>
-            </div>
-
-            {/* ================================================
-                QUESTION
-                ================================================ */}
-
-            <div className="py-7">
-              <h2 className="text-xl font-bold leading-8 text-white sm:text-2xl sm:leading-9">
-                {question.question}
-              </h2>
-            </div>
-
-            {/* ================================================
-                OPTIONS
-                ================================================ */}
-
-            <div className="grid gap-3">
-              {question.options.map(
-                (
-                  option,
-                  index,
-                ) => {
-                  const isSelected =
-                    selectedAnswer ===
-                    option.value;
-
-                  return (
-                    <button
-                      key={`${question.id}-${option.value}-${index}`}
-                      type="button"
-                      onClick={() =>
-                        handleSelectAnswer(
-                          option,
-                        )
-                      }
-                      className={[
-                        "group w-full rounded-2xl border p-4 text-left transition-all",
-                        isSelected
-                          ? "border-cyan-400/60 bg-cyan-400/10"
-                          : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={[
-                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-bold transition-colors",
-                            isSelected
-                              ? "border-cyan-400/50 bg-cyan-400/20 text-cyan-200"
-                              : "border-white/10 bg-white/[0.04] text-slate-300 group-hover:border-white/20",
-                          ].join(" ")}
-                        >
-                          {option.label}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={[
-                              "text-sm font-medium leading-6",
-                              isSelected
-                                ? "text-cyan-100"
-                                : "text-slate-200",
-                            ].join(" ")}
-                          >
-                            {option.text}
-                          </p>
-                        </div>
-
-                        {isSelected && (
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-400" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                },
-              )}
-            </div>
-
-            {/* ================================================
-                SELECTION STATUS
-                ================================================ */}
-
-            <div className="mt-6 rounded-2xl border border-white/5 bg-black/20 p-4">
-              {selectedAnswer ? (
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-100">
-                      Answer selected
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Your selected answer is highlighted above.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <CircleDot className="h-5 w-5 text-slate-500" />
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-200">
-                      Select your answer
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Choose one option when you are ready.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* ====================================================
-            FOOTER CONTROLS
-            ==================================================== */}
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs text-slate-500">
-            Room:
-            <span className="ml-1 font-mono text-slate-400">
-              {session.room_id || "—"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleLeaveQuiz}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Leave Quiz
-            </Button>
-          </div>
-        </div>
-
-        {/* ====================================================
-            HIDDEN NAVIGATION FALLBACK
-            ==================================================== */}
-
-        <div className="mt-8 text-center">
-          <Link
-            href={`/student/quiz-board/${quizId}`}
-            className="text-xs text-slate-600 transition-colors hover:text-slate-400"
-          >
-            Return to competition room
-          </Link>
-        </div>
-      </div>
-    </main>
+    <ContestantQuizShow
+      {...contestantProps}
+    />
   );
 }
 
@@ -1994,2144 +3965,3 @@ export default function QuizPlayPage() {
 
 
 
-
-
-
-
-
-
-
-// "use client";
-
-// import {
-//   useCallback,
-//   useEffect,
-//   useMemo,
-//   useRef,
-//   useState,
-// } from "react";
-// import { useParams, useRouter } from "next/navigation";
-// import Link from "next/link";
-// import {
-//   AlertCircle,
-//   ArrowLeft,
-//   CheckCircle2,
-//   CircleDot,
-//   Loader2,
-//   Radio,
-//   RefreshCw,
-//   Wifi,
-//   WifiOff,
-// } from "lucide-react";
-
-// import { Button } from "@/components/ui/button";
-// import { Card } from "@/components/ui/card";
-
-// import {
-//   getQuizSocket,
-//   disconnectQuizSocket,
-// } from "@/lib/socket/quizSocket";
-
-// /* ================================================================
-//    SESSION DATA
-//    This is the data saved by the waiting room before entering /play.
-//    ================================================================ */
-
-// interface QuizPlaySession {
-//   quizId: string;
-//   quiz_title: string;
-//   subject: string;
-//   description: string;
-//   current_round: number;
-//   number_of_rounds: number;
-//   time_per_question: number;
-//   no_of_contestants: number;
-//   joined_count: number;
-//   room_id: string | null;
-//   start_date: string;
-// }
-
-// /* ================================================================
-//    QUESTION TYPES
-//    ================================================================ */
-
-// interface QuizOption {
-//   label: string;
-//   value: string;
-//   text: string;
-// }
-
-// interface LiveQuestion {
-//   id: string;
-//   question: string;
-//   options: QuizOption[];
-//   questionNumber: number | null;
-//   totalQuestions: number | null;
-// }
-
-// /* ================================================================
-//    SOCKET PAYLOAD TYPES
-//    ================================================================ */
-
-// interface SocketRoundStartedPayload {
-//   quizId?: string;
-//   quiz_id?: string;
-
-//   roomId?: string;
-//   room_id?: string;
-
-//   currentRound?: number;
-//   current_round?: number;
-//   round?: number;
-//   round_number?: number;
-//   roundNumber?: number;
-
-//   question?: unknown;
-//   data?: unknown;
-// }
-
-// interface SocketJoinedRoomAckPayload {
-//   success?: boolean;
-//   message?: string;
-
-//   roomId?: string;
-//   room_id?: string;
-
-//   quizId?: string;
-//   quiz_id?: string;
-// }
-
-// type JsonRecord = Record<string, unknown>;
-
-// const PLAY_SESSION_PREFIX = "quiz-play-";
-
-// /* ================================================================
-//    POSSIBLE QUESTION FIELD NAMES
-//    ================================================================ */
-
-// const QUESTION_TEXT_KEYS = [
-//   "question_text",
-//   "questionText",
-//   "question",
-//   "text",
-//   "prompt",
-//   "questionTitle",
-//   "question_title",
-// ];
-
-// const OPTION_KEYS = [
-//   "options",
-//   "answer_options",
-//   "answerOptions",
-//   "choices",
-//   "answers",
-//   "question_options",
-//   "questionOptions",
-//   "optionsList",
-// ];
-
-// const QUESTION_NUMBER_KEYS = [
-//   "questionNumber",
-//   "question_number",
-//   "questionNo",
-//   "question_no",
-//   "currentQuestionNumber",
-//   "current_question_number",
-// ];
-
-// const TOTAL_QUESTION_KEYS = [
-//   "totalQuestions",
-//   "total_questions",
-//   "questionCount",
-//   "question_count",
-//   "total",
-// ];
-
-// /* ================================================================
-//    HELPERS
-//    ================================================================ */
-
-// function isRecord(value: unknown): value is JsonRecord {
-//   return (
-//     typeof value === "object" &&
-//     value !== null &&
-//     !Array.isArray(value)
-//   );
-// }
-
-// function firstDefined(
-//   record: JsonRecord,
-//   keys: string[],
-// ): unknown {
-//   for (const key of keys) {
-//     if (
-//       record[key] !== undefined &&
-//       record[key] !== null
-//     ) {
-//       return record[key];
-//     }
-//   }
-
-//   return undefined;
-// }
-
-// function toCleanString(value: unknown): string {
-//   if (typeof value === "string") {
-//     return value.trim();
-//   }
-
-//   if (
-//     typeof value === "number" ||
-//     typeof value === "boolean"
-//   ) {
-//     return String(value);
-//   }
-
-//   return "";
-// }
-
-// function toPositiveNumber(
-//   value: unknown,
-// ): number | null {
-//   const number = Number(value);
-
-//   if (
-//     !Number.isFinite(number) ||
-//     number <= 0
-//   ) {
-//     return null;
-//   }
-
-//   return number;
-// }
-
-// /* ================================================================
-//    OPTION LABEL
-//    ================================================================ */
-
-// function deriveOptionLabel(
-//   rawLabel: string,
-//   fallbackIndex: number,
-//   rawKey?: string,
-// ): string {
-//   const label = rawLabel.trim();
-
-//   if (label) {
-//     return label;
-//   }
-
-//   if (rawKey) {
-//     /*
-//      * Supports:
-//      *
-//      * optionA
-//      * option_A
-//      * option-A
-//      * option A
-//      * answerA
-//      * choiceA
-//      *
-//      * The previous version used [_- ] which TypeScript interpreted
-//      * as an invalid character range.
-//      */
-
-//     const optionMatch = rawKey.match(
-//       /(?:option|answer|choice)(?:_|-|\s)?([A-D])$/i,
-//     );
-
-//     if (optionMatch?.[1]) {
-//       return optionMatch[1].toUpperCase();
-//     }
-
-//     if (/^[A-D]$/i.test(rawKey.trim())) {
-//       return rawKey.trim().toUpperCase();
-//     }
-//   }
-
-//   return String.fromCharCode(
-//     65 + fallbackIndex,
-//   );
-// }
-
-// /* ================================================================
-//    NORMALIZE OPTIONS
-//    ================================================================ */
-
-// function normalizeOptions(
-//   rawOptions: unknown,
-// ): QuizOption[] {
-//   /* ==============================================================
-//      ARRAY OPTIONS
-//      ============================================================== */
-
-//   if (Array.isArray(rawOptions)) {
-//     return rawOptions
-//       .map((item, index) => {
-//         /* ----------------------------------------------------------
-//            String / number option
-//            ---------------------------------------------------------- */
-
-//         if (
-//           typeof item === "string" ||
-//           typeof item === "number"
-//         ) {
-//           const text = String(item).trim();
-
-//           if (!text) {
-//             return null;
-//           }
-
-//           return {
-//             label: String.fromCharCode(
-//               65 + index,
-//             ),
-//             value: text,
-//             text,
-//           };
-//         }
-
-//         /* ----------------------------------------------------------
-//            Object option
-//            ---------------------------------------------------------- */
-
-//         if (!isRecord(item)) {
-//           return null;
-//         }
-
-//         const rawLabel = toCleanString(
-//           firstDefined(item, [
-//             "label",
-//             "optionLabel",
-//             "option_label",
-//             "letter",
-//             "key",
-//             "code",
-//           ]),
-//         );
-
-//         const rawText = toCleanString(
-//           firstDefined(item, [
-//             "text",
-//             "optionText",
-//             "option_text",
-//             "content",
-//             "answer",
-//             "value",
-//             "option",
-//             "name",
-//             "label",
-//           ]),
-//         );
-
-//         const rawValue = toCleanString(
-//           firstDefined(item, [
-//             "value",
-//             "optionValue",
-//             "option_value",
-//             "id",
-//             "_id",
-//             "answer",
-//             "text",
-//             "content",
-//           ]),
-//         );
-
-//         if (!rawText) {
-//           return null;
-//         }
-
-//         return {
-//           label: deriveOptionLabel(
-//             rawLabel,
-//             index,
-//           ),
-//           value:
-//             rawValue || rawText,
-//           text: rawText,
-//         };
-//       })
-//       .filter(
-//         (
-//           option,
-//         ): option is QuizOption =>
-//           option !== null &&
-//           Boolean(option.text),
-//       );
-//   }
-
-//   /* ==============================================================
-//      OBJECT OPTIONS
-//      ============================================================== */
-
-//   if (isRecord(rawOptions)) {
-//     return Object.entries(rawOptions)
-//       .map(([key, value], index) => {
-//         /* ----------------------------------------------------------
-//            A: "Option text"
-//            ---------------------------------------------------------- */
-
-//         if (
-//           typeof value === "string" ||
-//           typeof value === "number"
-//         ) {
-//           const text = String(value).trim();
-
-//           if (!text) {
-//             return null;
-//           }
-
-//           return {
-//             label: deriveOptionLabel(
-//               "",
-//               index,
-//               key,
-//             ),
-//             value: key,
-//             text,
-//           };
-//         }
-
-//         /* ----------------------------------------------------------
-//            A: { text, value }
-//            ---------------------------------------------------------- */
-
-//         if (!isRecord(value)) {
-//           return null;
-//         }
-
-//         const rawLabel = toCleanString(
-//           firstDefined(value, [
-//             "label",
-//             "optionLabel",
-//             "option_label",
-//             "letter",
-//             "key",
-//             "code",
-//           ]),
-//         );
-
-//         const rawText = toCleanString(
-//           firstDefined(value, [
-//             "text",
-//             "optionText",
-//             "option_text",
-//             "content",
-//             "answer",
-//             "value",
-//             "option",
-//             "name",
-//             "label",
-//           ]),
-//         );
-
-//         const rawValue = toCleanString(
-//           firstDefined(value, [
-//             "value",
-//             "optionValue",
-//             "option_value",
-//             "id",
-//             "_id",
-//             "answer",
-//             "text",
-//             "content",
-//           ]),
-//         );
-
-//         if (!rawText) {
-//           return null;
-//         }
-
-//         return {
-//           label: deriveOptionLabel(
-//             rawLabel,
-//             index,
-//             key,
-//           ),
-//           value:
-//             rawValue || key,
-//           text: rawText,
-//         };
-//       })
-//       .filter(
-//         (
-//           option,
-//         ): option is QuizOption =>
-//           option !== null &&
-//           Boolean(option.text),
-//       );
-//   }
-
-//   return [];
-// }
-
-// /* ================================================================
-//    FIND QUESTION IN A RECORD
-//    ================================================================ */
-
-// function buildQuestionFromRecord(
-//   record: JsonRecord,
-// ): LiveQuestion | null {
-//   const rawQuestion = firstDefined(
-//     record,
-//     QUESTION_TEXT_KEYS,
-//   );
-
-//   /*
-//    * Supports nested payloads such as:
-//    *
-//    * {
-//    *   question: {
-//    *     question_text: "...",
-//    *     options: [...]
-//    *   }
-//    * }
-//    */
-
-//   let questionSource:
-//     | JsonRecord
-//     | null = null;
-
-//   if (isRecord(rawQuestion)) {
-//     questionSource = rawQuestion;
-//   }
-
-//   const questionText =
-//     questionSource
-//       ? toCleanString(
-//           firstDefined(
-//             questionSource,
-//             QUESTION_TEXT_KEYS,
-//           ),
-//         )
-//       : toCleanString(
-//           rawQuestion,
-//         );
-
-//   /* --------------------------------------------------------------
-//      First try options on the parent.
-//      -------------------------------------------------------------- */
-
-//   let rawOptions = firstDefined(
-//     record,
-//     OPTION_KEYS,
-//   );
-
-//   /* --------------------------------------------------------------
-//      Then try nested question object.
-//      -------------------------------------------------------------- */
-
-//   if (
-//     rawOptions === undefined &&
-//     questionSource
-//   ) {
-//     rawOptions = firstDefined(
-//       questionSource,
-//       OPTION_KEYS,
-//     );
-//   }
-
-//   /* --------------------------------------------------------------
-//      Finally look for direct fields:
-     
-//      optionA
-//      optionB
-//      optionC
-//      optionD
-
-//      or:
-
-//      A
-//      B
-//      C
-//      D
-//      -------------------------------------------------------------- */
-
-//   if (
-//     rawOptions === undefined
-//   ) {
-//     const optionFields: Record<
-//       string,
-//       unknown
-//     > = {};
-
-//     for (const key of Object.keys(
-//       record,
-//     )) {
-//       /*
-//        * Supports:
-//        *
-//        * optionA
-//        * option_A
-//        * option-A
-//        * option A
-//        *
-//        * answerA
-//        * choiceA
-//        *
-//        * A
-//        * B
-//        * C
-//        * D
-//        *
-//        * The old [_- ] pattern was the source of TS1517.
-//        */
-
-//       if (
-//         /^(?:option|answer|choice)(?:_|-|\s)?[A-D]$/i.test(
-//           key,
-//         ) ||
-//         /^(?:A|B|C|D)$/i.test(
-//           key,
-//         )
-//       ) {
-//         optionFields[key] =
-//           record[key];
-//       }
-//     }
-
-//     if (
-//       Object.keys(optionFields)
-//         .length >= 2
-//     ) {
-//       rawOptions =
-//         optionFields;
-//     }
-//   }
-
-//   const options =
-//     normalizeOptions(
-//       rawOptions,
-//     );
-
-//   if (
-//     !questionText ||
-//     options.length < 2
-//   ) {
-//     return null;
-//   }
-
-//   /* --------------------------------------------------------------
-//      Question ID
-//      -------------------------------------------------------------- */
-
-//   const rawId =
-//     firstDefined(record, [
-//       "questionId",
-//       "question_id",
-//       "id",
-//       "_id",
-//       "uuid",
-//     ]) ??
-//     (questionSource
-//       ? firstDefined(
-//           questionSource,
-//           [
-//             "questionId",
-//             "question_id",
-//             "id",
-//             "_id",
-//             "uuid",
-//           ],
-//         )
-//       : undefined);
-
-//   /* --------------------------------------------------------------
-//      Question number
-//      -------------------------------------------------------------- */
-
-//   const rawQuestionNumber =
-//     firstDefined(
-//       record,
-//       QUESTION_NUMBER_KEYS,
-//     ) ??
-//     (questionSource
-//       ? firstDefined(
-//           questionSource,
-//           QUESTION_NUMBER_KEYS,
-//         )
-//       : undefined);
-
-//   /* --------------------------------------------------------------
-//      Total questions
-//      -------------------------------------------------------------- */
-
-//   const rawTotalQuestions =
-//     firstDefined(
-//       record,
-//       TOTAL_QUESTION_KEYS,
-//     ) ??
-//     (questionSource
-//       ? firstDefined(
-//           questionSource,
-//           TOTAL_QUESTION_KEYS,
-//         )
-//       : undefined);
-
-//   return {
-//     id:
-//       toCleanString(rawId) ||
-//       `${questionText}-${options
-//         .map(
-//           (option) =>
-//             `${option.label}:${option.value}`,
-//         )
-//         .join("|")}`,
-
-//     question: questionText,
-
-//     options,
-
-//     questionNumber:
-//       toPositiveNumber(
-//         rawQuestionNumber,
-//       ),
-
-//     totalQuestions:
-//       toPositiveNumber(
-//         rawTotalQuestions,
-//       ),
-//   };
-// }
-
-// /* ================================================================
-//    RECURSIVELY SEARCH ANY SOCKET PAYLOAD
-//    ================================================================ */
-
-// function findQuestionInPayload(
-//   payload: unknown,
-//   depth = 0,
-//   seen = new WeakSet<object>(),
-// ): LiveQuestion | null {
-//   if (
-//     depth > 7 ||
-//     payload === null ||
-//     payload === undefined
-//   ) {
-//     return null;
-//   }
-
-//   if (
-//     typeof payload !== "object"
-//   ) {
-//     return null;
-//   }
-
-//   if (seen.has(payload)) {
-//     return null;
-//   }
-
-//   seen.add(payload);
-
-//   /* ==============================================================
-//      RECORD
-//      ============================================================== */
-
-//   if (isRecord(payload)) {
-//     /* ------------------------------------------------------------
-//        First check this object directly.
-//        ------------------------------------------------------------ */
-
-//     const directQuestion =
-//       buildQuestionFromRecord(
-//         payload,
-//       );
-
-//     if (directQuestion) {
-//       return directQuestion;
-//     }
-
-//     /* ------------------------------------------------------------
-//        Search likely nested locations first.
-//        ------------------------------------------------------------ */
-
-//     const priorityKeys = [
-//       "question",
-//       "questionData",
-//       "question_data",
-//       "currentQuestion",
-//       "current_question",
-//       "questionObj",
-//       "question_obj",
-//       "questionObject",
-//       "question_object",
-//       "quizQuestion",
-//       "quiz_question",
-//       "data",
-//       "payload",
-//       "result",
-//     ];
-
-//     for (const key of priorityKeys) {
-//       if (
-//         payload[key] ===
-//         undefined
-//       ) {
-//         continue;
-//       }
-
-//       const found =
-//         findQuestionInPayload(
-//           payload[key],
-//           depth + 1,
-//           seen,
-//         );
-
-//       if (found) {
-//         return found;
-//       }
-//     }
-
-//     /* ------------------------------------------------------------
-//        Then search every other property.
-//        ------------------------------------------------------------ */
-
-//     for (const value of Object.values(
-//       payload,
-//     )) {
-//       const found =
-//         findQuestionInPayload(
-//           value,
-//           depth + 1,
-//           seen,
-//         );
-
-//       if (found) {
-//         return found;
-//       }
-//     }
-//   }
-
-//   /* ==============================================================
-//      ARRAY
-//      ============================================================== */
-
-//   if (Array.isArray(payload)) {
-//     for (const item of payload) {
-//       const found =
-//         findQuestionInPayload(
-//           item,
-//           depth + 1,
-//           seen,
-//         );
-
-//       if (found) {
-//         return found;
-//       }
-//     }
-//   }
-
-//   return null;
-// }
-
-// /* ================================================================
-//    ROUND EXTRACTION
-//    ================================================================ */
-
-// function extractRound(
-//   payload: unknown,
-// ): number | null {
-//   if (!isRecord(payload)) {
-//     return null;
-//   }
-
-//   const rawRound =
-//     firstDefined(
-//       payload,
-//       [
-//         "currentRound",
-//         "current_round",
-//         "round",
-//         "round_number",
-//         "roundNumber",
-//       ],
-//     );
-
-//   return toPositiveNumber(
-//     rawRound,
-//   );
-// }
-
-// /* ================================================================
-//    QUIZ ID EXTRACTION
-//    ================================================================ */
-
-// function extractEventQuizId(
-//   payload: unknown,
-// ): string {
-//   if (!isRecord(payload)) {
-//     return "";
-//   }
-
-//   return toCleanString(
-//     firstDefined(
-//       payload,
-//       [
-//         "quizId",
-//         "quiz_id",
-//       ],
-//     ),
-//   );
-// }
-
-// /* ================================================================
-//    PAGE
-//    ================================================================ */
-
-// export default function QuizPlayPage() {
-//   const params =
-//     useParams<{
-//       quizId: string;
-//     }>();
-
-//   const router =
-//     useRouter();
-
-//   /* ==============================================================
-//      QUIZ ID
-//      ============================================================== */
-
-//   const quizId = useMemo(() => {
-//     const value =
-//       params?.quizId;
-
-//     if (
-//       Array.isArray(value)
-//     ) {
-//       return String(
-//         value[0] || "",
-//       ).trim();
-//     }
-
-//     return String(
-//       value || "",
-//     ).trim();
-//   }, [params]);
-
-//   /* ==============================================================
-//      STATE
-//      ============================================================== */
-
-//   const [session, setSession] =
-//     useState<QuizPlaySession | null>(
-//       null,
-//     );
-
-//   const [
-//     sessionError,
-//     setSessionError,
-//   ] = useState("");
-
-//   const [
-//     socketConnected,
-//     setSocketConnected,
-//   ] = useState(false);
-
-//   const [
-//     socketRoomJoined,
-//     setSocketRoomJoined,
-//   ] = useState(false);
-
-//   const [
-//     socketError,
-//     setSocketError,
-//   ] = useState("");
-
-//   const [
-//     lastSocketEvent,
-//     setLastSocketEvent,
-//   ] = useState("");
-
-//   const [
-//     currentRound,
-//     setCurrentRound,
-//   ] = useState(1);
-
-//   const [
-//     question,
-//     setQuestion,
-//   ] = useState<LiveQuestion | null>(
-//     null,
-//   );
-
-//   const [
-//     selectedAnswer,
-//     setSelectedAnswer,
-//   ] = useState<string | null>(
-//     null,
-//   );
-
-//   /* ==============================================================
-//      REFS
-//      ============================================================== */
-
-//   const mountedRef =
-//     useRef(false);
-
-//   const joinedSocketRoomRef =
-//     useRef<string | null>(
-//       null,
-//     );
-
-//   const lastQuestionFingerprintRef =
-//     useRef<string | null>(
-//       null,
-//     );
-
-//   /* ==============================================================
-//      APPLY QUESTION
-//      ============================================================== */
-
-//   const applyQuestion =
-//     useCallback(
-//       (
-//         incoming: LiveQuestion,
-//         eventName: string,
-//       ) => {
-//         const fingerprint =
-//           `${incoming.id}|${incoming.question}|${incoming.options
-//             .map(
-//               (option) =>
-//                 `${option.label}:${option.value}:${option.text}`,
-//             )
-//             .join("||")}`;
-
-//         /*
-//          * Prevent the same question from being processed twice.
-//          */
-
-//         if (
-//           lastQuestionFingerprintRef.current ===
-//           fingerprint
-//         ) {
-//           return;
-//         }
-
-//         lastQuestionFingerprintRef.current =
-//           fingerprint;
-
-//         setQuestion(
-//           incoming,
-//         );
-
-//         setSelectedAnswer(
-//           null,
-//         );
-
-//         console.log(
-//           "[Quiz Play Socket] QUESTION DETECTED",
-//           {
-//             eventName,
-//             question:
-//               incoming,
-//           },
-//         );
-//       },
-//       [],
-//     );
-
-//   /* ================================================================
-//      LOAD PLAY SESSION FROM SESSION STORAGE
-
-//      IMPORTANT:
-//      There is NO API REQUEST here.
-//      ================================================================ */
-
-//   useEffect(() => {
-//     mountedRef.current =
-//       true;
-
-//     if (!quizId) {
-//       setSessionError(
-//         "Competition ID is missing from the URL.",
-//       );
-
-//       return () => {
-//         mountedRef.current =
-//           false;
-//       };
-//     }
-
-//     try {
-//       const stored =
-//         sessionStorage.getItem(
-//           `${PLAY_SESSION_PREFIX}${quizId}`,
-//         );
-
-//       if (!stored) {
-//         setSessionError(
-//           "Quiz session data was not found. Please return to the waiting room and enter the competition again.",
-//         );
-
-//         return () => {
-//           mountedRef.current =
-//             false;
-//         };
-//       }
-
-//       const parsed =
-//         JSON.parse(
-//           stored,
-//         ) as QuizPlaySession;
-
-//       if (
-//         !parsed ||
-//         String(
-//           parsed.quizId,
-//         ) !== quizId
-//       ) {
-//         setSessionError(
-//           "The saved quiz session does not match this competition.",
-//         );
-
-//         return () => {
-//           mountedRef.current =
-//             false;
-//         };
-//       }
-
-//       setSession(
-//         parsed,
-//       );
-
-//       const savedRound =
-//         Number(
-//           parsed.current_round,
-//         );
-
-//       setCurrentRound(
-//         Number.isFinite(
-//           savedRound,
-//         ) &&
-//           savedRound > 0
-//           ? savedRound
-//           : 1,
-//       );
-//     } catch (error) {
-//       console.error(
-//         "[Quiz Play] Failed to read session:",
-//         error,
-//       );
-
-//       setSessionError(
-//         "Unable to read the quiz session. Please return to the waiting room and try again.",
-//       );
-//     }
-
-//     return () => {
-//       mountedRef.current =
-//         false;
-//     };
-//   }, [quizId]);
-
-//   /* ================================================================
-//      SOCKET.IO
-
-//      Same socket helper as waiting room.
-
-//      NO getQuizById()
-//      NO get-round-questions()
-//      ================================================================ */
-
-//   useEffect(() => {
-//     if (
-//       !session ||
-//       !quizId
-//     ) {
-//       return;
-//     }
-
-//     const roomId =
-//       session.room_id
-//         ? String(
-//             session.room_id,
-//           ).trim()
-//         : "";
-
-//     if (!roomId) {
-//       setSocketError(
-//         "The competition room ID is missing. Please return to the waiting room.",
-//       );
-
-//       return;
-//     }
-
-//     let cancelled =
-//       false;
-
-//     const socket =
-//       getQuizSocket();
-
-//     /* ==============================================================
-//        CONNECT
-//        ============================================================== */
-
-//     const handleConnect =
-//       () => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.log(
-//           "[Quiz Play Socket] Connected:",
-//           socket.id,
-//         );
-
-//         setSocketConnected(
-//           true,
-//         );
-
-//         setSocketError(
-//           "",
-//         );
-
-//         /*
-//          * Join the same room used by the waiting room.
-//          */
-
-//         if (
-//           joinedSocketRoomRef.current !==
-//           roomId
-//         ) {
-//           console.log(
-//             "[Quiz Play Socket] Joining room:",
-//             roomId,
-//           );
-
-//           socket.emit(
-//             "join_room",
-//             {
-//               room_id:
-//                 roomId,
-//             },
-//           );
-
-//           /*
-//            * Do NOT mark as joined yet.
-//            *
-//            * Wait for joined_room_ack.
-//            */
-//         }
-//       };
-
-//     /* ==============================================================
-//        CONNECTION ERROR
-//        ============================================================== */
-
-//     const handleConnectError =
-//       (error: Error) => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.error(
-//           "[Quiz Play Socket] Connection error:",
-//           error,
-//         );
-
-//         setSocketConnected(
-//           false,
-//         );
-
-//         setSocketRoomJoined(
-//           false,
-//         );
-
-//         joinedSocketRoomRef.current =
-//           null;
-
-//         setSocketError(
-//           error?.message ||
-//             "Unable to connect to the quiz room.",
-//         );
-//       };
-
-//     /* ==============================================================
-//        DISCONNECT
-//        ============================================================== */
-
-//     const handleDisconnect =
-//       (reason: string) => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.warn(
-//           "[Quiz Play Socket] Disconnected:",
-//           reason,
-//         );
-
-//         setSocketConnected(
-//           false,
-//         );
-
-//         setSocketRoomJoined(
-//           false,
-//         );
-
-//         joinedSocketRoomRef.current =
-//           null;
-//       };
-
-//     /* ==============================================================
-//        JOINED ROOM ACK
-//        ============================================================== */
-
-//     const handleJoinedRoomAck =
-//       (
-//         payload: SocketJoinedRoomAckPayload,
-//       ) => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.log(
-//           "[Quiz Play Socket] joined_room_ack:",
-//           payload,
-//         );
-
-//         if (
-//           payload?.success ===
-//           false
-//         ) {
-//           setSocketRoomJoined(
-//             false,
-//           );
-
-//           joinedSocketRoomRef.current =
-//             null;
-
-//           setSocketError(
-//             payload.message ||
-//               "The quiz room rejected your connection.",
-//           );
-
-//           return;
-//         }
-
-//         const eventRoomId =
-//           String(
-//             payload?.roomId ??
-//               payload?.room_id ??
-//               roomId,
-//           ).trim();
-
-//         if (
-//           eventRoomId &&
-//           eventRoomId !== roomId
-//         ) {
-//           console.warn(
-//             "[Quiz Play Socket] joined_room_ack belongs to another room:",
-//             eventRoomId,
-//           );
-
-//           return;
-//         }
-
-//         console.log(
-//           "[Quiz Play Socket] Successfully joined room:",
-//           roomId,
-//         );
-
-//         setSocketRoomJoined(
-//           true,
-//         );
-
-//         joinedSocketRoomRef.current =
-//           roomId;
-
-//         setSocketError(
-//           "",
-//         );
-//       };
-
-//     /* ==============================================================
-//        ROUND STARTED
-//        ============================================================== */
-
-//     const handleRoundStarted =
-//       (
-//         payload: SocketRoundStartedPayload,
-//       ) => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.log(
-//           "[Quiz Play Socket] round_started:",
-//           payload,
-//         );
-
-//         setLastSocketEvent(
-//           "round_started",
-//         );
-
-//         const eventQuizId =
-//           extractEventQuizId(
-//             payload,
-//           );
-
-//         /*
-//          * Ignore another quiz.
-//          */
-
-//         if (
-//           eventQuizId &&
-//           eventQuizId !==
-//             quizId
-//         ) {
-//           console.warn(
-//             "[Quiz Play Socket] Ignoring round_started for another quiz:",
-//             eventQuizId,
-//           );
-
-//           return;
-//         }
-
-//         const eventRound =
-//           extractRound(
-//             payload,
-//           );
-
-//         if (
-//           eventRound
-//         ) {
-//           console.log(
-//             "[Quiz Play Socket] Round started:",
-//             eventRound,
-//           );
-
-//           setCurrentRound(
-//             eventRound,
-//           );
-//         }
-
-//         /*
-//          * Some backends may include the first question directly
-//          * inside round_started.
-//          */
-
-//         const incomingQuestion =
-//           findQuestionInPayload(
-//             payload,
-//           );
-
-//         if (
-//           incomingQuestion
-//         ) {
-//           applyQuestion(
-//             incomingQuestion,
-//             "round_started",
-//           );
-//         }
-//       };
-
-//     /* ==============================================================
-//        ON ANY EVENT
-
-//        This receives EVERY incoming Socket.IO event.
-
-//        We use it to discover the actual question event being sent
-//        by the existing backend.
-//        ============================================================== */
-
-//     const handleAnyEvent =
-//       (
-//         eventName: string,
-//         ...args: unknown[]
-//       ) => {
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         console.log(
-//           `[Quiz Play Socket] Event: ${eventName}`,
-//           ...args,
-//         );
-
-//         setLastSocketEvent(
-//           eventName,
-//         );
-
-//         /*
-//          * One argument = use it directly.
-//          *
-//          * Multiple arguments = inspect the array.
-//          */
-
-//         const eventPayload =
-//           args.length === 1
-//             ? args[0]
-//             : args;
-
-//         /*
-//          * Ignore events belonging to another quiz.
-//          */
-
-//         const eventQuizId =
-//           extractEventQuizId(
-//             eventPayload,
-//           );
-
-//         if (
-//           eventQuizId &&
-//           eventQuizId !==
-//             quizId
-//         ) {
-//           console.warn(
-//             "[Quiz Play Socket] Ignoring event for another quiz:",
-//             {
-//               eventName,
-//               eventQuizId,
-//               quizId,
-//             },
-//           );
-
-//           return;
-//         }
-
-//         /*
-//          * Search recursively for a question.
-//          */
-
-//         const incomingQuestion =
-//           findQuestionInPayload(
-//             eventPayload,
-//           );
-
-//         if (
-//           incomingQuestion
-//         ) {
-//           console.log(
-//             "[Quiz Play Socket] QUESTION-LIKE PAYLOAD FOUND",
-//             {
-//               eventName,
-//               payload:
-//                 eventPayload,
-//             },
-//           );
-
-//           applyQuestion(
-//             incomingQuestion,
-//             eventName,
-//           );
-//         }
-//       };
-
-//     /* ==============================================================
-//        REGISTER LISTENERS
-//        ============================================================== */
-
-//     socket.on(
-//       "connect",
-//       handleConnect,
-//     );
-
-//     socket.on(
-//       "connect_error",
-//       handleConnectError,
-//     );
-
-//     socket.on(
-//       "disconnect",
-//       handleDisconnect,
-//     );
-
-//     socket.on(
-//       "joined_room_ack",
-//       handleJoinedRoomAck,
-//     );
-
-//     socket.on(
-//       "round_started",
-//       handleRoundStarted,
-//     );
-
-//     /*
-//      * Listen to every incoming event.
-//      */
-
-//     socket.onAny(
-//       handleAnyEvent,
-//     );
-
-//     /* ==============================================================
-//        SOCKET MAY ALREADY BE CONNECTED
-//        ============================================================== */
-
-//     if (
-//       socket.connected
-//     ) {
-//       handleConnect();
-//     } else {
-//       setSocketConnected(
-//         false,
-//       );
-
-//       console.log(
-//         "[Quiz Play Socket] Waiting for socket connection...",
-//       );
-//     }
-
-//     /* ==============================================================
-//        CLEANUP
-//        ============================================================== */
-
-//     return () => {
-//       cancelled =
-//         true;
-
-//       socket.off(
-//         "connect",
-//         handleConnect,
-//       );
-
-//       socket.off(
-//         "connect_error",
-//         handleConnectError,
-//       );
-
-//       socket.off(
-//         "disconnect",
-//         handleDisconnect,
-//       );
-
-//       socket.off(
-//         "joined_room_ack",
-//         handleJoinedRoomAck,
-//       );
-
-//       socket.off(
-//         "round_started",
-//         handleRoundStarted,
-//       );
-
-//       socket.offAny(
-//         handleAnyEvent,
-//       );
-
-//       joinedSocketRoomRef.current =
-//         null;
-
-//       /*
-//        * Clean up the singleton socket when leaving /play.
-//        */
-
-//       disconnectQuizSocket();
-//     };
-//   }, [
-//     applyQuestion,
-//     quizId,
-//     session,
-//   ]);
-
-//   /* ================================================================
-//      ANSWER SELECTION
-
-//      For now this only selects the answer locally.
-
-//      We are NOT emitting a made-up answer event until the actual
-//      backend answer-submission contract is known.
-//      ================================================================ */
-
-//   const handleAnswerSelect =
-//     (option: QuizOption) => {
-//       if (!question) {
-//         return;
-//       }
-
-//       setSelectedAnswer(
-//         option.value,
-//       );
-
-//       console.log(
-//         "[Quiz Play] Student selected answer:",
-//         {
-//           quizId,
-//           round:
-//             currentRound,
-//           questionId:
-//             question.id,
-//           question:
-//             question.question,
-//           optionLabel:
-//             option.label,
-//           optionValue:
-//             option.value,
-//           optionText:
-//             option.text,
-//         },
-//       );
-//     };
-
-//   /* ================================================================
-//      LEAVE QUIZ
-//      ================================================================ */
-
-//   const handleLeaveQuiz =
-//     () => {
-//       router.push(
-//         `/student/quiz-board/${quizId}`,
-//       );
-//     };
-
-//   /* ================================================================
-//      SESSION ERROR
-//      ================================================================ */
-
-//   if (sessionError) {
-//     return (
-//       <main className="min-h-screen bg-[#07111f] px-4 py-8 text-white sm:px-6 lg:px-8">
-//         <div className="mx-auto max-w-3xl">
-//           <Card className="border-white/10 bg-white/[0.04] p-8 text-white shadow-2xl shadow-black/30">
-//             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-300">
-//               <AlertCircle className="h-6 w-6" />
-//             </div>
-
-//             <h1 className="text-2xl font-bold">
-//               Quiz session unavailable
-//             </h1>
-
-//             <p className="mt-3 text-sm leading-6 text-slate-300">
-//               {sessionError}
-//             </p>
-
-//             <div className="mt-7 flex flex-wrap gap-3">
-//               {/* ==================================================
-//                   FIX:
-//                   Button does not support asChild in this project.
-//                   Use a normal Link instead.
-//                   ================================================== */}
-
-//               <Link
-//                 href={`/student/quiz-board/${
-//                   quizId || ""
-//                 }`}
-//                 className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-//               >
-//                 <ArrowLeft className="mr-2 h-4 w-4" />
-//                 Back to Waiting Room
-//               </Link>
-//             </div>
-//           </Card>
-//         </div>
-//       </main>
-//     );
-//   }
-
-//   /* ================================================================
-//      LOADING
-//      ================================================================ */
-
-//   if (!session) {
-//     return (
-//       <main className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 text-white">
-//         <div className="flex items-center gap-3 text-slate-300">
-//           <Loader2 className="h-5 w-5 animate-spin" />
-//           Loading quiz session...
-//         </div>
-//       </main>
-//     );
-//   }
-
-//   /* ================================================================
-//      QUESTION LABEL
-//      ================================================================ */
-
-//   const progressLabel =
-//     question?.questionNumber
-//       ? `Question ${question.questionNumber}${
-//           question.totalQuestions
-//             ? ` of ${question.totalQuestions}`
-//             : ""
-//         }`
-//       : "Question waiting";
-
-//   /* ================================================================
-//      PAGE
-//      ================================================================ */
-
-//   return (
-//     <main className="min-h-screen bg-[#07111f] text-white">
-//       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-//         {/* ========================================================
-//             TOP BAR
-//             ======================================================== */}
-
-//         <header className="mb-5 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-//           <div className="flex min-w-0 items-center gap-3">
-//             <Link
-//               href={`/student/quiz-board/${quizId}`}
-//               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
-//               aria-label="Back to waiting room"
-//             >
-//               <ArrowLeft className="h-5 w-5" />
-//             </Link>
-
-//             <div className="min-w-0">
-//               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-//                 JAMB League • Quiz Board
-//               </p>
-
-//               <h1 className="truncate text-lg font-bold sm:text-xl">
-//                 {session.quiz_title}
-//               </h1>
-
-//               <p className="truncate text-xs text-slate-400">
-//                 {session.subject ||
-//                   "Quiz Competition"}
-//               </p>
-//             </div>
-//           </div>
-
-//           <div className="flex flex-wrap items-center gap-2">
-//             {/* ====================================================
-//                 SOCKET STATUS
-//                 ==================================================== */}
-
-//             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-xs">
-//               {socketConnected ? (
-//                 <Wifi className="h-3.5 w-3.5 text-emerald-300" />
-//               ) : (
-//                 <WifiOff className="h-3.5 w-3.5 text-amber-300" />
-//               )}
-
-//               <span
-//                 className={
-//                   socketConnected
-//                     ? "text-emerald-200"
-//                     : "text-amber-200"
-//                 }
-//               >
-//                 {socketConnected
-//                   ? "Connected"
-//                   : "Connecting..."}
-//               </span>
-//             </div>
-
-//             {/* ====================================================
-//                 ROOM STATUS
-//                 ==================================================== */}
-
-//             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-xs">
-//               <Radio className="h-3.5 w-3.5 text-sky-300" />
-
-//               <span className="text-slate-300">
-//                 {socketRoomJoined
-//                   ? "Room joined"
-//                   : "Joining room..."}
-//               </span>
-//             </div>
-//           </div>
-//         </header>
-
-//         {/* ========================================================
-//             SOCKET ERROR
-//             ======================================================== */}
-
-//         {socketError && (
-//           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-//             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-
-//             <div>
-//               <p className="font-semibold">
-//                 Socket connection issue
-//               </p>
-
-//               <p className="mt-1 text-red-100/80">
-//                 {socketError}
-//               </p>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* ========================================================
-//             ROUND / SOCKET DEBUG STATUS
-//             ======================================================== */}
-
-//         <div className="mb-5 grid gap-3 sm:grid-cols-3">
-//           <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-//             <p className="text-xs uppercase tracking-wider text-slate-500">
-//               Current Round
-//             </p>
-
-//             <p className="mt-1 text-xl font-bold">
-//               Round {currentRound}
-//             </p>
-//           </div>
-
-//           <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-//             <p className="text-xs uppercase tracking-wider text-slate-500">
-//               Question
-//             </p>
-
-//             <p className="mt-1 text-xl font-bold">
-//               {question
-//                 ? "Received"
-//                 : "Waiting"}
-//             </p>
-//           </div>
-
-//           <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-//             <p className="text-xs uppercase tracking-wider text-slate-500">
-//               Last Socket Event
-//             </p>
-
-//             <p className="mt-1 truncate text-sm font-semibold text-sky-200">
-//               {lastSocketEvent ||
-//                 "None yet"}
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* ========================================================
-//             QUESTION CARD
-//             ======================================================== */}
-
-//         <section className="mx-auto max-w-5xl">
-//           <Card className="overflow-hidden border-white/10 bg-white/[0.045] text-white shadow-2xl shadow-black/30 backdrop-blur-xl">
-//             {/* ====================================================
-//                 QUESTION HEADER
-//                 ==================================================== */}
-
-//             <div className="border-b border-white/10 bg-black/10 px-5 py-4 sm:px-7">
-//               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-//                 <div className="flex items-center gap-2 text-sm text-slate-300">
-//                   <CircleDot className="h-4 w-4 text-sky-300" />
-
-//                   <span>
-//                     {progressLabel}
-//                   </span>
-//                 </div>
-
-//                 <div className="text-xs text-slate-500">
-//                   Round{" "}
-//                   {currentRound}{" "}
-//                   of{" "}
-//                   {
-//                     session.number_of_rounds
-//                   }
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* ====================================================
-//                 QUESTION CONTENT
-//                 ==================================================== */}
-
-//             <div className="p-5 sm:p-8 lg:p-10">
-//               {!question ? (
-//                 /* ==================================================
-//                    WAITING FOR QUESTION
-//                    ================================================== */
-
-//                 <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-//                   <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10">
-//                     {socketConnected ? (
-//                       <Loader2 className="h-7 w-7 animate-spin text-sky-300" />
-//                     ) : (
-//                       <RefreshCw className="h-7 w-7 text-sky-300" />
-//                     )}
-//                   </div>
-
-//                   <h2 className="text-xl font-bold sm:text-2xl">
-//                     Waiting for the first
-//                     question
-//                   </h2>
-
-//                   <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
-//                     When the Admin starts
-//                     Round{" "}
-//                     {currentRound},
-//                     the question
-//                     event sent by
-//                     the competition
-//                     server will
-//                     appear here
-//                     automatically.
-//                   </p>
-
-//                   {/* ==================================================
-//                      CONNECTION DEBUG
-//                      ================================================== */}
-
-//                   <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-xs text-slate-400">
-//                     <p>
-//                       Socket:{" "}
-//                       {socketConnected
-//                         ? "connected"
-//                         : "not connected"}
-//                     </p>
-
-//                     <p className="mt-1">
-//                       Room:{" "}
-//                       {socketRoomJoined
-//                         ? "joined"
-//                         : "not joined"}
-//                     </p>
-
-//                     <p className="mt-1">
-//                       Listener:{" "}
-//                       <span className="text-sky-300">
-//                         onAny()
-//                       </span>
-//                     </p>
-
-//                     <p className="mt-1">
-//                       Last event:{" "}
-//                       <span className="text-sky-300">
-//                         {lastSocketEvent ||
-//                           "none"}
-//                       </span>
-//                     </p>
-//                   </div>
-//                 </div>
-//               ) : (
-//                 /* ==================================================
-//                    QUESTION RECEIVED
-//                    ================================================== */
-
-//                 <div>
-//                   {/* ==================================================
-//                      QUESTION
-//                      ================================================== */}
-
-//                   <div className="mb-8">
-//                     <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-sky-300">
-//                       {progressLabel}
-//                     </p>
-
-//                     <h2 className="text-2xl font-bold leading-relaxed sm:text-3xl">
-//                       {
-//                         question.question
-//                       }
-//                     </h2>
-//                   </div>
-
-//                   {/* ==================================================
-//                      ANSWER OPTIONS
-//                      ================================================== */}
-
-//                   <div className="grid gap-4 sm:grid-cols-2">
-//                     {question.options.map(
-//                       (option) => {
-//                         const isSelected =
-//                           selectedAnswer ===
-//                           option.value;
-
-//                         return (
-//                           <button
-//                             key={`${question.id}-${option.label}-${option.value}`}
-//                             type="button"
-//                             onClick={() =>
-//                               handleAnswerSelect(
-//                                 option,
-//                               )
-//                             }
-//                             className={`group w-full rounded-2xl border p-4 text-left transition sm:p-5 ${
-//                               isSelected
-//                                 ? "border-sky-400 bg-sky-400/10 shadow-lg shadow-sky-950/30"
-//                                 : "border-white/10 bg-white/[0.025] hover:border-sky-400/40 hover:bg-white/[0.055]"
-//                             }`}
-//                           >
-//                             <div className="flex items-start gap-4">
-//                               {/* ==================================================
-//                                  OPTION LETTER
-//                                  ================================================== */}
-
-//                               <span
-//                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition ${
-//                                   isSelected
-//                                     ? "bg-sky-400 text-slate-950"
-//                                     : "bg-white/[0.08] text-slate-200 group-hover:bg-sky-400/15 group-hover:text-sky-200"
-//                                 }`}
-//                               >
-//                                 {
-//                                   option.label
-//                                 }
-//                               </span>
-
-//                               {/* ==================================================
-//                                  OPTION TEXT
-//                                  ================================================== */}
-
-//                               <span className="flex-1 pt-1 text-base font-medium leading-6 text-slate-100">
-//                                 {
-//                                   option.text
-//                                 }
-//                               </span>
-
-//                               {/* ==================================================
-//                                  SELECTED ICON
-//                                  ================================================== */}
-
-//                               {isSelected && (
-//                                 <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-sky-300" />
-//                               )}
-//                             </div>
-//                           </button>
-//                         );
-//                       },
-//                     )}
-//                   </div>
-
-//                   {/* ==================================================
-//                      SELECTED ANSWER MESSAGE
-//                      ================================================== */}
-
-//                   {selectedAnswer && (
-//                     <div className="mt-6 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm text-sky-100">
-//                       Answer selected.
-//                     </div>
-//                   )}
-//                 </div>
-//               )}
-//             </div>
-//           </Card>
-//         </section>
-
-//         {/* ========================================================
-//             FOOTER
-//             ======================================================== */}
-
-//         <div className="mx-auto mt-5 flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-//           <div className="text-xs text-slate-500">
-//             Room ID:{" "}
-//             <span className="font-mono text-slate-400">
-//               {session.room_id ||
-//                 "—"}
-//             </span>
-//           </div>
-
-//           <Button
-//             type="button"
-//             variant="outline"
-//             onClick={
-//               handleLeaveQuiz
-//             }
-//             className="border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.08] hover:text-white"
-//           >
-//             Leave Quiz
-//           </Button>
-//         </div>
-//       </div>
-//     </main>
-//   );
-// }

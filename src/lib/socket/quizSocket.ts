@@ -159,12 +159,36 @@ export function getQuizSocket(): Socket {
      * It can be removed once the socket protocol is confirmed.
      */
     socket.onAny((event, ...args) => {
-      console.log(
-        "[Quiz Socket] Incoming event:",
-        event,
-        args,
-      );
-    });
+  console.log(
+    "[Quiz Socket] Incoming event:",
+    event,
+    args,
+  );
+
+  if (event === "socket_error") {
+    console.error(
+      "[Quiz Socket] ===== SOCKET ERROR =====",
+    );
+
+    console.error(
+      "[Quiz Socket] Error payload:",
+      args[0],
+    );
+
+    console.error(
+      "[Quiz Socket] Error payload JSON:",
+      JSON.stringify(
+        args[0],
+        null,
+        2,
+      ),
+    );
+
+    console.error(
+      "[Quiz Socket] =========================",
+    );
+  }
+});
 
     console.log(
       "[Quiz Socket] Socket instance created.",

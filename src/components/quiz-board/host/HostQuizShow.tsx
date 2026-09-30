@@ -68,6 +68,7 @@ export interface HostQuizShowProps {
   participants: HostParticipant[];
   leaderboard: HostLeaderboardEntry[];
 
+
   loading?: boolean;
 
   questionLoading?: boolean;
@@ -584,19 +585,14 @@ export default function HostQuizShow({
             </div>
 
             <HostQuestionPreview
-              question={selectedQuestion}
-              totalQuestions={totalQuestions}
-              loading={questionLoading}
-              questionStarted={questionStarted}
-              questionLocked={questionLocked}
-              onStartQuestion={onStartQuestion}
-              canStartQuestion={
-                canStartQuestion && Boolean(selectedQuestion)
-              }
-              actionLoading={actionLoading}
-              showCorrectAnswer
-              showExplanation
-            />
+  question={selectedQuestion}
+  totalQuestions={totalQuestions}
+  loading={questionLoading}
+  questionStarted={questionStarted}
+  questionLocked={questionLocked}
+  showCorrectAnswer
+  showExplanation
+/>
 
             {/* Time selection */}
             {onTimeLimitChange && (

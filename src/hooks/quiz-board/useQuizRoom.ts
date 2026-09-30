@@ -3,8 +3,6 @@
 
 
 
-
-
 "use client";
 
 import {
@@ -35,29 +33,74 @@ import {
 import {
   getQuizById,
 } from "@/lib/api/quizCompetition";
-import { axiosInstance } from "@/lib";
 
+import {
+  getQuizSocket,
+} from "@/lib/socket/quizSocket";
+
+
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+
+/*
+ * Quiz metadata changes relatively slowly.
+ *
+ * Room state does NOT use polling.
+ *
+ * Room state comes exclusively from Socket.IO.
+ */
 const QUIZ_POLLING_INTERVAL = 60_000;
-const ROOM_POLLING_INTERVAL = 10_000;
+
+
+/* ============================================================
+   OPTIONS
+   ============================================================ */
 
 export interface UseQuizRoomOptions {
   enabled?: boolean;
+
+  /*
+   * Poll quiz metadata.
+   *
+   * Default: true
+   */
   pollQuiz?: boolean;
+
+  /*
+   * Kept for backwards compatibility with existing callers.
+   *
+   * IMPORTANT:
+   *
+   * This option no longer starts REST room polling.
+   *
+   * Room state is Socket.IO driven.
+   */
   pollRoom?: boolean;
 }
 
+
+/* ============================================================
+   RETURN TYPE
+   ============================================================ */
+
 export interface UseQuizRoomReturn {
   quiz: QuizCompetition | null;
+
   room: QuizRoom | null;
 
   loading: boolean;
+
   refreshing: boolean;
+
   error: string;
 
   quizLoading: boolean;
+
   roomLoading: boolean;
 
   quizError: string;
+
   roomError: string;
 
   roomId: string | null;
@@ -66,6 +109,14 @@ export interface UseQuizRoomReturn {
     silent?: boolean;
   }) => Promise<QuizCompetition | null>;
 
+  /*
+   * IMPORTANT:
+   *
+   * loadRoom no longer performs a REST request.
+   *
+   * It returns the current Socket.IO room state when
+   * available.
+   */
   loadRoom: (
     explicitRoomId?: string | null,
     options?: {
@@ -84,20 +135,82 @@ export interface UseQuizRoomReturn {
   >;
 }
 
+
+/* ============================================================
+   ROOM ID RESOLUTION
+   ============================================================ */
+
 function resolveRoomId(
   room: QuizRoom | null,
   quiz: QuizCompetition | null,
 ): string | null {
+  /*
+   * Prefer the actual live room state.
+   */
   const roomId = getRoomId(room);
 
   if (roomId) {
     return roomId;
   }
 
+  /*
+   * Fall back to room_id stored in quiz metadata.
+   */
   const quizRoomId = getQuizRoomId(quiz);
 
   return quizRoomId || null;
 }
+
+
+/* ============================================================
+   SOCKET ROOM STATE EXTRACTION
+   ============================================================ */
+
+/*
+ * Socket.IO may send room_state in slightly different
+ * envelope formats depending on the backend.
+ *
+ * Examples:
+ *
+ *   room_state
+ *   {
+ *     roomId: "...",
+ *     quizId: "...",
+ *     ...
+ *   }
+ *
+ * or:
+ *
+ *   room_state
+ *   {
+ *     data: {
+ *       roomId: "...",
+ *       ...
+ *     }
+ *   }
+ *
+ * extractRoom() already exists in your waiting-room helpers,
+ * so we use that as the single normalization point.
+ */
+function extractSocketRoom(
+  payload: unknown,
+): QuizRoom | null {
+  try {
+    return extractRoom(payload);
+  } catch (error) {
+    console.error(
+      "[useQuizRoom] Failed to extract room_state:",
+      error,
+    );
+
+    return null;
+  }
+}
+
+
+/* ============================================================
+   HOOK
+   ============================================================ */
 
 export default function useQuizRoom(
   quizId: string,
@@ -106,8 +219,20 @@ export default function useQuizRoom(
   const {
     enabled = true,
     pollQuiz = true,
-    pollRoom = true,
+
+    /*
+     * This remains accepted so existing components do not
+     * break if they still pass pollRoom.
+     *
+     * It is intentionally NOT used to perform REST polling.
+     */
+    pollRoom: _pollRoom = true,
   } = options;
+
+
+  /* ==========================================================
+     STATE
+     ========================================================== */
 
   const [quiz, setQuiz] =
     useState<QuizCompetition | null>(null);
@@ -136,6 +261,11 @@ export default function useQuizRoom(
   const [roomError, setRoomError] =
     useState("");
 
+
+  /* ==========================================================
+     REFS
+     ========================================================== */
+
   const mountedRef =
     useRef(true);
 
@@ -148,12 +278,20 @@ export default function useQuizRoom(
   const quizRequestInFlightRef =
     useRef(false);
 
-  const roomRequestInFlightRef =
+  /*
+   * This is no longer an HTTP request lock.
+   *
+   * It only protects against unnecessary simultaneous
+   * room-state initialization.
+   */
+  const roomStateProcessingRef =
     useRef(false);
 
-  /*
-   * Track whether the hook is mounted.
-   */
+
+  /* ==========================================================
+     MOUNT / UNMOUNT
+     ========================================================== */
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -162,28 +300,25 @@ export default function useQuizRoom(
     };
   }, []);
 
-  /*
-   * Keep refs synchronized with state.
-   */
+
+  /* ==========================================================
+     KEEP REFS SYNCHRONIZED
+     ========================================================== */
+
   useEffect(() => {
     quizRef.current = quiz;
   }, [quiz]);
+
 
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
 
-  /*
-   * Load quiz competition.
-   *
-   * IMPORTANT:
-   * We use the existing frontend API function
-   * from src/lib/api/quizCompetition.ts.
-   *
-   * This keeps authentication, baseURL, /api/v1,
-   * interceptors and refresh-token handling inside
-   * axiosInstance.
-   */
+
+  /* ==========================================================
+     LOAD QUIZ METADATA
+     ========================================================== */
+
   const loadQuiz = useCallback(
     async ({
       silent = false,
@@ -195,7 +330,7 @@ export default function useQuizRoom(
       }
 
       /*
-       * Prevent duplicate requests.
+       * Prevent duplicate metadata requests.
        */
       if (quizRequestInFlightRef.current) {
         return quizRef.current;
@@ -203,12 +338,20 @@ export default function useQuizRoom(
 
       quizRequestInFlightRef.current = true;
 
-      if (!silent && mountedRef.current) {
+      if (
+        !silent &&
+        mountedRef.current
+      ) {
         setQuizLoading(true);
         setQuizError("");
       }
 
       try {
+        /*
+         * REST is still correct here.
+         *
+         * This is QUIZ METADATA, not live room state.
+         */
         const payload =
           await getQuizById(quizId);
 
@@ -245,20 +388,41 @@ export default function useQuizRoom(
         quizRequestInFlightRef.current =
           false;
 
-        if (!silent && mountedRef.current) {
+        if (
+          !silent &&
+          mountedRef.current
+        ) {
           setQuizLoading(false);
         }
       }
     },
-    [enabled, quizId],
+    [
+      enabled,
+      quizId,
+    ],
   );
 
-  /*
-   * Load room state.
-   *
-   * Room state is different from quiz metadata.
-   * We only request it after a roomId exists.
-   */
+
+  /* ==========================================================
+     LOAD ROOM
+     ==========================================================
+
+     IMPORTANT:
+
+     THERE IS NO AXIOS REQUEST HERE.
+
+     Before:
+
+       GET /quiz/room-state/{roomId}
+
+     Now:
+
+       Socket.IO -> room_state -> setRoom()
+
+     This function is retained because existing components may
+     already call loadRoom().
+     ========================================================== */
+
   const loadRoom = useCallback(
     async (
       explicitRoomId?: string | null,
@@ -283,96 +447,247 @@ export default function useQuizRoom(
         ).trim();
 
       /*
-       * No room has been created yet.
+       * No room exists yet.
        */
       if (!currentRoomId) {
+        if (
+          !silent &&
+          mountedRef.current
+        ) {
+          setRoomLoading(false);
+        }
+
         return null;
       }
 
       /*
-       * Prevent overlapping room requests.
+       * The room is now owned by Socket.IO.
+       *
+       * If we already have the room state for this room,
+       * simply return it.
        */
-      if (roomRequestInFlightRef.current) {
-        return roomRef.current;
-      }
+      const existingRoom =
+        roomRef.current;
 
-      roomRequestInFlightRef.current = true;
+      const existingRoomId =
+        getRoomId(existingRoom);
 
-      if (!silent && mountedRef.current) {
-        setRoomLoading(true);
-        setRoomError("");
-      }
-
-      try {
-        /*
-         * Room-state endpoint.
-         *
-         * Unlike getQuizById, we don't currently have
-         * a confirmed helper for room-state in the
-         * existing API file, so this uses the frontend
-         * /api/v1 route directly.
-         */
-       const response = await axiosInstance.get(
-  `/quiz/room-state/${encodeURIComponent(
-    currentRoomId,
-  )}`,
-  {
-    params: {
-      quizId,
-    },
-  },
-);
-
-const payload: unknown =
-  response?.data ?? null;
-
-const nextRoom =
-  extractRoom(payload);
-
-if (!nextRoom) {
-  throw new Error(
-    "The room response did not contain valid room data.",
-  );
-}
-
-if (mountedRef.current) {
-  setRoom(nextRoom);
-  setRoomError("");
-  setError("");
-}
-
-return nextRoom;
-      } catch (requestError) {
-        const message =
-          getApiErrorMessage(
-            requestError,
-            "Failed to load quiz room.",
-          );
-
-        if (mountedRef.current) {
-          setRoomError(message);
-          setError(message);
-        }
-
-        return null;
-      } finally {
-        roomRequestInFlightRef.current =
-          false;
-
-        if (!silent && mountedRef.current) {
+      if (
+        existingRoom &&
+        existingRoomId === currentRoomId
+      ) {
+        if (
+          !silent &&
+          mountedRef.current
+        ) {
           setRoomLoading(false);
         }
+
+        return existingRoom;
       }
+
+      /*
+       * We do not make an HTTP request here.
+       *
+       * Socket.IO will deliver:
+       *
+       *   room_state
+       *
+       * and the room_state listener below will call
+       * setRoom().
+       *
+       * We therefore return the current room if one exists.
+       */
+      if (
+        !silent &&
+        mountedRef.current
+      ) {
+        setRoomLoading(false);
+      }
+
+      return existingRoom ?? null;
     },
-    [enabled, quizId],
+    [
+      enabled,
+      quizId,
+    ],
   );
 
-  /*
-   * Refresh quiz and room state.
-   */
+
+  /* ==========================================================
+     SOCKET.IO ROOM STATE
+     ========================================================== */
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !quizId
+    ) {
+      return;
+    }
+
+    /*
+     * IMPORTANT:
+     *
+     * getQuizSocket() returns your existing singleton.
+     *
+     * We are NOT creating another Socket.IO connection.
+     */
+    const socket =
+      getQuizSocket();
+
+
+    /*
+     * Handle authoritative live room state.
+     */
+    const handleRoomState =
+      (payload: unknown) => {
+        console.log(
+          "[useQuizRoom] room_state received:",
+          payload,
+        );
+
+        const nextRoom =
+          extractSocketRoom(payload);
+
+        if (!nextRoom) {
+          console.warn(
+            "[useQuizRoom] room_state did not contain valid room data.",
+            payload,
+          );
+
+          return;
+        }
+
+        /*
+         * Make sure the room belongs to this quiz.
+         *
+         * We allow the quiz ID to be absent because some
+         * backend room-state payloads may not include it.
+         */
+        const roomQuizId =
+          String(
+            (
+              nextRoom as unknown as Record<
+                string,
+                unknown
+              >
+            ).quizId ??
+              (
+                nextRoom as unknown as Record<
+                  string,
+                  unknown
+                >
+              ).quiz_id ??
+              "",
+          ).trim();
+
+        if (
+          roomQuizId &&
+          roomQuizId !== quizId
+        ) {
+          console.warn(
+            "[useQuizRoom] Ignoring room_state for another quiz:",
+            {
+              expectedQuizId: quizId,
+              receivedQuizId: roomQuizId,
+            },
+          );
+
+          return;
+        }
+
+        const nextRoomId =
+          getRoomId(nextRoom);
+
+        if (!nextRoomId) {
+          console.warn(
+            "[useQuizRoom] room_state did not contain a room ID.",
+            nextRoom,
+          );
+
+          return;
+        }
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        /*
+         * Socket.IO is now the authoritative source.
+         */
+        roomStateProcessingRef.current =
+          true;
+
+        setRoom(
+          nextRoom,
+        );
+
+        setRoomError("");
+
+        setError("");
+
+        setRoomLoading(false);
+
+        /*
+         * Keep the ref immediately synchronized.
+         *
+         * This avoids waiting for React's state effect before
+         * another socket event arrives.
+         */
+        roomRef.current =
+          nextRoom;
+
+        console.log(
+          "[useQuizRoom] Room state updated from Socket.IO:",
+          {
+            quizId,
+            roomId: nextRoomId,
+            room: nextRoom,
+          },
+        );
+      };
+
+
+    /*
+     * Subscribe ONLY to room_state.
+     *
+     * Other socket events are handled by their respective
+     * controllers/hooks.
+     */
+    socket.on(
+      "room_state",
+      handleRoomState,
+    );
+
+
+    /*
+     * Cleanup only our listener.
+     *
+     * DO NOT use removeAllListeners().
+     */
+    return () => {
+      socket.off(
+        "room_state",
+        handleRoomState,
+      );
+    };
+  }, [
+    enabled,
+    quizId,
+  ]);
+
+
+  /* ==========================================================
+     REFRESH
+     ========================================================== */
+
   const refresh = useCallback(
     async (): Promise<void> => {
-      if (!enabled || !quizId) {
+      if (
+        !enabled ||
+        !quizId
+      ) {
         return;
       }
 
@@ -382,22 +697,23 @@ return nextRoom;
       }
 
       try {
-        const nextQuiz =
-          await loadQuiz();
+        /*
+         * Refresh only quiz metadata through REST.
+         *
+         * Room state is NOT fetched here.
+         */
+        await loadQuiz();
 
-        if (!mountedRef.current) {
-          return;
-        }
-
-        const nextRoomId =
-          resolveRoomId(
-            roomRef.current,
-            nextQuiz,
-          );
-
-        if (nextRoomId) {
-          await loadRoom(nextRoomId);
-        }
+        /*
+         * There is deliberately no:
+         *
+         *   await loadRoom(...)
+         *
+         * REST room-state no longer exists.
+         *
+         * The socket continues to provide the latest
+         * room_state.
+         */
       } finally {
         if (mountedRef.current) {
           setRefreshing(false);
@@ -408,19 +724,19 @@ return nextRoom;
       enabled,
       quizId,
       loadQuiz,
-      loadRoom,
     ],
   );
 
-  /*
-   * Initial loading.
-   *
-   * 1. Get quiz.
-   * 2. Extract room_id.
-   * 3. Get room state.
-   */
+
+  /* ==========================================================
+     INITIALIZATION
+     ========================================================== */
+
   useEffect(() => {
-    if (!enabled || !quizId) {
+    if (
+      !enabled ||
+      !quizId
+    ) {
       if (mountedRef.current) {
         setLoading(false);
       }
@@ -430,39 +746,41 @@ return nextRoom;
 
     let cancelled = false;
 
-    const initialize = async () => {
-      if (mountedRef.current) {
-        setLoading(true);
-        setError("");
-      }
+    const initialize =
+      async () => {
+        if (mountedRef.current) {
+          setLoading(true);
+          setError("");
+        }
 
-      const nextQuiz =
+        /*
+         * Load quiz metadata.
+         */
         await loadQuiz();
 
-      if (
-        cancelled ||
-        !mountedRef.current
-      ) {
-        return;
-      }
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          return;
+        }
 
-      const nextRoomId =
-        resolveRoomId(
-          roomRef.current,
-          nextQuiz,
-        );
+        /*
+         * IMPORTANT:
+         *
+         * We DO NOT load room through REST.
+         *
+         * Socket.IO owns room state.
+         *
+         * getQuizSocket() has already been attached through
+         * the room_state effect.
+         */
 
-      if (nextRoomId) {
-        await loadRoom(nextRoomId);
-      }
-
-      if (
-        !cancelled &&
-        mountedRef.current
-      ) {
-        setLoading(false);
-      }
-    };
+        if (mountedRef.current) {
+          setRoomLoading(false);
+          setLoading(false);
+        }
+      };
 
     void initialize();
 
@@ -473,15 +791,13 @@ return nextRoom;
     enabled,
     quizId,
     loadQuiz,
-    loadRoom,
   ]);
 
-  /*
-   * Quiz metadata polling.
-   *
-   * Quiz metadata changes relatively slowly,
-   * so poll every 60 seconds.
-   */
+
+  /* ==========================================================
+     QUIZ METADATA POLLING
+     ========================================================== */
+
   useEffect(() => {
     if (
       !enabled ||
@@ -492,14 +808,19 @@ return nextRoom;
     }
 
     const interval =
-      window.setInterval(() => {
-        void loadQuiz({
-          silent: true,
-        });
-      }, QUIZ_POLLING_INTERVAL);
+      window.setInterval(
+        () => {
+          void loadQuiz({
+            silent: true,
+          });
+        },
+        QUIZ_POLLING_INTERVAL,
+      );
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval,
+      );
     };
   }, [
     enabled,
@@ -508,54 +829,19 @@ return nextRoom;
     loadQuiz,
   ]);
 
+
+  /* ==========================================================
+     QUIZ ROOM ID CHANGES
+     ========================================================== */
+
   /*
-   * Room polling.
+   * Quiz metadata can acquire a room_id after the quiz was
+   * initially loaded.
    *
-   * Socket.IO provides real-time updates.
-   * This REST request is only the recovery mechanism.
-   */
-  useEffect(() => {
-    if (
-      !enabled ||
-      !quizId ||
-      !pollRoom
-    ) {
-      return;
-    }
-
-    const interval =
-      window.setInterval(() => {
-        const currentRoomId =
-          resolveRoomId(
-            roomRef.current,
-            quizRef.current,
-          );
-
-        if (!currentRoomId) {
-          return;
-        }
-
-        void loadRoom(
-          currentRoomId,
-          {
-            silent: true,
-          },
-        );
-      }, ROOM_POLLING_INTERVAL);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [
-    enabled,
-    quizId,
-    pollRoom,
-    loadRoom,
-  ]);
-
-  /*
-   * If quiz metadata obtains a room_id after
-   * the initial request, immediately load its state.
+   * We do NOT fetch that room.
+   *
+   * The existence of the room ID simply tells the rest of the
+   * application which Socket.IO room it should use.
    */
   useEffect(() => {
     if (
@@ -577,69 +863,94 @@ return nextRoom;
     }
 
     const currentRoomId =
-      getRoomId(roomRef.current);
+      getRoomId(
+        roomRef.current,
+      );
 
     /*
-     * We already have this room.
+     * If the socket has already delivered this room,
+     * there is nothing to do.
      */
     if (
-      currentRoomId === nextRoomId
+      currentRoomId ===
+      nextRoomId
     ) {
       return;
     }
 
-    void loadRoom(
-      nextRoomId,
-      {
-        silent: true,
-      },
-    );
+    /*
+     * We intentionally DO NOT call:
+     *
+     *   loadRoom(nextRoomId)
+     *
+     * because that would imply a REST room-state request.
+     *
+     * The socket room lifecycle is responsible for delivering
+     * room_state.
+     */
   }, [
     enabled,
     quizId,
     quiz,
-    loadRoom,
   ]);
 
-  /*
-   * Clear state when disabled.
-   */
+
+  /* ==========================================================
+     CLEAR STATE WHEN DISABLED
+     ========================================================== */
+
   useEffect(() => {
     if (enabled) {
       return;
     }
 
     setQuiz(null);
+
     setRoom(null);
 
     setLoading(false);
+
     setRefreshing(false);
 
     setError("");
+
     setQuizError("");
+
     setRoomError("");
 
     setQuizLoading(false);
+
     setRoomLoading(false);
 
     quizRef.current = null;
-    roomRef.current = null;
-  }, [enabled]);
 
-  /*
-   * Resolve the current room ID from either:
-   *
-   * 1. room state
-   * 2. quiz.room_id
-   */
+    roomRef.current = null;
+
+    roomStateProcessingRef.current =
+      false;
+  }, [
+    enabled,
+  ]);
+
+
+  /* ==========================================================
+     CURRENT ROOM ID
+     ========================================================== */
+
   const roomId =
     resolveRoomId(
       room,
       quiz,
     );
 
+
+  /* ==========================================================
+     RETURN
+     ========================================================== */
+
   return {
     quiz,
+
     room,
 
     loading:
@@ -651,1017 +962,23 @@ return nextRoom;
     error,
 
     quizLoading,
+
     roomLoading,
 
     quizError,
+
     roomError,
 
     roomId,
 
     loadQuiz,
+
     loadRoom,
 
     refresh,
 
     setQuiz,
+
     setRoom,
   };
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// "use client";
-
-// import {
-//   useCallback,
-//   useEffect,
-//   useRef,
-//   useState,
-// } from "react";
-
-// import type {
-//   Dispatch,
-//   SetStateAction,
-// } from "react";
-
-// import type {
-//   QuizCompetition,
-//   QuizRoom,
-// } from "@/lib/quiz-board/waiting-room/types";
-
-// import {
-//   extractQuiz,
-//   extractRoom,
-//   getApiErrorMessage,
-//   getQuizRoomId,
-//   getRoomId,
-// } from "@/lib/quiz-board/waiting-room/helpers";
-
-// import {
-//   getAllMyQuizzes,
-// } from "@/lib/api/quizCompetition";
-
-// const QUIZ_POLLING_INTERVAL = 60_000;
-
-// export interface UseQuizRoomOptions {
-//   enabled?: boolean;
-//   pollQuiz?: boolean;
-//   pollRoom?: boolean;
-// }
-
-// export interface UseQuizRoomReturn {
-//   quiz: QuizCompetition | null;
-//   room: QuizRoom | null;
-
-//   loading: boolean;
-//   refreshing: boolean;
-//   error: string;
-
-//   quizLoading: boolean;
-//   roomLoading: boolean;
-
-//   quizError: string;
-//   roomError: string;
-
-//   roomId: string | null;
-
-//   loadQuiz: (options?: {
-//     silent?: boolean;
-//   }) => Promise<QuizCompetition | null>;
-
-//   loadRoom: (
-//     explicitRoomId?: string | null,
-//     options?: {
-//       silent?: boolean;
-//     },
-//   ) => Promise<QuizRoom | null>;
-
-//   refresh: () => Promise<void>;
-
-//   setQuiz: Dispatch<
-//     SetStateAction<QuizCompetition | null>
-//   >;
-
-//   setRoom: Dispatch<
-//     SetStateAction<QuizRoom | null>
-//   >;
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* Helpers                                                                    */
-// /* -------------------------------------------------------------------------- */
-
-// function resolveRoomId(
-//   room: QuizRoom | null,
-//   quiz: QuizCompetition | null,
-// ): string | null {
-//   const roomId = getRoomId(room);
-
-//   if (roomId) {
-//     return roomId;
-//   }
-
-//   const quizRoomId = getQuizRoomId(quiz);
-
-//   return quizRoomId || null;
-// }
-
-// function getStoredUserId(): string | null {
-//   if (typeof window === "undefined") {
-//     return null;
-//   }
-
-//   const possibleKeys = [
-//     "user",
-//     "auth-user",
-//     "jamb_user",
-//     "jamb_auth_user",
-//   ];
-
-//   for (const key of possibleKeys) {
-//     try {
-//       const raw = window.localStorage.getItem(key);
-
-//       if (!raw) {
-//         continue;
-//       }
-
-//       try {
-//         const parsed = JSON.parse(raw);
-
-//         if (
-//           parsed &&
-//           typeof parsed === "object"
-//         ) {
-//           const record =
-//             parsed as Record<string, unknown>;
-
-//           const idCandidates = [
-//             record._id,
-//             record.id,
-//             record.userId,
-//             record.user_id,
-//           ];
-
-//           for (const candidate of idCandidates) {
-//             if (
-//               typeof candidate === "string" &&
-//               candidate.trim()
-//             ) {
-//               return candidate.trim();
-//             }
-//           }
-
-//           if (
-//             record.user &&
-//             typeof record.user === "object"
-//           ) {
-//             const nested =
-//               record.user as Record<
-//                 string,
-//                 unknown
-//               >;
-
-//             const nestedCandidates = [
-//               nested._id,
-//               nested.id,
-//               nested.userId,
-//               nested.user_id,
-//             ];
-
-//             for (
-//               const candidate of nestedCandidates
-//             ) {
-//               if (
-//                 typeof candidate === "string" &&
-//                 candidate.trim()
-//               ) {
-//                 return candidate.trim();
-//               }
-//             }
-//           }
-//         }
-//       } catch {
-//         /*
-//          * Some applications store the user ID
-//          * directly rather than as JSON.
-//          */
-//         const value = raw.trim();
-
-//         if (value) {
-//           return value;
-//         }
-//       }
-//     } catch {
-//       /*
-//        * Continue checking the remaining keys.
-//        */
-//     }
-//   }
-
-//   return null;
-// }
-
-// function extractMyQuizItems(
-//   payload: unknown,
-// ): unknown[] {
-//   if (Array.isArray(payload)) {
-//     return payload;
-//   }
-
-//   if (
-//     !payload ||
-//     typeof payload !== "object"
-//   ) {
-//     return [];
-//   }
-
-//   const record =
-//     payload as Record<string, unknown>;
-
-//   const possibleArrays = [
-//     record.data,
-//     record.quizzes,
-//     record.quiz,
-//     record.results,
-//     record.items,
-//     record.quizzesObj,
-//     record.myQuizzes,
-//     record.my_quizzes,
-//   ];
-
-//   for (const value of possibleArrays) {
-//     if (Array.isArray(value)) {
-//       return value;
-//     }
-
-//     if (
-//       value &&
-//       typeof value === "object"
-//     ) {
-//       const nested =
-//         value as Record<string, unknown>;
-
-//       const nestedArrays = [
-//         nested.data,
-//         nested.quizzes,
-//         nested.results,
-//         nested.items,
-//         nested.quizzesObj,
-//         nested.myQuizzes,
-//         nested.my_quizzes,
-//       ];
-
-//       for (const nestedValue of nestedArrays) {
-//         if (Array.isArray(nestedValue)) {
-//           return nestedValue;
-//         }
-//       }
-//     }
-//   }
-
-//   return [];
-// }
-
-// function getItemQuizId(
-//   item: unknown,
-// ): string | null {
-//   if (
-//     !item ||
-//     typeof item !== "object"
-//   ) {
-//     return null;
-//   }
-
-//   const value =
-//     item as Record<string, unknown>;
-
-//   /*
-//    * Participation object:
-//    *
-//    * {
-//    *   quizId: {
-//    *     _id: "..."
-//    *   }
-//    * }
-//    */
-
-//   if (
-//     value.quizId &&
-//     typeof value.quizId === "object"
-//   ) {
-//     const quiz =
-//       value.quizId as Record<
-//         string,
-//         unknown
-//       >;
-
-//     const nestedId =
-//       quiz._id ?? quiz.id;
-
-//     if (
-//       typeof nestedId === "string" &&
-//       nestedId.trim()
-//     ) {
-//       return nestedId.trim();
-//     }
-//   }
-
-//   const directCandidates = [
-//     value.quizId,
-//     value.quiz_id,
-//     value._id,
-//     value.id,
-//   ];
-
-//   for (
-//     const candidate of directCandidates
-//   ) {
-//     if (
-//       typeof candidate === "string" &&
-//       candidate.trim()
-//     ) {
-//       return candidate.trim();
-//     }
-//   }
-
-//   return null;
-// }
-
-// function getQuizFromMyQuizItem(
-//   item: unknown,
-// ): QuizCompetition | null {
-//   if (
-//     !item ||
-//     typeof item !== "object"
-//   ) {
-//     return null;
-//   }
-
-//   const value =
-//     item as Record<string, unknown>;
-
-//   /*
-//    * Normal My Competitions response:
-//    *
-//    * participation.quizId
-//    */
-
-//   if (
-//     value.quizId &&
-//     typeof value.quizId === "object"
-//   ) {
-//     const quiz =
-//       extractQuiz(value.quizId);
-
-//     if (quiz) {
-//       return quiz;
-//     }
-//   }
-
-//   /*
-//    * Some API wrappers may return:
-//    *
-//    * {
-//    *   quiz: {...}
-//    * }
-//    */
-
-//   if (
-//     value.quiz &&
-//     typeof value.quiz === "object"
-//   ) {
-//     const quiz =
-//       extractQuiz(value.quiz);
-
-//     if (quiz) {
-//       return quiz;
-//     }
-//   }
-
-//   /*
-//    * The item itself may already be
-//    * the quiz object.
-//    */
-
-//   return extractQuiz(value);
-// }
-
-// function getRoomFromMyQuizItem(
-//   item: unknown,
-// ): QuizRoom | null {
-//   if (
-//     !item ||
-//     typeof item !== "object"
-//   ) {
-//     return null;
-//   }
-
-//   const value =
-//     item as Record<string, unknown>;
-
-//   /*
-//    * If the API ever provides a nested room,
-//    * preserve it.
-//    *
-//    * This does NOT make a REST room-state
-//    * request.
-//    */
-
-//   if (
-//     value.room &&
-//     typeof value.room === "object"
-//   ) {
-//     return extractRoom(value.room);
-//   }
-
-//   if (
-//     value.roomData &&
-//     typeof value.roomData === "object"
-//   ) {
-//     return extractRoom(value.roomData);
-//   }
-
-//   return null;
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* Hook                                                                       */
-// /* -------------------------------------------------------------------------- */
-
-// export default function useQuizRoom(
-//   quizId: string,
-//   options: UseQuizRoomOptions = {},
-// ): UseQuizRoomReturn {
-//   const {
-//     enabled = true,
-//     pollQuiz = true,
-
-//     /*
-//      * Kept in the public options so existing
-//      * callers do not break.
-//      *
-//      * Room polling is intentionally disabled
-//      * because Socket.IO owns room state.
-//      */
-//     pollRoom = false,
-//   } = options;
-
-//   const [quiz, setQuiz] =
-//     useState<QuizCompetition | null>(null);
-
-//   const [room, setRoom] =
-//     useState<QuizRoom | null>(null);
-
-//   const [loading, setLoading] =
-//     useState(true);
-
-//   const [refreshing, setRefreshing] =
-//     useState(false);
-
-//   const [error, setError] =
-//     useState("");
-
-//   const [quizLoading, setQuizLoading] =
-//     useState(false);
-
-//   const [roomLoading, setRoomLoading] =
-//     useState(false);
-
-//   const [quizError, setQuizError] =
-//     useState("");
-
-//   const [roomError, setRoomError] =
-//     useState("");
-
-//   const mountedRef =
-//     useRef(true);
-
-//   const quizRef =
-//     useRef<QuizCompetition | null>(null);
-
-//   const roomRef =
-//     useRef<QuizRoom | null>(null);
-
-//   const quizRequestInFlightRef =
-//     useRef(false);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Mounted state                                                          */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     mountedRef.current = true;
-
-//     return () => {
-//       mountedRef.current = false;
-//     };
-//   }, []);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Keep refs synchronized                                                 */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     quizRef.current = quiz;
-//   }, [quiz]);
-
-//   useEffect(() => {
-//     roomRef.current = room;
-//   }, [room]);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Load quiz from My Competitions                                         */
-//   /* ---------------------------------------------------------------------- */
-
-//   const loadQuiz = useCallback(
-//     async ({
-//       silent = false,
-//     }: {
-//       silent?: boolean;
-//     } = {}): Promise<QuizCompetition | null> => {
-//       if (
-//         !enabled ||
-//         !quizId
-//       ) {
-//         return null;
-//       }
-
-//       /*
-//        * Prevent duplicate requests.
-//        */
-//       if (
-//         quizRequestInFlightRef.current
-//       ) {
-//         return quizRef.current;
-//       }
-
-//       const userId =
-//         getStoredUserId();
-
-//       if (!userId) {
-//         const message =
-//           "Unable to identify the logged-in user.";
-
-//         if (mountedRef.current) {
-//           setQuizError(message);
-//           setError(message);
-//         }
-
-//         return null;
-//       }
-
-//       quizRequestInFlightRef.current =
-//         true;
-
-//       if (
-//         !silent &&
-//         mountedRef.current
-//       ) {
-//         setQuizLoading(true);
-//         setQuizError("");
-//       }
-
-//       try {
-//         /*
-//          * IMPORTANT:
-//          *
-//          * We intentionally use:
-//          *
-//          * get-all-my-quizzes/{userId}
-//          *
-//          * This response already contains:
-//          *
-//          * - participation
-//          * - contestantId
-//          * - quiz
-//          * - room_id
-//          * - current_round
-//          * - joined_users
-//          * - quiz status
-//          *
-//          * No getQuizById request is needed.
-//          */
-//         const payload =
-//           await getAllMyQuizzes(userId);
-
-//         const items =
-//           extractMyQuizItems(payload);
-
-//         const matchingItem =
-//           items.find(
-//             (item) =>
-//               getItemQuizId(item) ===
-//               quizId,
-//           );
-
-//         if (!matchingItem) {
-//           throw new Error(
-//             "This competition could not be found in your competitions.",
-//           );
-//         }
-
-//         const nextQuiz =
-//           getQuizFromMyQuizItem(
-//             matchingItem,
-//           );
-
-//         if (!nextQuiz) {
-//           throw new Error(
-//             "The competition response did not contain valid quiz data.",
-//           );
-//         }
-
-//         const nestedRoom =
-//           getRoomFromMyQuizItem(
-//             matchingItem,
-//           );
-
-//         if (mountedRef.current) {
-//           setQuiz(nextQuiz);
-
-//           /*
-//            * If the API happens to provide room
-//            * information, keep it.
-//            *
-//            * Otherwise room remains null until
-//            * Socket.IO sends room_state.
-//            */
-//           if (nestedRoom) {
-//             setRoom(nestedRoom);
-//             roomRef.current =
-//               nestedRoom;
-//           }
-
-//           setQuizError("");
-//           setError("");
-//         }
-
-//         quizRef.current =
-//           nextQuiz;
-
-//         return nextQuiz;
-//       } catch (requestError) {
-//         const message =
-//           getApiErrorMessage(
-//             requestError,
-//             "Failed to load competition.",
-//           );
-
-//         if (mountedRef.current) {
-//           setQuizError(message);
-//           setError(message);
-//         }
-
-//         return null;
-//       } finally {
-//         quizRequestInFlightRef.current =
-//           false;
-
-//         if (
-//           !silent &&
-//           mountedRef.current
-//         ) {
-//           setQuizLoading(false);
-//         }
-//       }
-//     },
-//     [
-//       enabled,
-//       quizId,
-//     ],
-//   );
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Load room                                                              */
-//   /* ---------------------------------------------------------------------- */
-
-//   const loadRoom = useCallback(
-//     async (
-//       explicitRoomId?: string | null,
-//       {
-//         silent = false,
-//       }: {
-//         silent?: boolean;
-//       } = {},
-//     ): Promise<QuizRoom | null> => {
-//       if (
-//         !enabled ||
-//         !quizId
-//       ) {
-//         return null;
-//       }
-
-//       const currentRoomId =
-//         String(
-//           explicitRoomId ||
-//             resolveRoomId(
-//               roomRef.current,
-//               quizRef.current,
-//             ) ||
-//             "",
-//         ).trim();
-
-//       /*
-//        * There may be no room yet.
-//        *
-//        * This is NOT an error.
-//        *
-//        * The admin may not have created
-//        * the room yet.
-//        */
-//       if (!currentRoomId) {
-//         if (
-//           !silent &&
-//           mountedRef.current
-//         ) {
-//           setRoomLoading(false);
-//           setRoomError("");
-//         }
-
-//         return roomRef.current;
-//       }
-
-//       /*
-//        * IMPORTANT:
-//        *
-//        * There is deliberately NO:
-//        *
-//        * fetch(
-//        *   /api/v1/quiz/room-state/...
-//        * )
-//        *
-//        * Socket.IO is responsible for live
-//        * room state.
-//        */
-
-//       if (
-//         !silent &&
-//         mountedRef.current
-//       ) {
-//         setRoomLoading(false);
-//         setRoomError("");
-//       }
-
-//       return roomRef.current;
-//     },
-//     [
-//       enabled,
-//       quizId,
-//     ],
-//   );
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Refresh                                                               */
-//   /* ---------------------------------------------------------------------- */
-
-//   const refresh = useCallback(
-//     async (): Promise<void> => {
-//       if (
-//         !enabled ||
-//         !quizId
-//       ) {
-//         return;
-//       }
-
-//       if (mountedRef.current) {
-//         setRefreshing(true);
-//         setError("");
-//       }
-
-//       try {
-//         /*
-//          * Refresh only the My Competitions
-//          * REST data.
-//          *
-//          * Room state comes from Socket.IO.
-//          */
-//         await loadQuiz();
-//       } finally {
-//         if (mountedRef.current) {
-//           setRefreshing(false);
-//         }
-//       }
-//     },
-//     [
-//       enabled,
-//       quizId,
-//       loadQuiz,
-//     ],
-//   );
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Initial loading                                                        */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     if (
-//       !enabled ||
-//       !quizId
-//     ) {
-//       if (mountedRef.current) {
-//         setLoading(false);
-//       }
-
-//       return;
-//     }
-
-//     let cancelled = false;
-
-//     const initialize =
-//       async () => {
-//         if (mountedRef.current) {
-//           setLoading(true);
-//           setError("");
-//         }
-
-//         await loadQuiz();
-
-//         if (
-//           cancelled ||
-//           !mountedRef.current
-//         ) {
-//           return;
-//         }
-
-//         /*
-//          * We intentionally DO NOT call loadRoom().
-//          *
-//          * The room will be populated by Socket.IO:
-//          *
-//          * socket -> room_state
-//          */
-//         if (mountedRef.current) {
-//           setLoading(false);
-//         }
-//       };
-
-//     void initialize();
-
-//     return () => {
-//       cancelled = true;
-//     };
-//   }, [
-//     enabled,
-//     quizId,
-//     loadQuiz,
-//   ]);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Quiz polling                                                           */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     if (
-//       !enabled ||
-//       !quizId ||
-//       !pollQuiz
-//     ) {
-//       return;
-//     }
-
-//     const interval =
-//       window.setInterval(
-//         () => {
-//           void loadQuiz({
-//             silent: true,
-//           });
-//         },
-//         QUIZ_POLLING_INTERVAL,
-//       );
-
-//     return () => {
-//       window.clearInterval(
-//         interval,
-//       );
-//     };
-//   }, [
-//     enabled,
-//     quizId,
-//     pollQuiz,
-//     loadQuiz,
-//   ]);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Room polling                                                           */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     /*
-//      * Intentionally disabled.
-//      *
-//      * Socket.IO is the source of truth
-//      * for live room state.
-//      *
-//      * Keeping this effect means existing
-//      * pollRoom options remain compatible,
-//      * but no REST request is made.
-//      */
-//     if (
-//       !enabled ||
-//       !quizId ||
-//       !pollRoom
-//     ) {
-//       return;
-//     }
-
-//     /*
-//      * No interval is created.
-//      *
-//      * Room updates come through:
-//      *
-//      * room_state
-//      * room_activated
-//      * participant_joined_room
-//      * round_started
-//      * leaderboard_updated
-//      * ...
-//      */
-//     return;
-//   }, [
-//     enabled,
-//     quizId,
-//     pollRoom,
-//   ]);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Clear state when disabled                                              */
-//   /* ---------------------------------------------------------------------- */
-
-//   useEffect(() => {
-//     if (enabled) {
-//       return;
-//     }
-
-//     setQuiz(null);
-//     setRoom(null);
-
-//     setLoading(false);
-//     setRefreshing(false);
-
-//     setError("");
-//     setQuizError("");
-//     setRoomError("");
-
-//     setQuizLoading(false);
-//     setRoomLoading(false);
-
-//     quizRef.current = null;
-//     roomRef.current = null;
-//   }, [enabled]);
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Resolve room ID                                                        */
-//   /* ---------------------------------------------------------------------- */
-
-//   const roomId =
-//     resolveRoomId(
-//       room,
-//       quiz,
-//     );
-
-//   /* ---------------------------------------------------------------------- */
-//   /* Return                                                                 */
-//   /* ---------------------------------------------------------------------- */
-
-//   return {
-//     quiz,
-//     room,
-
-//     loading:
-//       loading ||
-//       (!quiz && quizLoading),
-
-//     refreshing,
-
-//     error,
-
-//     quizLoading,
-//     roomLoading,
-
-//     quizError,
-//     roomError,
-
-//     roomId,
-
-//     loadQuiz,
-//     loadRoom,
-
-//     refresh,
-
-//     setQuiz,
-//     setRoom,
-//   };
-// }

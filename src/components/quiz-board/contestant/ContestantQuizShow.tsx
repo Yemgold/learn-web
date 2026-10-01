@@ -4,7 +4,6 @@
 
 
 
-
 "use client";
 
 import {
@@ -151,20 +150,94 @@ export default function ContestantQuizShow({
           ? "ELIMINATED"
           : eliminationStatus;
 
+  /*
+   * A question existing in state is the source of truth
+   * for whether the contestant has something to display.
+   */
+  const hasQuestion = Boolean(question);
+
+  /*
+   * DEBUG
+   *
+   * This will let us verify the final step of the pipeline:
+   *
+   * useQuizSocket
+   *      ↓
+   * QuizPlayController
+   *      ↓
+   * ContestantQuizShow
+   */
+  console.log(
+    "[ContestantQuizShow] RENDER STATE",
+    {
+      quizId,
+      roomId,
+      loading,
+      hasQuestion,
+      questionId: question?.id ?? null,
+      questionText: question?.question ?? null,
+      questionNumber:
+        question?.questionNumber ?? null,
+      optionCount:
+        question?.options?.length ?? 0,
+      questionStarted,
+      questionLocked,
+      connected,
+      roomJoined,
+      canPotentiallyAnswer:
+        connected &&
+        roomJoined &&
+        hasQuestion &&
+        questionStarted &&
+        !questionLocked &&
+        !answerSubmitted &&
+        !eliminated,
+      timerStartedAt,
+      timerExpiresAt,
+      timeLimit,
+    },
+  );
+
+  /*
+   * A contestant can answer only when:
+   *
+   * 1. socket connected
+   * 2. room joined
+   * 3. question exists
+   * 4. question has started
+   * 5. question isn't locked
+   * 6. answer hasn't already been submitted
+   * 7. contestant isn't eliminated
+   */
   const canAnswer =
     connected &&
     roomJoined &&
+    hasQuestion &&
     questionStarted &&
     !questionLocked &&
     !answerSubmitted &&
     !eliminated;
 
+  /*
+   * IMPORTANT:
+   *
+   * The question must NOT disappear simply because
+   * another controller state says "loading".
+   *
+   * Once question exists, it takes priority over
+   * the loading skeleton.
+   */
+  const questionDisabled =
+    !canAnswer;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+
         {/* HEADER */}
         <header className="sticky top-0 z-30 mb-4 rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-xl sm:px-5">
           <div className="flex items-center justify-between gap-4">
+
             <div className="flex min-w-0 items-center gap-3">
               {onBack && (
                 <button
@@ -201,6 +274,7 @@ export default function ContestantQuizShow({
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
+
               <div
                 className={[
                   "hidden items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium sm:flex",
@@ -222,9 +296,11 @@ export default function ContestantQuizShow({
 
               <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-slate-400">
                 <Radio className="h-3.5 w-3.5 text-cyan-300" />
+
                 <span className="hidden sm:inline">
                   Room
                 </span>
+
                 <span className="font-mono text-slate-300">
                   {roomId}
                 </span>
@@ -263,6 +339,7 @@ export default function ContestantQuizShow({
 
         {/* TOP STATUS */}
         <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_auto]">
+
           <ContestantEliminationStatus
             status={effectiveEliminationStatus}
             currentRound={currentRound}
@@ -282,6 +359,7 @@ export default function ContestantQuizShow({
             expiresAt={timerExpiresAt}
             timeLimit={timeLimit}
             active={
+              hasQuestion &&
               questionStarted &&
               !questionLocked &&
               !answerSubmitted &&
@@ -294,14 +372,36 @@ export default function ContestantQuizShow({
 
         {/* MAIN */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+
           <section className="min-w-0">
-            {loading ? (
+
+            {/*
+             * CRITICAL FIX
+             *
+             * Before:
+             *
+             *   loading ? skeleton : question
+             *
+             * That allowed a stale loading=true state to hide
+             * an already-arrived live question.
+             *
+             * Now:
+             *
+             *   loading && !hasQuestion ? skeleton : question
+             *
+             * Once a question arrives, show it immediately.
+             */}
+            {loading && !hasQuestion ? (
               <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-8">
                 <div className="animate-pulse space-y-4">
                   <div className="h-6 w-32 rounded-lg bg-white/10" />
+
                   <div className="h-20 w-full rounded-xl bg-white/10" />
+
                   <div className="h-14 w-full rounded-xl bg-white/10" />
+
                   <div className="h-14 w-full rounded-xl bg-white/10" />
+
                   <div className="h-14 w-full rounded-xl bg-white/10" />
                 </div>
               </div>
@@ -324,7 +424,7 @@ export default function ContestantQuizShow({
                 answerSubmitted={answerSubmitted}
                 questionLocked={questionLocked}
                 submitting={submittingAnswer}
-                disabled={!canAnswer}
+                disabled={questionDisabled}
                 onSelectAnswer={onSelectAnswer}
                 onSubmitAnswer={onSubmitAnswer}
                 showSubmitButton
@@ -344,6 +444,7 @@ export default function ContestantQuizShow({
 
           {/* SCORE SIDEBAR */}
           <aside className="space-y-4">
+
             <ContestantScore
               score={score}
               rank={rank}
@@ -357,6 +458,7 @@ export default function ContestantQuizShow({
             />
 
             <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+
               <div className="flex items-center gap-2">
                 <CircleDot className="h-4 w-4 text-cyan-300" />
 
@@ -371,6 +473,7 @@ export default function ContestantQuizShow({
               </p>
 
               <div className="mt-4 space-y-2 text-xs">
+
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500">
                     Room
@@ -414,6 +517,44 @@ export default function ContestantQuizShow({
                     {roomJoined
                       ? "Yes"
                       : "Waiting"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500">
+                    Question
+                  </span>
+
+                  <span
+                    className={
+                      hasQuestion
+                        ? "text-cyan-300"
+                        : "text-slate-500"
+                    }
+                  >
+                    {hasQuestion
+                      ? "Displayed"
+                      : "Waiting"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500">
+                    Answering
+                  </span>
+
+                  <span
+                    className={
+                      canAnswer
+                        ? "text-emerald-300"
+                        : "text-slate-500"
+                    }
+                  >
+                    {canAnswer
+                      ? "Open"
+                      : hasQuestion
+                        ? "Waiting"
+                        : "Closed"}
                   </span>
                 </div>
               </div>

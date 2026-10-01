@@ -1,7 +1,6 @@
 
 
 
-
 // C:\Users\Lara Spellman\Jamb\jamb-league\src\hooks\quiz-board\useQuizSocket.ts
 
 "use client";
@@ -122,6 +121,499 @@ function extractLeaderboard(
   return [];
 }
 
+
+/* ============================================================
+ * QUESTION EXTRACTION
+ * ========================================================== */
+
+/**
+ * Generic object type used for safely inspecting unknown
+ * Socket.IO payloads.
+ *
+ * IMPORTANT:
+ * Do NOT use `value is SocketPayload` here.
+ *
+ * The backend sends several different payload shapes and
+ * TypeScript can incorrectly narrow those branches to `never`
+ * when SocketPayload is used as the type predicate.
+ */
+type UnknownObject = Record<string, unknown>;
+
+/**
+ * Safely determines whether a value is a plain object.
+ */
+function isRecord(
+  value: unknown,
+): value is UnknownObject {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  );
+}
+
+/**
+ * Determines whether an object looks like a quiz question.
+ *
+ * Current backend payload:
+ *
+ * {
+ *   quizId: "...",
+ *   id: "...",
+ *   question: "The classification...",
+ *   options: [
+ *     { label: "A", value: "Taxonomy" },
+ *     ...
+ *   ],
+ *   startTime: "...",
+ *   questionNumber: 1
+ * }
+ *
+ * IMPORTANT:
+ * This returns `boolean`, NOT a TypeScript type predicate.
+ *
+ * That prevents the `never` errors you were getting.
+ */
+function isQuestionObject(
+  value: unknown,
+): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (!Array.isArray(value.options)) {
+    return false;
+  }
+
+  return (
+    typeof value.question === "string" ||
+    typeof value.content === "string" ||
+    typeof value.text === "string"
+  );
+}
+
+/**
+ * Extract a question from all supported server payload shapes.
+ *
+ * IMPORTANT:
+ *
+ * We MUST inspect the original payload BEFORE calling
+ * unwrapPayload().
+ *
+ * The current backend sends the question directly:
+ *
+ * {
+ *   quizId,
+ *   id,
+ *   question: "question text",
+ *   options: [...],
+ *   startTime,
+ *   questionNumber
+ * }
+ *
+ * unwrapPayload() can interpret `question` as a wrapper and
+ * return the question text.
+ *
+ * Therefore:
+ *
+ *     ORIGINAL PAYLOAD
+ *           ↓
+ *     question object?
+ *           ↓
+ *     YES → return it
+ *           ↓
+ *     NO
+ *           ↓
+ *     inspect wrappers
+ *           ↓
+ *     unwrapPayload()
+ */
+function extractQuestion(
+  payload: SocketPayload,
+): unknown {
+  /*
+   * ----------------------------------------------------------
+   * 1. CHECK THE ORIGINAL PAYLOAD FIRST
+   * ----------------------------------------------------------
+   *
+   * This is the most important part.
+   *
+   * The actual backend event currently looks like:
+   *
+   * {
+   *   quizId: "...",
+   *   id: "...",
+   *   question: "...",
+   *   options: [...],
+   *   startTime: "...",
+   *   questionNumber: 1
+   * }
+   */
+  if (isQuestionObject(payload)) {
+    console.log(
+      "[Quiz Socket] extractQuestion() - DIRECT QUESTION OBJECT FOUND",
+    );
+
+    return payload;
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 2. INSPECT COMMON WRAPPER SHAPES
+   * ----------------------------------------------------------
+   */
+  if (isRecord(payload)) {
+    /*
+     * Possible:
+     *
+     * {
+     *   currentQuestion: {...}
+     * }
+     */
+    const directCandidates: unknown[] = [
+      payload.currentQuestion,
+      payload.current_question,
+      payload.activeQuestion,
+      payload.active_question,
+      payload.questionData,
+      payload.question_data,
+    ];
+
+    for (const candidate of directCandidates) {
+      if (isQuestionObject(candidate)) {
+        console.log(
+          "[Quiz Socket] extractQuestion() - NESTED QUESTION OBJECT FOUND",
+        );
+
+        return candidate;
+      }
+    }
+
+    /*
+     * --------------------------------------------------------
+     * data wrapper
+     * --------------------------------------------------------
+     *
+     * {
+     *   data: {
+     *     question: {...}
+     *   }
+     * }
+     */
+    const nestedData = payload.data;
+
+    /*
+     * data itself may be the question:
+     *
+     * {
+     *   data: {
+     *     id: "...",
+     *     question: "...",
+     *     options: [...]
+     *   }
+     * }
+     */
+    if (isQuestionObject(nestedData)) {
+      console.log(
+        "[Quiz Socket] extractQuestion() - DATA QUESTION OBJECT FOUND",
+      );
+
+      return nestedData;
+    }
+
+    if (isRecord(nestedData)) {
+      const nestedCandidates: unknown[] = [
+        nestedData.question,
+        nestedData.currentQuestion,
+        nestedData.current_question,
+        nestedData.activeQuestion,
+        nestedData.active_question,
+        nestedData.questionData,
+        nestedData.question_data,
+      ];
+
+      for (const candidate of nestedCandidates) {
+        if (isQuestionObject(candidate)) {
+          console.log(
+            "[Quiz Socket] extractQuestion() - NESTED DATA QUESTION OBJECT FOUND",
+          );
+
+          return candidate;
+        }
+      }
+    }
+
+    /*
+     * --------------------------------------------------------
+     * result wrapper
+     * --------------------------------------------------------
+     *
+     * {
+     *   result: {
+     *     question: {...}
+     *   }
+     * }
+     */
+    const result = payload.result;
+
+    if (isQuestionObject(result)) {
+      console.log(
+        "[Quiz Socket] extractQuestion() - RESULT QUESTION OBJECT FOUND",
+      );
+
+      return result;
+    }
+
+    if (isRecord(result)) {
+      const resultQuestion = result.question;
+
+      if (isQuestionObject(resultQuestion)) {
+        console.log(
+          "[Quiz Socket] extractQuestion() - RESULT.NESTED QUESTION OBJECT FOUND",
+        );
+
+        return resultQuestion;
+      }
+    }
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 3. ONLY NOW USE unwrapPayload()
+   * ----------------------------------------------------------
+   *
+   * This is retained for older backend payload formats.
+   */
+  const unwrapped = unwrapPayload(payload);
+
+  /*
+   * The unwrapped value itself may be the question.
+   */
+  if (isQuestionObject(unwrapped)) {
+    console.log(
+      "[Quiz Socket] extractQuestion() - UNWRAPPED QUESTION OBJECT FOUND",
+    );
+
+    return unwrapped;
+  }
+
+  /*
+   * The unwrapped value may contain the question.
+   */
+  if (isRecord(unwrapped)) {
+    /*
+     * {
+     *   question: {...}
+     * }
+     */
+    const nestedQuestion = unwrapped.question;
+
+    if (isQuestionObject(nestedQuestion)) {
+      console.log(
+        "[Quiz Socket] extractQuestion() - UNWRAPPED NESTED QUESTION OBJECT FOUND",
+      );
+
+      return nestedQuestion;
+    }
+
+    /*
+     * Other possible aliases.
+     */
+    const candidates: unknown[] = [
+      unwrapped.currentQuestion,
+      unwrapped.current_question,
+      unwrapped.activeQuestion,
+      unwrapped.active_question,
+      unwrapped.questionData,
+      unwrapped.question_data,
+    ];
+
+    for (const candidate of candidates) {
+      if (isQuestionObject(candidate)) {
+        console.log(
+          "[Quiz Socket] extractQuestion() - UNWRAPPED ALIAS QUESTION OBJECT FOUND",
+        );
+
+        return candidate;
+      }
+    }
+
+    /*
+     * Some older responses may contain:
+     *
+     * {
+     *   data: {
+     *     question: {...}
+     *   }
+     * }
+     */
+    const unwrappedData = unwrapped.data;
+
+    if (isQuestionObject(unwrappedData)) {
+      console.log(
+        "[Quiz Socket] extractQuestion() - UNWRAPPED DATA QUESTION OBJECT FOUND",
+      );
+
+      return unwrappedData;
+    }
+
+    if (isRecord(unwrappedData)) {
+      const dataQuestion = unwrappedData.question;
+
+      if (isQuestionObject(dataQuestion)) {
+        console.log(
+          "[Quiz Socket] extractQuestion() - UNWRAPPED DATA.NESTED QUESTION OBJECT FOUND",
+        );
+
+        return dataQuestion;
+      }
+    }
+
+    /*
+     * Older result wrapper.
+     */
+    const unwrappedResult = unwrapped.result;
+
+    if (isQuestionObject(unwrappedResult)) {
+      console.log(
+        "[Quiz Socket] extractQuestion() - UNWRAPPED RESULT QUESTION OBJECT FOUND",
+      );
+
+      return unwrappedResult;
+    }
+
+    if (isRecord(unwrappedResult)) {
+      const resultQuestion = unwrappedResult.question;
+
+      if (isQuestionObject(resultQuestion)) {
+        console.log(
+          "[Quiz Socket] extractQuestion() - UNWRAPPED RESULT.NESTED QUESTION OBJECT FOUND",
+        );
+
+        return resultQuestion;
+      }
+    }
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 4. NOTHING FOUND
+   * ----------------------------------------------------------
+   */
+  console.warn(
+    "[Quiz Socket] extractQuestion() - NO QUESTION OBJECT FOUND",
+    {
+      payload,
+      unwrapped,
+    },
+  );
+
+  return undefined;
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Extract the question number from all supported payload shapes.
+ */
+function extractQuestionNumber(
+  payload: SocketPayload,
+): number | null {
+  /*
+   * Do not rely exclusively on unwrapPayload().
+   *
+   * The backend's current payload contains questionNumber
+   * directly on the question object.
+   */
+  if (
+    isObject(payload)
+  ) {
+    const directNumber =
+      getNumber(
+        payload.questionNumber ??
+          payload.question_number ??
+          payload.currentQuestionNumber ??
+          payload.current_question_number ??
+          payload.questionIndex ??
+          payload.question_index,
+        null,
+      );
+
+    if (
+      directNumber !== null
+    ) {
+      return directNumber;
+    }
+
+    if (
+      isObject(payload.data)
+    ) {
+      const nestedNumber =
+        getNumber(
+          payload.data.questionNumber ??
+            payload.data.question_number ??
+            payload.data.currentQuestionNumber ??
+            payload.data.current_question_number ??
+            payload.data.questionIndex ??
+            payload.data.question_index,
+          null,
+        );
+
+      if (
+        nestedNumber !== null
+      ) {
+        return nestedNumber;
+      }
+    }
+  }
+
+  const data =
+    unwrapPayload(payload);
+
+  if (
+    isObject(data)
+  ) {
+    return getNumber(
+      data.questionNumber ??
+        data.question_number ??
+        data.currentQuestionNumber ??
+        data.current_question_number ??
+        data.questionIndex ??
+        data.question_index,
+      null,
+    );
+  }
+
+  return null;
+}
+
+
+
+
+/**
+ * Determine whether a question payload is actually playable.
+ */
+function hasPlayableQuestion(
+  question: LiveQuestion | null,
+): boolean {
+  if (!question) {
+    return false;
+  }
+
+  return Boolean(
+    question.question ||
+      question.options,
+  );
+}
+
 /* ============================================================
  * HOOK
  * ========================================================== */
@@ -145,13 +637,14 @@ export default function useQuizSocket(
    * ======================================================== */
 
   const initialResolvedRound =
-    currentRound ??
-    initialRound ??
-    0;
+    typeof currentRound === "number"
+      ? currentRound
+      : typeof initialRound === "number"
+        ? initialRound
+        : 0;
 
   const initialResolvedTimeLimit =
-    initialTimeLimit ??
-    30;
+    initialTimeLimit ?? 30;
 
   /* ==========================================================
    * STATE
@@ -318,18 +811,15 @@ export default function useQuizSocket(
    * ======================================================== */
 
   useEffect(() => {
-    quizIdRef.current =
-      quizId;
+    quizIdRef.current = quizId;
   }, [quizId]);
 
   useEffect(() => {
-    roomIdRef.current =
-      roomId;
+    roomIdRef.current = roomId;
   }, [roomId]);
 
   useEffect(() => {
-    roleRef.current =
-      role;
+    roleRef.current = role;
   }, [role]);
 
   useEffect(() => {
@@ -432,6 +922,11 @@ export default function useQuizSocket(
           return;
         }
 
+        console.log(
+          "[Quiz Socket] ROUND UPDATE:",
+          roundNumber,
+        );
+
         currentRoundRef.current =
           roundNumber;
 
@@ -442,6 +937,227 @@ export default function useQuizSocket(
         onRoundChangedRef.current?.(
           roundNumber,
         );
+      },
+      [],
+    );
+
+  /* ==========================================================
+   * APPLY QUESTION
+   * ======================================================== */
+
+  const applyQuestion =
+    useCallback(
+      (
+        payload: SocketPayload,
+        source: string,
+        markStarted = true,
+      ) => {
+        if (disposedRef.current) {
+          return false;
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * extractQuestion() intentionally receives the
+         * ORIGINAL payload. It must not receive the result
+         * of unwrapPayload().
+         */
+        const rawQuestion =
+          extractQuestion(
+            payload,
+          );
+
+        console.log(
+          `[Quiz Socket] ${source} - RAW QUESTION:`,
+          rawQuestion,
+        );
+
+        console.log(
+          `[Quiz Socket] ${source} - RAW QUESTION JSON:`,
+          rawQuestion
+            ? JSON.stringify(
+                rawQuestion,
+                null,
+                2,
+              )
+            : null,
+        );
+
+        const normalizedQuestion =
+          normalizeQuestion(
+            rawQuestion,
+          );
+
+        console.log(
+          `[Quiz Socket] ${source} - NORMALIZED QUESTION:`,
+          normalizedQuestion,
+        );
+
+        const payloadQuestionNumber =
+          extractQuestionNumber(
+            payload,
+          );
+
+        if (
+          !normalizedQuestion &&
+          payloadQuestionNumber === null
+        ) {
+          console.warn(
+            `[Quiz Socket] ${source} - NO QUESTION FOUND`,
+          );
+
+          return false;
+        }
+
+        if (normalizedQuestion) {
+  /*
+   * The backend's new_question_displayed event currently
+   * contains startTime but may not contain timeLimit.
+   *
+   * Use the existing socket time limit as the fallback.
+   */
+  const effectiveTimeLimit =
+    normalizedQuestion.timeLimit !== null &&
+    normalizedQuestion.timeLimit > 0
+      ? normalizedQuestion.timeLimit
+      : timeLimitRef.current > 0
+        ? timeLimitRef.current
+        : null;
+
+  let questionWithTiming =
+    normalizedQuestion;
+
+  /*
+   * If the backend gave us startTime but no expiresAt,
+   * calculate the expiration locally.
+   */
+  if (
+    effectiveTimeLimit !== null &&
+    !normalizedQuestion.expiresAt &&
+    normalizedQuestion.startedAt
+  ) {
+    const startedTimestamp =
+      Date.parse(
+        normalizedQuestion.startedAt,
+      );
+
+    if (
+      !Number.isNaN(startedTimestamp)
+    ) {
+      questionWithTiming = {
+        ...normalizedQuestion,
+
+        timeLimit:
+          effectiveTimeLimit,
+
+        expiresAt:
+          new Date(
+            startedTimestamp +
+              effectiveTimeLimit * 1000,
+          ).toISOString(),
+      };
+    }
+  } else if (
+    effectiveTimeLimit !== null
+  ) {
+    questionWithTiming = {
+      ...normalizedQuestion,
+
+      timeLimit:
+        effectiveTimeLimit,
+    };
+  }
+
+  questionRef.current =
+    questionWithTiming;
+
+  setQuestion(
+    questionWithTiming,
+  );
+
+  console.log(
+    `[Quiz Socket] ${source} - FINAL QUESTION STATE:`,
+    questionWithTiming,
+  );
+
+  if (
+    questionWithTiming.questionNumber !==
+      null
+  ) {
+    setCurrentQuestionNumber(
+      questionWithTiming.questionNumber,
+    );
+  }
+
+  if (
+    questionWithTiming.timeLimit !==
+      null &&
+    questionWithTiming.timeLimit >
+      0
+  ) {
+    timeLimitRef.current =
+      questionWithTiming.timeLimit;
+
+    setTimeLimit(
+      questionWithTiming.timeLimit,
+    );
+  }
+}
+
+        if (
+          payloadQuestionNumber !== null
+        ) {
+          setCurrentQuestionNumber(
+            payloadQuestionNumber,
+          );
+        }
+
+        if (
+          normalizedQuestion &&
+          hasPlayableQuestion(
+            normalizedQuestion,
+          )
+        ) {
+          setQuestionStarted(
+            markStarted,
+          );
+
+          setQuestionLocked(false);
+          setSelectedAnswer(null);
+          setAnswerSubmitted(false);
+          setSubmittingAnswer(false);
+
+          console.log(
+            `[Quiz Socket] ${source} - QUESTION APPLIED SUCCESSFULLY`,
+          );
+
+          return true;
+        }
+
+
+        
+
+        /*
+         * Metadata-only payload.
+         */
+        if (
+          isObject(payload) &&
+          payloadQuestionNumber !== null
+        ) {
+          setQuestionStarted(
+            markStarted,
+          );
+
+          setQuestionLocked(false);
+          setSelectedAnswer(null);
+          setAnswerSubmitted(false);
+          setSubmittingAnswer(false);
+
+          return true;
+        }
+
+        return false;
       },
       [],
     );
@@ -466,6 +1182,10 @@ export default function useQuizSocket(
           unwrapPayload(
             payload,
           );
+
+        if (!isObject(data)) {
+          return;
+        }
 
         const status =
           normalizeStatus(
@@ -501,52 +1221,23 @@ export default function useQuizSocket(
           updateRound(round);
         }
 
-        const questionData =
-          data.question ??
-          data.currentQuestion ??
-          data.current_question ??
-          data.activeQuestion ??
-          data.active_question;
-
-        const normalizedQuestion =
-          normalizeQuestion(
-            questionData ?? data,
+        const rawQuestion =
+          extractQuestion(
+            payload,
           );
 
         if (
-          normalizedQuestion
+          rawQuestion
         ) {
-          questionRef.current =
-            normalizedQuestion;
-
-          setQuestion(
-            normalizedQuestion,
+          applyQuestion(
+            payload,
+            "ROOM STATE",
+            true,
           );
-
-          const questionNumber =
-            normalizedQuestion.questionNumber;
-
-          if (
-            questionNumber !== null
-          ) {
-            setCurrentQuestionNumber(
-              questionNumber,
-            );
-          }
-
-          if (
-            normalizedQuestion.timeLimit !==
-              null &&
-            normalizedQuestion.timeLimit >
-              0
-          ) {
-            timeLimitRef.current =
-              normalizedQuestion.timeLimit;
-
-            setTimeLimit(
-              normalizedQuestion.timeLimit,
-            );
-          }
+        } else {
+          console.log(
+            "[Quiz Socket] ROOM STATE - NO ACTIVE QUESTION",
+          );
         }
 
         const participantList =
@@ -586,24 +1277,13 @@ export default function useQuizSocket(
       },
       [
         addFeedEvent,
+        applyQuestion,
         updateRound,
       ],
     );
 
   /* ==========================================================
    * GET ROOM ACK
-   *
-   * IMPORTANT SOCKET CONTRACT:
-   *
-   * CLIENT:
-   *   get_room_doc
-   *
-   * SERVER:
-   *   get_room_ack
-   *
-   * The previous implementation listened for
-   * "get_room_doc" as the response event.
-   * That was incorrect.
    * ======================================================== */
 
   const handleGetRoomAck =
@@ -631,36 +1311,18 @@ export default function useQuizSocket(
           ),
         );
 
-        console.log(
-          "==================================================",
-        );
-
-        /* ----------------------------------------------------
-         * UNWRAP PAYLOAD
-         * -------------------------------------------------- */
-
         const data =
           unwrapPayload(
             payload,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - UNWRAPPED DATA:",
-          data,
-        );
+        if (!isObject(data)) {
+          console.warn(
+            "[Quiz Socket] GET ROOM ACK - invalid room payload.",
+          );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - UNWRAPPED JSON:",
-          JSON.stringify(
-            data,
-            null,
-            2,
-          ),
-        );
-
-        /* ----------------------------------------------------
-         * ROOM ID
-         * -------------------------------------------------- */
+          return;
+        }
 
         const resolvedRoomId =
           getString(
@@ -670,15 +1332,6 @@ export default function useQuizSocket(
             null,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - ROOM ID:",
-          resolvedRoomId,
-        );
-
-        /* ----------------------------------------------------
-         * QUIZ ID
-         * -------------------------------------------------- */
-
         const resolvedQuizId =
           getString(
             data.quizId ??
@@ -687,30 +1340,12 @@ export default function useQuizSocket(
             null,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - QUIZ ID:",
-          resolvedQuizId,
-        );
-
-        /* ----------------------------------------------------
-         * ROOM STATUS
-         * -------------------------------------------------- */
-
         const resolvedStatus =
           normalizeStatus(
             data.status ??
               data.roomStatus ??
               data.room_status,
           );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - STATUS:",
-          resolvedStatus,
-        );
-
-        /* ----------------------------------------------------
-         * CURRENT ROUND
-         * -------------------------------------------------- */
 
         const resolvedRound =
           getNumber(
@@ -721,15 +1356,6 @@ export default function useQuizSocket(
             null,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - CURRENT ROUND:",
-          resolvedRound,
-        );
-
-        /* ----------------------------------------------------
-         * CURRENT QUESTION NUMBER
-         * -------------------------------------------------- */
-
         const resolvedQuestionNumber =
           getNumber(
             data.currentQuestionNumber ??
@@ -739,73 +1365,28 @@ export default function useQuizSocket(
             null,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - QUESTION NUMBER:",
-          resolvedQuestionNumber,
-        );
-
-        /* ----------------------------------------------------
-         * PARTICIPANTS
-         * -------------------------------------------------- */
-
         const participantList =
           extractParticipants(
             data,
           );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - PARTICIPANTS:",
-          participantList,
-        );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - PARTICIPANT COUNT:",
-          participantList.length,
-        );
-
-        /* ----------------------------------------------------
-         * LEADERBOARD
-         * -------------------------------------------------- */
 
         const leaderboardEntries =
           extractLeaderboard(
             data,
           );
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - LEADERBOARD:",
-          leaderboardEntries,
-        );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - LEADERBOARD COUNT:",
-          leaderboardEntries.length,
-        );
-
-        /* ----------------------------------------------------
-         * NORMALIZE PARTICIPANTS
-         * -------------------------------------------------- */
-
         const normalizedParticipants =
           mapParticipants(
             participantList,
           );
-
-        /* ----------------------------------------------------
-         * NORMALIZE LEADERBOARD
-         * -------------------------------------------------- */
 
         const normalizedLeaderboard =
           mapLeaderboard(
             leaderboardEntries,
           );
 
-        /* ----------------------------------------------------
-         * NORMALIZED ROOM DOCUMENT
-         * -------------------------------------------------- */
-
-        const normalizedRoomDoc: QuizRoomDocument =
-          {
+        const normalizedRoomDoc:
+          QuizRoomDocument = {
             ...data,
 
             roomId:
@@ -830,40 +1411,14 @@ export default function useQuizSocket(
               normalizedLeaderboard,
           };
 
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - NORMALIZED ROOM DOC:",
-          normalizedRoomDoc,
-        );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - NORMALIZED ROOM DOC JSON:",
-          JSON.stringify(
-            normalizedRoomDoc,
-            null,
-            2,
-          ),
-        );
-
-        /* ----------------------------------------------------
-         * UPDATE ROOM DOCUMENT
-         * -------------------------------------------------- */
-
         setRoomDoc(
           normalizedRoomDoc,
         );
-
-        /* ----------------------------------------------------
-         * ROOM ACTIVATION STATUS
-         * -------------------------------------------------- */
 
         if (
           resolvedStatus ===
           "IN_PROGRESS"
         ) {
-          console.log(
-            "[Quiz Socket] GET ROOM ACK - ROOM IS ACTIVE",
-          );
-
           setRoomActivated(
             true,
           );
@@ -873,36 +1428,19 @@ export default function useQuizSocket(
           resolvedStatus ===
           "WAITING"
         ) {
-          console.log(
-            "[Quiz Socket] GET ROOM ACK - ROOM IS WAITING",
-          );
-
           setRoomActivated(
             false,
           );
         }
 
-        /* ----------------------------------------------------
-         * UPDATE ROUND
-         * -------------------------------------------------- */
-
         if (
           resolvedRound !== null &&
           resolvedRound >= 0
         ) {
-          console.log(
-            "[Quiz Socket] GET ROOM ACK - UPDATING ROUND:",
-            resolvedRound,
-          );
-
           updateRound(
             resolvedRound,
           );
         }
-
-        /* ----------------------------------------------------
-         * UPDATE PARTICIPANTS
-         * -------------------------------------------------- */
 
         if (
           participantList.length > 0
@@ -912,10 +1450,6 @@ export default function useQuizSocket(
           );
         }
 
-        /* ----------------------------------------------------
-         * UPDATE LEADERBOARD
-         * -------------------------------------------------- */
-
         if (
           leaderboardEntries.length > 0
         ) {
@@ -923,10 +1457,6 @@ export default function useQuizSocket(
             normalizedLeaderboard,
           );
         }
-
-        /* ----------------------------------------------------
-         * UPDATE QUESTION NUMBER
-         * -------------------------------------------------- */
 
         if (
           resolvedQuestionNumber !==
@@ -937,145 +1467,82 @@ export default function useQuizSocket(
           );
         }
 
-        /* ----------------------------------------------------
-         * ACTIVE QUESTION
-         * -------------------------------------------------- */
-
-        const activeQuestion =
-          data.question ??
-          data.currentQuestion ??
-          data.current_question ??
-          data.activeQuestion ??
-          data.active_question;
+        const rawQuestion =
+          extractQuestion(
+            payload,
+          );
 
         console.log(
           "[Quiz Socket] GET ROOM ACK - ACTIVE QUESTION:",
-          activeQuestion,
+          rawQuestion,
         );
-
-        /* ----------------------------------------------------
-         * NORMALIZE ACTIVE QUESTION
-         * -------------------------------------------------- */
-
-        const normalizedQuestion =
-          normalizeQuestion(
-            activeQuestion,
-          );
-
-        console.log(
-          "[Quiz Socket] GET ROOM ACK - NORMALIZED QUESTION:",
-          normalizedQuestion,
-        );
-
-        /* ----------------------------------------------------
-         * UPDATE ACTIVE QUESTION
-         * -------------------------------------------------- */
 
         if (
-          normalizedQuestion
+          rawQuestion
         ) {
-          questionRef.current =
-            normalizedQuestion;
-
-          setQuestion(
-            normalizedQuestion,
+          applyQuestion(
+            payload,
+            "GET ROOM ACK",
+            true,
+          );
+        } else {
+          console.log(
+            "[Quiz Socket] GET ROOM ACK - ACTIVE QUESTION: NONE",
           );
 
           if (
-            normalizedQuestion.questionNumber !==
-            null
+            resolvedRound === 0 ||
+            resolvedQuestionNumber === null
           ) {
-            console.log(
-              "[Quiz Socket] GET ROOM ACK - QUESTION NUMBER FROM QUESTION:",
-              normalizedQuestion.questionNumber,
+            questionRef.current =
+              null;
+
+            setQuestion(
+              null,
             );
 
             setCurrentQuestionNumber(
-              normalizedQuestion.questionNumber,
-            );
-          }
-
-          if (
-            normalizedQuestion.timeLimit !==
-              null &&
-            normalizedQuestion.timeLimit >
-              0
-          ) {
-            console.log(
-              "[Quiz Socket] GET ROOM ACK - TIME LIMIT:",
-              normalizedQuestion.timeLimit,
+              null,
             );
 
-            timeLimitRef.current =
-              normalizedQuestion.timeLimit;
-
-            setTimeLimit(
-              normalizedQuestion.timeLimit,
+            setQuestionStarted(
+              false,
             );
           }
         }
-
-        /* ----------------------------------------------------
-         * FEED EVENT
-         * -------------------------------------------------- */
 
         addFeedEvent(
           "get_room_ack",
           payload,
         );
 
-        /* ----------------------------------------------------
-         * FINAL SUMMARY
-         * -------------------------------------------------- */
-
         console.log(
-          "==================================================",
-        );
+          "[Quiz Socket] GET ROOM ACK PROCESSED:",
+          {
+            roomId:
+              resolvedRoomId,
 
-        console.log(
-          "[Quiz Socket] ✅ GET ROOM ACK PROCESSED",
-        );
+            quizId:
+              resolvedQuizId,
 
-        console.log(
-          "[Quiz Socket] Room:",
-          resolvedRoomId,
-        );
+            status:
+              resolvedStatus,
 
-        console.log(
-          "[Quiz Socket] Quiz:",
-          resolvedQuizId,
-        );
+            round:
+              resolvedRound,
 
-        console.log(
-          "[Quiz Socket] Status:",
-          resolvedStatus,
-        );
+            questionNumber:
+              resolvedQuestionNumber,
 
-        console.log(
-          "[Quiz Socket] Round:",
-          resolvedRound,
-        );
+            participants:
+              participantList.length,
 
-        console.log(
-          "[Quiz Socket] Question:",
-          resolvedQuestionNumber,
-        );
+            leaderboard:
+              leaderboardEntries.length,
 
-        console.log(
-          "[Quiz Socket] Participants:",
-          participantList.length,
-        );
-
-        console.log(
-          "[Quiz Socket] Leaderboard:",
-          leaderboardEntries.length,
-        );
-
-        console.log(
-          "[Quiz Socket] Active question:",
-          Boolean(
-            normalizedQuestion,
-          ),
+            activeQuestion:
+              Boolean(rawQuestion),
+          },
         );
 
         console.log(
@@ -1084,6 +1551,7 @@ export default function useQuizSocket(
       },
       [
         addFeedEvent,
+        applyQuestion,
         updateRound,
       ],
     );
@@ -1209,150 +1677,98 @@ export default function useQuizSocket(
     );
 
   /* ==========================================================
- * JOINED ROOM ACK
- *
- * After successful join:
- *
- * HOST:
- *   CLIENT -> get_room_doc
- *   SERVER -> get_room_ack
- *
- * CONTESTANT:
- *   DO NOT request get_room_doc.
- *
- * Contestants receive room/game state through the normal
- * socket events such as:
- *
- *   room_state
- *   room_activated
- *   round_started
- *   question_started
- *   new_question
- *   question_locked
- *   next_question
- *   leaderboard_updated
- *   participant_joined_room
- *   participants_eliminated
- *   answer_result
- *   first_correct
- * ======================================================== */
+   * JOINED ROOM ACK
+   * ======================================================== */
 
-const handleJoinedRoomAck =
-  useCallback(
-    (payload: SocketPayload) => {
-      if (disposedRef.current) {
-        return;
-      }
+  const handleJoinedRoomAck =
+    useCallback(
+      (payload: SocketPayload) => {
+        if (disposedRef.current) {
+          return;
+        }
 
-      console.log(
-        "[Quiz Socket] JOINED ROOM ACK:",
-        payload,
-      );
-
-      setRoomJoined(true);
-      setSocketError(null);
-
-      addFeedEvent(
-        "joined_room_ack",
-        payload,
-        "Successfully joined the quiz room.",
-      );
-
-      /*
-       * ------------------------------------------------------
-       * CONTESTANT
-       * ------------------------------------------------------
-       *
-       * get_room_doc is HOST-only on the backend.
-       *
-       * A contestant must NOT request it because the backend
-       * will respond with:
-       *
-       *   401 - You are not the host of this quiz.
-       *
-       * Contestants receive their state through the normal
-       * room/game socket events.
-       */
-      if (roleRef.current !== "HOST") {
         console.log(
-          "[Quiz Socket] Skipping get_room_doc because current role is:",
-          roleRef.current,
+          "[Quiz Socket] JOINED ROOM ACK:",
+          payload,
         );
 
-        return;
-      }
+        setRoomJoined(true);
+        setSocketError(null);
 
-      /*
-       * ------------------------------------------------------
-       * HOST
-       * ------------------------------------------------------
-       *
-       * The host is allowed to request the latest room
-       * document after joining.
-       */
-      const socket =
-        socketRef.current;
-
-      if (
-        !socket?.connected ||
-        !quizIdRef.current ||
-        !roomIdRef.current
-      ) {
-        console.log(
-          "[Quiz Socket] Cannot request get_room_doc:",
-          {
-            connected:
-              socket?.connected ?? false,
-
-            quizId:
-              quizIdRef.current,
-
-            roomId:
-              roomIdRef.current,
-          },
+        addFeedEvent(
+          "joined_room_ack",
+          payload,
+          "Successfully joined the quiz room.",
         );
 
-        return;
-      }
+        if (
+          roleRef.current !== "HOST"
+        ) {
+          console.log(
+            "[Quiz Socket] Contestant joined room. Waiting for live game events.",
+          );
 
-      const payloadToSend = {
-        quizId:
-          quizIdRef.current,
+          return;
+        }
 
-        quiz_id:
-          quizIdRef.current,
+        const socket =
+          socketRef.current;
 
-        roomId:
-          roomIdRef.current,
+        if (
+          !socket?.connected ||
+          !quizIdRef.current ||
+          !roomIdRef.current
+        ) {
+          console.log(
+            "[Quiz Socket] Cannot request get_room_doc:",
+            {
+              connected:
+                socket?.connected ??
+                false,
 
-        room_id:
-          roomIdRef.current,
+              quizId:
+                quizIdRef.current,
 
-        roundNumber:
-          currentRoundRef.current,
+              roomId:
+                roomIdRef.current,
+            },
+          );
 
-        round_number:
-          currentRoundRef.current,
-      };
+          return;
+        }
 
-      console.log(
-        "[Quiz Socket] 📤 GET ROOM DOC REQUEST:",
-        payloadToSend,
-      );
+        const payloadToSend = {
+          quizId:
+            quizIdRef.current,
 
-      /*
-       * HOST ONLY:
-       *
-       * CLIENT -> get_room_doc
-       * SERVER -> get_room_ack
-       */
-      socket.emit(
-        "get_room_doc",
-        payloadToSend,
-      );
-    },
-    [addFeedEvent],
-  );
+          quiz_id:
+            quizIdRef.current,
+
+          roomId:
+            roomIdRef.current,
+
+          room_id:
+            roomIdRef.current,
+
+          roundNumber:
+            currentRoundRef.current,
+
+          round_number:
+            currentRoundRef.current,
+        };
+
+        console.log(
+          "[Quiz Socket] 📤 GET ROOM DOC REQUEST:",
+          payloadToSend,
+        );
+
+        socket.emit(
+          "get_room_doc",
+          payloadToSend,
+        );
+      },
+      [addFeedEvent],
+    );
 
   /* ==========================================================
    * ROOM ACTIVATED
@@ -1403,6 +1819,10 @@ const handleJoinedRoomAck =
             payload,
           );
 
+        if (!isObject(data)) {
+          return;
+        }
+
         const round =
           getNumber(
             data.currentRound ??
@@ -1413,15 +1833,19 @@ const handleJoinedRoomAck =
           );
 
         if (
-          round !== null
+          round !== null &&
+          round >= 1
         ) {
-          updateRound(round);
+          updateRound(
+            round,
+          );
         }
 
         setQuestionStarted(false);
         setQuestionLocked(false);
         setSelectedAnswer(null);
         setAnswerSubmitted(false);
+        setSubmittingAnswer(false);
 
         addFeedEvent(
           "round_started",
@@ -1450,82 +1874,21 @@ const handleJoinedRoomAck =
           payload,
         );
 
-        const data =
-          unwrapPayload(
-            payload,
-          );
-
-        const normalizedQuestion =
-          normalizeQuestion(
-            data.question ??
-              data.currentQuestion ??
-              data.current_question ??
-              data,
-          );
-
-        if (
-          normalizedQuestion
-        ) {
-          questionRef.current =
-            normalizedQuestion;
-
-          setQuestion(
-            normalizedQuestion,
-          );
-
-          if (
-            normalizedQuestion.questionNumber !==
-            null
-          ) {
-            setCurrentQuestionNumber(
-              normalizedQuestion.questionNumber,
-            );
-          }
-
-          if (
-            normalizedQuestion.timeLimit !==
-              null &&
-            normalizedQuestion.timeLimit >
-              0
-          ) {
-            timeLimitRef.current =
-              normalizedQuestion.timeLimit;
-
-            setTimeLimit(
-              normalizedQuestion.timeLimit,
-            );
-          }
-        }
-
-        const questionNumber =
-          getNumber(
-            data.questionNumber ??
-              data.question_number ??
-              data.currentQuestionNumber ??
-              data.current_question_number,
-            null,
-          );
-
-        if (
-          questionNumber !== null
-        ) {
-          setCurrentQuestionNumber(
-            questionNumber,
-          );
-        }
-
-        setQuestionStarted(true);
-        setQuestionLocked(false);
-        setSelectedAnswer(null);
-        setAnswerSubmitted(false);
-        setSubmittingAnswer(false);
+        applyQuestion(
+          payload,
+          "QUESTION STARTED",
+          true,
+        );
 
         addFeedEvent(
           "question_started",
           payload,
         );
       },
-      [addFeedEvent],
+      [
+        addFeedEvent,
+        applyQuestion,
+      ],
     );
 
   /* ==========================================================
@@ -1544,65 +1907,237 @@ const handleJoinedRoomAck =
           payload,
         );
 
-        const data =
-          unwrapPayload(
-            payload,
-          );
-
-        const normalizedQuestion =
-          normalizeQuestion(
-            data.question ??
-              data.currentQuestion ??
-              data.current_question ??
-              data,
-          );
-
-        if (
-          normalizedQuestion
-        ) {
-          questionRef.current =
-            normalizedQuestion;
-
-          setQuestion(
-            normalizedQuestion,
-          );
-
-          if (
-            normalizedQuestion.questionNumber !==
-            null
-          ) {
-            setCurrentQuestionNumber(
-              normalizedQuestion.questionNumber,
-            );
-          }
-
-          if (
-            normalizedQuestion.timeLimit !==
-              null &&
-            normalizedQuestion.timeLimit >
-              0
-          ) {
-            timeLimitRef.current =
-              normalizedQuestion.timeLimit;
-
-            setTimeLimit(
-              normalizedQuestion.timeLimit,
-            );
-          }
-        }
-
-        setQuestionStarted(false);
-        setQuestionLocked(false);
-        setSelectedAnswer(null);
-        setAnswerSubmitted(false);
-        setSubmittingAnswer(false);
+        applyQuestion(
+          payload,
+          "NEW QUESTION",
+          true,
+        );
 
         addFeedEvent(
           "new_question",
           payload,
         );
       },
-      [addFeedEvent],
+      [
+        addFeedEvent,
+        applyQuestion,
+      ],
+    );
+
+ 
+ 
+    /* ==========================================================
+   * NEW QUESTION DISPLAYED
+   * ======================================================== */
+
+  const handleNewQuestionDisplayed =
+    useCallback(
+      (payload: SocketPayload) => {
+        if (disposedRef.current) {
+          return;
+        }
+
+        console.log(
+          "==================================================",
+        );
+
+        console.log(
+          "[Quiz Socket] 🎯 NEW QUESTION DISPLAYED:",
+          payload,
+        );
+
+        console.log(
+          "[Quiz Socket] 🎯 NEW QUESTION DISPLAYED JSON:",
+          JSON.stringify(
+            payload,
+            null,
+            2,
+          ),
+        );
+
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT do:
+         *
+         * const question = data.question;
+         *
+         * because `data.question` is the text.
+         *
+         * extractQuestion() now examines the original payload
+         * BEFORE unwrapPayload().
+         */
+        const rawQuestion =
+          extractQuestion(
+            payload,
+          );
+
+        console.log(
+          "[Quiz Socket] 🎯 NEW QUESTION DISPLAYED - QUESTION OBJECT:",
+          rawQuestion,
+        );
+
+        console.log(
+          "[Quiz Socket] 🎯 NEW QUESTION DISPLAYED - QUESTION OBJECT JSON:",
+          rawQuestion
+            ? JSON.stringify(
+                rawQuestion,
+                null,
+                2,
+              )
+            : null,
+        );
+
+        /*
+         * Round information must also be read without allowing
+         * unwrapPayload() to destroy the original question.
+         */
+        let round: number | null =
+          null;
+
+        if (
+          isObject(payload)
+        ) {
+          round =
+            getNumber(
+              payload.currentRound ??
+                payload.current_round ??
+                payload.roundNumber ??
+                payload.round_number,
+              null,
+            );
+        }
+
+        if (
+          round === null
+        ) {
+          const data =
+            unwrapPayload(
+              payload,
+            );
+
+          if (
+            isObject(data)
+          ) {
+            round =
+              getNumber(
+                data.currentRound ??
+                  data.current_round ??
+                  data.roundNumber ??
+                  data.round_number,
+                null,
+              );
+          }
+        }
+
+        if (
+          round !== null &&
+          round >= 1
+        ) {
+          updateRound(
+            round,
+          );
+        }
+
+        const applied =
+          applyQuestion(
+            payload,
+            "NEW QUESTION DISPLAYED",
+            true,
+          );
+
+        if (
+          !applied
+        ) {
+          console.error(
+            "[Quiz Socket] ❌ NEW QUESTION DISPLAYED contained no usable question.",
+          );
+        } else {
+          console.log(
+            "[Quiz Socket] ✅ QUESTION STATE UPDATED SUCCESSFULLY",
+          );
+        }
+
+        addFeedEvent(
+          "new_question_displayed",
+          payload,
+        );
+
+        console.log(
+          "==================================================",
+        );
+      },
+      [
+        addFeedEvent,
+        applyQuestion,
+        updateRound,
+      ],
+    );
+
+  /* ==========================================================
+   * QUESTION DISPLAYED
+   * ======================================================== */
+
+  const handleQuestionDisplayed =
+    useCallback(
+      (payload: SocketPayload) => {
+        if (disposedRef.current) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] QUESTION DISPLAYED:",
+          payload,
+        );
+
+        applyQuestion(
+          payload,
+          "QUESTION DISPLAYED",
+          true,
+        );
+
+        addFeedEvent(
+          "question_displayed",
+          payload,
+        );
+      },
+      [
+        addFeedEvent,
+        applyQuestion,
+      ],
+    );
+
+  /* ==========================================================
+   * NEXT QUESTION
+   * ======================================================== */
+
+  const handleNextQuestion =
+    useCallback(
+      (payload: SocketPayload) => {
+        if (disposedRef.current) {
+          return;
+        }
+
+        console.log(
+          "[Quiz Socket] NEXT QUESTION:",
+          payload,
+        );
+
+        applyQuestion(
+          payload,
+          "NEXT QUESTION",
+          true,
+        );
+
+        addFeedEvent(
+          "next_question",
+          payload,
+        );
+      },
+      [
+        addFeedEvent,
+        applyQuestion,
+      ],
     );
 
   /* ==========================================================
@@ -1632,83 +2167,6 @@ const handleJoinedRoomAck =
     );
 
   /* ==========================================================
-   * NEXT QUESTION
-   * ======================================================== */
-
-  const handleNextQuestion =
-    useCallback(
-      (payload: SocketPayload) => {
-        if (disposedRef.current) {
-          return;
-        }
-
-        console.log(
-          "[Quiz Socket] NEXT QUESTION:",
-          payload,
-        );
-
-        const data =
-          unwrapPayload(
-            payload,
-          );
-
-        const normalizedQuestion =
-          normalizeQuestion(
-            data.question ??
-              data.currentQuestion ??
-              data.current_question ??
-              data,
-          );
-
-        if (
-          normalizedQuestion
-        ) {
-          questionRef.current =
-            normalizedQuestion;
-
-          setQuestion(
-            normalizedQuestion,
-          );
-
-          if (
-            normalizedQuestion.questionNumber !==
-            null
-          ) {
-            setCurrentQuestionNumber(
-              normalizedQuestion.questionNumber,
-            );
-          }
-
-          if (
-            normalizedQuestion.timeLimit !==
-              null &&
-            normalizedQuestion.timeLimit >
-              0
-          ) {
-            timeLimitRef.current =
-              normalizedQuestion.timeLimit;
-
-            setTimeLimit(
-              normalizedQuestion.timeLimit,
-            );
-          }
-        }
-
-        setQuestionStarted(false);
-        setQuestionLocked(false);
-        setSelectedAnswer(null);
-        setAnswerSubmitted(false);
-        setSubmittingAnswer(false);
-
-        addFeedEvent(
-          "next_question",
-          payload,
-        );
-      },
-      [addFeedEvent],
-    );
-
-  /* ==========================================================
    * PARTICIPANT JOINED
    * ======================================================== */
 
@@ -1728,6 +2186,10 @@ const handleJoinedRoomAck =
           unwrapPayload(
             payload,
           );
+
+        if (!isObject(data)) {
+          return;
+        }
 
         const participant =
           data.participant ??
@@ -1753,17 +2215,12 @@ const handleJoinedRoomAck =
               const existingIndex =
                 current.findIndex(
                   (item) =>
-                    String(
-                      item.id,
-                    ) ===
-                    String(
-                      incoming.id,
-                    ),
+                    String(item.id) ===
+                    String(incoming.id),
                 );
 
               if (
-                existingIndex ===
-                -1
+                existingIndex === -1
               ) {
                 return [
                   ...current,
@@ -1812,6 +2269,10 @@ const handleJoinedRoomAck =
           unwrapPayload(
             payload,
           );
+
+        if (!isObject(data)) {
+          return;
+        }
 
         const entries =
           extractLeaderboard(
@@ -1880,6 +2341,10 @@ const handleJoinedRoomAck =
           unwrapPayload(
             payload,
           );
+
+        if (!isObject(data)) {
+          return;
+        }
 
         const entries =
           extractParticipants(
@@ -1990,6 +2455,17 @@ const handleJoinedRoomAck =
             payload,
           );
 
+        if (!isObject(data)) {
+          setSocketError(
+            "Quiz socket error.",
+          );
+
+          setActionLoading(false);
+          setSubmittingAnswer(false);
+
+          return;
+        }
+
         const message =
           getString(
             data.message ??
@@ -2042,13 +2518,6 @@ const handleJoinedRoomAck =
       socket;
 
     /* --------------------------------------------------------
-     * EVENT HANDLERS
-     * ------------------------------------------------------ */
-
-    const handleJoinedRoom =
-      handleJoinedRoomAck;
-
-    /* --------------------------------------------------------
      * REGISTER LISTENERS
      * ------------------------------------------------------ */
 
@@ -2069,7 +2538,7 @@ const handleJoinedRoomAck =
 
     socket.on(
       "joined_room_ack",
-      handleJoinedRoom,
+      handleJoinedRoomAck,
     );
 
     socket.on(
@@ -2077,27 +2546,11 @@ const handleJoinedRoomAck =
       handleRoomState,
     );
 
-    /*
-     * IMPORTANT:
-     *
-     * Outgoing:
-     *   get_room_doc
-     *
-     * Incoming:
-     *   get_room_ack
-     */
     socket.on(
       "get_room_ack",
       handleGetRoomAck,
     );
 
-    /*
-     * Optional compatibility listener.
-     *
-     * If an older backend version emits get_room_doc
-     * as an event as well, this prevents breaking that
-     * version. The real response event is get_room_ack.
-     */
     socket.on(
       "get_room_doc",
       handleGetRoomAck,
@@ -2121,6 +2574,23 @@ const handleJoinedRoomAck =
     socket.on(
       "new_question",
       handleNewQuestion,
+    );
+
+    socket.on(
+  "new_question_displayed",
+  (payload) => {
+    console.log(
+      "🚨🚨🚨 NEW QUESTION EVENT ACTUALLY RECEIVED 🚨🚨🚨",
+      payload,
+    );
+
+    handleNewQuestionDisplayed(payload);
+  },
+);
+
+    socket.on(
+      "question_displayed",
+      handleQuestionDisplayed,
     );
 
     socket.on(
@@ -2173,6 +2643,10 @@ const handleJoinedRoomAck =
      * ------------------------------------------------------ */
 
     if (socket.connected) {
+      console.log(
+        "[Quiz Socket] Socket already connected. Joining room...",
+      );
+
       setConnected(true);
 
       handleConnect();
@@ -2203,7 +2677,7 @@ const handleJoinedRoomAck =
 
       socket.off(
         "joined_room_ack",
-        handleJoinedRoom,
+        handleJoinedRoomAck,
       );
 
       socket.off(
@@ -2239,6 +2713,16 @@ const handleJoinedRoomAck =
       socket.off(
         "new_question",
         handleNewQuestion,
+      );
+
+      socket.off(
+        "new_question_displayed",
+        handleNewQuestionDisplayed,
+      );
+
+      socket.off(
+        "question_displayed",
+        handleQuestionDisplayed,
       );
 
       socket.off(
@@ -2286,13 +2770,6 @@ const handleJoinedRoomAck =
         handleSocketError,
       );
 
-      /*
-       * IMPORTANT:
-       *
-       * Do NOT disconnect the singleton socket here.
-       *
-       * quizSocket.ts owns the actual socket lifecycle.
-       */
       if (
         socketRef.current ===
         socket
@@ -2314,6 +2791,8 @@ const handleJoinedRoomAck =
     handleJoinedRoomAck,
     handleLeaderboardUpdated,
     handleNewQuestion,
+    handleNewQuestionDisplayed,
+    handleQuestionDisplayed,
     handleNextQuestion,
     handleParticipantJoined,
     handleParticipantSelectedAnswer,
@@ -2423,19 +2902,5 @@ const handleJoinedRoomAck =
       actions.refreshSocketState,
   };
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

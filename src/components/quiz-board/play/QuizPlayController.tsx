@@ -1,3 +1,7 @@
+
+
+
+
 "use client";
 
 import {
@@ -39,7 +43,7 @@ import SpectatorQuizShow from "@/components/quiz-board/spectator/SpectatorQuizSh
 
 import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQuizShow";
 
-import  useQuizSocket  from "@/hooks/quiz-board/useQuizSocket";
+import useQuizSocket from "@/hooks/quiz-board/useQuizSocket";
 
 /* =========================================================
    PROPS
@@ -82,9 +86,7 @@ function getNumber(
    ========================================================= */
 
 function readStoredUser(): any {
-  if (
-    typeof window === "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -139,10 +141,6 @@ function getSocketRole(
   const normalizedRequestedRole =
     requestedRole?.trim().toLowerCase();
 
-  /*
-   * Explicit URL role takes priority.
-   */
-
   if (
     normalizedRequestedRole ===
     "spectator"
@@ -163,11 +161,6 @@ function getSocketRole(
   ) {
     return "CONTESTANT";
   }
-
-  /*
-   * Otherwise determine the role
-   * from the authenticated application user.
-   */
 
   const applicationRole =
     getApplicationRole(user);
@@ -201,17 +194,13 @@ export default function QuizPlayController({
     useState<Quiz | null>(null);
 
   const [role, setRole] =
-    useState<QuizGameRole | null>(
-      null,
-    );
+    useState<QuizGameRole | null>(null);
 
   const [currentRound, setCurrentRound] =
     useState<number>(1);
 
   const [questions, setQuestions] =
-    useState<HostQuestionListItem[]>(
-      [],
-    );
+    useState<HostQuestionListItem[]>([]);
 
   const [
     selectedQuestion,
@@ -241,6 +230,18 @@ export default function QuizPlayController({
 
   const currentRoundRef =
     useRef<number>(1);
+
+  /*
+   * IMPORTANT:
+   *
+   * Keep the latest valid live question outside React state.
+   *
+   * This is NOT replacing socket state.
+   * It simply protects the UI from a transient null state.
+   */
+
+  const liveQuestionRef =
+    useRef<any>(null);
 
   /* =======================================================
      KEEP REFS SYNCHRONIZED
@@ -293,9 +294,6 @@ export default function QuizPlayController({
 
   /* =======================================================
      ROOM ID
-     
-     URL roomId has priority because the quiz object may
-     still contain a null room ID.
      ======================================================= */
 
   const roomId =
@@ -356,10 +354,6 @@ export default function QuizPlayController({
             );
           }
 
-          /*
-           * Normalize time per question safely.
-           */
-
           let normalizedTimePerQuestion =
             30;
 
@@ -385,10 +379,6 @@ export default function QuizPlayController({
               err,
             );
           }
-
-          /*
-           * Normalize quiz object.
-           */
 
           const normalizedQuiz =
             {
@@ -430,10 +420,6 @@ export default function QuizPlayController({
           setQuiz(
             normalizedQuiz,
           );
-
-          /*
-           * Determine current round.
-           */
 
           const initialRound =
             Math.max(
@@ -497,6 +483,16 @@ export default function QuizPlayController({
         requestedRole,
       );
 
+    console.log(
+      "[QuizPlayController] ROLE RESOLVED",
+      {
+        requestedRole,
+        resolvedRole,
+        userRole:
+          getApplicationRole(user),
+      },
+    );
+
     setRole(
       resolvedRole,
     );
@@ -544,24 +540,6 @@ export default function QuizPlayController({
           let rawQuestions: any[] =
             [];
 
-          /*
-           * Supported backend shapes:
-           *
-           * data: [...]
-           *
-           * data: {
-           *   questions: [...]
-           * }
-           *
-           * data: {
-           *   questionObj: [...]
-           * }
-           *
-           * data: {
-           *   roundQuestions: [...]
-           * }
-           */
-
           if (
             Array.isArray(
               payload,
@@ -606,11 +584,6 @@ export default function QuizPlayController({
                           item?.duration,
                         null,
                       );
-
-                    /*
-                     * Keep backend options as supplied.
-                     * Host preview will normalize them.
-                     */
 
                     const options =
                       Array.isArray(
@@ -666,11 +639,6 @@ export default function QuizPlayController({
             normalized,
           );
 
-          /*
-           * Preserve the selected question
-           * when the round is refreshed.
-           */
-
           const existingNumber =
             selectedQuestionRef
               .current
@@ -695,11 +663,6 @@ export default function QuizPlayController({
 
             return;
           }
-
-          /*
-           * Convert the list question into the
-           * preview question expected by HostQuizShow.
-           */
 
           const preview =
             createPreviewQuestion(
@@ -761,7 +724,7 @@ export default function QuizPlayController({
   ]);
 
   /* =======================================================
-     ROUND CHANGE FROM SOCKET
+     ROUND CHANGE
      ======================================================= */
 
   const handleRoundChanged =
@@ -787,9 +750,7 @@ export default function QuizPlayController({
     );
 
   /* =======================================================
-     SOCKET HOOK
-     
-     All Socket.IO behavior lives inside useQuizSocket.
+     SOCKET
      ======================================================= */
 
   const socketState =
@@ -845,6 +806,152 @@ export default function QuizPlayController({
     setSelectedAnswer,
     refreshSocketState,
   } = socketState;
+
+  /* =======================================================
+     CRITICAL QUESTION TRACE
+     ======================================================= */
+
+  useEffect(() => {
+    console.log(
+      "[QuizPlayController] SOCKET QUESTION STATE CHANGED",
+      {
+        role,
+        quizId,
+        roomId,
+
+        questionExists:
+          Boolean(question),
+
+        questionId:
+          question?.id ?? null,
+
+        questionText:
+          question?.question ?? null,
+
+        questionNumber:
+          question?.questionNumber ??
+          null,
+
+        optionCount:
+          question?.options?.length ??
+          0,
+
+        questionStarted,
+        questionLocked,
+
+        connected,
+        roomJoined,
+        roomActivated,
+
+        timeLimit,
+
+        startedAt:
+          question?.startedAt ??
+          null,
+
+        expiresAt:
+          question?.expiresAt ??
+          null,
+      },
+    );
+
+    /*
+     * Only remember valid questions.
+     */
+    if (
+      question &&
+      question.id &&
+      question.question
+    ) {
+      liveQuestionRef.current =
+        question;
+    }
+  }, [
+    question,
+    role,
+    quizId,
+    roomId,
+    questionStarted,
+    questionLocked,
+    connected,
+    roomJoined,
+    roomActivated,
+    timeLimit,
+  ]);
+
+  /* =======================================================
+     DISPLAY QUESTION
+     ======================================================= */
+
+  const displayQuestion =
+    question ??
+    liveQuestionRef.current ??
+    null;
+
+  /* =======================================================
+     CRITICAL CONTESTANT TRACE
+     ======================================================= */
+
+  useEffect(() => {
+    if (
+      role !== "CONTESTANT"
+    ) {
+      return;
+    }
+
+    console.log(
+      "[QuizPlayController] CONTESTANT DISPLAY PAYLOAD",
+      {
+        questionExists:
+          Boolean(displayQuestion),
+
+        questionId:
+          displayQuestion?.id ??
+          null,
+
+        questionText:
+          displayQuestion?.question ??
+          null,
+
+        questionNumber:
+          displayQuestion?.questionNumber ??
+          null,
+
+        optionCount:
+          displayQuestion?.options?.length ??
+          0,
+
+        questionStarted,
+
+        questionLocked,
+
+        connected,
+        roomJoined,
+        roomActivated,
+
+        timeLimit:
+          displayQuestion?.timeLimit ??
+          timeLimit,
+
+        timerStartedAt:
+          displayQuestion?.startedAt ??
+          null,
+
+        timerExpiresAt:
+          displayQuestion?.expiresAt ??
+          null,
+      },
+    );
+  }, [
+    role,
+    displayQuestion,
+    questionStarted,
+    questionLocked,
+    connected,
+    roomJoined,
+    roomActivated,
+    timeLimit,
+  ]);
 
   /* =======================================================
      DERIVED QUIZ VALUES
@@ -997,7 +1104,7 @@ export default function QuizPlayController({
     questionLocked;
 
   /* =======================================================
-     DEBUG
+     HOST DEBUG
      ======================================================= */
 
   useEffect(() => {
@@ -1111,146 +1218,90 @@ export default function QuizPlayController({
   ) {
     return (
       <HostQuizShow
-        quizId={
-          quizId
-        }
-
-        roomId={
-          roomId
-        }
-
-        quizTitle={
-          quizTitle
-        }
-
-        subject={
-          subject
-        }
-
+        quizId={quizId}
+        roomId={roomId}
+        quizTitle={quizTitle}
+        subject={subject}
         description={
-          quiz.description ??
-          ""
+          quiz.description ?? ""
         }
-
-        currentRound={
-          currentRound
-        }
-
-        totalRounds={
-          totalRounds
-        }
-
-        questions={
-          questions
-        }
-
+        currentRound={currentRound}
+        totalRounds={totalRounds}
+        questions={questions}
         selectedQuestionNumber={
           selectedQuestion?.questionNumber ??
           null
         }
-
         currentQuestionNumber={
           currentQuestionNumber
         }
-
         totalQuestions={
-          questions.length ||
-          null
+          questions.length || null
         }
-
         selectedQuestion={
           selectedQuestion
         }
-
         questionStarted={
           questionStarted
         }
-
         questionLocked={
           questionLocked
         }
-
         timeLimit={
           timeLimit
         }
-
         connected={
           connected
         }
-
-        // roomJoined={
-        //   roomJoined
-        // }
-
         roomActivated={
           roomActivated
         }
-
         participants={
           participants
         }
-
         leaderboard={
           leaderboard
         }
-
-        // feedEvents={
-        //   feedEvents
-        // }
-
         loading={
           loading
         }
-
         questionLoading={
           questionLoading
         }
-
         actionLoading={
           actionLoading
         }
-
         error={
           error ??
           socketError
         }
-
         canStartQuestion={
           canStartQuestion
         }
-
         canLockQuestion={
           canLockQuestion
         }
-
         canNextQuestion={
           canNextQuestion
         }
-
         onBack={
           back
         }
-
         onSelectQuestion={
           selectQuestion
         }
-
         onStartQuestion={
           startQuestion
         }
-
         onLockQuestion={
           lockQuestion
         }
-
         onNextQuestion={
           nextQuestion
         }
-
         onTimeLimitChange={
           setTimeLimit
         }
-
         onRefresh={
           refresh
         }
@@ -1268,44 +1319,39 @@ export default function QuizPlayController({
     const spectatorProps =
       {
         quizId,
-
         roomId,
-
         quizTitle,
-
         subject,
 
         description:
-          quiz.description ??
-          "",
+          quiz.description ?? "",
 
         currentRound,
-
         totalRounds,
 
         currentQuestionNumber,
 
         totalQuestions:
-          question?.totalQuestions ??
+          displayQuestion?.totalQuestions ??
           questions.length ??
           null,
 
-        question,
+        question:
+          displayQuestion,
 
         questionStarted,
-
         questionLocked,
 
         timeLimit:
-          question?.timeLimit ??
+          displayQuestion?.timeLimit ??
           timeLimit,
 
         startedAt:
-          question?.startedAt ??
+          displayQuestion?.startedAt ??
           null,
 
         expiresAt:
-          question?.expiresAt ??
+          displayQuestion?.expiresAt ??
           null,
 
         connected,
@@ -1316,17 +1362,13 @@ export default function QuizPlayController({
             : "DISCONNECTED",
 
         roomJoined,
-
         roomActivated,
 
         participants,
-
         leaderboard,
-
         feedEvents,
 
         loading,
-
         questionLoading,
 
         error:
@@ -1356,22 +1398,24 @@ export default function QuizPlayController({
   const contestantProps =
     {
       quizId,
-
       roomId,
-
       quizTitle,
-
       subject,
 
       description:
-        quiz.description ??
-        "",
+        quiz.description ?? "",
 
       currentRound,
-
       totalRounds,
 
-      question,
+      /*
+       * IMPORTANT:
+       *
+       * Use displayQuestion rather than the raw socket
+       * question state.
+       */
+      question:
+        displayQuestion,
 
       selectedAnswer,
 
@@ -1384,21 +1428,19 @@ export default function QuizPlayController({
       submittingAnswer,
 
       connected,
-
       roomJoined,
-
       roomActivated,
 
       timerStartedAt:
-        question?.startedAt ??
+        displayQuestion?.startedAt ??
         null,
 
       timerExpiresAt:
-        question?.expiresAt ??
+        displayQuestion?.expiresAt ??
         null,
 
       timeLimit:
-        question?.timeLimit ??
+        displayQuestion?.timeLimit ??
         timeLimit,
 
       score:
@@ -1525,10 +1567,6 @@ function createPreviewQuestion(
 
 
 
-
-
-
-
 // "use client";
 
 // import {
@@ -1540,11 +1578,7 @@ function createPreviewQuestion(
 //   type ComponentProps,
 // } from "react";
 
-// import {
-//   useParams,
-//   useRouter,
-//   useSearchParams,
-// } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 // import { axiosInstance } from "@/lib/api/axios";
 
@@ -1574,33 +1608,16 @@ function createPreviewQuestion(
 
 // import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQuizShow";
 
-// import type { QuizOption } from "@/components/quiz-board/shared/QuizOptions";
-
-// import { useQuizSocket } from "@/hooks/quiz-board/useQuizSocket"; 
-
-
-
+// import  useQuizSocket  from "@/hooks/quiz-board/useQuizSocket";
 
 // /* =========================================================
-//    TYPES
+//    PROPS
 //    ========================================================= */
 
-// interface LiveQuestion {
-//   id: string;
-
-//   question: string;
-
-//   options: QuizOption[];
-
-//   questionNumber: number | null;
-
-//   totalQuestions: number | null;
-
-//   timeLimit: number | null;
-
-//   startedAt: string | null;
-
-//   expiresAt: string | null;
+// export interface QuizPlayControllerProps {
+//   quizId: string;
+//   requestedRole?: string | null;
+//   requestedRoomId?: string | null;
 // }
 
 // /* =========================================================
@@ -1629,6 +1646,10 @@ function createPreviewQuestion(
 //   return fallback;
 // }
 
+// /* =========================================================
+//    READ STORED USER
+//    ========================================================= */
+
 // function readStoredUser(): any {
 //   if (
 //     typeof window === "undefined"
@@ -1652,12 +1673,16 @@ function createPreviewQuestion(
 //         return JSON.parse(value);
 //       }
 //     } catch {
-//       // Ignore malformed localStorage values.
+//       // Ignore malformed localStorage.
 //     }
 //   }
 
 //   return null;
 // }
+
+// /* =========================================================
+//    APPLICATION ROLE
+//    ========================================================= */
 
 // function getApplicationRole(
 //   user: any,
@@ -1672,16 +1697,46 @@ function createPreviewQuestion(
 //   ).toUpperCase();
 // }
 
+// /* =========================================================
+//    SOCKET ROLE
+//    ========================================================= */
+
 // function getSocketRole(
 //   user: any,
 //   requestedRole: string | null,
 // ): QuizGameRole {
+//   const normalizedRequestedRole =
+//     requestedRole?.trim().toLowerCase();
+
+//   /*
+//    * Explicit URL role takes priority.
+//    */
+
 //   if (
-//     requestedRole?.toLowerCase() ===
+//     normalizedRequestedRole ===
 //     "spectator"
 //   ) {
 //     return "SPECTATOR";
 //   }
+
+//   if (
+//     normalizedRequestedRole ===
+//     "host"
+//   ) {
+//     return "HOST";
+//   }
+
+//   if (
+//     normalizedRequestedRole ===
+//     "contestant"
+//   ) {
+//     return "CONTESTANT";
+//   }
+
+//   /*
+//    * Otherwise determine the role
+//    * from the authenticated application user.
+//    */
 
 //   const applicationRole =
 //     getApplicationRole(user);
@@ -1697,29 +1752,15 @@ function createPreviewQuestion(
 // }
 
 // /* =========================================================
-//    PAGE
+//    QUIZ PLAY CONTROLLER
 //    ========================================================= */
 
-// export default function QuizPlayPage() {
-//   const params =
-//     useParams<{
-//       quizId: string;
-//     }>();
-
-//   const searchParams =
-//     useSearchParams();
-
-//   const router =
-//     useRouter();
-
-//   const quizId =
-//     params.quizId;
-
-//   const requestedRole =
-//     searchParams.get("role");
-
-//   const requestedRoomId =
-//     searchParams.get("roomId");
+// export default function QuizPlayController({
+//   quizId,
+//   requestedRole = null,
+//   requestedRoomId = null,
+// }: QuizPlayControllerProps) {
+//   const router = useRouter();
 
 //   /* =======================================================
 //      QUIZ STATE
@@ -1734,14 +1775,17 @@ function createPreviewQuestion(
 //     );
 
 //   const [currentRound, setCurrentRound] =
-//     useState(1);
+//     useState<number>(1);
 
 //   const [questions, setQuestions] =
 //     useState<HostQuestionListItem[]>(
 //       [],
 //     );
 
-//   const [selectedQuestion, setSelectedQuestion] =
+//   const [
+//     selectedQuestion,
+//     setSelectedQuestion,
+//   ] =
 //     useState<HostQuestionPreviewQuestion | null>(
 //       null,
 //     );
@@ -1755,13 +1799,17 @@ function createPreviewQuestion(
 //   const [error, setError] =
 //     useState<string | null>(null);
 
+//   /* =======================================================
+//      REFS
+//      ======================================================= */
+
 //   const selectedQuestionRef =
 //     useRef<HostQuestionPreviewQuestion | null>(
 //       null,
 //     );
 
 //   const currentRoundRef =
-//     useRef(currentRound);
+//     useRef<number>(1);
 
 //   /* =======================================================
 //      KEEP REFS SYNCHRONIZED
@@ -1779,15 +1827,6 @@ function createPreviewQuestion(
 
 //   /* =======================================================
 //      SAFE QUIZ TIME LIMIT
-     
-//      IMPORTANT:
-//      quiz is null during the first render.
-     
-//      NEVER call:
-     
-//        getQuizTimePerQuestion(quiz)
-     
-//      until quiz exists.
 //      ======================================================= */
 
 //   const quizTimeLimit =
@@ -1813,7 +1852,7 @@ function createPreviewQuestion(
 //         }
 //       } catch (err) {
 //         console.warn(
-//           "[Quiz Play] Unable to determine quiz time limit:",
+//           "[QuizPlayController] Unable to determine quiz time limit:",
 //           err,
 //         );
 //       }
@@ -1823,10 +1862,9 @@ function createPreviewQuestion(
 
 //   /* =======================================================
 //      ROOM ID
-
-//      IMPORTANT:
-//      The URL roomId has priority because the backend quiz
-//      object may still contain quizRoomId: null.
+     
+//      URL roomId has priority because the quiz object may
+//      still contain a null room ID.
 //      ======================================================= */
 
 //   const roomId =
@@ -1838,9 +1876,11 @@ function createPreviewQuestion(
 //         return urlRoomId;
 //       }
 
-//       return quiz
-//         ? getQuizRoomId(quiz)
-//         : null;
+//       if (!quiz) {
+//         return null;
+//       }
+
+//       return getQuizRoomId(quiz);
 //     }, [
 //       requestedRoomId,
 //       quiz,
@@ -1854,6 +1894,12 @@ function createPreviewQuestion(
 //     useCallback(
 //       async () => {
 //         if (!quizId) {
+//           setError(
+//             "Missing quiz ID.",
+//           );
+
+//           setLoading(false);
+
 //           return;
 //         }
 
@@ -1880,10 +1926,11 @@ function createPreviewQuestion(
 //           }
 
 //           /*
-//            * Only call getQuizTimePerQuestion()
-//            * after rawQuiz has been confirmed to exist.
+//            * Normalize time per question safely.
 //            */
-//           let normalizedTimePerQuestion = 30;
+
+//           let normalizedTimePerQuestion =
+//             30;
 
 //           try {
 //             const value =
@@ -1903,12 +1950,16 @@ function createPreviewQuestion(
 //             }
 //           } catch (err) {
 //             console.warn(
-//               "[Quiz Play] Unable to normalize quiz timePerQuestion:",
+//               "[QuizPlayController] Unable to normalize quiz time:",
 //               err,
 //             );
 //           }
 
-//           const normalizedQuiz: Quiz =
+//           /*
+//            * Normalize quiz object.
+//            */
+
+//           const normalizedQuiz =
 //             {
 //               ...rawQuiz,
 
@@ -1943,11 +1994,15 @@ function createPreviewQuestion(
 //                 rawQuiz.noOfContestants ??
 //                 rawQuiz.no_of_contestants ??
 //                 20,
-//             };
+//             } as Quiz;
 
 //           setQuiz(
 //             normalizedQuiz,
 //           );
+
+//           /*
+//            * Determine current round.
+//            */
 
 //           const initialRound =
 //             Math.max(
@@ -1960,7 +2015,15 @@ function createPreviewQuestion(
 //           setCurrentRound(
 //             initialRound,
 //           );
+
+//           currentRoundRef.current =
+//             initialRound;
 //         } catch (err: any) {
+//           console.error(
+//             "[QuizPlayController] Failed to load quiz:",
+//             err,
+//           );
+
 //           setError(
 //             err?.response?.data
 //               ?.message ??
@@ -1973,6 +2036,10 @@ function createPreviewQuestion(
 //       },
 //       [quizId],
 //     );
+
+//   /* =======================================================
+//      INITIAL QUIZ LOAD
+//      ======================================================= */
 
 //   useEffect(() => {
 //     void loadQuiz();
@@ -2047,14 +2114,20 @@ function createPreviewQuestion(
 //             [];
 
 //           /*
-//            * Backend currently returns:
+//            * Supported backend shapes:
 //            *
-//            * data: Array(10)
-//            *
-//            * but we also support:
+//            * data: [...]
 //            *
 //            * data: {
 //            *   questions: [...]
+//            * }
+//            *
+//            * data: {
+//            *   questionObj: [...]
+//            * }
+//            *
+//            * data: {
+//            *   roundQuestions: [...]
 //            * }
 //            */
 
@@ -2086,29 +2159,43 @@ function createPreviewQuestion(
 //                     item: any,
 //                     index: number,
 //                   ) => {
+//                     const questionNumber =
+//                       getNumber(
+//                         item?.questionNumber ??
+//                           item?.question_number ??
+//                           item?.number,
+//                         index + 1,
+//                       ) ??
+//                       index + 1;
+
 //                     const itemTimeLimit =
 //                       getNumber(
 //                         item?.timeLimit ??
-//                           item?.time_limit,
+//                           item?.time_limit ??
+//                           item?.duration,
 //                         null,
 //                       );
+
+//                     /*
+//                      * Keep backend options as supplied.
+//                      * Host preview will normalize them.
+//                      */
+
+//                     const options =
+//                       Array.isArray(
+//                         item?.options,
+//                       )
+//                         ? item.options
+//                         : [];
 
 //                     return {
 //                       id: String(
 //                         item?.id ??
 //                           item?._id ??
-//                           `question-${
-//                             index + 1
-//                           }`,
+//                           `question-${index + 1}`,
 //                       ),
 
-//                       questionNumber:
-//                         getNumber(
-//                           item?.questionNumber ??
-//                             item?.question_number,
-//                           index + 1,
-//                         ) ??
-//                         index + 1,
+//                       questionNumber,
 
 //                       question:
 //                         item?.question ??
@@ -2116,22 +2203,8 @@ function createPreviewQuestion(
 //                         item?.question_text ??
 //                         "",
 
-//                       options:
-//                         Array.isArray(
-//                           item?.options,
-//                         )
-//                           ? item.options
-//                           : [],
+//                       options,
 
-//                       /*
-//                        * IMPORTANT:
-//                        *
-//                        * Use the question-specific
-//                        * time limit when available.
-//                        *
-//                        * Otherwise use the SAFE
-//                        * quizTimeLimit.
-//                        */
 //                       timeLimit:
 //                         itemTimeLimit ??
 //                         quizTimeLimit,
@@ -2163,9 +2236,10 @@ function createPreviewQuestion(
 //           );
 
 //           /*
-//            * Preserve the currently selected question
-//            * when the same round is refreshed.
+//            * Preserve the selected question
+//            * when the round is refreshed.
 //            */
+
 //           const existingNumber =
 //             selectedQuestionRef
 //               .current
@@ -2180,65 +2254,39 @@ function createPreviewQuestion(
 //             normalized[0] ??
 //             null;
 
-//           if (selected) {
-//             const preview: HostQuestionPreviewQuestion =
-//               {
-//                 id:
-//                   selected.id,
-
-//                 questionNumber:
-//                   selected.questionNumber,
-
-//                 question:
-//                   selected.question,
-
-//                 options:
-//                   selected.options?.map(
-//                     (
-//                       option: any,
-//                     ) => ({
-//                       label:
-//                         option?.label,
-
-//                       value:
-//                         option?.value ??
-//                         option?.answer ??
-//                         "",
-
-//                       isCorrect:
-//                         option?.isCorrect ??
-//                         option?.is_correct,
-//                     }),
-//                   ) ?? [],
-
-//                 timeLimit:
-//                   selected.timeLimit,
-
-//                 status:
-//                   selected.status,
-
-//                 answeredCount:
-//                   selected.answeredCount,
-
-//                 correctCount:
-//                   selected.correctCount,
-//               };
-
-//             setSelectedQuestion(
-//               preview,
-//             );
-
-//             selectedQuestionRef.current =
-//               preview;
-//           } else {
+//           if (!selected) {
 //             setSelectedQuestion(
 //               null,
 //             );
 
 //             selectedQuestionRef.current =
 //               null;
+
+//             return;
 //           }
+
+//           /*
+//            * Convert the list question into the
+//            * preview question expected by HostQuizShow.
+//            */
+
+//           const preview =
+//             createPreviewQuestion(
+//               selected,
+//             );
+
+//           setSelectedQuestion(
+//             preview,
+//           );
+
+//           selectedQuestionRef.current =
+//             preview;
 //         } catch (err: any) {
+//           console.error(
+//             "[QuizPlayController] Failed to load round questions:",
+//             err,
+//           );
+
 //           setError(
 //             err?.response?.data
 //               ?.message ??
@@ -2282,85 +2330,91 @@ function createPreviewQuestion(
 //   ]);
 
 //   /* =======================================================
-//      SOCKET HOOK
-
-//      ALL SOCKET.IO LOGIC IS INSIDE:
-
-//        ./useQuizSocket.ts
-
-//      The page only consumes the state/actions.
+//      ROUND CHANGE FROM SOCKET
 //      ======================================================= */
-// const handleRoundChanged = useCallback(
-//   (roundNumber: number) => {
-//     if (roundNumber < 1) {
-//       return;
-//     }
 
-//     setCurrentRound(roundNumber);
-//     currentRoundRef.current = roundNumber;
-//   },
-//   [],
-// );
-  
+//   const handleRoundChanged =
+//     useCallback(
+//       (roundNumber: number) => {
+//         if (
+//           !Number.isFinite(
+//             roundNumber,
+//           ) ||
+//           roundNumber < 1
+//         ) {
+//           return;
+//         }
 
-//   const socketState = useQuizSocket({
-//   quizId,
-//   roomId,
-//   role,
-//   currentRound,
-//   selectedQuestion,
+//         currentRoundRef.current =
+//           roundNumber;
 
-//   /*
-//    * Safe fallback:
-//    *
-//    * quizTimeLimit is already protected against quiz === null.
-//    * selectedQuestion.timeLimit takes priority when available.
-//    */
-//   timeLimit:
-//     selectedQuestion?.timeLimit ??
-//     quizTimeLimit,
+//         setCurrentRound(
+//           roundNumber,
+//         );
+//       },
+//       [],
+//     );
 
-//   /*
-//    * IMPORTANT:
-//    * Use a stable callback instead of creating
-//    * a new inline function on every render.
-//    */
-//   onRoundChanged: handleRoundChanged,
-// });
+//   /* =======================================================
+//      SOCKET HOOK
+     
+//      All Socket.IO behavior lives inside useQuizSocket.
+//      ======================================================= */
 
-// const {
-//   connected,
-//   roomJoined,
-//   roomActivated,
+//   const socketState =
+//     useQuizSocket({
+//       quizId,
+//       roomId,
+//       role,
+//       currentRound,
+//       selectedQuestion,
 
-//   question,
-//   currentQuestionNumber,
+//       timeLimit:
+//         selectedQuestion?.timeLimit ??
+//         quizTimeLimit,
 
-//   questionStarted,
-//   questionLocked,
+//       onRoundChanged:
+//         handleRoundChanged,
+//     });
 
-//   timeLimit,
+//   /* =======================================================
+//      SOCKET STATE
+//      ======================================================= */
 
-//   selectedAnswer,
-//   answerSubmitted,
-//   submittingAnswer,
+//   const {
+//     connected,
+//     roomJoined,
+//     roomActivated,
 
-//   participants,
-//   leaderboard,
-//   feedEvents,
+//     question,
+//     currentQuestionNumber,
 
-//   socketError,
-//   actionLoading,
+//     questionStarted,
+//     questionLocked,
 
-//   startQuestion,
-//   lockQuestion,
-//   nextQuestion,
-//   submitAnswer,
+//     timeLimit,
 
-//   setTimeLimit,
-//   setSelectedAnswer,
-//   refreshSocketState,
-// } = socketState;
+//     selectedAnswer,
+//     answerSubmitted,
+//     submittingAnswer,
+
+//     participants,
+//     leaderboard,
+//     feedEvents,
+
+//     socketError,
+//     actionLoading,
+
+//     startQuestion,
+//     lockQuestion,
+//     nextQuestion,
+//     submitAnswer,
+
+//     setTimeLimit,
+//     setSelectedAnswer,
+//     refreshSocketState,
+//   } = socketState;
+
 //   /* =======================================================
 //      DERIVED QUIZ VALUES
 //      ======================================================= */
@@ -2380,7 +2434,10 @@ function createPreviewQuestion(
 //     useMemo(
 //       () =>
 //         quiz
-//           ? getQuizTitle(quiz)
+//           ? getQuizTitle(
+//               quiz,
+//             ) ??
+//             "Quiz Competition"
 //           : "Quiz Competition",
 //       [quiz],
 //     );
@@ -2398,48 +2455,10 @@ function createPreviewQuestion(
 //       (
 //         item: HostQuestionListItem,
 //       ) => {
-//         const preview: HostQuestionPreviewQuestion =
-//           {
-//             id:
-//               item.id,
-
-//             questionNumber:
-//               item.questionNumber,
-
-//             question:
-//               item.question,
-
-//             options:
-//               item.options?.map(
-//                 (
-//                   option: any,
-//                 ) => ({
-//                   label:
-//                     option?.label,
-
-//                   value:
-//                     option?.value ??
-//                     option?.answer ??
-//                     "",
-
-//                   isCorrect:
-//                     option?.isCorrect ??
-//                     option?.is_correct,
-//                 }),
-//               ) ?? [],
-
-//             timeLimit:
-//               item.timeLimit,
-
-//             status:
-//               item.status,
-
-//             answeredCount:
-//               item.answeredCount,
-
-//             correctCount:
-//               item.correctCount,
-//           };
+//         const preview =
+//           createPreviewQuestion(
+//             item,
+//           );
 
 //         setSelectedQuestion(
 //           preview,
@@ -2466,10 +2485,13 @@ function createPreviewQuestion(
 //           currentRoundRef.current,
 //         );
 //       }
+
+//       refreshSocketState();
 //     }, [
 //       loadQuiz,
 //       loadRoundQuestions,
 //       role,
+//       refreshSocketState,
 //     ]);
 
 //   /* =======================================================
@@ -2505,14 +2527,14 @@ function createPreviewQuestion(
 //     useMemo(
 //       () =>
 //         leaderboard.find(
-//           (entry) =>
+//           (entry: any) =>
 //             String(
-//               entry.userId ??
-//                 entry.participantId ??
+//               entry?.userId ??
+//                 entry?.participantId ??
 //                 "",
 //             ) ===
 //             currentUserId,
-//         ),
+//         ) ?? null,
 //       [
 //         leaderboard,
 //         currentUserId,
@@ -2520,25 +2542,42 @@ function createPreviewQuestion(
 //     );
 
 //   /* =======================================================
-//      START QUESTION AVAILABILITY
+//      HOST START QUESTION AVAILABILITY
 //      ======================================================= */
 
 //   const canStartQuestion =
 //     connected &&
 //     roomJoined &&
 //     roomActivated &&
-//     Boolean(selectedQuestion) &&
+//     Boolean(
+//       selectedQuestion,
+//     ) &&
 //     !questionStarted;
 
-//   /*
-//    * Keep this log while debugging.
-//    * Remove it later once the live flow is stable.
-//    */
-//   if (
-//     role === "HOST"
-//   ) {
+//   const canLockQuestion =
+//     connected &&
+//     roomJoined &&
+//     questionStarted &&
+//     !questionLocked;
+
+//   const canNextQuestion =
+//     connected &&
+//     roomJoined &&
+//     questionLocked;
+
+//   /* =======================================================
+//      DEBUG
+//      ======================================================= */
+
+//   useEffect(() => {
+//     if (
+//       role !== "HOST"
+//     ) {
+//       return;
+//     }
+
 //     console.log(
-//       "[HOST START CONDITIONS]",
+//       "[QuizPlayController] HOST START CONDITIONS",
 //       {
 //         role,
 //         connected,
@@ -2551,19 +2590,32 @@ function createPreviewQuestion(
 //           ),
 
 //         selectedQuestionNumber:
-//           selectedQuestion?.questionNumber ??
+//           selectedQuestion
+//             ?.questionNumber ??
 //           null,
 
 //         questionStarted,
-
 //         questionLocked,
-
 //         actionLoading,
 
 //         canStartQuestion,
+//         canLockQuestion,
+//         canNextQuestion,
 //       },
 //     );
-//   }
+//   }, [
+//     role,
+//     connected,
+//     roomJoined,
+//     roomActivated,
+//     selectedQuestion,
+//     questionStarted,
+//     questionLocked,
+//     actionLoading,
+//     canStartQuestion,
+//     canLockQuestion,
+//     canNextQuestion,
+//   ]);
 
 //   /* =======================================================
 //      LOADING
@@ -2602,13 +2654,15 @@ function createPreviewQuestion(
 
 //           <p className="mt-2 text-sm text-slate-400">
 //             {error ??
-//               "No quiz room is available for this competition."}
+//               (!roomId
+//                 ? "No quiz room is available for this competition."
+//                 : "Invalid quiz state.")}
 //           </p>
 
 //           <button
 //             type="button"
 //             onClick={back}
-//             className="mt-6 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
+//             className="mt-6 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white transition hover:bg-slate-700"
 //           >
 //             Go Back
 //           </button>
@@ -2693,6 +2747,10 @@ function createPreviewQuestion(
 //           connected
 //         }
 
+//         // roomJoined={
+//         //   roomJoined
+//         // }
+
 //         roomActivated={
 //           roomActivated
 //         }
@@ -2704,6 +2762,10 @@ function createPreviewQuestion(
 //         leaderboard={
 //           leaderboard
 //         }
+
+//         // feedEvents={
+//         //   feedEvents
+//         // }
 
 //         loading={
 //           loading
@@ -2727,16 +2789,11 @@ function createPreviewQuestion(
 //         }
 
 //         canLockQuestion={
-//           connected &&
-//           roomJoined &&
-//           questionStarted &&
-//           !questionLocked
+//           canLockQuestion
 //         }
 
 //         canNextQuestion={
-//           connected &&
-//           roomJoined &&
-//           questionLocked
+//           canNextQuestion
 //         }
 
 //         onBack={
@@ -2760,7 +2817,7 @@ function createPreviewQuestion(
 //         }
 
 //         onTimeLimitChange={
-//           socketState.setTimeLimit
+//           setTimeLimit
 //         }
 
 //         onRefresh={
@@ -2826,6 +2883,8 @@ function createPreviewQuestion(
 //           connected
 //             ? "CONNECTED"
 //             : "DISCONNECTED",
+
+//         roomJoined,
 
 //         roomActivated,
 
@@ -2942,7 +3001,7 @@ function createPreviewQuestion(
 //         back,
 
 //       onSelectAnswer:
-//         socketState.setSelectedAnswer,
+//         setSelectedAnswer,
 
 //       onSubmitAnswer:
 //         () => {
@@ -2967,5 +3026,58 @@ function createPreviewQuestion(
 //   );
 // }
 
+// /* =========================================================
+//    CREATE HOST PREVIEW QUESTION
+//    ========================================================= */
 
+// function createPreviewQuestion(
+//   item: HostQuestionListItem,
+// ): HostQuestionPreviewQuestion {
+//   return {
+//     id: item.id,
 
+//     questionNumber:
+//       item.questionNumber,
+
+//     question:
+//       item.question,
+
+//     options:
+//       Array.isArray(
+//         item.options,
+//       )
+//         ? item.options.map(
+//             (
+//               option: any,
+//             ) => ({
+//               label:
+//                 option?.label ??
+//                 option?.text ??
+//                 "",
+
+//               value:
+//                 option?.value ??
+//                 option?.answer ??
+//                 option?.text ??
+//                 "",
+
+//               isCorrect:
+//                 option?.isCorrect ??
+//                 option?.is_correct,
+//             }),
+//           )
+//         : [],
+
+//     timeLimit:
+//       item.timeLimit,
+
+//     status:
+//       item.status,
+
+//     answeredCount:
+//       item.answeredCount,
+
+//     correctCount:
+//       item.correctCount,
+//   };
+// }

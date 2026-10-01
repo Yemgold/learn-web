@@ -113,9 +113,39 @@ export function normalizeQuestion(
 
   const data = unwrapPayload(root);
 
+  /*
+   * IMPORTANT
+   * ----------
+   * The backend can send:
+   *
+   * {
+   *   question: {
+   *     id,
+   *     question,
+   *     options
+   *   },
+   *   startTime: "..."
+   * }
+   *
+   * or:
+   *
+   * {
+   *   id,
+   *   question,
+   *   options,
+   *   startTime: "..."
+   * }
+   *
+   * We support both shapes.
+   */
+  const nestedQuestion = getObject(data.question);
+
   const questionObject =
-    getObject(data.question).question !== undefined
-      ? getObject(data.question)
+    nestedQuestion.question !== undefined ||
+    nestedQuestion.options !== undefined ||
+    nestedQuestion.id !== undefined ||
+    nestedQuestion._id !== undefined
+      ? nestedQuestion
       : data;
 
   const id =
@@ -182,6 +212,123 @@ export function normalizeQuestion(
         option.value.trim().length > 0,
     );
 
+  /*
+   * ---------------------------------------------------------
+   * QUESTION NUMBER
+   * ---------------------------------------------------------
+   */
+  const questionNumber =
+    getNumber(
+      questionObject.questionNumber ??
+        questionObject.question_number ??
+        data.questionNumber ??
+        data.question_number ??
+        data.currentQuestionNumber ??
+        data.current_question_number,
+      null,
+    );
+
+  /*
+   * ---------------------------------------------------------
+   * TOTAL QUESTIONS
+   * ---------------------------------------------------------
+   */
+  const totalQuestions =
+    getNumber(
+      questionObject.totalQuestions ??
+        questionObject.total_questions ??
+        data.totalQuestions ??
+        data.total_questions,
+      null,
+    );
+
+  /*
+   * ---------------------------------------------------------
+   * TIME LIMIT
+   * ---------------------------------------------------------
+   */
+  const timeLimit =
+    getNumber(
+      questionObject.timeLimit ??
+        questionObject.time_limit ??
+        data.timeLimit ??
+        data.time_limit,
+      null,
+    );
+
+  /*
+   * ---------------------------------------------------------
+   * START TIME
+   *
+   * Backend currently sends:
+   *
+   * startTime: "2026-10-01T16:15:07.686Z"
+   *
+   * We normalize that into our frontend contract:
+   *
+   * startedAt
+   * ---------------------------------------------------------
+   */
+  const startedAt =
+    getString(
+      questionObject.startedAt ??
+        questionObject.started_at ??
+        questionObject.startTime ??
+        questionObject.start_time ??
+        data.startedAt ??
+        data.started_at ??
+        data.startTime ??
+        data.start_time,
+      null,
+    );
+
+  /*
+   * ---------------------------------------------------------
+   * EXPIRATION TIME
+   * ---------------------------------------------------------
+   *
+   * If backend explicitly sends expiresAt/endTime, use it.
+   *
+   * If it doesn't, and we have:
+   *
+   *   startedAt + timeLimit
+   *
+   * then calculate expiresAt locally.
+   *
+   * This does NOT change the server-authoritative timer.
+   * It only gives the UI the timestamp needed to render
+   * the countdown.
+   */
+  let expiresAt =
+    getString(
+      questionObject.expiresAt ??
+        questionObject.expires_at ??
+        questionObject.endTime ??
+        questionObject.end_time ??
+        data.expiresAt ??
+        data.expires_at ??
+        data.endTime ??
+        data.end_time,
+      null,
+    );
+
+  if (
+    !expiresAt &&
+    startedAt &&
+    timeLimit !== null &&
+    timeLimit > 0
+  ) {
+    const startedTimestamp =
+      Date.parse(startedAt);
+
+    if (!Number.isNaN(startedTimestamp)) {
+      expiresAt = new Date(
+        startedTimestamp +
+          timeLimit * 1000,
+      ).toISOString();
+    }
+  }
+
   return {
     id:
       id ??
@@ -192,52 +339,15 @@ export function normalizeQuestion(
 
     options,
 
-    questionNumber:
-      getNumber(
-        questionObject.questionNumber ??
-          questionObject.question_number ??
-          data.questionNumber ??
-          data.question_number ??
-          data.currentQuestionNumber ??
-          data.current_question_number,
-        null,
-      ),
+    questionNumber,
 
-    totalQuestions:
-      getNumber(
-        questionObject.totalQuestions ??
-          questionObject.total_questions ??
-          data.totalQuestions ??
-          data.total_questions,
-        null,
-      ),
+    totalQuestions,
 
-    timeLimit:
-      getNumber(
-        questionObject.timeLimit ??
-          questionObject.time_limit ??
-          data.timeLimit ??
-          data.time_limit,
-        null,
-      ),
+    timeLimit,
 
-    startedAt:
-      getString(
-        questionObject.startedAt ??
-          questionObject.started_at ??
-          data.startedAt ??
-          data.started_at,
-        null,
-      ),
+    startedAt,
 
-    expiresAt:
-      getString(
-        questionObject.expiresAt ??
-          questionObject.expires_at ??
-          data.expiresAt ??
-          data.expires_at,
-        null,
-      ),
+    expiresAt,
   };
 }
 

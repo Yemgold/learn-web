@@ -96,18 +96,18 @@ export const studentNavigation: NavigationSection[] = [
   ],
 },
 
-  {
-    title: "Learn by Watching",
-    items: [
-      {
-        label: "Question Videos",
-        description:
-          "Watch questions, answers and step-by-step explanations",
-        href: "/student/question-ai-videos",
-        icon: Video,
-      },
-    ],
-  },
+{
+  title: "Learn & Win",
+  items: [
+    {
+      label: "Solve & Win CBT",
+      description:
+        "Answer CBT questions, win CBT Points and keep climbing the reward ladder",
+      href: "/student/solve-and-win-cbt",
+      icon: Trophy,
+    },
+  ],
+},
 
   {
     title: "Account",

@@ -2,12 +2,6 @@
 
 
 
-
-
-
-
-
-
 "use client";
 
 import {
@@ -29,7 +23,7 @@ export type ContestantAnswerStatusType =
   | "LOCKED";
 
 export interface ContestantAnswerStatusProps {
-  status: ContestantAnswerStatusType;
+  status?: ContestantAnswerStatusType | null;
 
   selectedAnswer?: string | null;
   submittedAnswer?: string | null;
@@ -44,8 +38,113 @@ export interface ContestantAnswerStatusProps {
   compact?: boolean;
 }
 
+type StatusConfig = {
+  icon: typeof Info;
+  title: string;
+  description: string;
+  className: string;
+  iconClassName: string;
+};
+
+const STATUS_CONFIG: Record<
+  ContestantAnswerStatusType,
+  StatusConfig
+> = {
+  IDLE: {
+    icon: Info,
+    title: "Choose an answer",
+    description:
+      "Select an option before submitting.",
+    className:
+      "border-white/10 bg-white/[0.03] text-slate-300",
+    iconClassName: "text-slate-400",
+  },
+
+  SELECTED: {
+    icon: CheckCircle2,
+    title: "Answer selected",
+    description:
+      "Submit your answer before the question closes.",
+    className:
+      "border-cyan-400/20 bg-cyan-400/5 text-cyan-100",
+    iconClassName: "text-cyan-300",
+  },
+
+  SUBMITTING: {
+    icon: Loader2,
+    title: "Submitting answer",
+    description:
+      "Your answer is being sent to the game server.",
+    className:
+      "border-cyan-400/20 bg-cyan-400/5 text-cyan-100",
+    iconClassName: "animate-spin text-cyan-300",
+  },
+
+  SUBMITTED: {
+    icon: CheckCircle2,
+    title: "Answer submitted",
+    description:
+      "Your answer has been received. Wait for the result.",
+    className:
+      "border-emerald-400/20 bg-emerald-400/5 text-emerald-100",
+    iconClassName: "text-emerald-300",
+  },
+
+  CORRECT: {
+    icon: CheckCircle2,
+    title: "Correct answer",
+    description:
+      "You answered correctly.",
+    className:
+      "border-emerald-400/30 bg-emerald-400/10 text-emerald-100",
+    iconClassName: "text-emerald-300",
+  },
+
+  INCORRECT: {
+    icon: XCircle,
+    title: "Incorrect answer",
+    description:
+      "Your answer was not correct.",
+    className:
+      "border-red-400/30 bg-red-400/10 text-red-100",
+    iconClassName: "text-red-300",
+  },
+
+  EXPIRED: {
+    icon: Clock3,
+    title: "Time expired",
+    description:
+      "The question timer has ended.",
+    className:
+      "border-amber-400/20 bg-amber-400/10 text-amber-100",
+    iconClassName: "text-amber-300",
+  },
+
+  LOCKED: {
+    icon: Clock3,
+    title: "Question locked",
+    description:
+      "The host has locked this question.",
+    className:
+      "border-amber-400/20 bg-amber-400/10 text-amber-100",
+    iconClassName: "text-amber-300",
+  },
+};
+
+function isValidStatus(
+  value: unknown,
+): value is ContestantAnswerStatusType {
+  return (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(
+      STATUS_CONFIG,
+      value,
+    )
+  );
+}
+
 export default function ContestantAnswerStatus({
-  status,
+  status = "IDLE",
   selectedAnswer = null,
   submittedAnswer = null,
   pointsEarned = null,
@@ -54,98 +153,64 @@ export default function ContestantAnswerStatus({
   showPoints = true,
   compact = false,
 }: ContestantAnswerStatusProps) {
-  const config = {
-    IDLE: {
-      icon: Info,
-      title: "Choose an answer",
-      description:
-        "Select an option before submitting.",
-      className:
-        "border-white/10 bg-white/[0.03] text-slate-300",
-      iconClassName: "text-slate-400",
-    },
+  /*
+   * ------------------------------------------------------------
+   * Runtime diagnostic
+   * ------------------------------------------------------------
+   */
+  if (!isValidStatus(status)) {
+    console.warn(
+      "[ContestantAnswerStatus] Invalid runtime status. Falling back to IDLE.",
+      {
+        receivedStatus: status,
+        receivedStatusType: typeof status,
+      },
+    );
+  }
 
-    SELECTED: {
-      icon: CheckCircle2,
-      title: "Answer selected",
-      description:
-        "Submit your answer before the question closes.",
-      className:
-        "border-cyan-400/20 bg-cyan-400/5 text-cyan-100",
-      iconClassName: "text-cyan-300",
-    },
+  /*
+   * ------------------------------------------------------------
+   * Normalize runtime status
+   * ------------------------------------------------------------
+   */
+  const normalizedStatus: ContestantAnswerStatusType =
+    isValidStatus(status)
+      ? status
+      : "IDLE";
 
-    SUBMITTING: {
-      icon: Loader2,
-      title: "Submitting answer",
-      description:
-        "Your answer is being sent to the game server.",
-      className:
-        "border-cyan-400/20 bg-cyan-400/5 text-cyan-100",
-      iconClassName: "animate-spin text-cyan-300",
-    },
-
-    SUBMITTED: {
-      icon: CheckCircle2,
-      title: "Answer submitted",
-      description:
-        "Your answer has been received. Wait for the result.",
-      className:
-        "border-emerald-400/20 bg-emerald-400/5 text-emerald-100",
-      iconClassName: "text-emerald-300",
-    },
-
-    CORRECT: {
-      icon: CheckCircle2,
-      title: "Correct answer",
-      description:
-        "You answered correctly.",
-      className:
-        "border-emerald-400/30 bg-emerald-400/10 text-emerald-100",
-      iconClassName: "text-emerald-300",
-    },
-
-    INCORRECT: {
-      icon: XCircle,
-      title: "Incorrect answer",
-      description:
-        "Your answer was not correct.",
-      className:
-        "border-red-400/30 bg-red-400/10 text-red-100",
-      iconClassName: "text-red-300",
-    },
-
-    EXPIRED: {
-      icon: Clock3,
-      title: "Time expired",
-      description:
-        "The question timer has ended.",
-      className:
-        "border-amber-400/20 bg-amber-400/10 text-amber-100",
-      iconClassName: "text-amber-300",
-    },
-
-    LOCKED: {
-      icon: Clock3,
-      title: "Question locked",
-      description:
-        "The host has locked this question.",
-      className:
-        "border-amber-400/20 bg-amber-400/10 text-amber-100",
-      iconClassName: "text-amber-300",
-    },
-  }[status];
+  /*
+   * ------------------------------------------------------------
+   * Resolve configuration
+   * ------------------------------------------------------------
+   *
+   * Because normalizedStatus is guaranteed to be a valid
+   * ContestantAnswerStatusType, STATUS_CONFIG will always
+   * return a configuration object here.
+   */
+  const config = STATUS_CONFIG[normalizedStatus];
 
   const Icon = config.icon;
 
+  /*
+   * ------------------------------------------------------------
+   * Selected/submitted answer
+   * ------------------------------------------------------------
+   */
   const answer =
     submittedAnswer || selectedAnswer;
 
+  /*
+   * ------------------------------------------------------------
+   * Render
+   * ------------------------------------------------------------
+   */
   return (
     <section
       className={[
         "rounded-2xl border",
-        compact ? "p-3.5" : "p-4 sm:p-5",
+        compact
+          ? "p-3.5"
+          : "p-4 sm:p-5",
         config.className,
       ].join(" ")}
     >
@@ -167,8 +232,8 @@ export default function ContestantAnswerStatus({
 
             {showPoints &&
               pointsEarned !== null &&
-              (status === "CORRECT" ||
-                status === "INCORRECT") && (
+              (normalizedStatus === "CORRECT" ||
+                normalizedStatus === "INCORRECT") && (
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold">
                   {pointsEarned > 0
                     ? `+${pointsEarned}`

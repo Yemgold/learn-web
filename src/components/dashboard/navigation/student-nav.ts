@@ -74,7 +74,7 @@ export const studentNavigation: NavigationSection[] = [
     title: "Earn While You Learn",
     items: [
       {
-        label: "Solve & Win",
+        label: "Solve & Win Cash",
         description:
           "Answer questions, earn rewards, and compete for prizes",
         href: "/student/solve-and-win",
@@ -83,7 +83,20 @@ export const studentNavigation: NavigationSection[] = [
     ],
   },
 
-  {
+{
+  title: "Learn & Win",
+  items: [
+    {
+      label: "Solve & Win Cbt Points",
+      description:
+        "Answer CBT questions, win CBT Points and keep climbing the reward ladder",
+      href: "/student/solve-and-win-cbt",
+      icon: Trophy,
+    },
+  ],
+},
+
+ {
   title: "Learn with Flashcards",
   items: [
     {
@@ -92,19 +105,6 @@ export const studentNavigation: NavigationSection[] = [
         "Study topics with quick questions, answers and key explanations",
       href: "/student/flashcards",
       icon: BookOpen,
-    },
-  ],
-},
-
-{
-  title: "Learn & Win",
-  items: [
-    {
-      label: "Solve & Win CBT",
-      description:
-        "Answer CBT questions, win CBT Points and keep climbing the reward ladder",
-      href: "/student/solve-and-win-cbt",
-      icon: Trophy,
     },
   ],
 },

@@ -40,7 +40,9 @@ import SpectatorQuizShow from "@/components/quiz-board/spectator/SpectatorQuizSh
 
 import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQuizShow";
 
-import useQuizSocket from "@/hooks/quiz-board/useQuizSocket";
+
+
+import { useQuizSocket } from "@/hooks/quiz-board/useQuizSocket";
 
 /* =========================================================
    PROPS

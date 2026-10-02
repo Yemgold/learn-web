@@ -450,52 +450,76 @@ export function createQuizSocketHandlers(
   };
 
   /* ==============================================================
-     HANDLE CONNECT
-  ============================================================== */
+   HANDLE CONNECT
+============================================================== */
 
-  const handleConnect = () => {
-    if (disposedRef.current) {
-      return;
-    }
+const handleConnect = () => {
+  if (disposedRef.current) {
+    return;
+  }
 
-    setConnected(true);
-    setSocketError(null);
+  setConnected(true);
+  setSocketError(null);
 
-    const socket = socketRef.current;
+  const socket = socketRef.current;
 
-    if (
-      !socket ||
-      !quizIdRef.current ||
-      !roomIdRef.current ||
-      !roleRef.current
-    ) {
-      return;
-    }
-
-    const payload = {
-      quizId: quizIdRef.current,
-      quiz_id: quizIdRef.current,
-
-      roomId: roomIdRef.current,
-      room_id: roomIdRef.current,
-
-      role: roleRef.current,
-
-      currentRound:
-        currentRoundRef.current,
-
-      roundNumber:
-        currentRoundRef.current,
-
-      round_number:
-        currentRoundRef.current,
-    };
-
-    socket.emit(
-      "join_room",
-      payload,
+  if (
+    !socket ||
+    !quizIdRef.current ||
+    !roomIdRef.current ||
+    !roleRef.current
+  ) {
+    console.warn(
+      "[QuizSocket] join_room NOT emitted because required values are missing:",
+      {
+        hasSocket: Boolean(socket),
+        quizId: quizIdRef.current,
+        roomId: roomIdRef.current,
+        role: roleRef.current,
+      },
     );
+
+    return;
+  }
+
+  const payload = {
+    quizId: quizIdRef.current,
+    quiz_id: quizIdRef.current,
+
+    roomId: roomIdRef.current,
+    room_id: roomIdRef.current,
+
+    role: roleRef.current,
+
+    currentRound:
+      currentRoundRef.current,
+
+    roundNumber:
+      currentRoundRef.current,
+
+    round_number:
+      currentRoundRef.current,
   };
+
+  console.log(
+    "[QuizSocket] CONTESTANT/CLIENT join_room PAYLOAD:",
+    payload,
+  );
+
+  try {
+    console.log(
+      "[QuizSocket] join_room PAYLOAD JSON:",
+      JSON.stringify(payload),
+    );
+  } catch {
+    // Ignore serialization errors.
+  }
+
+  socket.emit(
+    "join_room",
+    payload,
+  );
+};
 
   /* ==============================================================
      HANDLE DISCONNECT
@@ -901,76 +925,111 @@ export function createQuizSocketHandlers(
     );
   };
 
-  /* ==============================================================
-     HANDLE PARTICIPANT JOINED
-  ============================================================== */
+  
+/* ==============================================================
+   HANDLE PARTICIPANT JOINED
+============================================================== */
 
-  const handleParticipantJoined = (
-    payload: unknown,
-  ) => {
-    if (disposedRef.current) {
-      return;
-    }
+const handleParticipantJoined = (
+  payload: unknown,
+) => {
+  if (disposedRef.current) {
+    return;
+  }
 
-    const data =
-      unwrapPayload(payload);
+  const data =
+    unwrapPayload(payload);
 
-    if (!isRecord(data)) {
-      return;
-    }
+  console.log(
+    "[useQuizSocket] participant_joined_room RAW PAYLOAD:",
+    payload,
+  );
 
-    const participant =
-      data.participant ??
-      data.user;
+  if (!isRecord(data)) {
+    console.warn(
+      "[useQuizSocket] participant_joined_room payload is not an object:",
+      data,
+    );
 
-    if (participant === undefined) {
-      return;
-    }
+    return;
+  }
 
-    const mapped =
-      mapParticipants([
-        participant,
-      ]);
+  try {
+    console.log(
+      "[useQuizSocket] participant_joined_room JSON:",
+      JSON.stringify(data),
+    );
+  } catch {
+    // Ignore serialization errors.
+  }
 
-    if (mapped.length === 0) {
-      return;
-    }
+  console.log(
+    "[useQuizSocket] participant_joined_room DATA KEYS:",
+    Object.keys(data),
+  );
 
-    const incoming =
-      mapped[0];
+  const participant =
+    data.participant ??
+    data.user;
 
-    setParticipants(
-      current => {
-        const existingIndex =
-          current.findIndex(
-            participantItem =>
-              participantItem.id ===
-              incoming.id,
-          );
+  if (participant === undefined) {
+    console.warn(
+      "[useQuizSocket] participant_joined_room has no participant/user:",
+      data,
+    );
 
-        if (existingIndex === -1) {
-          return [
-            ...current,
-            incoming,
-          ];
-        }
+    return;
+  }
 
-        const next = [
+  const mapped =
+    mapParticipants([
+      participant,
+    ]);
+
+  if (mapped.length === 0) {
+    console.warn(
+      "[useQuizSocket] participant_joined_room participant could not be mapped:",
+      participant,
+    );
+
+    return;
+  }
+
+  const incoming =
+    mapped[0];
+
+  setParticipants(
+    current => {
+      const existingIndex =
+        current.findIndex(
+          participantItem =>
+            participantItem.id ===
+            incoming.id,
+        );
+
+      if (existingIndex === -1) {
+        return [
           ...current,
+          incoming,
         ];
+      }
 
-        next[existingIndex] =
-          incoming;
+      const next = [
+        ...current,
+      ];
 
-        return next;
-      },
-    );
+      next[existingIndex] =
+        incoming;
 
-    addFeedEvent(
-      "participant_joined_room",
-      payload,
-    );
-  };
+      return next;
+    },
+  );
+
+  addFeedEvent(
+    "participant_joined_room",
+    payload,
+  );
+};
 
   /* ==============================================================
      HANDLE LEADERBOARD UPDATED

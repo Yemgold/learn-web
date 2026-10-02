@@ -1,9 +1,3 @@
-
-
-
-
-
-
 "use client";
 
 import {
@@ -127,6 +121,33 @@ export function useQuizSocketConnection(
     [],
   );
 
+  /*
+   * Temporary diagnostic wrapper.
+   *
+   * This lets us see the EXACT joined_room_ack payload received
+   * by the contestant socket before it reaches the normal handler.
+   */
+  const handleJoinedRoomAckDebug = useCallback(
+    (payload: unknown) => {
+      console.log(
+        "[RAW SOCKET] joined_room_ack RECEIVED:",
+        payload,
+      );
+
+      try {
+        console.log(
+          "[RAW SOCKET] joined_room_ack JSON:",
+          JSON.stringify(payload),
+        );
+      } catch {
+        // Ignore serialization errors.
+      }
+
+      handleJoinedRoomAck(payload);
+    },
+    [handleJoinedRoomAck],
+  );
+
   const handleRoomState = useCallback(
     (payload: unknown) => {
       handlersRef.current.handleRoomState(
@@ -230,6 +251,60 @@ export function useQuizSocketConnection(
       },
       [],
     );
+
+  /*
+   * Temporary diagnostic wrapper for participant_joined_room.
+   *
+   * This allows us to inspect the exact Socket.IO payload before
+   * it reaches useQuizSocketHandlers.
+   */
+  const handleParticipantJoinedDebug =
+  useCallback(
+    (...args: unknown[]) => {
+      console.log(
+        "[RAW SOCKET] participant_joined_room ARGUMENT COUNT:",
+        args.length,
+      );
+
+      console.log(
+        "[RAW SOCKET] participant_joined_room ALL ARGS:",
+        args,
+      );
+
+      try {
+        console.log(
+          "[RAW SOCKET] participant_joined_room ALL ARGS JSON:",
+          JSON.stringify(args),
+        );
+      } catch {
+        // Ignore serialization errors.
+      }
+
+      const payload =
+        args.length === 1
+          ? args[0]
+          : args;
+
+      console.log(
+        "[RAW SOCKET] participant_joined_room PAYLOAD:",
+        payload,
+      );
+
+      try {
+        console.log(
+          "[RAW SOCKET] participant_joined_room PAYLOAD JSON:",
+          JSON.stringify(payload),
+        );
+      } catch {
+        // Ignore serialization errors.
+      }
+
+      handlersRef.current.handleParticipantJoined(
+        payload,
+      );
+    },
+    [],
+  );
 
   const handleLeaderboardUpdated =
     useCallback(
@@ -342,7 +417,7 @@ export function useQuizSocketConnection(
 
     socket.on(
       "joined_room_ack",
-      handleJoinedRoomAck,
+      handleJoinedRoomAckDebug,
     );
 
     socket.on(
@@ -426,7 +501,7 @@ export function useQuizSocketConnection(
 
     socket.on(
       "participant_joined_room",
-      handleParticipantJoined,
+      handleParticipantJoinedDebug,
     );
 
     socket.on(
@@ -501,7 +576,7 @@ export function useQuizSocketConnection(
 
       socket.off(
         "joined_room_ack",
-        handleJoinedRoomAck,
+        handleJoinedRoomAckDebug,
       );
 
       socket.off(
@@ -561,7 +636,7 @@ export function useQuizSocketConnection(
 
       socket.off(
         "participant_joined_room",
-        handleParticipantJoined,
+        handleParticipantJoinedDebug,
       );
 
       socket.off(
@@ -623,6 +698,8 @@ export function useQuizSocketConnection(
     handleConnectError,
 
     handleJoinedRoomAck,
+    handleJoinedRoomAckDebug,
+
     handleRoomState,
     handleGetRoomAck,
     handleRoomActivated,
@@ -637,6 +714,7 @@ export function useQuizSocketConnection(
     handleNextQuestion,
 
     handleParticipantJoined,
+    handleParticipantJoinedDebug,
     handleLeaderboardUpdated,
     handleParticipantSelectedAnswer,
     handleParticipantsEliminated,

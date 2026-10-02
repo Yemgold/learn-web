@@ -1,4 +1,7 @@
 
+
+
+
 "use client";
 
 import {
@@ -9,8 +12,6 @@ import {
 } from "react";
 
 import type { Socket } from "socket.io-client";
-
-import { getQuizSocket } from "@/lib/socket/quizSocket";
 
 import type { QuizGameRole } from "@/types/quiz-board/quiz-role";
 
@@ -200,6 +201,16 @@ export function useQuizSocket(
   const onRoundChangedRef =
     useRef(onRoundChanged);
 
+  /*
+   * Keeps the selected answer synchronously available.
+   *
+   * This is separate from React state because a contestant
+   * could theoretically click twice before React finishes
+   * the next render.
+   */
+  const selectedAnswerRef =
+    useRef<string | null>(null);
+
   /* ==============================================================
      PROP → REF SYNCHRONIZATION
   ============================================================== */
@@ -272,6 +283,15 @@ export function useQuizSocket(
       );
     }
   }, [initialTimeLimit]);
+
+  /* ==============================================================
+     KEEP SELECTED ANSWER REF IN SYNC
+  ============================================================== */
+
+  useEffect(() => {
+    selectedAnswerRef.current =
+      selectedAnswer;
+  }, [selectedAnswer]);
 
   /* ==============================================================
      FEED EVENT
@@ -536,8 +556,6 @@ export function useQuizSocket(
         /* --------------------------------------------------------
            Reset answer state for the new question.
 
-           This is important for contestant play:
-
            new question
               ↓
            selected answer = null
@@ -552,6 +570,16 @@ export function useQuizSocket(
         );
 
         setQuestionLocked(false);
+
+        /*
+         * IMPORTANT:
+         *
+         * Reset the synchronous ref first.
+         * This allows the contestant to answer the
+         * new question immediately.
+         */
+        selectedAnswerRef.current =
+          null;
 
         setSelectedAnswer(null);
 
@@ -579,6 +607,9 @@ export function useQuizSocket(
 
         setQuestionLocked(false);
 
+        selectedAnswerRef.current =
+          null;
+
         setSelectedAnswer(null);
 
         setAnswerSubmitted(false);
@@ -592,6 +623,170 @@ export function useQuizSocket(
     },
     [],
   );
+
+  /* ==============================================================
+     CONTESTANT ANSWER SELECTION
+  ============================================================== */
+
+  const selectContestantAnswer =
+    useCallback(
+      (answer: string) => {
+        const normalizedAnswer =
+          String(
+            answer ?? "",
+          ).trim();
+
+        /* --------------------------------------------------------
+           Basic validation
+        -------------------------------------------------------- */
+
+        if (!normalizedAnswer) {
+          return;
+        }
+
+        if (disposedRef.current) {
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Contestant-only action
+        -------------------------------------------------------- */
+
+        if (
+          roleRef.current !==
+          "CONTESTANT"
+        ) {
+          console.warn(
+            "[QuizSocket] selectContestantAnswer ignored: current role is not CONTESTANT.",
+          );
+
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Room validation
+        -------------------------------------------------------- */
+
+        if (!roomIdRef.current) {
+          console.warn(
+            "[QuizSocket] selectContestantAnswer ignored: roomId is missing.",
+          );
+
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Question validation
+        -------------------------------------------------------- */
+
+        const activeQuestion =
+          questionRef.current;
+
+        if (!activeQuestion) {
+          console.warn(
+            "[QuizSocket] selectContestantAnswer ignored: no active question.",
+          );
+
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Question must have started
+        -------------------------------------------------------- */
+
+        if (!questionStarted) {
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Question already locked
+        -------------------------------------------------------- */
+
+        if (questionLocked) {
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Prevent multiple selections
+        -------------------------------------------------------- */
+
+        if (
+          selectedAnswerRef.current !==
+          null
+        ) {
+          return;
+        }
+
+        /* --------------------------------------------------------
+           CRITICAL:
+           Lock the contestant UI immediately.
+
+           We update the ref synchronously and React state
+           immediately afterward.
+
+           ContestantAnswerOptions can then use
+           Boolean(selectedAnswer) to disable every option.
+        -------------------------------------------------------- */
+
+        selectedAnswerRef.current =
+          normalizedAnswer;
+
+        setSelectedAnswer(
+          normalizedAnswer,
+        );
+
+        /* --------------------------------------------------------
+           Socket validation
+        -------------------------------------------------------- */
+
+        const socket =
+          socketRef.current;
+
+        if (
+          !socket ||
+          !socket.connected
+        ) {
+          setSocketError(
+            "Your connection to the quiz server is unavailable.",
+          );
+
+          return;
+        }
+
+        /* --------------------------------------------------------
+           Emit contestant selection.
+
+           IMPORTANT:
+           We are NOT using submit_answer here.
+        -------------------------------------------------------- */
+
+        socket.emit(
+          "participant_selected_answer",
+          {
+            quizId:
+              quizIdRef.current,
+
+            roomId:
+              roomIdRef.current,
+
+            questionId:
+              activeQuestion.id,
+
+            questionNumber:
+              activeQuestion.questionNumber ??
+              currentQuestionNumber,
+
+            answer:
+              normalizedAnswer,
+          },
+        );
+      },
+      [
+        questionStarted,
+        questionLocked,
+        currentQuestionNumber,
+      ],
+    );
 
   /* ==============================================================
      HANDLER CONTEXT
@@ -735,6 +930,9 @@ export function useQuizSocket(
 
     setQuestionLocked(false);
 
+    selectedAnswerRef.current =
+      null;
+
     setSelectedAnswer(null);
 
     setAnswerSubmitted(false);
@@ -807,6 +1005,14 @@ export function useQuizSocket(
     nextQuestion:
       actions.nextQuestion,
 
+    selectContestantAnswer,
+
+    /*
+     * Existing action remains untouched.
+     *
+     * We are deliberately NOT replacing this with
+     * participant_selected_answer.
+     */
     submitAnswer:
       actions.submitAnswer,
 

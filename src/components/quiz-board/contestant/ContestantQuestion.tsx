@@ -3,8 +3,6 @@
 
 
 
-
-
 "use client";
 
 import { HelpCircle } from "lucide-react";
@@ -33,14 +31,11 @@ export interface ContestantQuestionProps {
 
   answerSubmitted?: boolean;
   questionLocked?: boolean;
-  submitting?: boolean;
 
   disabled?: boolean;
 
   onSelectAnswer: (value: string) => void;
-  onSubmitAnswer?: () => void;
 
-  showSubmitButton?: boolean;
   showQuestionNumber?: boolean;
 
   compact?: boolean;
@@ -52,11 +47,8 @@ export default function ContestantQuestion({
   submittedAnswer = null,
   answerSubmitted = false,
   questionLocked = false,
-  submitting = false,
   disabled = false,
   onSelectAnswer,
-  onSubmitAnswer,
-  showSubmitButton = true,
   showQuestionNumber = true,
   compact = false,
 }: ContestantQuestionProps) {
@@ -92,23 +84,16 @@ export default function ContestantQuestion({
 
     questionLocked,
 
-    submitting,
-
     disabled,
-
-    showSubmitButton,
 
     showQuestionNumber,
 
     compact,
-
-    hasSubmitHandler:
-      Boolean(onSubmitAnswer),
   });
 
   /*
    * ============================================================
-   * DEBUG: QUESTION OBJECT
+   * DEBUG: RECEIVED QUESTION
    * ============================================================
    */
   console.log(
@@ -181,7 +166,7 @@ export default function ContestantQuestion({
 
   /*
    * ============================================================
-   * DEBUG: WAITING STATE
+   * WAITING STATE
    * ============================================================
    */
   if (!question) {
@@ -191,7 +176,6 @@ export default function ContestantQuestion({
         selectedAnswer,
         answerSubmitted,
         questionLocked,
-        submitting,
         disabled,
       },
     );
@@ -247,8 +231,6 @@ export default function ContestantQuestion({
 
       questionLocked,
 
-      submitting,
-
       selectedAnswer,
     },
   );
@@ -256,6 +238,20 @@ export default function ContestantQuestion({
   /*
    * ============================================================
    * DEBUG: PASSING OPTIONS TO ANSWER COMPONENT
+   * ============================================================
+   *
+   * IMPORTANT:
+   *
+   * There is NO submit button anymore.
+   *
+   * Selecting an option calls:
+   *
+   *   onSelectAnswer(value)
+   *
+   * The parent/socket layer is responsible for emitting:
+   *
+   *   participant_selected_answer
+   *
    * ============================================================
    */
   console.log(
@@ -276,12 +272,15 @@ export default function ContestantQuestion({
 
       answerSubmitted,
 
-      submitting,
+      selectedAnswer,
     },
   );
 
   return (
     <section className="space-y-4">
+      {/* ======================================================
+          QUESTION
+          ====================================================== */}
       <div
         className={[
           "rounded-2xl border border-white/10",
@@ -325,24 +324,19 @@ export default function ContestantQuestion({
         </div>
       </div>
 
+      {/* ======================================================
+          ANSWER OPTIONS
+          ====================================================== */}
       <ContestantAnswerOptions
         options={question.options}
         selectedAnswer={selectedAnswer}
         submittedAnswer={submittedAnswer}
         answerSubmitted={answerSubmitted}
         questionLocked={questionLocked}
-        submitting={submitting}
         disabled={disabled}
         onSelect={onSelectAnswer}
-        onSubmit={onSubmitAnswer}
-        showSubmitButton={
-          showSubmitButton &&
-          Boolean(onSubmitAnswer)
-        }
         compact={compact}
       />
     </section>
   );
 }
-
-

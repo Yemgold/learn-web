@@ -3,6 +3,8 @@
 
 
 
+
+
 "use client";
 
 import {
@@ -53,10 +55,27 @@ export default function ContestantAnswerOptions({
       )
     : [];
 
+  /*
+   * IMPORTANT:
+   *
+   * selectedAnswer !== null means the contestant has already
+   * selected an answer for the current question.
+   *
+   * This immediately locks ALL options locally.
+   *
+   * We intentionally do NOT set questionLocked here because
+   * questionLocked represents the actual quiz/server question
+   * lock and is separate from the contestant's local selection.
+   */
+  const hasSelectedAnswer =
+    typeof selectedAnswer === "string" &&
+    selectedAnswer.trim().length > 0;
+
   const isDisabled =
     disabled ||
     questionLocked ||
-    answerSubmitted;
+    answerSubmitted ||
+    hasSelectedAnswer;
 
   return (
     <section
@@ -72,9 +91,17 @@ export default function ContestantAnswerOptions({
             {title}
           </h3>
 
-          {!answerSubmitted && !questionLocked && (
-            <p className="mt-1 text-xs text-slate-400">
-              Select an option.
+          {!answerSubmitted &&
+            !questionLocked &&
+            !hasSelectedAnswer && (
+              <p className="mt-1 text-xs text-slate-400">
+                Select an option.
+              </p>
+            )}
+
+          {hasSelectedAnswer && !answerSubmitted && !questionLocked && (
+            <p className="mt-1 text-xs text-cyan-400">
+              Answer selected.
             </p>
           )}
 
@@ -210,6 +237,7 @@ export default function ContestantAnswerOptions({
     </section>
   );
 }
+
 
 
 

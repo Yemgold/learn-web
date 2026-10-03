@@ -353,14 +353,20 @@ export function useQuizSocket(
   ============================================================== */
 
   const applyQuestion = useCallback(
-    (
-      payload: unknown,
-      source: string,
-      markStarted = true,
-    ): boolean => {
-      if (disposedRef.current) {
-        return false;
-      }
+  (
+    payload: unknown,
+    source: string,
+    markStarted = true,
+  ): boolean => {
+
+    console.log(
+  "🔥🔥🔥 APPLY QUESTION CALLED 🔥🔥🔥",
+      {
+        source,
+        markStarted,
+        payload,
+      },
+    );
 
       /* ----------------------------------------------------------
          EXTRACT RAW QUESTION
@@ -493,6 +499,32 @@ export function useQuizSocket(
               effectiveExpiresAt ??
               null,
           };
+
+/* --------------------------------------------------------
+           TIMER NORMALIZATION CHECK
+        -------------------------------------------------------- */
+
+        console.log(
+          "[QuizSocket] TIMER NORMALIZATION CHECK:",
+          {
+            questionId:
+              questionToApply.id,
+
+            timeLimit:
+              questionToApply.timeLimit,
+
+            startedAt:
+              questionToApply.startedAt,
+
+            expiresAt:
+              questionToApply.expiresAt,
+
+            now:
+              new Date().toISOString(),
+          },
+        );
+
+
 
         /* --------------------------------------------------------
            Store question
@@ -680,15 +712,32 @@ export function useQuizSocket(
         -------------------------------------------------------- */
 
         const activeQuestion =
-          questionRef.current;
+  questionRef.current;
 
-        if (!activeQuestion) {
-          console.warn(
-            "[QuizSocket] selectContestantAnswer ignored: no active question.",
-          );
+if (!activeQuestion) {
+  console.warn(
+    "[QuizSocket] selectContestantAnswer ignored: no active question.",
+  );
 
-          return;
-        }
+  return;
+}
+
+console.log("[QuizSocket] ANSWER TIMER CHECK:", {
+  questionId: activeQuestion.id,
+  startedAt: activeQuestion.startedAt,
+  expiresAt: activeQuestion.expiresAt,
+  browserNow: new Date().toISOString(),
+  browserNowMs: Date.now(),
+  startedAtMs: activeQuestion.startedAt
+    ? Date.parse(activeQuestion.startedAt)
+    : null,
+  expiresAtMs: activeQuestion.expiresAt
+    ? Date.parse(activeQuestion.expiresAt)
+    : null,
+  remainingMs: activeQuestion.expiresAt
+    ? Date.parse(activeQuestion.expiresAt) - Date.now()
+    : null,
+});
 
         /* --------------------------------------------------------
            Question must have started
@@ -759,30 +808,42 @@ export function useQuizSocket(
            IMPORTANT:
            We are NOT using submit_answer here.
         -------------------------------------------------------- */
+        console.log("[QuizSocket] SENDING PARTICIPANT ANSWER:", {
+          quizId: quizIdRef.current,
+          roomId: roomIdRef.current,
+          roundNumber: currentRoundRef.current,
+          questionId: activeQuestion.id,
+          questionNumber:
+            activeQuestion.questionNumber ??
+            currentQuestionNumber,
+          answer: normalizedAnswer,
+          role: roleRef.current,
+          socketConnected: socket.connected,
+        });
 
         socket.emit(
-  "participant_selected_answer",
-  {
-    quizId:
-      quizIdRef.current,
+          "participant_selected_answer",
+          {
+            quizId:
+              quizIdRef.current,
 
-    roomId:
-      roomIdRef.current,
+            roomId:
+              roomIdRef.current,
 
-    roundNumber:
-      currentRoundRef.current,
+            roundNumber:
+              currentRoundRef.current,
 
-    questionId:
-      activeQuestion.id,
+            questionId:
+              activeQuestion.id,
 
-    questionNumber:
-      activeQuestion.questionNumber ??
-      currentQuestionNumber,
+            questionNumber:
+              activeQuestion.questionNumber ??
+              currentQuestionNumber,
 
-    answer:
-      normalizedAnswer,
-  },
-);
+            selectedAnswer:
+              normalizedAnswer,
+          },
+        );
       },
       [
         questionStarted,

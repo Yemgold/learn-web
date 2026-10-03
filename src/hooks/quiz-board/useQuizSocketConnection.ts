@@ -77,8 +77,8 @@ export function useQuizSocketConnection(
   /*
    * Keep the latest handlers in a ref.
    *
-   * This prevents Socket.IO listeners from becoming stale when the
-   * main hook state changes.
+   * Socket.IO listeners remain stable while the stateful handlers
+   * can change on every render.
    */
   const handlersRef = useRef(handlers);
 
@@ -112,6 +112,10 @@ export function useQuizSocketConnection(
     [],
   );
 
+  /* ==============================================================
+     ROOM CALLBACKS
+  ============================================================== */
+
   const handleJoinedRoomAck = useCallback(
     (payload: unknown) => {
       handlersRef.current.handleJoinedRoomAck(
@@ -122,31 +126,32 @@ export function useQuizSocketConnection(
   );
 
   /*
-   * Temporary diagnostic wrapper.
+   * Diagnostic wrapper.
    *
-   * This lets us see the EXACT joined_room_ack payload received
-   * by the contestant socket before it reaches the normal handler.
+   * This shows the exact payload received from Socket.IO before
+   * forwarding it to useQuizSocketHandlers.
    */
-  const handleJoinedRoomAckDebug = useCallback(
-    (payload: unknown) => {
-      console.log(
-        "[RAW SOCKET] joined_room_ack RECEIVED:",
-        payload,
-      );
-
-      try {
+  const handleJoinedRoomAckDebug =
+    useCallback(
+      (payload: unknown) => {
         console.log(
-          "[RAW SOCKET] joined_room_ack JSON:",
-          JSON.stringify(payload),
+          "[RAW SOCKET] joined_room_ack RECEIVED:",
+          payload,
         );
-      } catch {
-        // Ignore serialization errors.
-      }
 
-      handleJoinedRoomAck(payload);
-    },
-    [handleJoinedRoomAck],
-  );
+        try {
+          console.log(
+            "[RAW SOCKET] joined_room_ack JSON:",
+            JSON.stringify(payload),
+          );
+        } catch {
+          // Ignore serialization errors.
+        }
+
+        handleJoinedRoomAck(payload);
+      },
+      [handleJoinedRoomAck],
+    );
 
   const handleRoomState = useCallback(
     (payload: unknown) => {
@@ -175,6 +180,10 @@ export function useQuizSocketConnection(
     [],
   );
 
+  /* ==============================================================
+     ROUND CALLBACKS
+  ============================================================== */
+
   const handleRoundStarted = useCallback(
     (payload: unknown) => {
       handlersRef.current.handleRoundStarted(
@@ -183,6 +192,10 @@ export function useQuizSocketConnection(
     },
     [],
   );
+
+  /* ==============================================================
+     QUESTION CALLBACKS
+  ============================================================== */
 
   const handleQuestionStarted = useCallback(
     (payload: unknown) => {
@@ -242,6 +255,10 @@ export function useQuizSocketConnection(
       [],
     );
 
+  /* ==============================================================
+     PARTICIPANT CALLBACKS
+  ============================================================== */
+
   const handleParticipantJoined =
     useCallback(
       (payload: unknown) => {
@@ -253,58 +270,59 @@ export function useQuizSocketConnection(
     );
 
   /*
-   * Temporary diagnostic wrapper for participant_joined_room.
+   * Diagnostic wrapper for participant_joined_room.
    *
-   * This allows us to inspect the exact Socket.IO payload before
-   * it reaches useQuizSocketHandlers.
+   * IMPORTANT:
+   * Socket.IO event payloads may contain more than one argument.
+   * Capture all arguments so we can see the exact event shape.
    */
   const handleParticipantJoinedDebug =
-  useCallback(
-    (...args: unknown[]) => {
-      console.log(
-        "[RAW SOCKET] participant_joined_room ARGUMENT COUNT:",
-        args.length,
-      );
-
-      console.log(
-        "[RAW SOCKET] participant_joined_room ALL ARGS:",
-        args,
-      );
-
-      try {
+    useCallback(
+      (...args: unknown[]) => {
         console.log(
-          "[RAW SOCKET] participant_joined_room ALL ARGS JSON:",
-          JSON.stringify(args),
+          "[RAW SOCKET] participant_joined_room ARGUMENT COUNT:",
+          args.length,
         );
-      } catch {
-        // Ignore serialization errors.
-      }
 
-      const payload =
-        args.length === 1
-          ? args[0]
-          : args;
-
-      console.log(
-        "[RAW SOCKET] participant_joined_room PAYLOAD:",
-        payload,
-      );
-
-      try {
         console.log(
-          "[RAW SOCKET] participant_joined_room PAYLOAD JSON:",
-          JSON.stringify(payload),
+          "[RAW SOCKET] participant_joined_room ALL ARGS:",
+          args,
         );
-      } catch {
-        // Ignore serialization errors.
-      }
 
-      handlersRef.current.handleParticipantJoined(
-        payload,
-      );
-    },
-    [],
-  );
+        try {
+          console.log(
+            "[RAW SOCKET] participant_joined_room ALL ARGS JSON:",
+            JSON.stringify(args),
+          );
+        } catch {
+          // Ignore serialization errors.
+        }
+
+        const payload =
+          args.length === 1
+            ? args[0]
+            : args;
+
+        console.log(
+          "[RAW SOCKET] participant_joined_room PAYLOAD:",
+          payload,
+        );
+
+        try {
+          console.log(
+            "[RAW SOCKET] participant_joined_room PAYLOAD JSON:",
+            JSON.stringify(payload),
+          );
+        } catch {
+          // Ignore serialization errors.
+        }
+
+        handlersRef.current.handleParticipantJoined(
+          payload,
+        );
+      },
+      [],
+    );
 
   const handleLeaderboardUpdated =
     useCallback(
@@ -336,6 +354,10 @@ export function useQuizSocketConnection(
       [],
     );
 
+  /* ==============================================================
+     ANSWER CALLBACKS
+  ============================================================== */
+
   const handleAnswerResult =
     useCallback(
       (payload: unknown) => {
@@ -356,6 +378,10 @@ export function useQuizSocketConnection(
       [],
     );
 
+  /* ==============================================================
+     ERROR CALLBACK
+  ============================================================== */
+
   const handleSocketError =
     useCallback(
       (payload: unknown) => {
@@ -374,7 +400,7 @@ export function useQuizSocketConnection(
     disposedRef.current = false;
 
     /*
-     * Do not create a socket connection until all required
+     * Do not create/register the quiz socket until all required
      * identifiers are available.
      */
     if (
@@ -392,9 +418,9 @@ export function useQuizSocketConnection(
 
     socketRef.current = socket;
 
-    /* ------------------------------------------------------------
-       Connection lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       CONNECTION LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "connect",
@@ -411,9 +437,9 @@ export function useQuizSocketConnection(
       handleConnectError,
     );
 
-    /* ------------------------------------------------------------
-       Room lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       ROOM LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "joined_room_ack",
@@ -432,7 +458,7 @@ export function useQuizSocketConnection(
 
     /*
      * Some backend versions may emit get_room_doc as the response
-     * event. Keep supporting it exactly as the previous hook did.
+     * event. Keep supporting it.
      */
     socket.on(
       "get_room_doc",
@@ -444,18 +470,18 @@ export function useQuizSocketConnection(
       handleRoomActivated,
     );
 
-    /* ------------------------------------------------------------
-       Round lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       ROUND LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "round_started",
       handleRoundStarted,
     );
 
-    /* ------------------------------------------------------------
-       Question lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       QUESTION LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "question_started",
@@ -467,14 +493,6 @@ export function useQuizSocketConnection(
       handleNewQuestion,
     );
 
-    /*
-     * Keep this as a named listener rather than an anonymous
-     * wrapper.
-     *
-     * This fixes the previous cleanup mismatch where the hook
-     * registered an anonymous function but attempted to remove
-     * handleNewQuestionDisplayed.
-     */
     socket.on(
       "new_question_displayed",
       handleNewQuestionDisplayed,
@@ -495,9 +513,9 @@ export function useQuizSocketConnection(
       handleNextQuestion,
     );
 
-    /* ------------------------------------------------------------
-       Participant lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       PARTICIPANT LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "participant_joined_room",
@@ -519,9 +537,9 @@ export function useQuizSocketConnection(
       handleParticipantsEliminated,
     );
 
-    /* ------------------------------------------------------------
-       Answer lifecycle
-    ------------------------------------------------------------ */
+    /* ============================================================
+       ANSWER LIFECYCLE
+    ============================================================ */
 
     socket.on(
       "answer_result",
@@ -533,18 +551,18 @@ export function useQuizSocketConnection(
       handleFirstCorrect,
     );
 
-    /* ------------------------------------------------------------
-       Generic socket errors
-    ------------------------------------------------------------ */
+    /* ============================================================
+       GENERIC SOCKET ERRORS
+    ============================================================ */
 
     socket.on(
       "socket_error",
       handleSocketError,
     );
 
-    /* ------------------------------------------------------------
-       Already connected
-    ------------------------------------------------------------ */
+    /* ============================================================
+       ALREADY CONNECTED
+    ============================================================ */
 
     if (socket.connected) {
       setConnected(true);
@@ -670,13 +688,12 @@ export function useQuizSocketConnection(
       );
 
       /*
-       * Do not disconnect the shared socket here.
+       * Do not disconnect the shared Socket.IO instance here.
        *
-       * getQuizSocket() maintains a shared Socket.IO instance that
-       * can also be used by the host/admin portions of the Quiz
-       * Board.
+       * getQuizSocket() provides a shared connection that may also
+       * be used by other Quiz Board parts.
        *
-       * We only remove the listeners owned by this hook.
+       * Only remove listeners owned by this hook.
        */
       if (socketRef.current === socket) {
         socketRef.current = null;

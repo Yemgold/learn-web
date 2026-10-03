@@ -70,27 +70,27 @@ export const studentNavigation: NavigationSection[] = [
     ],
   },
 
-  {
-    title: "Earn While You Learn",
-    items: [
-      {
-        label: "Solve & Win Cash",
-        description:
-          "Answer questions, earn rewards, and compete for prizes",
-        href: "/student/solve-and-win",
-        icon: Trophy,
-      },
-    ],
-  },
+  // {
+  //   title: "Earn While You Learn",
+  //   items: [
+  //     {
+  //       label: "Solve & Win Cash",
+  //       description:
+  //         "Answer questions, earn rewards, and compete for prizes",
+  //       href: "/student/solve-and-win",
+  //       icon: Trophy,
+  //     },
+  //   ],
+  // },
 
 {
   title: "Learn & Win",
   items: [
     {
-      label: "Solve & Win Cbt Points",
+      label: "Solve & Win Cash",
       description:
-        "Answer CBT questions, win CBT Points and keep climbing the reward ladder",
-      href: "/student/solve-and-win-cbt",
+        "Answer CBT questions, win Cash and keep climbing the reward ladder",
+      href: "/student/solve-and-win-cash",
       icon: Trophy,
     },
   ],

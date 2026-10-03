@@ -1,6 +1,9 @@
 
 
 
+
+
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -17,7 +20,11 @@ import {
   Zap,
 } from "lucide-react";
 
-type GameState = "QUESTION" | "REWARD" | "WRONG" | "CASHED_OUT";
+type GameState =
+  | "QUESTION"
+  | "REWARD"
+  | "WRONG"
+  | "CASHED_OUT";
 
 type Option = {
   label: string;
@@ -65,9 +72,6 @@ const SUBJECTS: Record<string, SubjectConfig> = {
 |--------------------------------------------------------------------------
 | FRONTEND DEMO QUESTIONS
 |--------------------------------------------------------------------------
-|
-| Later this array will be replaced with your API question data.
-|
 */
 
 const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
@@ -115,7 +119,8 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
     },
     {
       id: "bio-4",
-      question: "Which blood cells are primarily responsible for fighting infection?",
+      question:
+        "Which blood cells are primarily responsible for fighting infection?",
       options: [
         { label: "A", text: "Red blood cells" },
         { label: "B", text: "Platelets" },
@@ -128,7 +133,8 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
     },
     {
       id: "bio-5",
-      question: "Which part of a plant absorbs most water and mineral salts from the soil?",
+      question:
+        "Which part of a plant absorbs most water and mineral salts from the soil?",
       options: [
         { label: "A", text: "Leaf" },
         { label: "B", text: "Root hair" },
@@ -141,7 +147,8 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
     },
     {
       id: "bio-6",
-      question: "Which molecule carries genetic information in most living organisms?",
+      question:
+        "Which molecule carries genetic information in most living organisms?",
       options: [
         { label: "A", text: "DNA" },
         { label: "B", text: "Glucose" },
@@ -265,7 +272,8 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
     },
     {
       id: "phy-3",
-      question: "What is the approximate acceleration due to gravity near Earth's surface?",
+      question:
+        "What is the approximate acceleration due to gravity near Earth's surface?",
       options: [
         { label: "A", text: "4.9 m/s²" },
         { label: "B", text: "9.8 m/s²" },
@@ -385,7 +393,8 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
     },
     {
       id: "math-6",
-      question: "What is the next number in the sequence 2, 4, 6, 8, ...?",
+      question:
+        "What is the next number in the sequence 2, 4, 6, 8, ...?",
       options: [
         { label: "A", text: "9" },
         { label: "B", text: "10" },
@@ -401,10 +410,12 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
 
 /*
 |--------------------------------------------------------------------------
-| CBT POINT REWARDS
+| CASH REWARDS
 |--------------------------------------------------------------------------
 |
-| These are only frontend demo values for now.
+| These values represent CASH rewards.
+| They are frontend demo values until the backend supplies the real
+| reward amounts.
 |
 */
 
@@ -417,7 +428,7 @@ const REWARDS = [
   0.0736,
 ];
 
-function formatPoints(value: number) {
+function formatCash(value: number) {
   return value.toFixed(4);
 }
 
@@ -497,7 +508,8 @@ export default function SolveAndWinCbtPlayPage() {
     /*
      * Frontend-only simulation.
      *
-     * Later this is where we will call your backend.
+     * Later this is where your backend answer endpoint
+     * will be connected.
      */
 
     window.setTimeout(() => {
@@ -547,6 +559,12 @@ export default function SolveAndWinCbtPlayPage() {
   |--------------------------------------------------------------------------
   | CASH OUT
   |--------------------------------------------------------------------------
+  |
+  | Cash withdrawal is intentionally disabled for now.
+  |
+  | Instead, we show a Coming Soon screen telling the student
+  | that they need CBT Points to play Solve & Win Cash.
+  |
   */
 
   const handleCashOut = () => {
@@ -620,7 +638,7 @@ export default function SolveAndWinCbtPlayPage() {
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">
-                Solve & Win CBT
+                Solve & Win Cash
               </p>
 
               <h1 className="text-base font-black sm:text-lg">
@@ -630,17 +648,18 @@ export default function SolveAndWinCbtPlayPage() {
 
           </div>
 
-          {/* WALLET */}
-          <div className="flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 sm:px-4">
+          {/* CASH WALLET */}
 
-            <Coins className="h-4 w-4 text-amber-300" />
+          <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 sm:px-4">
 
-            <span className="text-sm font-black text-amber-200">
-              {formatPoints(totalWinnings)}
+            <Wallet className="h-4 w-4 text-emerald-300" />
+
+            <span className="text-sm font-black text-emerald-200">
+              ₦{formatCash(totalWinnings)}
             </span>
 
-            <span className="hidden text-xs text-amber-200/60 sm:inline">
-              CBT
+            <span className="hidden text-xs text-emerald-200/60 sm:inline">
+              Cash
             </span>
 
           </div>
@@ -758,13 +777,13 @@ export default function SolveAndWinCbtPlayPage() {
         </div>
 
         {/* =====================================================
-            DEMO FOOTER
+            FOOTER
         ===================================================== */}
 
         <footer className="mt-8 flex items-center justify-center">
 
           <p className="text-center text-xs text-slate-600">
-            Frontend demo • CBT Points are simulated
+            Solve correctly to increase your cash reward.
           </p>
 
         </footer>
@@ -818,14 +837,16 @@ function QuestionScreen({
 
         </div>
 
-        <div className="rounded-xl border border-amber-400/10 bg-amber-400/5 px-3 py-2">
+        {/* CASH REWARD */}
+
+        <div className="rounded-xl border border-emerald-400/10 bg-emerald-400/5 px-3 py-2">
 
           <p className="text-[10px] uppercase tracking-wider text-slate-500">
-            Win
+            Cash Reward
           </p>
 
-          <p className="text-sm font-black text-amber-300">
-            +{formatPoints(currentReward)}
+          <p className="text-sm font-black text-emerald-300">
+            +₦{formatCash(currentReward)}
           </p>
 
         </div>
@@ -911,7 +932,7 @@ function QuestionScreen({
         <Zap className="h-3.5 w-3.5" />
 
         <span>
-          Choose the correct answer to win CBT Points
+          Answer correctly to win cash.
         </span>
 
       </div>
@@ -971,22 +992,24 @@ function RewardScreen({
           You have won
         </p>
 
-        <div className="my-4 text-4xl font-black text-amber-300 sm:text-5xl">
-          +{formatPoints(reward)}
+        {/* CASH REWARD */}
+
+        <div className="my-4 text-4xl font-black text-emerald-300 sm:text-5xl">
+          ₦{formatCash(reward)}
         </div>
 
-        {/* TOTAL */}
+        {/* TOTAL CASH */}
 
-        <div className="mx-auto flex max-w-sm items-center justify-center gap-2 rounded-2xl border border-amber-400/10 bg-amber-400/5 px-5 py-3">
+        <div className="mx-auto flex max-w-sm items-center justify-center gap-2 rounded-2xl border border-emerald-400/10 bg-emerald-400/5 px-5 py-3">
 
-          <Coins className="h-5 w-5 text-amber-300" />
+          <Wallet className="h-5 w-5 text-emerald-300" />
 
           <span className="text-sm text-slate-400">
-            Total:
+            Total Cash:
           </span>
 
-          <span className="font-black text-amber-200">
-            {formatPoints(totalWinnings)} CBT
+          <span className="font-black text-emerald-200">
+            ₦{formatCash(totalWinnings)}
           </span>
 
         </div>
@@ -1004,10 +1027,13 @@ function RewardScreen({
             <button
               type="button"
               onClick={onCashOut}
-              className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-5 font-bold transition hover:border-slate-500 hover:bg-slate-800"
+              className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-5 font-bold transition hover:border-amber-400/40 hover:bg-slate-800"
             >
-              <Wallet className="h-5 w-5" />
-              Cash Out
+              <Wallet className="h-5 w-5 text-amber-300" />
+
+              <span>
+                Cash Out
+              </span>
             </button>
 
             <button
@@ -1024,7 +1050,7 @@ function RewardScreen({
 
           {hasMore && (
             <p className="mt-4 text-xs text-slate-600">
-              Continue to the next question to increase your winnings.
+              Continue to the next question to increase your cash reward.
             </p>
           )}
 
@@ -1108,14 +1134,16 @@ function WrongScreen({
 
         </div>
 
-        <div className="mt-6 rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
+        {/* CURRENT CASH */}
+
+        <div className="mt-6 rounded-2xl border border-emerald-400/10 bg-emerald-400/5 p-4">
 
           <p className="text-xs text-slate-500">
-            Current CBT Points
+            Current Cash
           </p>
 
-          <p className="mt-1 font-black text-amber-300">
-            {formatPoints(totalWinnings)}
+          <p className="mt-1 font-black text-emerald-300">
+            ₦{formatCash(totalWinnings)}
           </p>
 
         </div>
@@ -1136,6 +1164,7 @@ function WrongScreen({
             className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 font-bold transition hover:bg-slate-800"
           >
             <Wallet className="h-5 w-5" />
+
             Cash Out
           </button>
 
@@ -1148,7 +1177,7 @@ function WrongScreen({
 }
 
 /* =============================================================
-   CASH OUT SCREEN
+   CASH OUT / COMING SOON SCREEN
 ============================================================= */
 
 function CashOutScreen({
@@ -1163,50 +1192,97 @@ function CashOutScreen({
   onSubjects: () => void;
 }) {
   return (
-    <div className="rounded-3xl border border-amber-400/20 bg-[#151208] p-6 shadow-2xl sm:p-10">
+    <div className="relative overflow-hidden rounded-3xl border border-amber-400/20 bg-[#151208] p-6 shadow-2xl sm:p-10">
 
-      <div className="text-center">
+      {/* GLOW */}
 
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-400/10">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl" />
+
+      <div className="relative text-center">
+
+        {/* ICON */}
+
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-400/10 ring-8 ring-amber-400/5">
 
           <Wallet className="h-10 w-10 text-amber-300" />
 
         </div>
 
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
-          Session Complete
-        </p>
+        {/* COMING SOON */}
 
-        <h2 className="mt-3 text-3xl font-black">
-          Your Winnings
-        </h2>
+        <div className="inline-flex rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2">
 
-        <p className="mt-2 text-sm text-slate-500">
-          {subject.icon} {subject.name}
-        </p>
-
-        <div className="my-7 flex items-center justify-center gap-2">
-
-          <Coins className="h-7 w-7 text-amber-300" />
-
-          <span className="text-5xl font-black text-amber-300">
-            {formatPoints(totalWinnings)}
+          <span className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">
+            Coming Soon
           </span>
 
         </div>
 
-        <p className="mx-auto max-w-md text-sm leading-6 text-slate-500">
-          You have ended this Solve & Win session.
-          Actual wallet crediting will be connected
-          when the backend is added.
+        <h2 className="mt-5 text-3xl font-black sm:text-4xl">
+          Cash Out Is Coming Soon 🚀
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-slate-400">
+          Your cash reward is being prepared for withdrawal.
+          Cash Out will be available soon.
         </p>
+
+        {/* CASH DISPLAY */}
+
+        <div className="my-7">
+
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Your Current Reward
+          </p>
+
+          <div className="mt-2 flex items-center justify-center gap-2">
+
+            <Wallet className="h-7 w-7 text-emerald-300" />
+
+            <span className="text-5xl font-black text-emerald-300">
+              ₦{formatCash(totalWinnings)}
+            </span>
+
+          </div>
+
+          <p className="mt-2 text-xs text-slate-600">
+            Cash withdrawal will be enabled soon.
+          </p>
+
+        </div>
+
+        {/* MAIN MESSAGE */}
+
+        <div className="mx-auto max-w-lg rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6">
+
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10">
+
+            <Coins className="h-7 w-7 text-violet-300" />
+
+          </div>
+
+          <h3 className="mt-4 text-xl font-black text-white">
+            Earn More CBT Points
+          </h3>
+
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            Earn more CBT Points to play
+            <span className="font-bold text-white">
+              {" "}Solve & Win Cash
+            </span>
+            {" "}and increase your chances of earning more cash rewards.
+          </p>
+
+        </div>
+
+        {/* ACTIONS */}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
 
           <button
             type="button"
             onClick={onSubjects}
-            className="h-14 rounded-2xl border border-slate-700 bg-slate-900 font-bold transition hover:bg-slate-800"
+            className="h-14 rounded-2xl border border-slate-700 bg-slate-900 font-bold transition hover:border-slate-500 hover:bg-slate-800"
           >
             Choose Subject
           </button>
@@ -1214,13 +1290,18 @@ function CashOutScreen({
           <button
             type="button"
             onClick={onRestart}
-            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 font-bold transition hover:bg-violet-500"
+            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 font-bold shadow-lg shadow-violet-600/20 transition hover:bg-violet-500"
           >
             Play Again
+
             <ArrowRight className="h-5 w-5" />
           </button>
 
         </div>
+
+        <p className="mt-5 text-xs text-slate-600">
+          {subject.icon} {subject.name} • Solve & Win Cash
+        </p>
 
       </div>
 
@@ -1229,7 +1310,7 @@ function CashOutScreen({
 }
 
 /* =============================================================
-   CBT LADDER
+   CASH REWARD LADDER
 ============================================================= */
 
 function CbtLadder({
@@ -1248,36 +1329,40 @@ function CbtLadder({
 
       <div className="mb-5 flex items-center gap-3">
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10">
-          <Trophy className="h-5 w-5 text-amber-300" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10">
+
+          <Trophy className="h-5 w-5 text-emerald-300" />
+
         </div>
 
         <div>
+
           <h3 className="font-black">
-            CBT Point Ladder
+            Cash Reward Ladder
           </h3>
 
           <p className="text-xs text-slate-500">
             Climb by answering correctly
           </p>
+
         </div>
 
       </div>
 
-      {/* TOTAL */}
+      {/* TOTAL CASH */}
 
-      <div className="mb-5 rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
+      <div className="mb-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/5 p-4">
 
         <p className="text-xs text-slate-500">
-          Current winnings
+          Current Cash
         </p>
 
         <div className="mt-1 flex items-center gap-2">
 
-          <Coins className="h-4 w-4 text-amber-300" />
+          <Wallet className="h-4 w-4 text-emerald-300" />
 
-          <span className="text-xl font-black text-amber-200">
-            {formatPoints(totalWinnings)}
+          <span className="text-xl font-black text-emerald-200">
+            ₦{formatCash(totalWinnings)}
           </span>
 
         </div>
@@ -1368,7 +1453,7 @@ function CbtLadder({
                         : "text-slate-600",
                   ].join(" ")}
                 >
-                  +{formatPoints(reward)}
+                  +₦{formatCash(reward)}
                 </span>
 
               </div>
@@ -1386,7 +1471,8 @@ function CbtLadder({
         </p>
 
         <p className="mt-1 text-lg font-black text-violet-300">
-          +{formatPoints(
+          +₦
+          {formatCash(
             REWARDS[
               Math.min(
                 currentQuestionIndex,
@@ -1398,7 +1484,20 @@ function CbtLadder({
 
       </div>
 
+      {/* CBT POINT NOTICE */}
+
+      <div className="mt-4 rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
+
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300/70">
+          Play Requirement
+        </p>
+
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Earn CBT Points to play Solve & Win Cash.
+        </p>
+
+      </div>
+
     </div>
   );
 }
-

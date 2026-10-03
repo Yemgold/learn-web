@@ -1007,137 +1007,149 @@ export default function QuizPlayController({
     );
 
   /* =======================================================
-     CONTESTANT ANSWER SELECTION
-  ======================================================= */
+   CONTESTANT ANSWER SELECTION
+======================================================= */
 
-  const handleContestantSelectAnswer =
-    useCallback(
-      (value: string) => {
-        const answer =
-          String(value ?? "").trim();
+const handleContestantSelectAnswer =
+  useCallback(
+    (optionId: string) => {
+      const normalizedOptionId =
+        String(optionId ?? "").trim();
 
-        if (!answer) {
-          console.warn(
-            "[QuizPlayController] Ignoring empty answer selection.",
-          );
+      if (!normalizedOptionId) {
+        console.warn(
+          "[QuizPlayController] Ignoring empty option ID selection.",
+        );
 
-          return;
-        }
+        return;
+      }
 
-        if (
-          role !== "CONTESTANT"
-        ) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because current role is not CONTESTANT.",
-            {
-              role,
-            },
-          );
-
-          return;
-        }
-
-        if (!connected) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because socket is disconnected.",
-          );
-
-          return;
-        }
-
-        if (!roomJoined) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because contestant has not joined the room.",
-          );
-
-          return;
-        }
-
-        if (!roomActivated) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because room is not activated.",
-          );
-
-          return;
-        }
-
-        if (!displayQuestion?.id) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because there is no active question.",
-          );
-
-          return;
-        }
-
-        if (!questionStarted) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because question has not started.",
-          );
-
-          return;
-        }
-
-        if (questionLocked) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because question is locked.",
-          );
-
-          return;
-        }
-
-        if (answerSubmitted) {
-          console.warn(
-            "[QuizPlayController] Answer selection ignored because an answer has already been submitted.",
-          );
-
-          return;
-        }
-
-        console.log(
-          "[QuizPlayController] CONTESTANT ANSWER SELECTED",
+      if (role !== "CONTESTANT") {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because current role is not CONTESTANT.",
           {
-            quizId,
-            roomId,
-            questionId:
-              displayQuestion.id,
-            questionNumber:
-              displayQuestion.questionNumber ??
-              null,
-            answer,
+            role,
           },
         );
 
-        /*
-         * IMPORTANT:
-         *
-         * Do NOT call setSelectedAnswer() directly here.
-         *
-         * selectContestantAnswer() now owns the complete
-         * contestant selection flow:
-         *
-         * 1. Immediately select/lock the answer locally.
-         * 2. Emit participant_selected_answer.
-         *
-         * We intentionally do NOT call submitAnswer().
-         */
-        selectContestantAnswer(
-          answer,
+        return;
+      }
+
+      if (!connected) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because socket is disconnected.",
         );
-      },
-      [
-        role,
-        connected,
-        roomJoined,
-        roomActivated,
-        displayQuestion,
-        questionStarted,
-        questionLocked,
-        answerSubmitted,
-        quizId,
-        roomId,
-        selectContestantAnswer,
-      ],
-    );
+
+        return;
+      }
+
+      if (!roomJoined) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because contestant has not joined the room.",
+        );
+
+        return;
+      }
+
+      if (!roomActivated) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because room is not activated.",
+        );
+
+        return;
+      }
+
+      if (!displayQuestion?.id) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because there is no active question.",
+        );
+
+        return;
+      }
+
+      if (!questionStarted) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because question has not started.",
+        );
+
+        return;
+      }
+
+      if (questionLocked) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because question is locked.",
+        );
+
+        return;
+      }
+
+      if (answerSubmitted) {
+        console.warn(
+          "[QuizPlayController] Answer selection ignored because an answer has already been submitted.",
+        );
+
+        return;
+      }
+
+      console.log(
+        "[QuizPlayController] CONTESTANT OPTION SELECTED",
+        {
+          quizId,
+          roomId,
+          questionId:
+            displayQuestion.id,
+          questionNumber:
+            displayQuestion.questionNumber ??
+            null,
+
+          optionId:
+            normalizedOptionId,
+
+          /*
+           * Diagnostic only:
+           * Find the visible option that owns this ID.
+           */
+          optionValue:
+            displayQuestion.options?.find(
+              (option: any) =>
+                option?.id ===
+                normalizedOptionId,
+            )?.value ?? null,
+        },
+      );
+
+      /*
+       * IMPORTANT:
+       *
+       * ContestantAnswerOptions now supplies
+       * the backend option ID.
+       *
+       * Do not convert this ID back into
+       * the visible option text.
+       *
+       * selectContestantAnswer() owns:
+       *
+       * 1. Local selection/locking.
+       * 2. participant_selected_answer emission.
+       */
+      selectContestantAnswer(
+        normalizedOptionId,
+      );
+    },
+    [
+      role,
+      connected,
+      roomJoined,
+      roomActivated,
+      displayQuestion,
+      questionStarted,
+      questionLocked,
+      answerSubmitted,
+      quizId,
+      roomId,
+      selectContestantAnswer,
+    ],
+  );
 
   /* =======================================================
      REFRESH

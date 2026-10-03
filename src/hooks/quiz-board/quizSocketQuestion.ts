@@ -391,7 +391,7 @@ export function extractQuestionNumber(
 }
 
 /* ================================================================
-   PLAYABLE QUESTION
+   PLAY QUESTION
 ================================================================ */
 
 export function hasPlayableQuestion(

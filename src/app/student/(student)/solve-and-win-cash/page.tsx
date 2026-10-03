@@ -157,7 +157,7 @@ export default function SolveAndWinCbtPage() {
               return (
                 <Link
                   key={subject.id}
-                  href={`/student/solve-and-win-cbt/${subject.id}/play`}
+                  href={`/student/solve-and-win-cash/${subject.id}/play`}
                   className="group"
                 >
                   <article className="relative h-full overflow-hidden rounded-3xl border border-slate-800 bg-[#0d1320] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-violet-500/40 hover:bg-[#101827] hover:shadow-xl hover:shadow-violet-950/20">

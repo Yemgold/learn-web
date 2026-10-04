@@ -821,8 +821,8 @@ console.log("[QuizSocket] ANSWER TIMER CHECK:", {
           socketConnected: socket.connected,
         });
 
-       socket.emit(
-  "participant_selected_answer",
+  socket.emit(
+  "submit_answer",
   {
     data: {
       roomId: roomIdRef.current,

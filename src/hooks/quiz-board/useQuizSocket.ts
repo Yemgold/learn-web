@@ -821,30 +821,19 @@ console.log("[QuizSocket] ANSWER TIMER CHECK:", {
           socketConnected: socket.connected,
         });
 
-        socket.emit(
-          "participant_selected_answer",
-          {
-            quizId:
-              quizIdRef.current,
-
-            roomId:
-              roomIdRef.current,
-
-            roundNumber:
-              currentRoundRef.current,
-
-            questionId:
-              activeQuestion.id,
-
-            questionNumber:
-              activeQuestion.questionNumber ??
-              currentQuestionNumber,
-
-            selectedAnswer:
-              normalizedAnswer,
-          },
-        );
+       socket.emit(
+  "participant_selected_answer",
+  {
+    data: {
+      roomId: roomIdRef.current,
+      roundNumber: currentRoundRef.current,
+      questionId: activeQuestion.id,
+      selectedAnswerId: normalizedAnswer,
+    },
+  },
+);
       },
+
       [
         questionStarted,
         questionLocked,

@@ -420,12 +420,12 @@ const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
 */
 
 const REWARDS = [
-  0.0023,
-  0.0046,
-  0.0092,
-  0.0184,
-  0.0368,
-  0.0736,
+  500,
+  550,
+  600,
+  650,
+  700,
+  750,
 ];
 
 function formatCash(value: number) {

@@ -1,12 +1,9 @@
 
 
-
-
-
-
-
+"use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import {
   Trophy,
@@ -27,9 +24,9 @@ const competitions = [
     subject: "All UTME Subjects",
     startDate: "January 20, 2027",
     status: "Upcoming",
-    teams: "250 / 1000 Teams",
+    teams: "0 / 1000 Teams",
     prize: "₦1,000,000",
-    joined: true,
+    joined: false,
   },
   {
     id: "mathematics-masters",
@@ -37,8 +34,8 @@ const competitions = [
     subject: "Mathematics",
     startDate: "February 10, 2027",
     status: "Registration Open",
-    teams: "120 / 500 Teams",
-    prize: "₦300,000",
+    teams: "0 / 500 Teams",
+    prize: "₦1,000,000",
     joined: false,
   },
   {
@@ -54,6 +51,18 @@ const competitions = [
 ];
 
 export default function StudentCompetitionsPage() {
+  const [comingSoonAction, setComingSoonAction] = useState<string | null>(
+    null,
+  );
+
+  const handleComingSoon = (action: string) => {
+    setComingSoonAction(action);
+
+    window.setTimeout(() => {
+      setComingSoonAction(null);
+    }, 2500);
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 pb-16 text-white">
       <div className="container mx-auto px-4 py-10">
@@ -94,7 +103,7 @@ export default function StudentCompetitionsPage() {
           >
             <CheckCircle2 className="mx-auto h-12 w-12 text-green-400" />
 
-            <h2 className="mt-4 text-3xl font-bold text-white">1</h2>
+            <h2 className="mt-4 text-3xl font-bold text-white">0</h2>
 
             <p className="mt-2 text-slate-400">
               Joined
@@ -107,7 +116,7 @@ export default function StudentCompetitionsPage() {
           >
             <Clock3 className="mx-auto h-12 w-12 text-blue-400" />
 
-            <h2 className="mt-4 text-3xl font-bold text-white">2</h2>
+            <h2 className="mt-4 text-3xl font-bold text-white">3</h2>
 
             <p className="mt-2 text-slate-400">
               Upcoming
@@ -170,7 +179,7 @@ export default function StudentCompetitionsPage() {
 
                 {/* Actions */}
                 <div className="flex w-full flex-col gap-4 lg:w-56">
-                  {/* Competition Details */}
+                  {/* View Details - WORKING */}
                   <Link
                     href={`/student/competitions/${competition.id}`}
                     className="w-full"
@@ -189,47 +198,73 @@ export default function StudentCompetitionsPage() {
                   {/* Joined / Not Joined */}
                   {competition.joined ? (
                     <>
-                      <Link
-                        href={`/student/competitions/${competition.id}/team`}
-                        className="w-full"
-                      >
-                        <Button
-                          fullWidth
-                          variant="secondary"
-                          className="border border-white/10 bg-white/[0.08] text-slate-200 hover:bg-white/[0.12] hover:text-white"
-                        >
-                          <Users className="mr-2 h-4 w-4" />
-                          My Team
-                        </Button>
-                      </Link>
-
-                      <Link
-                        href={`/student/competitions/${competition.id}/room`}
-                        className="w-full"
-                      >
-                        <Button
-                          fullWidth
-                          variant="outline"
-                          className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
-                        >
-                          Enter Waiting Room
-                        </Button>
-                      </Link>
-                    </>
-                  ) : (
-                    <Link
-                      href={`/student/competitions/${competition.id}/team/register`}
-                      className="w-full"
-                    >
+                      {/* My Team - COMING SOON */}
                       <Button
                         fullWidth
                         variant="secondary"
+                        onClick={() =>
+                          handleComingSoon(
+                            `${competition.id}-team`,
+                          )
+                        }
+                        className="border border-white/10 bg-white/[0.08] text-slate-200 hover:bg-white/[0.12] hover:text-white"
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        My Team
+                      </Button>
+
+                      {comingSoonAction ===
+                        `${competition.id}-team` && (
+                        <div className="-mt-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-center text-sm font-medium text-amber-300">
+                          Coming Soon
+                        </div>
+                      )}
+
+                      {/* Waiting Room - COMING SOON */}
+                      <Button
+                        fullWidth
+                        variant="outline"
+                        onClick={() =>
+                          handleComingSoon(
+                            `${competition.id}-room`,
+                          )
+                        }
+                        className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        Enter Waiting Room
+                      </Button>
+
+                      {comingSoonAction ===
+                        `${competition.id}-room` && (
+                        <div className="-mt-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-center text-sm font-medium text-amber-300">
+                          Coming Soon
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {/* Join / Create Team - COMING SOON */}
+                      <Button
+                        fullWidth
+                        variant="secondary"
+                        onClick={() =>
+                          handleComingSoon(
+                            `${competition.id}-register`,
+                          )
+                        }
                         className="border border-white/10 bg-white/[0.08] text-slate-200 hover:bg-white/[0.12] hover:text-white"
                       >
                         <Users className="mr-2 h-4 w-4" />
                         Join / Create Team
                       </Button>
-                    </Link>
+
+                      {comingSoonAction ===
+                        `${competition.id}-register` && (
+                        <div className="-mt-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-center text-sm font-medium text-amber-300">
+                          Coming Soon
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -84,7 +84,7 @@ export default function SolveAndWinCbtPage() {
               </h1>
 
               <p className="text-sm text-slate-400">
-                Answer questions and win CBT Points
+                Answer questions and win Cash
               </p>
             </div>
 
@@ -105,13 +105,13 @@ export default function SolveAndWinCbtPage() {
               Answer correctly.
               <br />
               <span className="text-violet-400">
-                Win CBT Points.
+                Win Cash.
               </span>
             </h2>
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
               Choose a subject and start solving. Every correct answer
-              moves you higher on the CBT Point ladder.
+              moves you higher on the Cash ladder.
             </p>
 
           </div>
@@ -120,7 +120,7 @@ export default function SolveAndWinCbtPage() {
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
 
             <InfoCard
-              value="0.0023"
+              value="5000"
               label="Starting CBT Point"
             />
 

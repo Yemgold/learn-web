@@ -1,4 +1,10 @@
 
+
+
+
+
+"use client";
+
 interface CompetitionDetailsPageProps {
   params: Promise<{
     competitionId: string;
@@ -24,13 +30,13 @@ export default async function CompetitionDetailsPage({
           </h1>
 
           <p className="mt-3 max-w-3xl leading-7 text-blue-100/80">
-            View competition information, team status, schedule,
-            leaderboard, and prepare for the upcoming CBT challenge.
+            View competition information, schedule, rules, and everything
+            you need to know before registration opens.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full border border-green-400/30 bg-green-500/15 px-4 py-2 font-semibold text-green-300">
-              Registration Open
+            <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-2 font-semibold text-amber-300">
+              Registration Not Open
             </span>
 
             <span className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-slate-200">
@@ -42,20 +48,33 @@ export default async function CompetitionDetailsPage({
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left */}
           <div className="space-y-6 lg:col-span-2">
+            {/* Competition Overview */}
             <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h2 className="text-2xl font-bold text-white">
                 Competition Overview
               </h2>
 
               <p className="mt-4 leading-8 text-slate-400">
-                Participate in Nigeria's biggest online JAMB
-                preparation competition. Teams of three students
-                compete in a timed CBT examination covering all UTME
-                subjects. Rankings are determined by score, speed and
-                accuracy.
+                Get ready for the JAMB League Championship, an online JAMB
+                preparation competition where teams of three students compete
+                in a timed CBT examination covering all UTME subjects.
+                Registration will open before the competition begins.
               </p>
+
+              <div className="mt-6 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+                <p className="font-semibold text-blue-300">
+                  Registration Coming Soon
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-blue-200/70">
+                  You can review the competition details now. Team creation
+                  and registration will become available when registration
+                  officially opens.
+                </p>
+              </div>
             </section>
 
+            {/* Competition Schedule */}
             <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h2 className="mb-5 text-2xl font-bold text-white">
                 Competition Schedule
@@ -104,6 +123,7 @@ export default async function CompetitionDetailsPage({
               </div>
             </section>
 
+            {/* Competition Rules */}
             <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h2 className="mb-5 text-2xl font-bold text-white">
                 Competition Rules
@@ -139,6 +159,7 @@ export default async function CompetitionDetailsPage({
 
           {/* Right */}
           <aside className="space-y-6">
+            {/* Competition Summary */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h3 className="text-xl font-bold text-white">
                 Competition Summary
@@ -181,7 +202,7 @@ export default async function CompetitionDetailsPage({
                   </span>
 
                   <strong className="text-white">
-                    640
+                    0
                   </strong>
                 </div>
 
@@ -197,53 +218,56 @@ export default async function CompetitionDetailsPage({
               </div>
             </div>
 
+            {/* Your Team */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h3 className="text-xl font-bold text-white">
                 Your Team
               </h3>
 
-              <div className="mt-5 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-                <p className="font-semibold text-green-300">
-                  Team Registered
+              <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                <p className="font-semibold text-amber-300">
+                  Registration Not Open
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-green-200/70">
-                  Your team has successfully registered for this
-                  competition.
+                <p className="mt-2 text-sm leading-6 text-amber-200/70">
+                  Team registration for this competition has not started yet.
+                  You will be able to create or join a team when registration
+                  opens.
                 </p>
               </div>
 
-              <button className="mt-6 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-500">
+              <button
+                type="button"
+                disabled
+                className="mt-6 w-full cursor-not-allowed rounded-xl bg-slate-700 py-3 font-semibold text-slate-400"
+              >
                 Enter Waiting Room
               </button>
+
+              <p className="mt-3 text-center text-xs text-slate-500">
+                Waiting room will be available after registration opens.
+              </p>
             </div>
 
+            {/* Top Teams */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm">
               <h3 className="text-xl font-bold text-white">
                 Top Teams
               </h3>
 
-              <div className="mt-5 space-y-4">
-                {[
-                  "Team Alpha",
-                  "Bright Minds",
-                  "Future Doctors",
-                  "Scholars NG",
-                  "Victory Team",
-                ].map((team, index) => (
-                  <div
-                    key={team}
-                    className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] p-3"
-                  >
-                    <span className="text-slate-300">
-                      #{index + 1} {team}
-                    </span>
+              <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.03] p-5 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-xl">
+                  🏆
+                </div>
 
-                    <strong className="text-white">
-                      {995 - index * 8}
-                    </strong>
-                  </div>
-                ))}
+                <p className="mt-4 font-semibold text-slate-200">
+                  Leaderboard Not Available Yet
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Top teams and rankings will appear here once team
+                  registration opens and the competition begins.
+                </p>
               </div>
             </div>
           </aside>

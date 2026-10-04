@@ -70,19 +70,6 @@ export const studentNavigation: NavigationSection[] = [
     ],
   },
 
-  // {
-  //   title: "Earn While You Learn",
-  //   items: [
-  //     {
-  //       label: "Solve & Win Cash",
-  //       description:
-  //         "Answer questions, earn rewards, and compete for prizes",
-  //       href: "/student/solve-and-win",
-  //       icon: Trophy,
-  //     },
-  //   ],
-  // },
-
 {
   title: "Learn & Win",
   items: [
@@ -96,15 +83,15 @@ export const studentNavigation: NavigationSection[] = [
   ],
 },
 
- {
-  title: "Learn with Flashcards",
+
+  {
+  title: "Learning Arena",
   items: [
     {
-      label: "Flashcards",
-      description:
-        "Study topics with quick questions, answers and key explanations",
-      href: "/student/flashcards",
-      icon: BookOpen,
+      label: "Interactive Lessons",
+      description: "Learn through guided lessons",
+      href: "/student/arena",
+      icon: Play,
     },
   ],
 },
@@ -131,126 +118,29 @@ export const studentNavigation: NavigationSection[] = [
 
 
 
+ // {
+  //   title: "Earn While You Learn",
+  //   items: [
+  //     {
+  //       label: "Solve & Win Cash",
+  //       description:
+  //         "Answer questions, earn rewards, and compete for prizes",
+  //       href: "/student/solve-and-win",
+  //       icon: Trophy,
+  //     },
+  //   ],
+  // },
 
 
-
-// import {
-//   BookOpen,
-//   CalendarDays,
-//   LayoutDashboard,
-//   Medal,
-//   Settings,
-//   Trophy,
-//   User,
-//   Play,
-//   Video,
-//   Wallet,
-//   Users,
-// } from "lucide-react";
-
-// import type { NavigationSection } from "./types";
-
-// export const studentNavigation: NavigationSection[] = [
-//   {
-//     title: "Overview",
-//     items: [
-//       {
-//         label: "Dashboard",
-//         href: "/student/dashboard",
-//         icon: LayoutDashboard,
-//         exact: true,
-//       },
-
-//       {
-//   label: "Referrals",
-//   href: "/student/referrals",
-//   icon: Users,
-// },
-
-// {
-//   label: "Wallet",
-//   href: "/student/wallet",
-//   icon: Wallet,
-// }
-
-
-//     ],
-//   },
-
-//   {
-//     title: "Competition",
-//     items: [
-//       {
-//         label: "Competitions",
-//         href: "/student/competitions",
-//         icon: Trophy,
-//       },
-      
-//     ],
-//   },
-
-//   {
-//   title: "Past Questions",
+  //  {
+//   title: "Learn with Flashcards",
 //   items: [
 //     {
-//       label: "Practice Questions",
-//       description: "Simulate the real JAMB exams",
-//       href: "/student/practice",
+//       label: "Flashcards",
+//       description:
+//         "Study topics with quick questions, answers and key explanations",
+//       href: "/student/flashcards",
 //       icon: BookOpen,
 //     },
 //   ],
 // },
-
-//   {
-//   title: "Learning Arena",
-//   items: [
-//     {
-//       label: "Interactive Lessons",
-//       description: "Learn through guided lessons",
-//       href: "/student/arena",
-//       icon: Play,
-//     },
-//   ],
-// },
-
-// {
-//   title: "Earn While You Learn",
-//   items: [
-//     {
-//       label: "Solve & Win",
-//       description: "Answer questions, earn rewards, and compete for prizes",
-//       href: "/student/solve-and-win",
-//       icon: Trophy,
-//     },
-//   ],
-// },
-
-// {
-//   title: "Learn by Watching",
-//   items: [
-//     {
-//       label: "Question Videos",
-//       description: "Watch questions, answers and step-by-step explanations",
-//       href: "/student/question-videos",
-//       icon: Video,
-//     },
-//   ],
-// },
-
-
-//   {
-//     title: "Account",
-//     items: [
-//       {
-//         label: "Profile",
-//         href: "/student/profile",
-//         icon: User,
-//       },
-//       {
-//         label: "Settings",
-//         href: "/student/settings",
-//         icon: Settings,
-//       },
-//     ],
-//   },
-// ];

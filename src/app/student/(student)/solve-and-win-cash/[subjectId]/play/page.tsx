@@ -1219,13 +1219,13 @@ function CashOutScreen({
         </div>
 
         <h2 className="mt-5 text-3xl font-black sm:text-4xl">
-          Cash Out Is Coming Soon 🚀
-        </h2>
+  This Game Is Coming Soon 🚀
+</h2>
 
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-slate-400">
-          Your cash reward is being prepared for withdrawal.
-          Cash Out will be available soon.
-        </p>
+<p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-slate-400">
+  Win cash rewards and get paid instantly.
+  Solve and Win will be available soon.
+</p>
 
         {/* CASH DISPLAY */}
 

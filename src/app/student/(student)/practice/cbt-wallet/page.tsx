@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import CbtWalletHeader from "@/components/cbt-wallet/CbtWalletHeader";
@@ -10,16 +10,8 @@ import CbtWalletSummary from "@/components/cbt-wallet/CbtWalletSummary";
 import CbtWalletQuickActions from "@/components/cbt-wallet/CbtWalletQuickActions";
 import CbtWalletGoal from "@/components/cbt-wallet/CbtWalletGoal";
 import CbtWalletRecentActivity from "@/components/cbt-wallet/CbtWalletRecentActivity";
-import StudentRewards from "@/components/cbt-wallet/StudentRewards";
 import SendPointsModal from "@/components/cbt-wallet/SendPointsModal";
-import RedeemRewardModal from "@/components/cbt-wallet/RedeemRewardModal";
 import HowCbtPointsWork from "@/components/cbt-wallet/HowCbtPointsWork";
-import MyRewards from "@/components/cbt-wallet/MyRewards";
-
-import type {
-  StudentReward,
-  RedeemedReward,
-} from "@/types/cbt-wallet/reward";
 
 import type {
   WalletTransaction,
@@ -107,19 +99,6 @@ const INITIAL_TRANSACTIONS: WalletTransaction[] = [
   },
 ];
 
-const INITIAL_REDEEMED_REWARDS: RedeemedReward[] = [
-  {
-    id: "redeemed-001",
-    rewardId: "mock-exam-pack",
-    title: "JAMB Mock Exam Pack",
-    description: "Full practice examination pack",
-    points: 500,
-    status: "DELIVERED",
-    redeemedAt: "2026-09-09T09:14:00",
-    redemptionReference: "RWD-2026-001",
-  },
-];
-
 export default function CbtWalletPage() {
   const router = useRouter();
 
@@ -131,16 +110,8 @@ export default function CbtWalletPage() {
       INITIAL_TRANSACTIONS,
     );
 
-  const [myRewards, setMyRewards] =
-    useState<RedeemedReward[]>(
-      INITIAL_REDEEMED_REWARDS,
-    );
-
   const [sendPointsOpen, setSendPointsOpen] =
     useState(false);
-
-  const [selectedReward, setSelectedReward] =
-    useState<StudentReward | null>(null);
 
   const goalTarget = 15000;
 
@@ -160,22 +131,8 @@ export default function CbtWalletPage() {
   }
 
   function handleOpenRewards() {
-    router.push("/student/rewards");
-  }
-
-  function handleSelectReward(
-    reward: StudentReward,
-  ) {
-    setSelectedReward(reward);
-  }
-
-  function handleSaveReward(
-    reward: StudentReward,
-  ) {
     router.push(
-      `/student/rewards?reward=${encodeURIComponent(
-        reward.id,
-      )}`,
+      "/student/practice/cbt-point-reward",
     );
   }
 
@@ -236,90 +193,9 @@ export default function CbtWalletPage() {
     setSendPointsOpen(false);
   }
 
-  async function handleRedeemReward(data: {
-    reward: StudentReward;
-    deliveryAddress?: string;
-    phoneNumber?: string;
-  }) {
-    const reward = data.reward;
-
-    if (
-      reward.points >
-      wallet.availablePoints
-    ) {
-      throw new Error(
-        "You do not have enough CBT Points for this reward.",
-      );
-    }
-
-    const now = new Date();
-
-    const redemptionReference =
-      `RWD-${Date.now()}`;
-
-    const redeemedReward: RedeemedReward = {
-      id: `redeemed-${Date.now()}`,
-      rewardId: reward.id,
-      title: reward.title,
-      description: reward.description,
-      points: reward.points,
-      status: reward.deliveryAvailable
-        ? "PROCESSING"
-        : "ACTIVE",
-      redeemedAt: now.toISOString(),
-      redemptionReference,
-      deliveryAddress:
-        data.deliveryAddress,
-    };
-
-    const transaction: WalletTransaction = {
-      id: `trx-${Date.now()}`,
-      reference: `CBT-TRX-${Date.now()}`,
-      title: "Reward Redemption",
-      description:
-        `Redeemed ${reward.title}`,
-      amount: reward.points,
-      type: "REWARD_REDEMPTION",
-      status: "COMPLETED",
-      date: now.toLocaleString("en-NG", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      reward: {
-        rewardId: reward.id,
-        title: reward.title,
-      },
-    };
-
-    setWallet((current) => ({
-      ...current,
-      availablePoints:
-        current.availablePoints -
-        reward.points,
-      totalSpent:
-        current.totalSpent +
-        reward.points,
-    }));
-
-    setTransactions((current) => [
-      transaction,
-      ...current,
-    ]);
-
-    setMyRewards((current) => [
-      redeemedReward,
-      ...current,
-    ]);
-
-    setSelectedReward(null);
-  }
-
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-
         {/* Header */}
         <CbtWalletHeader
           balance={wallet.availablePoints}
@@ -344,7 +220,7 @@ export default function CbtWalletPage() {
             }
             targetPoints={goalTarget}
             title="Your Points Goal"
-            description="You're getting closer to your next reward."
+            description="You're getting closer to your next milestone."
             rewardTitle="Next milestone"
             rewardDescription={`${goalRemaining.toLocaleString(
               "en-NG",
@@ -373,67 +249,43 @@ export default function CbtWalletPage() {
           />
         </div>
 
-        {/* Rewards */}
-        <section className="mt-10">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-
-                <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400">
-                  Student Rewards
-                </span>
+        {/* Rewards Shortcut */}
+        <section className="mt-8 overflow-hidden rounded-2xl border border-violet-500/10 bg-gradient-to-r from-violet-950/30 via-slate-900/70 to-cyan-950/20 p-5 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+                <Sparkles className="h-5 w-5" />
               </div>
 
-              <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
-                Turn your points into something real
-              </h2>
+              <div>
+                <h2 className="text-sm font-bold text-white">
+                  Turn your CBT Points into rewards
+                </h2>
 
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                Save your CBT Points for gadgets,
-                study tools, educational rewards,
-                vouchers, and more.
-              </p>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                  Use your points to unlock educational
+                  rewards, study tools, vouchers, gadgets,
+                  and more.
+                </p>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleOpenRewards}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-300 transition-colors hover:border-violet-500/30 hover:bg-slate-800 hover:text-white"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-500"
             >
-              Browse All Rewards
+              View Rewards
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
-
-          <StudentRewards
-            balance={wallet.availablePoints}
-            onRedeem={
-              handleSelectReward
-            }
-            onSave={handleSaveReward}
-            showFeatured
-            limit={6}
-          />
         </section>
 
-        {/* Activity + My Rewards */}
-        <div className="mt-10 grid gap-6 xl:grid-cols-2">
+        {/* Activity */}
+        <div className="mt-10">
           <CbtWalletRecentActivity
             transactions={transactions}
-            limit={6}
-          />
-
-          <MyRewards
-            rewards={myRewards}
-            limit={4}
-            onRewardClick={(reward) => {
-              console.log(
-                "Selected redeemed reward:",
-                reward,
-              );
-            }}
+            limit={8}
           />
         </div>
 
@@ -483,17 +335,6 @@ export default function CbtWalletPage() {
           setSendPointsOpen(false)
         }
         onSend={handleSendPoints}
-      />
-
-      {/* Redeem Reward */}
-      <RedeemRewardModal
-        open={Boolean(selectedReward)}
-        reward={selectedReward}
-        balance={wallet.availablePoints}
-        onClose={() =>
-          setSelectedReward(null)
-        }
-        onRedeem={handleRedeemReward}
       />
     </main>
   );

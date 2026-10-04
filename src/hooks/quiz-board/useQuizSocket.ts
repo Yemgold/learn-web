@@ -756,7 +756,7 @@ console.log("[QuizSocket] ANSWER TIMER CHECK:", {
         }
 
         /* --------------------------------------------------------
-           Prevent multiple selections
+           Prevent multiple selection
         -------------------------------------------------------- */
 
         if (

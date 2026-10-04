@@ -1,9 +1,7 @@
-
-
-
 "use client";
 
 import Link from "next/link";
+
 import {
   ArrowRight,
   Trophy,
@@ -18,6 +16,7 @@ import {
   Home,
   CreditCard,
   Lock,
+  Clock,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -45,16 +44,14 @@ export interface QuickAction {
   description?: string;
   href: string;
   icon: keyof typeof icons;
-
+  comingSoon?: boolean;
   disabled?: boolean;
 }
 
 export interface QuickActionsProps {
   title?: string;
   actions: QuickAction[];
-
   locked?: boolean;
-
   className?: string;
 }
 
@@ -114,7 +111,6 @@ export default function QuickActions({
               "
             >
               <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-
               <span>Access Required</span>
             </div>
           )}
@@ -133,11 +129,12 @@ export default function QuickActions({
 
       <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         {actions.map((action) => {
-          const Icon =
-            icons[action.icon] ?? Trophy;
+          const Icon = icons[action.icon] ?? Trophy;
 
-          const isLocked =
-            locked || action.disabled === true;
+          const isLocked = locked || action.disabled === true;
+          const isComingSoon = action.comingSoon === true;
+
+          const isUnavailable = isLocked || isComingSoon;
 
           /* ==================================================
              CARD CONTENT
@@ -158,13 +155,14 @@ export default function QuickActions({
                   sm:min-h-[120px]
                   sm:p-4
                 `,
-
-                isLocked
+                isUnavailable
                   ? [
                       "cursor-not-allowed",
                       "border-white/10",
                       "bg-white/[0.02]",
-                      "opacity-55",
+                      isComingSoon
+                        ? "opacity-75"
+                        : "opacity-55",
                     ]
                   : [
                       "border-white/10",
@@ -194,7 +192,7 @@ export default function QuickActions({
                       rounded-lg
                       border
                     `,
-                    isLocked
+                    isUnavailable
                       ? "border-white/10 bg-white/[0.04]"
                       : "border-blue-400/20 bg-blue-500/10",
                   )}
@@ -202,8 +200,8 @@ export default function QuickActions({
                   <Icon
                     className={cn(
                       "h-4 w-4",
-                      isLocked
-                        ? "text-white/30"
+                      isUnavailable
+                        ? "text-white/40"
                         : "text-blue-300",
                     )}
                   />
@@ -227,10 +225,32 @@ export default function QuickActions({
                   >
                     <Lock className="h-3.5 w-3.5 text-white/30" />
                   </div>
+                ) : isComingSoon ? (
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-1
+                      rounded-full
+                      border
+                      border-amber-400/20
+                      bg-amber-500/10
+                      px-2
+                      py-1
+                      text-[9px]
+                      font-bold
+                      tracking-wide
+                      text-amber-300
+                    "
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span>COMING SOON</span>
+                  </div>
                 ) : (
                   <ArrowRight
                     className="
-                      h-4 w-4
+                      h-4
+                      w-4
                       text-white/25
                       transition-all
                       duration-200
@@ -250,7 +270,9 @@ export default function QuickActions({
                   "text-sm font-semibold leading-5",
                   isLocked
                     ? "text-white/40"
-                    : "text-white/85 group-hover:text-white",
+                    : isComingSoon
+                      ? "text-white/65"
+                      : "text-white/85 group-hover:text-white",
                 )}
               >
                 {action.title}
@@ -266,11 +288,24 @@ export default function QuickActions({
                     "mt-1 text-[11px] leading-4 sm:text-xs",
                     isLocked
                       ? "text-white/25"
-                      : "text-white/40",
+                      : isComingSoon
+                        ? "text-white/35"
+                        : "text-white/40",
                   )}
                 >
                   {action.description}
                 </p>
+              )}
+
+              {/* ==============================================
+                  COMING SOON MESSAGE
+                 ============================================== */}
+
+              {isComingSoon && !isLocked && (
+                <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-medium text-amber-300/75">
+                  <Clock className="h-3 w-3" />
+                  <span>Feature coming soon</span>
+                </div>
               )}
 
               {/* ==============================================
@@ -280,24 +315,22 @@ export default function QuickActions({
               {isLocked && (
                 <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-medium text-amber-300/70">
                   <Lock className="h-3 w-3" />
-
-                  <span>
-                    Unlock with an access plan
-                  </span>
+                  <span>Unlock with an access plan</span>
                 </div>
               )}
             </div>
           );
 
           /* ==================================================
-             LOCKED ACTION
+             UNAVAILABLE ACTION
              ================================================== */
 
-          if (isLocked) {
+          if (isUnavailable) {
             return (
               <div
                 key={action.title}
                 aria-disabled="true"
+                className="block"
               >
                 {content}
               </div>

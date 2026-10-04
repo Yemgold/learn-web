@@ -617,45 +617,24 @@ export function useQuizSocketActions(
         );
 
 
-      const payload = {
-        quizId,
-        quiz_id: quizId,
+const payload = {
+  data: {
+    roomId,
+    roundNumber,
+    questionId,
+    selectedAnswerId: answer,
+  },
+};
 
-        roomId,
-        room_id: roomId,
+console.log(
+  "[Quiz Socket] SUBMIT ANSWER:",
+  payload,
+);
 
-        questionId,
-        question_id:
-          questionId,
-
-        questionNumber,
-        question_number:
-          questionNumber,
-
-        roundNumber,
-        round_number:
-          roundNumber,
-
-        answer,
-
-        selectedAnswer:
-          answer,
-
-        selected_answer:
-          answer,
-      };
-
-
-      console.log(
-        "[Quiz Socket] SUBMIT ANSWER:",
-        payload,
-      );
-
-
-      socket.emit(
-        "submit_answer",
-        payload,
-      );
+socket.emit(
+  "submit_answer",
+  payload,
+);
 
 
       /*

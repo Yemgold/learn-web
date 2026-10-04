@@ -80,7 +80,7 @@ export default function SolveAndWinCbtPage() {
 
             <div>
               <h1 className="text-xl font-black sm:text-2xl">
-                Solve & Win CBT
+                Solve & Win CASH
               </h1>
 
               <p className="text-sm text-slate-400">

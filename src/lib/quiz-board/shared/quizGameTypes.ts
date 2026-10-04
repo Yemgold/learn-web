@@ -376,19 +376,16 @@ export interface NextQuestionPayload {
 }
 
 export interface SubmitAnswerPayload {
-  roomId: string;
+  data: {
+    roomId: string;
 
-  quizId: string;
+    roundNumber: number;
 
-  roundNumber: number;
+    questionId: string;
 
-  questionNumber: number;
-
-  questionId?: string;
-
-  answer: string;
+    selectedAnswerId: string;
+  };
 }
-
 /* ============================================================
    ROOM PAYLOADS
    ============================================================ */

@@ -2481,17 +2481,17 @@ export function useQuizGame(
         }
 
         const payload:
-          SubmitAnswerPayload = {
-            roomId,
-            quizId,
-            roundNumber:
-              currentRoundRef.current,
-            questionNumber,
-            questionId:
-              question.id,
-            answer:
-              normalizedAnswer,
-          };
+  SubmitAnswerPayload = {
+    data: {
+      roomId,
+      roundNumber:
+        currentRoundRef.current,
+      questionId:
+        question.id,
+      selectedAnswerId:
+        normalizedAnswer,
+    },
+  };
 
         console.log(
           "[useQuizGame] submit_answer:",

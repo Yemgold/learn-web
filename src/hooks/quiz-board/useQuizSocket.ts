@@ -501,31 +501,71 @@ export function useQuizSocket(
           };
 
 /* --------------------------------------------------------
-           TIMER NORMALIZATION CHECK
-        -------------------------------------------------------- */
+   TIMER NORMALIZATION CHECK
+-------------------------------------------------------- */
 
-        console.log(
-          "[QuizSocket] TIMER NORMALIZATION CHECK:",
-          {
-            questionId:
-              questionToApply.id,
+console.log(
+  "[QuizSocket] TIMER NORMALIZATION CHECK:",
+  {
+    questionId:
+      questionToApply.id,
 
-            timeLimit:
-              questionToApply.timeLimit,
+    timeLimit:
+      questionToApply.timeLimit,
 
-            startedAt:
-              questionToApply.startedAt,
+    startedAt:
+      questionToApply.startedAt,
 
-            expiresAt:
-              questionToApply.expiresAt,
+    expiresAt:
+      questionToApply.expiresAt,
 
-            now:
-              new Date().toISOString(),
-          },
-        );
+    browserNow:
+      new Date().toISOString(),
 
+    browserNowMs:
+      Date.now(),
 
+    startedAtMs:
+      questionToApply.startedAt
+        ? Date.parse(
+            questionToApply.startedAt,
+          )
+        : null,
 
+    expiresAtMs:
+      questionToApply.expiresAt
+        ? Date.parse(
+            questionToApply.expiresAt,
+          )
+        : null,
+
+    differenceToStartSeconds:
+      questionToApply.startedAt
+        ? Math.round(
+            (
+              Date.parse(
+                questionToApply.startedAt,
+              ) -
+              Date.now()
+            ) /
+              1000,
+          )
+        : null,
+
+    differenceToExpirySeconds:
+      questionToApply.expiresAt
+        ? Math.round(
+            (
+              Date.parse(
+                questionToApply.expiresAt,
+              ) -
+              Date.now()
+            ) /
+              1000,
+          )
+        : null,
+  },
+);
         /* --------------------------------------------------------
            Store question
         -------------------------------------------------------- */

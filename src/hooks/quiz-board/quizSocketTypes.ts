@@ -1,7 +1,16 @@
 
+
+
+
+
+
 // C:\Users\Lara Spellman\Jamb\jamb-league\src\hooks\quiz-board\quizSocketTypes.ts
 
-import type { Dispatch, SetStateAction } from "react";
+import type {
+  Dispatch,
+  SetStateAction,
+} from "react";
+
 import type { Socket } from "socket.io-client";
 
 import type { QuizGameRole } from "@/types/quiz-board/quiz-role";
@@ -10,11 +19,17 @@ import type {
   HostParticipant,
 } from "@/components/quiz-board/host/HostParticipantPanel";
 
-import type { HostLeaderboardEntry } from "@/components/quiz-board/host/HostLeaderboardPanel";
+import type {
+  HostLeaderboardEntry,
+} from "@/components/quiz-board/host/HostLeaderboardPanel";
 
 import type {
   HostQuestionPreviewQuestion,
 } from "@/components/quiz-board/host/HostQuestionPreview";
+
+/* -------------------------------------------------------------------------- */
+/* Live question                                                             */
+/* -------------------------------------------------------------------------- */
 
 export interface LiveQuestion {
   id: string;
@@ -22,10 +37,10 @@ export interface LiveQuestion {
   question: string;
 
   options: Array<{
-  id: string;
-  label: string;
-  value: string;
-}>;
+    id: string;
+    label: string;
+    value: string;
+  }>;
 
   questionNumber: number | null;
 
@@ -37,6 +52,10 @@ export interface LiveQuestion {
 
   expiresAt: string | null;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Quiz room                                                                 */
+/* -------------------------------------------------------------------------- */
 
 export interface QuizRoomDocument {
   roomId: string | null;
@@ -56,6 +75,114 @@ export interface QuizRoomDocument {
   [key: string]: unknown;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Contestant answer result                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Server response returned by the `answer_result` socket event.
+ *
+ * This represents the authoritative result of a contestant's
+ * submitted answer.
+ *
+ * Important:
+ * The backend does NOT currently return the correct answer text.
+ * Therefore this type intentionally does not contain a
+ * `correctAnswer` field.
+ */
+export interface QuizAnswerResult {
+  /**
+   * Updated leaderboard returned by the server.
+   *
+   * Kept as unknown[] because the exact backend leaderboard
+   * shape is already handled separately by mapLeaderboard().
+   */
+  leaderboardData: unknown[];
+
+  /**
+   * ID of the saved contestant answer.
+   */
+  answerId: string | null;
+
+  /**
+   * Quiz ID associated with the answer.
+   */
+  quizId: string | null;
+
+  /**
+   * Room ID associated with the answer.
+   */
+  roomId: string | null;
+
+  /**
+   * Round in which the answer was submitted.
+   */
+  roundNumber: number | null;
+
+  /**
+   * Question ID that was answered.
+   */
+  questionId: string | null;
+
+  /**
+   * The option value selected by the contestant.
+   *
+   * Example:
+   * "Taxonomy"
+   */
+  selectedAnswer: string | null;
+
+  /**
+   * Whether the submitted answer was correct.
+   */
+  isCorrect: boolean;
+
+  /**
+   * Whether this contestant was the first
+   * participant to answer correctly.
+   */
+  isFirstCorrectAnswer: boolean;
+
+  /**
+   * Points awarded specifically for this answer.
+   */
+  scoreAwarded: number;
+
+  /**
+   * Contestant's score for the current round.
+   */
+  roundScore: number;
+
+  /**
+   * Contestant's total score after this answer.
+   */
+  totalScore: number;
+
+  /**
+   * Time taken to answer, according to the server.
+   */
+  timeTakenInSeconds: number | null;
+
+  /**
+   * Server-generated result message.
+   *
+   * Examples:
+   *
+   * "Correct answer. You received the points for being
+   * the first correct participant."
+   *
+   * "Correct answer. Another participant answered correctly
+   * first, so no points were awarded."
+   *
+   * "Incorrect answer."
+   */
+  message: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Feed event                                                                */
+/* -------------------------------------------------------------------------- */
+
 export interface QuizFeedEvent {
   id: string;
 
@@ -70,7 +197,18 @@ export interface QuizFeedEvent {
   participantName?: string | null;
 }
 
-export type SocketPayload = Record<string, unknown>;
+/* -------------------------------------------------------------------------- */
+/* Socket payload                                                            */
+/* -------------------------------------------------------------------------- */
+
+export type SocketPayload = Record<
+  string,
+  unknown
+>;
+
+/* -------------------------------------------------------------------------- */
+/* Hook options                                                              */
+/* -------------------------------------------------------------------------- */
 
 export interface UseQuizSocketOptions {
   quizId: string;
@@ -83,12 +221,18 @@ export interface UseQuizSocketOptions {
 
   initialRound?: number;
 
-  onRoundChanged?: (roundNumber: number) => void;
+  onRoundChanged?: (
+    roundNumber: number,
+  ) => void;
 
   selectedQuestion?: HostQuestionPreviewQuestion | null;
 
   timeLimit?: number;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Hook result                                                               */
+/* -------------------------------------------------------------------------- */
 
 export interface UseQuizSocketResult {
   connected: boolean;
@@ -115,6 +259,15 @@ export interface UseQuizSocketResult {
 
   submittingAnswer: boolean;
 
+  /**
+   * Authoritative response received from the server
+   * after the contestant submits an answer.
+   *
+   * null means no answer result has been received
+   * for the currently displayed question.
+   */
+  answerResult: QuizAnswerResult | null;
+
   participants: HostParticipant[];
 
   leaderboard: HostLeaderboardEntry[];
@@ -127,9 +280,13 @@ export interface UseQuizSocketResult {
 
   timeLimit: number;
 
-  setTimeLimit: Dispatch<SetStateAction<number>>;
+  setTimeLimit: Dispatch<
+    SetStateAction<number>
+  >;
 
-  setSelectedAnswer: Dispatch<SetStateAction<string | null>>;
+  setSelectedAnswer: Dispatch<
+    SetStateAction<string | null>
+  >;
 
   startQuestion: () => void;
 
@@ -140,11 +297,13 @@ export interface UseQuizSocketResult {
   /**
    * Contestant-only answer selection.
    *
-   * This will immediately lock the contestant's
-   * answer UI and emit the selected answer to
-   * the quiz server.
+   * This immediately locks the contestant's
+   * answer UI and emits the selected answer
+   * to the quiz server.
    */
-  selectContestantAnswer: (answer: string) => void;
+  selectContestantAnswer: (
+    answer: string,
+  ) => void;
 
   /**
    * Existing submit action.
@@ -152,10 +311,16 @@ export interface UseQuizSocketResult {
    * Kept for compatibility while the contestant
    * selection flow is being separated.
    */
-  submitAnswer: (answer: string) => void;
+  submitAnswer: (
+    answer: string,
+  ) => void;
 
   refreshSocketState: () => void;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Socket action context                                                     */
+/* -------------------------------------------------------------------------- */
 
 export interface QuizSocketActionContext {
   quizId: string;
@@ -209,5 +374,6 @@ export interface QuizSocketActionContext {
     SetStateAction<boolean>
   >;
 }
+
 
 

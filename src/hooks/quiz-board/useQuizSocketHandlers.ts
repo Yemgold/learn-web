@@ -3,7 +3,6 @@
 
 
 
-
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
@@ -15,6 +14,7 @@ import type { QuizGameRole } from "@/types/quiz-board/quiz-role";
 import type {
   LiveQuestion,
   QuizFeedEvent,
+ QuizAnswerResult,
   QuizRoomDocument,
 } from "./quizSocketTypes";
 
@@ -37,6 +37,55 @@ import {
 /* ================================================================
    TYPES
 ================================================================ */
+
+/**
+ * Server response returned after a contestant submits an answer.
+ *
+ * Example backend response:
+ *
+ * {
+ *   success: true,
+ *   data: {
+ *     leaderboardData: [...],
+ *     answerId: "...",
+ *     quizId: "...",
+ *     roomId: "...",
+ *     roundNumber: 1,
+ *     questionId: "...",
+ *     selectedAnswer: "...",
+ *     isCorrect: true,
+ *     isFirstCorrectAnswer: true,
+ *     scoreAwarded: 10,
+ *     roundScore: 10,
+ *     totalScore: 30,
+ *     timeTakenInSeconds: 4.2,
+ *     message: "Correct answer. You received the points for being the first correct participant."
+ *   }
+ * }
+ */
+// export interface QuizAnswerResult {
+//   leaderboardData?: unknown[];
+
+//   answerId?: string;
+//   quizId?: string;
+//   roomId?: string;
+
+//   roundNumber?: number;
+//   questionId?: string;
+
+//   selectedAnswer?: string;
+
+//   isCorrect: boolean;
+//   isFirstCorrectAnswer: boolean;
+
+//   scoreAwarded: number;
+//   roundScore: number;
+//   totalScore: number;
+
+//   timeTakenInSeconds: number;
+
+//   message: string;
+// }
 
 export interface QuizSocketHandlerContext {
   quizIdRef: {
@@ -87,6 +136,14 @@ export interface QuizSocketHandlerContext {
   >;
   setAnswerSubmitted: Dispatch<SetStateAction<boolean>>;
   setSubmittingAnswer: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Stores the latest server-authoritative answer result.
+   */
+  setAnswerResult: Dispatch<
+    SetStateAction<QuizAnswerResult | null>
+  >;
+
   setParticipants: Dispatch<
     SetStateAction<HostParticipant[]>
   >;
@@ -206,6 +263,152 @@ function extractRound(
 }
 
 /* ================================================================
+   ANSWER RESULT EXTRACTION
+================================================================ */
+
+/**
+ * Extracts the backend answer_result data.
+ *
+ * Backend response:
+ *
+ * {
+ *   success: true,
+ *   data: {
+ *     ...
+ *   }
+ * }
+ *
+ * Some socket implementations may emit the data object
+ * directly, so this supports both forms.
+ */
+
+function extractAnswerResult(
+  payload: unknown,
+): QuizAnswerResult | null {
+  const unwrapped = unwrapPayload(payload);
+
+  if (!isRecord(unwrapped)) {
+    return null;
+  }
+
+  /*
+   * Support both:
+   *
+   * {
+   *   success: true,
+   *   data: {...}
+   * }
+   *
+   * and:
+   *
+   * {
+   *   isCorrect: true,
+   *   ...
+   * }
+   */
+  let data: unknown = unwrapped;
+
+  if (isRecord(unwrapped.data)) {
+    data = unwrapped.data;
+  }
+
+  if (!isRecord(data)) {
+    return null;
+  }
+
+  const isCorrect =
+    data.isCorrect === true;
+
+  const isFirstCorrectAnswer =
+    data.isFirstCorrectAnswer === true;
+
+  const scoreAwarded =
+    getNumber(
+      data.scoreAwarded,
+    ) ?? 0;
+
+  const roundScore =
+    getNumber(
+      data.roundScore,
+    ) ?? scoreAwarded;
+
+  const totalScore =
+    getNumber(
+      data.totalScore,
+    ) ?? 0;
+
+  const timeTakenInSeconds =
+    getNumber(
+      data.timeTakenInSeconds,
+    );
+
+  const message =
+    getString(
+      data.message,
+    ) ??
+    (
+      isCorrect
+        ? "Correct answer."
+        : "Incorrect answer."
+    );
+
+  const answerResult: QuizAnswerResult = {
+    leaderboardData:
+      Array.isArray(
+        data.leaderboardData,
+      )
+        ? data.leaderboardData
+        : [],
+
+    answerId:
+      getString(
+        data.answerId,
+      ),
+
+    quizId:
+      getString(
+        data.quizId,
+      ),
+
+    roomId:
+      getString(
+        data.roomId,
+      ),
+
+    roundNumber:
+      getNumber(
+        data.roundNumber,
+      ),
+
+    questionId:
+      getString(
+        data.questionId,
+      ),
+
+    selectedAnswer:
+      getString(
+        data.selectedAnswer,
+      ),
+
+    isCorrect,
+
+    isFirstCorrectAnswer,
+
+    scoreAwarded,
+
+    roundScore,
+
+    totalScore,
+
+    timeTakenInSeconds,
+
+    message,
+  };
+
+  return answerResult;
+}
+
+/* ================================================================
    CREATE HANDLERS
 ================================================================ */
 
@@ -233,6 +436,7 @@ export function createQuizSocketHandlers(
     setSelectedAnswer,
     setAnswerSubmitted,
     setSubmittingAnswer,
+    setAnswerResult,
     setParticipants,
     setLeaderboard,
     setSocketError,
@@ -808,6 +1012,14 @@ export function createQuizSocketHandlers(
     setAnswerSubmitted(false);
     setSubmittingAnswer(false);
 
+    /*
+     * Clear any previous answer result.
+     *
+     * The new question should not display the result from
+     * the previous question.
+     */
+    setAnswerResult(null);
+
     addFeedEvent(
       "round_started",
       payload,
@@ -857,6 +1069,12 @@ export function createQuizSocketHandlers(
       updateRound(round);
     }
 
+    /*
+     * Clear the previous answer result before displaying
+     * a new question.
+     */
+    setAnswerResult(null);
+
     applyQuestion(
       payload,
       "QUESTION STARTED",
@@ -891,6 +1109,12 @@ export function createQuizSocketHandlers(
     if (round !== null) {
       updateRound(round);
     }
+
+    /*
+     * Clear the previous answer result before the new
+     * question becomes active.
+     */
+    setAnswerResult(null);
 
     applyQuestion(
       payload,
@@ -944,6 +1168,11 @@ export function createQuizSocketHandlers(
     if (round !== null) {
       updateRound(round);
     }
+
+    /*
+     * Clear the previous answer result.
+     */
+    setAnswerResult(null);
 
     const rawQuestion =
       extractQuestion(payload);
@@ -1002,6 +1231,11 @@ export function createQuizSocketHandlers(
       updateRound(round);
     }
 
+    /*
+     * Clear the previous answer result.
+     */
+    setAnswerResult(null);
+
     applyQuestion(
       payload,
       "QUESTION DISPLAYED",
@@ -1036,6 +1270,11 @@ export function createQuizSocketHandlers(
     if (round !== null) {
       updateRound(round);
     }
+
+    /*
+     * Clear the previous answer result.
+     */
+    setAnswerResult(null);
 
     applyQuestion(
       payload,
@@ -1346,11 +1585,96 @@ export function createQuizSocketHandlers(
       payload,
     );
 
+    /*
+     * Extract the server-authoritative result.
+     */
+    const answerResult =
+      extractAnswerResult(payload);
+
+    if (!answerResult) {
+      console.warn(
+        "[useQuizSocket] answer_result could not be parsed:",
+        payload,
+      );
+
+      setSubmittingAnswer(false);
+
+      addFeedEvent(
+        "answer_result",
+        payload,
+      );
+
+      return;
+    }
+
+    console.log(
+      "[useQuizSocket] ANSWER RESULT PARSED:",
+      answerResult,
+    );
+
+    /*
+     * Store the complete server response.
+     *
+     * The contestant UI can now use:
+     *
+     * answerResult.isCorrect
+     * answerResult.isFirstCorrectAnswer
+     * answerResult.scoreAwarded
+     * answerResult.roundScore
+     * answerResult.totalScore
+     * answerResult.timeTakenInSeconds
+     * answerResult.message
+     */
+    setAnswerResult(
+      answerResult,
+    );
+
+    /*
+     * The server has successfully processed the answer.
+     */
     setSubmittingAnswer(false);
+
+    setAnswerSubmitted(true);
+
+    /*
+     * Once the server responds, the current question
+     * should no longer accept another answer.
+     */
+    setQuestionLocked(true);
+
+    /*
+     * Keep the selected answer synchronized with the
+     * server response when available.
+     */
+    if (
+      answerResult.selectedAnswer
+    ) {
+      setSelectedAnswer(
+        answerResult.selectedAnswer,
+      );
+    }
+
+    /*
+     * Update leaderboard immediately if the backend
+     * included the updated leaderboard in answer_result.
+     */
+    if (
+      Array.isArray(
+        answerResult.leaderboardData,
+      ) &&
+      answerResult.leaderboardData.length > 0
+    ) {
+      setLeaderboard(
+        mapLeaderboard(
+          answerResult.leaderboardData,
+        ),
+      );
+    }
 
     addFeedEvent(
       "answer_result",
       payload,
+      answerResult.message,
     );
   };
 
@@ -1495,3 +1819,4 @@ export function createQuizSocketHandlers(
     handleSocketError,
   };
 }
+

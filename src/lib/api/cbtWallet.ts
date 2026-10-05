@@ -3,9 +3,9 @@
 
 
 
+// C:\Users\Lara Spellman\Jamb\jamb-league\src\lib\api\cbtWallet.ts
 
 
-// C:\Users\Lara Spellman\Jamb\jamb-league\src\lib\api\cbtApi.ts
 
 import { axiosInstance } from "@/lib/api/axios";
 

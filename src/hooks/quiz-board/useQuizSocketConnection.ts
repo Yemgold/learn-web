@@ -418,6 +418,40 @@ export function useQuizSocketConnection(
 
     socketRef.current = socket;
 
+
+    /* ============================================================
+   DEBUG ALL INCOMING SOCKET EVENTS
+============================================================ */
+
+const handleAnyIncomingEvent = (
+  event: string,
+  ...args: unknown[]
+) => {
+  console.log(
+    "[RAW SOCKET] INCOMING EVENT:",
+    event,
+    args,
+  );
+
+  if (event === "answer_result") {
+    console.log(
+      "[RAW SOCKET] ⭐ ANSWER_RESULT RECEIVED:",
+      args,
+    );
+
+    try {
+      console.log(
+        "[RAW SOCKET] ⭐ ANSWER_RESULT JSON:",
+        JSON.stringify(args),
+      );
+    } catch {
+      // Ignore serialization errors.
+    }
+  }
+};
+
+socket.onAny(handleAnyIncomingEvent);
+
     /* ============================================================
        CONNECTION LIFECYCLE
     ============================================================ */
@@ -695,6 +729,12 @@ export function useQuizSocketConnection(
        *
        * Only remove listeners owned by this hook.
        */
+    socket.offAny(
+  handleAnyIncomingEvent,
+);
+
+
+
       if (socketRef.current === socket) {
         socketRef.current = null;
       }

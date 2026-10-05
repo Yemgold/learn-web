@@ -198,15 +198,15 @@ socket.onAnyOutgoing((event, ...args) => {
     args,
   );
 
-  if (event === "submit_answer") {
+  if (event === "participant_selected_answer") {
     console.log(
-      "[Quiz Socket] ⭐ SUBMIT_ANSWER ACTUALLY EMITTED:",
+      "[Quiz Socket] ⭐ PARTICIPANT_SELECTED_ANSWER ACTUALLY EMITTED:",
       args,
     );
 
     try {
       console.log(
-        "[Quiz Socket] ⭐ SUBMIT_ANSWER JSON:",
+        "[Quiz Socket] ⭐ ⭐ PARTICIPANT_SELECTED_ANSWER JSON:",
         JSON.stringify(args, null, 2),
       );
     } catch {
@@ -214,10 +214,6 @@ socket.onAnyOutgoing((event, ...args) => {
     }
   }
 });
-
-
-
-
 
 
     console.log(
@@ -286,5 +282,35 @@ export function disconnectQuizSocket(): void {
 
   console.log(
     "[Quiz Socket] Socket completely destroyed.",
+  );
+}
+
+
+/* ============================================================
+   PARTICIPANT ANSWER SOCKET
+   ============================================================ */
+
+export interface SubmitParticipantAnswerPayload {
+  roomId: string;
+  roundNumber: number;
+  questionId: string;
+  selectedAnswerId: string;
+}
+
+export function submitParticipantAnswer(
+  payload: SubmitParticipantAnswerPayload,
+): void {
+  const socket = getQuizSocket();
+
+  console.log(
+    "[Quiz Socket] PARTICIPANT_SELECTED_ANSWER:",
+    payload,
+  );
+
+  socket.emit(
+    "participant_selected_answer",
+    {
+      data: payload,
+    },
   );
 }

@@ -3,9 +3,6 @@
 
 
 
-
-
-
 "use client";
 
 import {
@@ -54,6 +51,10 @@ import {
 
 import { useQuizSocketConnection } from "./useQuizSocketConnection";
 
+import {
+  submitParticipantAnswer,
+} from "@/lib/socket/quizSocket";
+
 /* ================================================================
    RE-EXPORT TYPES
 ================================================================ */
@@ -61,12 +62,11 @@ import { useQuizSocketConnection } from "./useQuizSocketConnection";
 export type {
   LiveQuestion,
   QuizFeedEvent,
+  QuizAnswerResult,
   QuizRoomDocument,
   UseQuizSocketOptions,
   UseQuizSocketResult,
 } from "./quizSocketTypes";
-
-
 
 /* ================================================================
    HOOK
@@ -156,7 +156,7 @@ export function useQuizSocket(
    * Server-authoritative answer result.
    *
    * This is populated only after the backend responds
-   * to submit_answer with answer_result.
+   * with answer_result.
    */
   const [answerResult, setAnswerResult] =
     useState<QuizAnswerResult | null>(null);
@@ -913,17 +913,7 @@ export function useQuizSocket(
         }
 
         /* --------------------------------------------------------
-           Emit contestant answer.
-
-           This is the working contestant flow:
-
-             selectContestantAnswer()
-                    ↓
-             submit_answer
-                    ↓
-             backend validation
-                    ↓
-             answer_result
+           Participant answer logging
         -------------------------------------------------------- */
 
         console.log(
@@ -956,36 +946,39 @@ export function useQuizSocket(
           },
         );
 
-        console.log(
-  "[QuizSocket] BEFORE participant_selected_answer EMIT:",
-  {
-    socketId: socket.id,
-    connected: socket.connected,
-    event: "participant_selected_answer",
-    roomId: roomIdRef.current,
-    roundNumber: currentRoundRef.current,
-    questionId: activeQuestion.id,
-    selectedAnswerId: normalizedAnswer,
-  },
-);
-        socket.emit(
-          "participant_selected_answer",
-          {
-            data: {
-              roomId:
-                roomIdRef.current,
+        /* --------------------------------------------------------
+           Send contestant answer.
 
-              roundNumber:
-                currentRoundRef.current,
+           The actual Socket.IO emission lives in:
 
-              questionId:
-                activeQuestion.id,
+             src/lib/socket/quizSocket.ts
 
-              selectedAnswerId:
-                normalizedAnswer,
-            },
-          },
-        );
+           Flow:
+
+             selectContestantAnswer()
+                    ↓
+             submitParticipantAnswer()
+                    ↓
+             participant_selected_answer
+                    ↓
+             backend
+                    ↓
+             answer_result
+        -------------------------------------------------------- */
+
+        submitParticipantAnswer({
+          roomId:
+            roomIdRef.current,
+
+          roundNumber:
+            currentRoundRef.current,
+
+          questionId:
+            activeQuestion.id,
+
+          selectedAnswerId:
+            normalizedAnswer,
+        });
       },
       [
         questionStarted,
@@ -1246,11 +1239,13 @@ export function useQuizSocket(
      * This is reserved for the existing/future
      * spectator answer submission functionality.
      *
-     * The current contestant flow uses:
+     * Contestant answer flow uses:
      *
      * selectContestantAnswer()
      *        ↓
-     * submit_answer
+     * submitParticipantAnswer()
+     *        ↓
+     * participant_selected_answer
      *        ↓
      * answer_result
      */
@@ -1261,5 +1256,3 @@ export function useQuizSocket(
       actions.refreshSocketState,
   };
 }
-
-

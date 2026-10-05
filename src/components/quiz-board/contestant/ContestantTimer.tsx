@@ -3,7 +3,6 @@
 
 
 
-
 "use client";
 
 import {
@@ -13,8 +12,10 @@ import {
   Lock,
 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -49,6 +50,44 @@ function parseTimestamp(
     : null;
 }
 
+function getDurationSeconds(
+  timeLimit: number | null | undefined,
+  startedAt: string | null | undefined,
+  expiresAt: string | null | undefined,
+): number | null {
+  if (
+    timeLimit !== null &&
+    timeLimit !== undefined &&
+    Number.isFinite(timeLimit) &&
+    timeLimit > 0
+  ) {
+    return Math.max(1, Math.ceil(timeLimit));
+  }
+
+  const startedTimestamp =
+    parseTimestamp(startedAt);
+
+  const expiresTimestamp =
+    parseTimestamp(expiresAt);
+
+  if (
+    startedTimestamp !== null &&
+    expiresTimestamp !== null &&
+    expiresTimestamp > startedTimestamp
+  ) {
+    return Math.max(
+      1,
+      Math.ceil(
+        (expiresTimestamp -
+          startedTimestamp) /
+          1000,
+      ),
+    );
+  }
+
+  return null;
+}
+
 export default function ContestantTimer({
   startedAt = null,
   expiresAt = null,
@@ -65,45 +104,238 @@ export default function ContestantTimer({
   compact = false,
   showProgress = true,
 }: ContestantTimerProps) {
-  const startedTimestamp = useMemo(
-    () => parseTimestamp(startedAt),
-    [startedAt],
+  /*
+   * ==========================================================
+   * TIMER DURATION
+   * ==========================================================
+   *
+   * The duration comes from the quiz configuration/server.
+   *
+   * For example:
+   *
+   * timeLimit = 10
+   *
+   * means the contestant sees:
+   *
+   * 00:10
+   * 00:09
+   * 00:08
+   * ...
+   * 00:00
+   *
+   * We do NOT calculate the visual countdown using:
+   *
+   * expiresAt - Date.now()
+   *
+   * because Date.now() depends on the computer's system clock.
+   */
+  const effectiveTimeLimit = useMemo(
+    () =>
+      getDurationSeconds(
+        timeLimit,
+        startedAt,
+        expiresAt,
+      ),
+    [
+      timeLimit,
+      startedAt,
+      expiresAt,
+    ],
   );
 
-  const expiresTimestamp = useMemo(
-    () => parseTimestamp(expiresAt),
-    [expiresAt],
-  );
+  /*
+   * ==========================================================
+   * LOCAL MONOTONIC TIMER
+   * ==========================================================
+   *
+   * performance.now() measures elapsed time on this page.
+   *
+   * Unlike Date.now(), it is not affected by:
+   *
+   * - Windows clock changes
+   * - timezone
+   * - incorrect system date
+   * - daylight-saving changes
+   *
+   * The backend remains authoritative for answer validation.
+   * This timer is only responsible for displaying the countdown.
+   */
+  const timerStartRef =
+    useRef<number | null>(null);
 
-  const [now, setNow] = useState(() =>
-    Date.now(),
-  );
+  const durationRef =
+    useRef<number | null>(null);
+
+  const [elapsedMilliseconds, setElapsedMilliseconds] =
+    useState(0);
+
+  const [expired, setExpired] =
+    useState(false);
+
+  /*
+   * Keep the latest expiration callback without
+   * restarting the timer whenever the parent
+   * recreates the callback.
+   */
+  const onExpireRef =
+    useRef(onExpire);
 
   useEffect(() => {
-    if (!active || locked) {
+    onExpireRef.current =
+      onExpire;
+  }, [onExpire]);
+
+  /*
+   * Reset the local timer whenever a new question
+   * arrives.
+   *
+   * A question is identified primarily by its
+   * startedAt / expiresAt / timeLimit combination.
+   */
+  const questionKey = useMemo(
+    () =>
+      [
+        startedAt ?? "",
+        expiresAt ?? "",
+        effectiveTimeLimit ?? "",
+      ].join("|"),
+    [
+      startedAt,
+      expiresAt,
+      effectiveTimeLimit,
+    ],
+  );
+
+  const previousQuestionKeyRef =
+    useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      previousQuestionKeyRef.current ===
+      questionKey
+    ) {
       return;
     }
 
-    const interval = window.setInterval(() => {
-      setNow(Date.now());
-    }, 250);
+    previousQuestionKeyRef.current =
+      questionKey;
+
+    timerStartRef.current =
+      null;
+
+    durationRef.current =
+      effectiveTimeLimit;
+
+    setElapsedMilliseconds(0);
+    setExpired(false);
+  }, [
+    questionKey,
+    effectiveTimeLimit,
+  ]);
+
+  /*
+   * ==========================================================
+   * START LOCAL COUNTDOWN
+   * ==========================================================
+   */
+  useEffect(() => {
+    if (
+      !active ||
+      locked ||
+      effectiveTimeLimit === null
+    ) {
+      return;
+    }
+
+    /*
+     * Start exactly when the active question
+     * becomes active.
+     */
+    if (
+      timerStartRef.current === null
+    ) {
+      timerStartRef.current =
+        performance.now();
+
+      durationRef.current =
+        effectiveTimeLimit;
+
+      setElapsedMilliseconds(0);
+      setExpired(false);
+    }
+
+    const interval =
+      window.setInterval(() => {
+        if (
+          timerStartRef.current ===
+          null
+        ) {
+          return;
+        }
+
+        const elapsed =
+          performance.now() -
+          timerStartRef.current;
+
+        const durationMilliseconds =
+          effectiveTimeLimit * 1000;
+
+        const clampedElapsed =
+          Math.min(
+            durationMilliseconds,
+            Math.max(0, elapsed),
+          );
+
+        setElapsedMilliseconds(
+          clampedElapsed,
+        );
+
+        if (
+          clampedElapsed >=
+          durationMilliseconds
+        ) {
+          setExpired(true);
+        }
+      }, 50);
 
     return () => {
       window.clearInterval(interval);
     };
-  }, [active, locked]);
+  }, [
+    active,
+    locked,
+    effectiveTimeLimit,
+  ]);
 
-  const remainingMilliseconds = useMemo(() => {
-    if (expiresTimestamp === null) {
-      return null;
-    }
+  /*
+   * ==========================================================
+   * REMAINING TIME
+   * ==========================================================
+   */
+  const remainingMilliseconds =
+    effectiveTimeLimit === null
+      ? null
+      : Math.max(
+          0,
+          effectiveTimeLimit * 1000 -
+            elapsedMilliseconds,
+        );
 
-    return Math.max(
-      0,
-      expiresTimestamp - now,
-    );
-  }, [expiresTimestamp, now]);
-
+  /*
+   * Ceil is intentional.
+   *
+   * Example:
+   *
+   * 9.8 seconds → 10
+   * 9.1 seconds → 10
+   * 8.9 seconds → 9
+   *
+   * This keeps the display as:
+   *
+   * 00:10
+   * 00:09
+   * 00:08
+   */
   const remainingSeconds =
     remainingMilliseconds === null
       ? null
@@ -111,23 +343,39 @@ export default function ContestantTimer({
           remainingMilliseconds / 1000,
         );
 
-  const effectiveTimeLimit =
-    timeLimit !== null &&
-    timeLimit !== undefined &&
-    timeLimit > 0
-      ? timeLimit
-      : startedTimestamp !== null &&
-          expiresTimestamp !== null
-        ? Math.max(
-            1,
-            Math.ceil(
-              (expiresTimestamp -
-                startedTimestamp) /
-                1000,
-            ),
-          )
-        : null;
+  /*
+   * ==========================================================
+   * EXPIRE CALLBACK
+   * ==========================================================
+   */
+  const expireHandledRef =
+    useRef(false);
 
+  useEffect(() => {
+    if (!expired) {
+      expireHandledRef.current =
+        false;
+
+      return;
+    }
+
+    if (
+      expireHandledRef.current
+    ) {
+      return;
+    }
+
+    expireHandledRef.current =
+      true;
+
+    onExpireRef.current?.();
+  }, [expired]);
+
+  /*
+   * ==========================================================
+   * PROGRESS
+   * ==========================================================
+   */
   const progress =
     effectiveTimeLimit !== null &&
     remainingSeconds !== null
@@ -142,19 +390,11 @@ export default function ContestantTimer({
         )
       : null;
 
-  const expired =
-    expiresTimestamp !== null &&
-    remainingMilliseconds !== null &&
-    remainingMilliseconds <= 0;
-
-  useEffect(() => {
-    if (!expired || !onExpire) {
-      return;
-    }
-
-    onExpire();
-  }, [expired, onExpire]);
-
+  /*
+   * ==========================================================
+   * VISUAL STATE
+   * ==========================================================
+   */
   const urgent =
     remainingSeconds !== null &&
     remainingSeconds <= 5 &&
@@ -179,6 +419,11 @@ export default function ContestantTimer({
     StateIcon = CheckCircle2;
   }
 
+  /*
+   * ==========================================================
+   * FORMAT
+   * ==========================================================
+   */
   const formattedTime =
     remainingSeconds === null
       ? "--"
@@ -197,7 +442,9 @@ export default function ContestantTimer({
       className={[
         "rounded-2xl border",
         "bg-slate-950/70 shadow-xl shadow-black/10",
-        compact ? "p-4" : "p-5 sm:p-6",
+        compact
+          ? "p-4"
+          : "p-5 sm:p-6",
         urgent
           ? "border-red-400/40"
           : warning
@@ -279,14 +526,15 @@ export default function ContestantTimer({
       {!compact &&
         effectiveTimeLimit !== null && (
           <p className="mt-3 text-xs text-slate-500">
-            The timer is synchronized with the quiz
-            server.
+            The countdown runs locally while
+            answer validation remains
+            server-authoritative.
           </p>
         )}
 
       {compact && (
         <p className="mt-2 text-[10px] text-slate-600">
-          Server-authoritative timer
+          Server-authoritative answer validation
         </p>
       )}
     </section>

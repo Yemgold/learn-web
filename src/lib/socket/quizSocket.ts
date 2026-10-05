@@ -309,8 +309,9 @@ export function submitParticipantAnswer(
 
   socket.emit(
     "participant_selected_answer",
-    {
-      data: payload,
-    },
+    payload
+    // {
+    //   data: payload,
+    // },
   );
 }

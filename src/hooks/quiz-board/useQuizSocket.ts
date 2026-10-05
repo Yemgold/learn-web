@@ -969,7 +969,7 @@ export function useQuizSocket(
   },
 );
         socket.emit(
-          "submit_answer",
+          "participant_selected_answer",
           {
             data: {
               roomId:

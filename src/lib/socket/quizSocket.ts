@@ -290,6 +290,124 @@ export function disconnectQuizSocket(): void {
    PARTICIPANT ANSWER SOCKET
    ============================================================ */
 
+// export interface SubmitParticipantAnswerPayload {
+//   roomId: string;
+//   roundNumber: number;
+//   questionId: string;
+//   selectedAnswerId: string;
+// }
+
+// export function submitParticipantAnswer(
+//   payload: SubmitParticipantAnswerPayload,
+// ): void {
+//   const socket = getQuizSocket();
+
+//   console.log(
+//     "[Quiz Socket] PARTICIPANT_SELECTED_ANSWER:",
+//     payload,
+//   );
+
+//   socket.emit(
+//     "participant_selected_answer",
+//     payload
+//   );
+// }
+
+
+
+
+
+
+
+/* ============================================================
+   PARTICIPANT ANSWER SOCKET
+   ============================================================ */
+
+const participantAnswerSocket = getQuizSocket();
+
+/**
+ * Listen for the backend answer result.
+ */
+participantAnswerSocket.on(
+  "answer_result",
+  (...args: unknown[]) => {
+    console.log(
+      "[Quiz Socket] ⭐⭐⭐ ANSWER_RESULT RESPONSE RECEIVED ⭐⭐⭐",
+    );
+
+    console.log(
+      "[Quiz Socket] ANSWER_RESULT ARGUMENT COUNT:",
+      args.length,
+    );
+
+    console.log(
+      "[Quiz Socket] ANSWER_RESULT ALL ARGS:",
+      args,
+    );
+
+    console.log(
+      "[Quiz Socket] ANSWER_RESULT JSON:",
+      JSON.stringify(args, null, 2),
+    );
+
+    const response: unknown = args[0];
+
+    console.log(
+      "[Quiz Socket] ANSWER_RESULT PAYLOAD:",
+      response,
+    );
+
+    console.log(
+      "[Quiz Socket] ANSWER_RESULT PAYLOAD JSON:",
+      JSON.stringify(response, null, 2),
+    );
+  },
+);
+
+/**
+ * Listen for backend socket errors.
+ */
+participantAnswerSocket.on(
+  "socket_error",
+  (...args: unknown[]) => {
+    console.error(
+      "[Quiz Socket] ❌❌❌ SOCKET_ERROR RESPONSE RECEIVED ❌❌❌",
+    );
+
+    console.error(
+      "[Quiz Socket] SOCKET_ERROR ARGUMENT COUNT:",
+      args.length,
+    );
+
+    console.error(
+      "[Quiz Socket] SOCKET_ERROR ALL ARGS:",
+      args,
+    );
+
+    console.error(
+      "[Quiz Socket] SOCKET_ERROR JSON:",
+      JSON.stringify(args, null, 2),
+    );
+
+    const error: unknown = args[0];
+
+    console.error(
+      "[Quiz Socket] SOCKET_ERROR PAYLOAD:",
+      error,
+    );
+
+    console.error(
+      "[Quiz Socket] SOCKET_ERROR PAYLOAD JSON:",
+      JSON.stringify(error, null, 2),
+    );
+  },
+);
+
+
+/* ============================================================
+   PARTICIPANT ANSWER PAYLOAD
+   ============================================================ */
+
 export interface SubmitParticipantAnswerPayload {
   roomId: string;
   roundNumber: number;
@@ -297,21 +415,38 @@ export interface SubmitParticipantAnswerPayload {
   selectedAnswerId: string;
 }
 
+
+/* ============================================================
+   PARTICIPANT ANSWER EMITTER
+   ============================================================ */
+
 export function submitParticipantAnswer(
   payload: SubmitParticipantAnswerPayload,
 ): void {
-  const socket = getQuizSocket();
-
   console.log(
     "[Quiz Socket] PARTICIPANT_SELECTED_ANSWER:",
     payload,
   );
 
-  socket.emit(
+  console.log(
+    "[Quiz Socket] PARTICIPANT_SELECTED_ANSWER JSON:",
+    JSON.stringify(payload, null, 2),
+  );
+
+  console.log(
+    "[Quiz Socket] EMITTING participant_selected_answer",
+  );
+
+  participantAnswerSocket.emit(
     "participant_selected_answer",
-    payload
-    // {
-    //   data: payload,
-    // },
+    payload,
+  );
+
+  console.log(
+    "[Quiz Socket] PARTICIPANT_SELECTED_ANSWER EMITTED",
   );
 }
+
+
+
+

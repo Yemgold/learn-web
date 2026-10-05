@@ -957,11 +957,11 @@ export function useQuizSocket(
         );
 
         console.log(
-  "[QuizSocket] BEFORE SUBMIT_ANSWER EMIT:",
+  "[QuizSocket] BEFORE participant_selected_answer EMIT:",
   {
     socketId: socket.id,
     connected: socket.connected,
-    event: "submit_answer",
+    event: "participant_selected_answer",
     roomId: roomIdRef.current,
     roundNumber: currentRoundRef.current,
     questionId: activeQuestion.id,

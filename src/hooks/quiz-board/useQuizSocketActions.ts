@@ -632,7 +632,7 @@ export function useQuizSocketActions(
          ------------------------------------------------------ */
 
       socket.emit(
-        "submit_answer",
+        "participant_selected_answer",
         payload,
       );
 

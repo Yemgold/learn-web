@@ -190,6 +190,36 @@ export function getQuizSocket(): Socket {
   }
 });
 
+
+socket.onAnyOutgoing((event, ...args) => {
+  console.log(
+    "[Quiz Socket] OUTGOING EVENT:",
+    event,
+    args,
+  );
+
+  if (event === "submit_answer") {
+    console.log(
+      "[Quiz Socket] ⭐ SUBMIT_ANSWER ACTUALLY EMITTED:",
+      args,
+    );
+
+    try {
+      console.log(
+        "[Quiz Socket] ⭐ SUBMIT_ANSWER JSON:",
+        JSON.stringify(args, null, 2),
+      );
+    } catch {
+      // Ignore serialization errors.
+    }
+  }
+});
+
+
+
+
+
+
     console.log(
       "[Quiz Socket] Socket instance created.",
     );

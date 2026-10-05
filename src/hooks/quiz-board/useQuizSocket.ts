@@ -956,6 +956,18 @@ export function useQuizSocket(
           },
         );
 
+        console.log(
+  "[QuizSocket] BEFORE SUBMIT_ANSWER EMIT:",
+  {
+    socketId: socket.id,
+    connected: socket.connected,
+    event: "submit_answer",
+    roomId: roomIdRef.current,
+    roundNumber: currentRoundRef.current,
+    questionId: activeQuestion.id,
+    selectedAnswerId: normalizedAnswer,
+  },
+);
         socket.emit(
           "submit_answer",
           {

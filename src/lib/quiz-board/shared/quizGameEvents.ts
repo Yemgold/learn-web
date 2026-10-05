@@ -268,19 +268,13 @@ export interface QuestionCompletedPayload {
    ============================================================ */
 
 export interface ParticipantSelectedAnswerPayload {
-  participantId?: string;
+  roomId: string;
 
-  userId?: string;
+  roundNumber: number;
 
-  questionId?: string;
+  questionId: string;
 
-  questionNumber?: number;
-
-  selectedAnswer?: string;
-
-  answer?: string;
-
-  submittedAt?: number;
+  selectedAnswerId: string;
 }
 
 export interface AnswerResultPayload {

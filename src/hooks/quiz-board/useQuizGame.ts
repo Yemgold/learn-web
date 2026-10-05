@@ -2482,7 +2482,7 @@ export function useQuizGame(
 
         const payload:
   SubmitAnswerPayload = {
-    data: {
+    
       roomId,
       roundNumber:
         currentRoundRef.current,
@@ -2490,7 +2490,7 @@ export function useQuizGame(
         question.id,
       selectedAnswerId:
         normalizedAnswer,
-    },
+    
   };
 
         console.log(

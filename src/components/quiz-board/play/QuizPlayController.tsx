@@ -50,7 +50,7 @@ import { useQuizSocket } from "@/hooks/quiz-board/useQuizSocket";
 
 
 /* =========================================================
-   PROPS
+   PROPs
    ========================================================= */
 
 export interface QuizPlayControllerProps {

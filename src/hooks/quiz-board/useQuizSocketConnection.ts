@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -257,6 +258,76 @@ export function useQuizSocketConnection(
     );
 
   /*
+   * QUESTION COMPLETED
+   *
+   * LISTENER ONLY.
+   *
+   * We are NOT emitting "question_completed".
+   *
+   * We are only waiting for the backend to emit it and logging
+   * exactly what the backend sends.
+   *
+   * We intentionally do not forward this event to
+   * useQuizSocketHandlers yet because we first want to inspect
+   * the exact backend payload.
+   */
+  const handleQuestionCompleted =
+    useCallback(
+      (...args: unknown[]) => {
+        console.log(
+          "🏁🏁🏁 QUESTION_COMPLETED RECEIVED 🏁🏁🏁",
+        );
+
+        console.log(
+          "[RAW SOCKET] question_completed ARGUMENT COUNT:",
+          args.length,
+        );
+
+        console.log(
+          "[RAW SOCKET] question_completed ALL ARGS:",
+          args,
+        );
+
+        try {
+          console.log(
+            "[RAW SOCKET] question_completed ALL ARGS JSON:",
+            JSON.stringify(
+              args,
+              null,
+              2,
+            ),
+          );
+        } catch {
+          // Ignore serialization errors.
+        }
+
+        const payload =
+          args.length === 1
+            ? args[0]
+            : args;
+
+        console.log(
+          "[RAW SOCKET] question_completed PAYLOAD:",
+          payload,
+        );
+
+        try {
+          console.log(
+            "[RAW SOCKET] question_completed PAYLOAD JSON:",
+            JSON.stringify(
+              payload,
+              null,
+              2,
+            ),
+          );
+        } catch {
+          // Ignore serialization errors.
+        }
+      },
+      [],
+    );
+
+  /*
    * Fastest correct winner response.
    *
    * The backend response is logged exactly as received.
@@ -469,7 +540,8 @@ export function useQuizSocketConnection(
 
       if (
         event === "answer_result" ||
-        event === "question_fastest_winner"
+        event === "question_fastest_winner" ||
+        event === "question_completed"
       ) {
         console.log(
           "[RAW SOCKET] ⭐ IMPORTANT EVENT RECEIVED:",
@@ -499,7 +571,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        CONNECTION LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "connect",
@@ -518,7 +590,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        ROOM LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "joined_room_ack",
@@ -551,7 +623,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        ROUND LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "round_started",
@@ -560,7 +632,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        QUESTION LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "question_started",
@@ -587,6 +659,16 @@ export function useQuizSocketConnection(
       handleQuestionLocked,
     );
 
+    /*
+     * LISTEN ONLY.
+     *
+     * No socket.emit() is performed.
+     */
+    socket.on(
+      "question_completed",
+      handleQuestionCompleted,
+    );
+
     socket.on(
       "next_question",
       handleNextQuestion,
@@ -599,7 +681,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        PARTICIPANT LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "participant_joined_room",
@@ -623,7 +705,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        ANSWER LIFECYCLE
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "answer_result",
@@ -637,7 +719,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        GENERIC SOCKET ERRORS
-    ============================================================ */
+    ============================================================== */
 
     socket.on(
       "socket_error",
@@ -646,7 +728,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        ALREADY CONNECTED
-    ============================================================ */
+    ============================================================== */
 
     if (socket.connected) {
       setConnected(true);
@@ -656,7 +738,7 @@ export function useQuizSocketConnection(
 
     /* ============================================================
        CLEANUP
-    ============================================================ */
+    ============================================================== */
 
     return () => {
       disposedRef.current = true;
@@ -729,6 +811,11 @@ export function useQuizSocketConnection(
       socket.off(
         "question_locked",
         handleQuestionLocked,
+      );
+
+      socket.off(
+        "question_completed",
+        handleQuestionCompleted,
       );
 
       socket.off(
@@ -823,6 +910,7 @@ export function useQuizSocketConnection(
     handleNewQuestionDisplayed,
     handleQuestionDisplayed,
     handleQuestionLocked,
+    handleQuestionCompleted,
     handleNextQuestion,
     handleQuestionFastestWinner,
 
@@ -838,6 +926,12 @@ export function useQuizSocketConnection(
     handleSocketError,
   ]);
 }
+
+
+
+
+
+
 
 
 
@@ -1106,6 +1200,40 @@ export function useQuizSocketConnection(
 //       [],
 //     );
 
+//   /*
+//    * Fastest correct winner response.
+//    *
+//    * The backend response is logged exactly as received.
+//    * Parsing/mapping is handled by useQuizSocketHandlers.
+//    */
+//   const handleQuestionFastestWinner =
+//     useCallback(
+//       (payload: unknown) => {
+//         console.log(
+//           "🏆🏆🏆 [RAW SOCKET] QUESTION FASTEST WINNER RECEIVED:",
+//           payload,
+//         );
+
+//         try {
+//           console.log(
+//             "🏆 [RAW SOCKET] QUESTION FASTEST WINNER JSON:",
+//             JSON.stringify(
+//               payload,
+//               null,
+//               2,
+//             ),
+//           );
+//         } catch {
+//           // Ignore serialization errors.
+//         }
+
+//         handlersRef.current.handleQuestionFastestWinner(
+//           payload,
+//         );
+//       },
+//       [],
+//     );
+
 //   /* ==============================================================
 //      PARTICIPANT CALLBACKS
 //   ============================================================== */
@@ -1229,31 +1357,6 @@ export function useQuizSocketConnection(
 //       [],
 //     );
 
-
-// const handleQuestionFastestWinner =
-//   useCallback(
-//     (payload: unknown) => {
-//       console.log(
-//         "🏆🏆🏆 [RAW SOCKET] QUESTION FASTEST WINNER RECEIVED:",
-//         payload,
-//       );
-
-//       try {
-//         console.log(
-//           "🏆 [RAW SOCKET] QUESTION FASTEST WINNER JSON:",
-//           JSON.stringify(payload, null, 2),
-//         );
-//       } catch {
-//         // Ignore serialization errors.
-//       }
-
-//       handlersRef.current.handleQuestionFastestWinner(
-//         payload,
-//       );
-//     },
-//     [],
-//   );
-
 //   /* ==============================================================
 //      ERROR CALLBACK
 //   ============================================================== */
@@ -1294,39 +1397,49 @@ export function useQuizSocketConnection(
 
 //     socketRef.current = socket;
 
-
 //     /* ============================================================
-//    DEBUG ALL INCOMING SOCKET EVENTS
-// ============================================================ */
+//        DEBUG ALL INCOMING SOCKET EVENTS
+//     ============================================================ */
 
-// const handleAnyIncomingEvent = (
-//   event: string,
-//   ...args: unknown[]
-// ) => {
-//   console.log(
-//     "[RAW SOCKET] INCOMING EVENT:",
-//     event,
-//     args,
-//   );
-
-//   if (event === "answer_result") {
-//     console.log(
-//       "[RAW SOCKET] ⭐ ANSWER_RESULT RECEIVED:",
-//       args,
-//     );
-
-//     try {
+//     const handleAnyIncomingEvent = (
+//       event: string,
+//       ...args: unknown[]
+//     ) => {
 //       console.log(
-//         "[RAW SOCKET] ⭐ ANSWER_RESULT JSON:",
-//         JSON.stringify(args),
+//         "[RAW SOCKET] INCOMING EVENT:",
+//         event,
+//         args,
 //       );
-//     } catch {
-//       // Ignore serialization errors.
-//     }
-//   }
-// };
 
-// socket.onAny(handleAnyIncomingEvent);
+//       if (
+//         event === "answer_result" ||
+//         event === "question_fastest_winner"
+//       ) {
+//         console.log(
+//           "[RAW SOCKET] ⭐ IMPORTANT EVENT RECEIVED:",
+//           event,
+//           args,
+//         );
+
+//         try {
+//           console.log(
+//             "[RAW SOCKET] ⭐ IMPORTANT EVENT JSON:",
+//             event,
+//             JSON.stringify(
+//               args,
+//               null,
+//               2,
+//             ),
+//           );
+//         } catch {
+//           // Ignore serialization errors.
+//         }
+//       }
+//     };
+
+//     socket.onAny(
+//       handleAnyIncomingEvent,
+//     );
 
 //     /* ============================================================
 //        CONNECTION LIFECYCLE
@@ -1424,9 +1537,9 @@ export function useQuizSocketConnection(
 //     );
 
 //     socket.on(
-//   "question_fastest_winner",
-//   handleQuestionFastestWinner,
-// );
+//       "question_fastest_winner",
+//       handleQuestionFastestWinner,
+//     );
 
 //     /* ============================================================
 //        PARTICIPANT LIFECYCLE
@@ -1568,6 +1681,11 @@ export function useQuizSocketConnection(
 //       );
 
 //       socket.off(
+//         "question_fastest_winner",
+//         handleQuestionFastestWinner,
+//       );
+
+//       socket.off(
 //         "participant_joined_room",
 //         handleParticipantJoinedDebug,
 //       );
@@ -1610,13 +1728,13 @@ export function useQuizSocketConnection(
 //        *
 //        * Only remove listeners owned by this hook.
 //        */
-//     socket.offAny(
-//   handleAnyIncomingEvent,
-// );
+//       socket.offAny(
+//         handleAnyIncomingEvent,
+//       );
 
-
-
-//       if (socketRef.current === socket) {
+//       if (
+//         socketRef.current === socket
+//       ) {
 //         socketRef.current = null;
 //       }
 //     };
@@ -1650,6 +1768,7 @@ export function useQuizSocketConnection(
 //     handleQuestionDisplayed,
 //     handleQuestionLocked,
 //     handleNextQuestion,
+//     handleQuestionFastestWinner,
 
 //     handleParticipantJoined,
 //     handleParticipantJoinedDebug,
@@ -1663,3 +1782,4 @@ export function useQuizSocketConnection(
 //     handleSocketError,
 //   ]);
 // }
+

@@ -3,6 +3,13 @@
 
 
 
+
+
+
+
+
+
+
 "use client";
 
 import {
@@ -30,6 +37,7 @@ import type {
   QuizAnswerResult,
   QuizRoomDocument,
   UseQuizSocketOptions,
+  QuizFastestWinner,
   UseQuizSocketResult,
 } from "./quizSocketTypes";
 
@@ -48,6 +56,7 @@ import {
   createQuizSocketHandlers,
   type QuizSocketHandlerContext,
 } from "./useQuizSocketHandlers";
+
 
 import { useQuizSocketConnection } from "./useQuizSocketConnection";
 
@@ -216,6 +225,9 @@ export function useQuizSocket(
 
   const onRoundChangedRef =
     useRef(onRoundChanged);
+
+  const [fastestWinner, setFastestWinner] =
+  useState<QuizFastestWinner | null>(null);
 
   /*
    * Keeps the selected answer synchronously available.
@@ -999,6 +1011,8 @@ export function useQuizSocket(
       roleRef,
 
       currentRoundRef,
+
+      fastestWinner: setFastestWinner,
 
       questionRef,
 

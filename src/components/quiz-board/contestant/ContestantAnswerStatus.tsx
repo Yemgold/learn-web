@@ -20,6 +20,7 @@ export type ContestantAnswerStatusType =
   | "CORRECT"
   | "INCORRECT"
   | "EXPIRED"
+  // | "WAITING"  
   | "LOCKED";
 
 export interface ContestantAnswerStatusProps {

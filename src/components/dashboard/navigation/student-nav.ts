@@ -5,7 +5,7 @@ import {
   Trophy,
   User,
   Play,
-  Video,
+  Gamepad2,
   Wallet,
   Users,
 } from "lucide-react";
@@ -79,6 +79,19 @@ export const studentNavigation: NavigationSection[] = [
         "Answer CBT questions, win Cash and keep climbing the reward ladder",
       href: "/student/solve-and-win-cash",
       icon: Trophy,
+    },
+  ],
+},
+
+{
+  title: "Play & Learn",
+  items: [
+    {
+      label: "Learning Games",
+      description:
+        "Play fun learning games, test your knowledge, and earn points",
+      href: "/student/games",
+      icon: Gamepad2,
     },
   ],
 },

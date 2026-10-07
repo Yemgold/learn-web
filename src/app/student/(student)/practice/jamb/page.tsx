@@ -190,41 +190,58 @@ export default function JambPracticePage() {
               </Link>
             </Card>
 
-            {/* ==================================================
-                TIMED CBT
-               ================================================== */}
 
-            <Card
-              hoverable
-              className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
-                <Clock3 className="h-7 w-7 text-green-400" />
-              </div>
+{/* ==================================================
+    TIMED CBT
+   ================================================== */}
 
-              <h3 className="mt-5 text-2xl font-bold text-white">
-                JAMB CBT Simulation
-              </h3>
+<Card
+  hoverable
+  className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
+>
+  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
+    <Clock3 className="h-7 w-7 text-green-400" />
+  </div>
 
-              <p className="mt-3 leading-6 text-slate-400">
-                Simulate the real JAMB CBT experience with
-                timed questions and examination conditions.
-              </p>
+  <h3 className="mt-5 text-2xl font-bold text-white">
+    JAMB CBT Simulation
+  </h3>
 
-              <Link
-                href="/student/practice/cbtsubjects?exam=jamb"
-                className="mt-6 inline-flex"
-              >
-                <Button
-                  variant="outline"
-                  rightIcon={
-                    <ArrowRight className="h-4 w-4" />
-                  }
-                >
-                  Start CBT
-                </Button>
-              </Link>
-            </Card>
+  <p className="mt-3 leading-6 text-slate-400">
+    Simulate the real JAMB CBT experience with
+    timed questions and examination conditions.
+  </p>
+
+  {/* Reward Information */}
+  <div className="mt-4 flex items-center justify-between rounded-xl border border-green-500/10 bg-green-500/5 px-4 py-3">
+    <span className="text-xs font-medium text-slate-400">
+      Per correct answer
+    </span>
+
+    <span className="text-sm font-bold text-green-400">
+      ₦2 → 1 CBT Point
+    </span>
+  </div>
+
+  <p className="mt-2 text-xs text-slate-500">
+    ₦2 is deducted from your wallet for each question.
+  </p>
+
+  <Link
+    href="/student/practice/cbtsubjects?exam=jamb"
+    className="mt-6 inline-flex"
+  >
+    <Button
+      variant="outline"
+      rightIcon={
+        <ArrowRight className="h-4 w-4" />
+      }
+    >
+      Start CBT
+    </Button>
+  </Link>
+</Card>
+
 
             {/* ==================================================
                 PRACTICE HISTORY

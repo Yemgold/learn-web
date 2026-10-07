@@ -376,4 +376,10 @@ export interface QuizSocketActionContext {
 }
 
 
-
+export interface QuizFastestWinner {
+  name?: string | null;
+  email?: string | null;
+  userId?: string | null;
+  questionId?: string | null;
+  timeTakenInSeconds?: number | null;
+}

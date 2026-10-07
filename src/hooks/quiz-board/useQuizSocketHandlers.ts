@@ -15,7 +15,9 @@ import type {
   LiveQuestion,
   QuizFeedEvent,
  QuizAnswerResult,
+ QuizFastestWinner,
   QuizRoomDocument,
+  
 } from "./quizSocketTypes";
 
 import {
@@ -26,6 +28,10 @@ import {
   normalizeStatus,
   unwrapPayload,
 } from "./quizSocketUtils";
+
+import {
+  getQuestionFastestWinner,
+} from "@/lib/socket/quizSocket";
 
 import {
   extractQuestion,
@@ -63,29 +69,7 @@ import {
  *   }
  * }
  */
-// export interface QuizAnswerResult {
-//   leaderboardData?: unknown[];
 
-//   answerId?: string;
-//   quizId?: string;
-//   roomId?: string;
-
-//   roundNumber?: number;
-//   questionId?: string;
-
-//   selectedAnswer?: string;
-
-//   isCorrect: boolean;
-//   isFirstCorrectAnswer: boolean;
-
-//   scoreAwarded: number;
-//   roundScore: number;
-//   totalScore: number;
-
-//   timeTakenInSeconds: number;
-
-//   message: string;
-// }
 
 export interface QuizSocketHandlerContext {
   quizIdRef: {
@@ -119,6 +103,10 @@ export interface QuizSocketHandlerContext {
   disposedRef: {
     current: boolean;
   };
+
+  fastestWinner: Dispatch<
+  SetStateAction<QuizFastestWinner | null>
+>;
 
   setConnected: Dispatch<SetStateAction<boolean>>;
   setRoomJoined: Dispatch<SetStateAction<boolean>>;
@@ -1087,6 +1075,53 @@ export function createQuizSocketHandlers(
     );
   };
 
+ /* ==============================================================
+     HANDLE FASTEST QUESTION WINNER
+  ============================================================== */
+  const handleQuestionFastestWinner = (
+  payload: unknown,
+) => {
+  if (disposedRef.current) {
+    return;
+  }
+
+  console.log(
+    "🏆🏆🏆 QUESTION FASTEST WINNER RESPONSE 🏆🏆🏆",
+  );
+
+  console.log(
+    "[useQuizSocket] question_fastest_winner PAYLOAD:",
+    payload,
+  );
+
+  try {
+    console.log(
+      "[useQuizSocket] question_fastest_winner JSON:",
+      JSON.stringify(payload, null, 2),
+    );
+  } catch {
+    // Ignore serialization errors.
+  }
+
+  /*
+   * We are intentionally not mapping the payload yet.
+   *
+   * First capture the exact backend response so we know whether
+   * the winner is returned as:
+   *
+   * payload.data
+   * payload.data.winner
+   * payload.winner
+   * payload.user
+   * etc.
+   */
+
+  addFeedEvent(
+    "question_fastest_winner",
+    payload,
+  );
+};
+
   /* ==============================================================
      HANDLE NEW QUESTION
   ============================================================== */
@@ -1585,6 +1620,7 @@ export function createQuizSocketHandlers(
       payload,
     );
 
+
     /*
      * Extract the server-authoritative result.
      */
@@ -1611,6 +1647,56 @@ export function createQuizSocketHandlers(
       "[useQuizSocket] ANSWER RESULT PARSED:",
       answerResult,
     );
+
+   /* ==========================================================
+   REQUEST FASTEST CORRECT WINNER
+========================================================== */
+
+if (
+  answerResult.isCorrect &&
+  answerResult.quizId &&
+  answerResult.roomId &&
+  answerResult.questionId
+) {
+  const fastestWinnerPayload = {
+    quizId:
+      answerResult.quizId,
+
+    roomId:
+      answerResult.roomId,
+
+    questionId:
+      answerResult.questionId,
+  };
+
+  console.log(
+    "[useQuizSocket] 🏆 REQUESTING FASTEST QUESTION WINNER:",
+    fastestWinnerPayload,
+  );
+
+  getQuestionFastestWinner(
+    fastestWinnerPayload,
+  );
+} else {
+  console.log(
+    "[useQuizSocket] 🏆 FASTEST WINNER NOT REQUESTED:",
+    {
+      isCorrect:
+        answerResult.isCorrect,
+
+      quizId:
+        answerResult.quizId,
+
+      roomId:
+        answerResult.roomId,
+
+      questionId:
+        answerResult.questionId,
+    },
+  );
+} 
+
+
 
     /*
      * Store the complete server response.
@@ -1815,6 +1901,8 @@ export function createQuizSocketHandlers(
 
     handleAnswerResult,
     handleFirstCorrect,
+
+    handleQuestionFastestWinner,
 
     handleSocketError,
   };

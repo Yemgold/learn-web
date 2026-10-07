@@ -312,136 +312,140 @@ export default function JambPracticePage() {
 
             </Card>
 
-            {/* ==================================================
-                TIMED CBT
-               ================================================== */}
 
-            <Card
-              hoverable
-              className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
-                <Clock3 className="h-7 w-7 text-green-400" />
-              </div>
+{/* ==================================================
+    TIMED CBT
+   ================================================== */}
 
-              <h3 className="mt-5 text-2xl font-bold text-white">
-                JAMB CBT Simulation
-              </h3>
+<Card
+  hoverable
+  className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
+>
+  {/* Header */}
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-green-500/20 bg-green-500/10">
+        <Clock3 className="h-6 w-6 text-green-400" />
+      </div>
 
-              <p className="mt-3 leading-6 text-slate-400">
-                Simulate the real JAMB CBT experience with
-                timed questions and examination conditions.
-              </p>
+      <h3 className="mt-5 text-xl font-bold text-white">
+        JAMB CBT Simulation
+      </h3>
 
-              {/* ==================================================
-                  REWARD INFORMATION
-                 ================================================== */}
+      <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+        Practice under real JAMB CBT conditions with
+        timed questions and instant scoring.
+      </p>
+    </div>
+  </div>
 
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-green-500/10 bg-green-500/5 px-4 py-3">
-                <span className="text-xs font-medium text-slate-400">
-                  Per correct answer
-                </span>
+  {/* Quick Info */}
+  <div className="mt-6 flex items-center justify-between border-y border-white/10 py-4">
+    <div>
+      <p className="text-xs text-slate-500">
+        Reward
+      </p>
 
-                <span className="text-sm font-bold text-green-400">
-                  ₦2 → 1 CBT Point
-                </span>
-              </div>
+      <p className="mt-1 text-sm font-semibold text-green-400">
+        ₦2 → 1 CBT Point
+      </p>
+    </div>
 
-              <p className="mt-2 text-xs text-slate-500">
-                ₦2 is deducted from your wallet for each
-                question.
-              </p>
+    <div className="text-right">
+      <p className="text-xs text-slate-500">
+        Cost per question
+      </p>
 
-              {/* ==================================================
-                  WALLET BALANCE
-                 ================================================== */}
+      <p className="mt-1 text-sm font-semibold text-white">
+        ₦2
+      </p>
+    </div>
+  </div>
 
-              <div className="mt-4 flex min-h-[48px] items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <WalletCards className="h-4 w-4 text-slate-400" />
+  {/* Wallet */}
+  <div className="mt-5 flex items-center justify-between">
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.05]">
+        <WalletCards className="h-4 w-4 text-slate-400" />
+      </div>
 
-                  <span className="text-xs font-medium text-slate-400">
-                    Wallet Balance
-                  </span>
-                </div>
+      <div>
+        <p className="text-xs text-slate-500">
+          Wallet Balance
+        </p>
 
-                <span
-                  className={`text-sm font-bold ${
-                    canStartCBT
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  ₦{walletBalance.toFixed(2)}
-                </span>
-              </div>
+        <p
+          className={`mt-0.5 text-sm font-bold ${
+            canStartCBT
+              ? "text-green-400"
+              : "text-red-400"
+          }`}
+        >
+          ₦{walletBalance.toFixed(2)}
+        </p>
+      </div>
+    </div>
 
-              {/* ==================================================
-                  ACTION AREA
+    <span
+      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+        canStartCBT
+          ? "bg-green-500/10 text-green-400"
+          : "bg-red-500/10 text-red-400"
+      }`}
+    >
+      {canStartCBT ? "Ready" : "Insufficient"}
+    </span>
+  </div>
 
-                  Fixed minimum height prevents the card
-                  from jumping when the warning appears.
-                 ================================================== */}
+  {/* Action */}
+  <div className="mt-6 min-h-[72px]">
+    {walletLoading ? (
+      <Button
+        type="button"
+        variant="outline"
+        disabled
+        className="w-full sm:w-auto"
+      >
+        Checking Wallet...
+      </Button>
+    ) : canStartCBT ? (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleStartCBT}
+        rightIcon={
+          <ArrowRight className="h-4 w-4" />
+        }
+        className="w-full sm:w-auto"
+      >
+        Start CBT
+      </Button>
+    ) : (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleFundWallet}
+        rightIcon={
+          <WalletCards className="h-4 w-4" />
+        }
+        className="w-full sm:w-auto"
+      >
+        Fund Wallet
+      </Button>
+    )}
 
-              <div className="mt-6 min-h-[104px]">
-                {/* ==================================================
-                    BUTTON
-                   ================================================== */}
+    {/* Temporary warning */}
+    <div className="mt-2 min-h-[28px]">
+      {showWalletWarning && (
+        <p className="animate-in fade-in text-xs leading-5 text-red-400 duration-200">
+          Your wallet balance is too low to start CBT.
+          Please fund your wallet before starting.
+        </p>
+      )}
+    </div>
+  </div>
+</Card>
 
-                {walletLoading ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled
-                    rightIcon={
-                      <ArrowRight className="h-4 w-4" />
-                    }
-                  >
-                    Checking Wallet...
-                  </Button>
-                ) : canStartCBT ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleStartCBT}
-                    rightIcon={
-                      <ArrowRight className="h-4 w-4" />
-                    }
-                  >
-                    Start CBT
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleFundWallet}
-                    rightIcon={
-                      <WalletCards className="h-4 w-4" />
-                    }
-                  >
-                    Fund Wallet
-                  </Button>
-                )}
-
-                {/* ==================================================
-                    TEMPORARY WARNING
-
-                    This does NOT permanently occupy the card.
-                   ================================================== */}
-
-                <div className="mt-3 min-h-[40px]">
-                  {showWalletWarning && (
-                    <div className="animate-in fade-in slide-in-from-top-1 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2.5 duration-200">
-                      <p className="text-xs font-medium leading-5 text-red-400">
-                        Your wallet balance is too low to start
-                        CBT. Please fund your wallet before
-                        starting.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
 
             {/* ==================================================
                 PRACTICE HISTORY

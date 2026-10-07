@@ -27,14 +27,11 @@ import ContestantTimer from "./ContestantTimer";
 
 import FastestWinnerCard from "./FastestWinnerCard";
 
-/* ============================================================
-   FASTEST WINNER
-   ============================================================ */
+import type {
+  QuizFastestWinner,
+} from "@/hooks/quiz-board/quizSocketTypes";
 
-export interface ContestantFastestWinner {
-  name?: string | null;
-  email?: string | null;
-}
+
 
 /* ============================================================
    PROPS
@@ -70,7 +67,7 @@ export interface ContestantQuizShowProps {
   score?: number;
   correctAnswers?: number;
   answeredQuestions?: number;
-
+ 
   rank?: number | null;
 
   totalParticipants?: number | null;
@@ -90,7 +87,8 @@ export interface ContestantQuizShowProps {
   /*
    * Fastest contestant to answer the current question correctly.
    */
-  fastestWinner?: ContestantFastestWinner | null;
+
+   fastestWinner?: QuizFastestWinner | null;
 
   error?: string | null;
   loading?: boolean;

@@ -249,6 +249,8 @@ export interface UseQuizSocketResult {
 
   currentQuestionNumber: number | null;
 
+  fastestWinner: QuizFastestWinner | null;
+
   questionStarted: boolean;
 
   questionLocked: boolean;

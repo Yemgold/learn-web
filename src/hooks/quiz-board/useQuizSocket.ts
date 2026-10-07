@@ -599,11 +599,17 @@ export function useQuizSocket(
         -------------------------------------------------------- */
 
         questionRef.current =
-          questionToApply;
+  questionToApply;
 
-        setQuestion(
-          questionToApply,
-        );
+/*
+ * A new question means the previous
+ * question's fastest winner is no longer relevant.
+ */
+setFastestWinner(null);
+
+setQuestion(
+  questionToApply,
+);
 
         /* --------------------------------------------------------
            Question number from normalized question
@@ -1143,6 +1149,8 @@ export function useQuizSocket(
 
     setQuestion(null);
 
+    setFastestWinner(null);
+
     setCurrentQuestionNumber(null);
 
     setQuestionStarted(false);
@@ -1220,7 +1228,10 @@ export function useQuizSocket(
      */
     answerResult,
 
+    fastestWinner,
+
     participants,
+    
 
     leaderboard,
 

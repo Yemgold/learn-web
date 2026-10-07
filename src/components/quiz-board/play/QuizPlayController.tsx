@@ -804,6 +804,8 @@ export default function QuizPlayController({
 
     selectContestantAnswer,
 
+    fastestWinner,
+
     setTimeLimit,
     refreshSocketState,
   } = socketState;
@@ -1584,6 +1586,9 @@ const handleContestantSelectAnswer =
       timeLimit:
         displayQuestion?.timeLimit ??
         timeLimit,
+
+       // FASTEST WINNER
+  fastestWinner,
 
       score:
         currentUserEntry?.score ??

@@ -47,6 +47,8 @@ import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQui
 
 import { useQuizSocket } from "@/hooks/quiz-board/useQuizSocket";
 
+
+
 /* =========================================================
    PROPS
    ========================================================= */
@@ -220,6 +222,7 @@ export default function QuizPlayController({
 
   const [error, setError] =
     useState<string | null>(null);
+
 
   /* =======================================================
      REFS

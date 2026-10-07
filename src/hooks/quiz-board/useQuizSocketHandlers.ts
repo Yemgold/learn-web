@@ -433,6 +433,9 @@ export function createQuizSocketHandlers(
     addFeedEvent,
     updateRound,
     applyQuestion,
+
+    fastestWinner,
+    
   } = context;
 
   /* ==============================================================
@@ -1121,6 +1124,181 @@ export function createQuizSocketHandlers(
     payload,
   );
 };
+
+
+/* ==============================================================
+   HANDLE QUESTION COMPLETED
+============================================================== */
+
+const handleQuestionCompleted = (
+  payload: unknown,
+) => {
+  if (disposedRef.current) {
+    return;
+  }
+
+  console.log(
+    "🏆🏆🏆 QUESTION COMPLETED EVENT RECEIVED 🏆🏆🏆",
+  );
+
+  console.log(
+    "[useQuizSocket] question_completed PAYLOAD:",
+    payload,
+  );
+
+  try {
+    console.log(
+      "[useQuizSocket] question_completed JSON:",
+      JSON.stringify(
+        payload,
+        null,
+        2,
+      ),
+    );
+  } catch {
+    // Ignore serialization errors.
+  }
+
+  const unwrapped =
+    unwrapPayload(payload);
+
+  if (!isRecord(unwrapped)) {
+    console.warn(
+      "[useQuizSocket] question_completed payload is not an object:",
+      payload,
+    );
+
+    return;
+  }
+
+  /*
+   * Support both:
+   *
+   * {
+   *   questionId,
+   *   winner: {...}
+   * }
+   *
+   * and:
+   *
+   * {
+   *   data: {
+   *     questionId,
+   *     winner: {...}
+   *   }
+   * }
+   */
+  const data =
+    isRecord(unwrapped.data)
+      ? unwrapped.data
+      : unwrapped;
+
+  const winner =
+    isRecord(data.winner)
+      ? data.winner
+      : null;
+
+  /*
+   * The question may complete without a winner.
+   */
+  if (!winner) {
+    console.log(
+      "[useQuizSocket] question_completed has no winner.",
+    );
+
+    fastestWinner(null);
+
+    addFeedEvent(
+      "question_completed",
+      payload,
+    );
+
+    return;
+  }
+
+  const firstName =
+    getString(
+      winner.firstName ??
+        winner.first_name,
+    );
+
+  const lastName =
+    getString(
+      winner.lastName ??
+        winner.last_name,
+    );
+
+  const name =
+    [firstName, lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+  const mappedWinner: QuizFastestWinner = {
+    name:
+      name || null,
+
+    email:
+      getString(
+        winner.email,
+      ),
+
+    userId:
+      getString(
+        winner.userId ??
+          winner.user_id ??
+          winner.id ??
+          winner._id,
+      ),
+
+    questionId:
+      getString(
+        data.questionId ??
+          data.question_id,
+      ) ??
+      questionRef.current?.id ??
+      null,
+
+    timeTakenInSeconds:
+      getNumber(
+        winner.timeTakenInSeconds ??
+          winner.time_taken_in_seconds,
+      ),
+  };
+
+  console.log(
+    "🏆 [useQuizSocket] QUESTION COMPLETED → FASTEST WINNER:",
+    mappedWinner,
+  );
+
+  /*
+   * This is the important part.
+   *
+   * It updates:
+   *
+   * fastestWinner
+   *      ↓
+   * useQuizSocket
+   *      ↓
+   * QuizPlayController
+   *      ↓
+   * ContestantQuizShow
+   */
+  fastestWinner(
+    mappedWinner,
+  );
+
+  addFeedEvent(
+    "question_completed",
+    payload,
+    name
+      ? `${name} was the fastest correct contestant.`
+      : "The question has been completed.",
+  );
+};
+
+
+
 
   /* ==============================================================
      HANDLE NEW QUESTION
@@ -1901,6 +2079,8 @@ if (
 
     handleAnswerResult,
     handleFirstCorrect,
+
+    handleQuestionCompleted,
 
     handleQuestionFastestWinner,
 

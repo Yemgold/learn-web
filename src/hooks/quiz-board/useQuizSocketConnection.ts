@@ -271,61 +271,76 @@ export function useQuizSocketConnection(
    * useQuizSocketHandlers yet because we first want to inspect
    * the exact backend payload.
    */
-  const handleQuestionCompleted =
-    useCallback(
-      (...args: unknown[]) => {
+const handleQuestionCompleted =
+  useCallback(
+    (...args: unknown[]) => {
+      console.log(
+        "🏁🏁🏁 QUESTION_COMPLETED RECEIVED 🏁🏁🏁",
+      );
+
+      console.log(
+        "[RAW SOCKET] question_completed ARGUMENT COUNT:",
+        args.length,
+      );
+
+      console.log(
+        "[RAW SOCKET] question_completed ALL ARGS:",
+        args,
+      );
+
+      try {
         console.log(
-          "🏁🏁🏁 QUESTION_COMPLETED RECEIVED 🏁🏁🏁",
+          "[RAW SOCKET] question_completed ALL ARGS JSON:",
+          JSON.stringify(
+            args,
+            null,
+            2,
+          ),
         );
+      } catch {
+        // Ignore serialization errors.
+      }
 
+      const payload =
+        args.length === 1
+          ? args[0]
+          : args;
+
+      console.log(
+        "[RAW SOCKET] question_completed PAYLOAD:",
+        payload,
+      );
+
+      try {
         console.log(
-          "[RAW SOCKET] question_completed ARGUMENT COUNT:",
-          args.length,
+          "[RAW SOCKET] question_completed PAYLOAD JSON:",
+          JSON.stringify(
+            payload,
+            null,
+            2,
+          ),
         );
+      } catch {
+        // Ignore serialization errors.
+      }
 
-        console.log(
-          "[RAW SOCKET] question_completed ALL ARGS:",
-          args,
-        );
-
-        try {
-          console.log(
-            "[RAW SOCKET] question_completed ALL ARGS JSON:",
-            JSON.stringify(
-              args,
-              null,
-              2,
-            ),
-          );
-        } catch {
-          // Ignore serialization errors.
-        }
-
-        const payload =
-          args.length === 1
-            ? args[0]
-            : args;
-
-        console.log(
-          "[RAW SOCKET] question_completed PAYLOAD:",
-          payload,
-        );
-
-        try {
-          console.log(
-            "[RAW SOCKET] question_completed PAYLOAD JSON:",
-            JSON.stringify(
-              payload,
-              null,
-              2,
-            ),
-          );
-        } catch {
-          // Ignore serialization errors.
-        }
-      },
-      [],
-    );
+      /*
+       * IMPORTANT:
+       *
+       * The backend's question_completed event is the
+       * authoritative event for determining the fastest
+       * contestant.
+       *
+       * Forward the payload into the normal socket handler
+       * pipeline so useQuizSocketHandlers can update
+       * fastestWinner state.
+       */
+      handlersRef.current.handleQuestionCompleted(
+        payload,
+      );
+    },
+    [],
+  );
 
   /*
    * Fastest correct winner response.

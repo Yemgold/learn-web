@@ -382,4 +382,5 @@ export interface QuizFastestWinner {
   userId?: string | null;
   questionId?: string | null;
   timeTakenInSeconds?: number | null;
+  scoreAwarded?: number | null;
 }

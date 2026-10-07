@@ -1,9 +1,5 @@
 
 
-
-
-
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -11,6 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  Lightbulb,
   Sparkles,
   XCircle,
 } from "lucide-react";
@@ -154,8 +151,7 @@ export default function WordChallengeGame({
   const [clueShown, setClueShown] = useState(false);
 
   /*
-   * Controls the visual "pump" animation when
-   * the clue is automatically revealed.
+   * Controls the clue card pump animation.
    */
   const [cluePumping, setCluePumping] =
     useState(false);
@@ -204,6 +200,16 @@ export default function WordChallengeGame({
   const isPlaying = gameState === "playing";
 
   /*
+   * The clue button becomes available once the timer
+   * reaches the clue threshold.
+   */
+  const canRequestClue =
+    isPlaying &&
+    !clueShown &&
+    timeLeft <= clueThreshold &&
+    timeLeft > 0;
+
+  /*
    * Start / reset the current question.
    */
   const initializeQuestion = useCallback(
@@ -223,10 +229,6 @@ export default function WordChallengeGame({
 
       setClueShown(false);
 
-      /*
-       * Important:
-       * Reset the pump animation for every question.
-       */
       setCluePumping(false);
 
       setGameState("playing");
@@ -296,8 +298,8 @@ export default function WordChallengeGame({
   /*
    * Update points as time decreases.
    *
-   * Once the clue is visible, the reward is also
-   * reduced by the configured clue penalty.
+   * If the clue has already been requested,
+   * subtract the clue penalty.
    */
   useEffect(() => {
     if (!isPlaying || !currentQuestion) {
@@ -330,61 +332,57 @@ export default function WordChallengeGame({
   ]);
 
   /*
-   * Automatically reveal the clue.
+   * Request the clue manually.
    *
-   * When it appears, the card "pumps" for 1.2 seconds.
+   * The clue NEVER appears automatically.
+   *
+   * The player must click the clue button.
    */
-  useEffect(() => {
+  const handleRequestClue = useCallback(() => {
     if (
       !isPlaying ||
+      !currentQuestion ||
       clueShown ||
-      !currentQuestion
+      timeLeft <= 0 ||
+      timeLeft > clueThreshold
     ) {
       return;
     }
 
-    if (timeLeft <= clueThreshold) {
-      setClueShown(true);
-
-      /*
-       * Start the visual pump.
-       */
-      setCluePumping(true);
-
-      setAnswerMessage(
-        "💡 YOU NEED A CLUE",
+    const pointsAtClue =
+      calculateTimeBasedPoints(
+        startingPoints,
+        timeLeft,
+        timeLimit,
       );
 
-      const pointsAtClue =
-        calculateTimeBasedPoints(
-          startingPoints,
-          timeLeft,
-          timeLimit,
-        );
+    const reducedPoints = Math.max(
+      0,
+      pointsAtClue - cluePenalty,
+    );
 
-      setCurrentPoints(
-        Math.max(
-          0,
-          pointsAtClue - cluePenalty,
-        ),
-      );
+    setClueShown(true);
 
-      /*
-       * Stop the pump after 1.2 seconds.
-       */
-      const pumpTimer = window.setTimeout(() => {
-        setCluePumping(false);
-      }, 1200);
+    setCluePumping(true);
 
-      return () => {
-        window.clearTimeout(pumpTimer);
-      };
-    }
+    setCurrentPoints(reducedPoints);
+
+    setAnswerMessage(
+      "💡 CLUE REVEALED — YOUR REWARD HAS BEEN REDUCED",
+    );
+
+    const pumpTimer = window.setTimeout(() => {
+      setCluePumping(false);
+    }, 1200);
+
+    return () => {
+      window.clearTimeout(pumpTimer);
+    };
   }, [
-    timeLeft,
-    clueShown,
     isPlaying,
     currentQuestion,
+    clueShown,
+    timeLeft,
     clueThreshold,
     startingPoints,
     timeLimit,
@@ -514,7 +512,7 @@ export default function WordChallengeGame({
     );
 
   /*
-   * Remove a specific letter from the answer.
+   * Remove a specific letter.
    */
   const handleRemoveLetter =
     useCallback(
@@ -577,7 +575,7 @@ export default function WordChallengeGame({
     ]);
 
   /*
-   * Clear the complete answer.
+   * Clear the answer.
    */
   const handleClear =
     useCallback(() => {
@@ -593,7 +591,7 @@ export default function WordChallengeGame({
     }, [isPlaying]);
 
   /*
-   * Move to the next question.
+   * Move to next question.
    */
   const handleNextQuestion =
     useCallback(() => {
@@ -658,7 +656,7 @@ export default function WordChallengeGame({
     ]);
 
   /*
-   * If no questions were supplied.
+   * No questions.
    */
   if (!questions.length) {
     return (
@@ -728,7 +726,7 @@ export default function WordChallengeGame({
 
   return (
     <main className="mx-auto w-full max-w-3xl">
-      {/* Top game header */}
+      {/* Header */}
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/35">
@@ -752,7 +750,6 @@ export default function WordChallengeGame({
         )}
       </div>
 
-      {/* Main game */}
       <div className="space-y-4">
         {/* Description */}
         <DescriptionCard
@@ -798,7 +795,51 @@ export default function WordChallengeGame({
           disabled={!isPlaying}
         />
 
-        {/* Automatic clue */}
+        {/* 
+          CLUE BUTTON
+
+          It only appears when the timer reaches
+          the configured clue threshold.
+
+          The player MUST click it before the
+          clue card appears.
+        */}
+        {canRequestClue && (
+          <button
+            type="button"
+            onClick={handleRequestClue}
+            className="clue-button group relative w-full overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] p-4 text-left shadow-lg shadow-amber-500/5 transition-all duration-200 hover:border-amber-300/50 hover:bg-amber-400/[0.11] hover:shadow-[0_0_30px_rgba(251,191,36,0.12)] active:scale-[0.99]"
+          >
+            {/* Glow */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/[0.06] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+            <div className="relative flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300 transition-transform duration-200 group-hover:scale-105">
+                <Lightbulb className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-extrabold text-amber-300">
+                    Need a clue?
+                  </p>
+
+                  <span className="rounded-full bg-amber-300/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200/70">
+                    -{cluePenalty} pts
+                  </span>
+                </div>
+
+                <p className="mt-1 text-xs text-white/45">
+                  Reveal a clue to help solve the word.
+                </p>
+              </div>
+
+              <ArrowRight className="h-5 w-5 shrink-0 text-amber-300/50 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-amber-300" />
+            </div>
+          </button>
+        )}
+
+        {/* Clue card */}
         <ClueCard
           clue={currentQuestion.clue}
           visible={clueShown}
@@ -825,7 +866,7 @@ export default function WordChallengeGame({
           />
         </div>
 
-        {/* Letters */}
+        {/* Letter board */}
         <LetterBoard
           letters={
             displayLetters
@@ -891,8 +932,7 @@ export default function WordChallengeGame({
 
               {missedAnswer && (
                 <p className="mt-1 text-xs text-white/40">
-                  The correct word
-                  was{" "}
+                  The correct word was{" "}
                   <span className="font-bold text-white/70">
                     {normalizeAnswer(
                       currentQuestion.answer,

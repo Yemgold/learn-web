@@ -259,54 +259,57 @@ export default function JambPracticePage() {
                 year, topic, and question category.
               </p>
 
-              {/* ==================================================
-                  PRACTICE INFORMATION
-                 ================================================== */}
+             
+{/* ==================================================
+    PRACTICE INFORMATION
+   ================================================== */}
 
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-green-500/10 bg-green-500/5 px-4 py-3">
-                <span className="text-xs font-medium text-slate-400">
-                  Cost Per Year
-                </span>
+<div className="mt-4 flex items-center justify-between rounded-xl border border-green-500/10 bg-green-500/5 px-4 py-3">
+  <span className="text-xs font-medium text-slate-400">
+    Cost Per Year
+  </span>
 
-                <span className="text-sm font-bold text-green-400">
-                  ₦3,000.00 only
-                </span>
-              </div>
+  <span className="text-sm font-bold text-green-400">
+    ₦3,000.00 only
+  </span>
+</div>
 
-              <div className="mt-2 flex items-center gap-2">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    hasSecondaryPlan
-                      ? "bg-green-400"
-                      : "bg-red-400"
-                  }`}
-                />
+<div className="mt-2 flex items-center gap-2">
+  <span
+    className={`h-2 w-2 rounded-full ${
+      hasSecondaryPlan
+        ? "bg-green-400"
+        : "bg-red-400"
+    }`}
+  />
 
-                <p
-                  className={`text-xs font-semibold ${
-                    hasSecondaryPlan
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {hasSecondaryPlan
-                    ? "Paid"
-                    : "Not Paid"}
-                </p>
-              </div>
+  <p
+    className={`text-xs font-semibold ${
+      hasSecondaryPlan
+        ? "text-green-400"
+        : "text-red-400"
+    }`}
+  >
+    {hasSecondaryPlan ? "Paid" : "Not Yet Paid"}
+  </p>
+</div>
 
-              <Link
-                href="/student/practice/jamb/combination"
-                className="mt-6 inline-flex"
-              >
-                <Button
-                  rightIcon={
-                    <ArrowRight className="h-4 w-4" />
-                  }
-                >
-                  Start Practice
-                </Button>
-              </Link>
+<Link
+  href="/student/practice/jamb/combination"
+  className="mt-6 inline-flex"
+>
+  <Button
+    rightIcon={
+      <ArrowRight className="h-4 w-4" />
+    }
+  >
+    {hasSecondaryPlan
+      ? "Start Practice"
+      : "Start Free Practice"}
+  </Button>
+</Link>
+
+
             </Card>
 
             {/* ==================================================

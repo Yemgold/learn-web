@@ -1,16 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
 import type { QuestionBankItem } from "../../types";
 
 export const jambChemistryEasyQuestions: QuestionBankItem[] = [

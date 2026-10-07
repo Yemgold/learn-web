@@ -812,141 +812,14 @@ export default function StudentDashboardPage() {
 
           </section>
 
+
+
+          
+
           {/* ==================================================
               SOLVE & WIN
               ================================================== */}
 
-          <section>
-
-            {solveAndWinLoading ? (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-
-                <div className="flex items-center justify-between">
-
-                  <div className="h-6 w-56 animate-pulse rounded-lg bg-white/10" />
-
-                  <div className="h-4 w-20 animate-pulse rounded bg-white/5" />
-
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-
-                  {[1, 2].map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
-                    >
-
-                      <div className="h-5 w-3/4 animate-pulse rounded bg-white/10" />
-
-                      <div className="mt-3 h-4 w-full animate-pulse rounded bg-white/5" />
-
-                      <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-white/5" />
-
-                      <div className="mt-5 flex gap-3">
-
-                        <div className="h-9 w-24 animate-pulse rounded-xl bg-white/10" />
-
-                        <div className="h-9 w-20 animate-pulse rounded-xl bg-white/5" />
-
-                      </div>
-
-                    </div>
-                  ))}
-
-                </div>
-
-              </div>
-            ) : solveAndWinError ? (
-              <div className="rounded-3xl border border-red-400/20 bg-red-400/[0.04] p-6">
-
-                <p className="text-sm font-medium text-red-400">
-                  Unable to load Solve & Win
-                  contests.
-                </p>
-
-                <p className="mt-1 text-xs text-red-400/60">
-                  Please refresh the page and try
-                  again.
-                </p>
-
-              </div>
-            ) : solveAndWinContests.length === 0 ? (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-
-                <div className="flex items-start gap-4">
-
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
-                    <span className="text-lg">
-                      🏆
-                    </span>
-                  </div>
-
-                  <div>
-
-                    <h2 className="text-lg font-bold text-white">
-                      Solve & Win Upcoming
-                    </h2>
-
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      There are no Solve & Win
-                      contests available right now.
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-            ) : (
-              <UpcomingAndWin
-                title="Solve & Win Upcoming"
-                contests={solveAndWinContests.map(
-                  (contest) => ({
-                    id: contest._id,
-
-                    title: contest.title,
-
-                    description:
-                      contest.description,
-
-                    category:
-                      contest.category,
-
-                    amountToBeWonInKobo:
-                      contest.amountToBeWonInKobo,
-
-                    entryPoints:
-                      contest.entryPoints,
-
-                    status:
-                      contest.status,
-
-                    isActive:
-                      contest.isActive,
-
-                    startDate:
-                      contest.startDate,
-
-                    endDate:
-                      contest.endDate,
-
-                    windowPeriod:
-                      contest.windowPeriod,
-
-                    subject:
-                      contest.subjects?.[0]
-                        ?.subjectId?.name ||
-                      "General",
-
-                    href:
-                      "/student/solve-and-win",
-                  }),
-                )}
-              />
-            )}
-
-          </section>
 
           {/* ==================================================
               PERFORMANCE + RECENT ACTIVITY
@@ -1109,3 +982,142 @@ export default function StudentDashboardPage() {
   );
 }
 
+
+
+
+
+
+
+
+
+          // <section>
+
+          //   {solveAndWinLoading ? (
+          //     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+
+          //       <div className="flex items-center justify-between">
+
+          //         <div className="h-6 w-56 animate-pulse rounded-lg bg-white/10" />
+
+          //         <div className="h-4 w-20 animate-pulse rounded bg-white/5" />
+
+          //       </div>
+
+          //       <div className="mt-5 grid gap-4 md:grid-cols-2">
+
+          //         {[1, 2].map((item) => (
+          //           <div
+          //             key={item}
+          //             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+          //           >
+
+          //             <div className="h-5 w-3/4 animate-pulse rounded bg-white/10" />
+
+          //             <div className="mt-3 h-4 w-full animate-pulse rounded bg-white/5" />
+
+          //             <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-white/5" />
+
+          //             <div className="mt-5 flex gap-3">
+
+          //               <div className="h-9 w-24 animate-pulse rounded-xl bg-white/10" />
+
+          //               <div className="h-9 w-20 animate-pulse rounded-xl bg-white/5" />
+
+          //             </div>
+
+          //           </div>
+          //         ))}
+
+          //       </div>
+
+          //     </div>
+          //   ) : solveAndWinError ? (
+          //     <div className="rounded-3xl border border-red-400/20 bg-red-400/[0.04] p-6">
+
+          //       <p className="text-sm font-medium text-red-400">
+          //         Unable to load Solve & Win
+          //         contests.
+          //       </p>
+
+          //       <p className="mt-1 text-xs text-red-400/60">
+          //         Please refresh the page and try
+          //         again.
+          //       </p>
+
+          //     </div>
+          //   ) : solveAndWinContests.length === 0 ? (
+          //     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+
+          //       <div className="flex items-start gap-4">
+
+          //         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+          //           <span className="text-lg">
+          //             🏆
+          //           </span>
+          //         </div>
+
+          //         <div>
+
+          //           <h2 className="text-lg font-bold text-white">
+          //             Solve & Win Upcoming
+          //           </h2>
+
+          //           <p className="mt-1 text-sm leading-6 text-slate-500">
+          //             There are no Solve & Win
+          //             contests available right now.
+          //           </p>
+
+          //         </div>
+
+          //       </div>
+
+          //     </div>
+          //   ) : (
+          //     <UpcomingAndWin
+          //       title="Solve & Win Upcoming"
+          //       contests={solveAndWinContests.map(
+          //         (contest) => ({
+          //           id: contest._id,
+
+          //           title: contest.title,
+
+          //           description:
+          //             contest.description,
+
+          //           category:
+          //             contest.category,
+
+          //           amountToBeWonInKobo:
+          //             contest.amountToBeWonInKobo,
+
+          //           entryPoints:
+          //             contest.entryPoints,
+
+          //           status:
+          //             contest.status,
+
+          //           isActive:
+          //             contest.isActive,
+
+          //           startDate:
+          //             contest.startDate,
+
+          //           endDate:
+          //             contest.endDate,
+
+          //           windowPeriod:
+          //             contest.windowPeriod,
+
+          //           subject:
+          //             contest.subjects?.[0]
+          //               ?.subjectId?.name ||
+          //             "General",
+
+          //           href:
+          //             "/student/solve-and-win",
+          //         }),
+          //       )}
+          //     />
+          //   )}
+
+          // </section>

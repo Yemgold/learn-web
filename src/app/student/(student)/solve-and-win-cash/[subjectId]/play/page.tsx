@@ -616,7 +616,7 @@ export default function SolveAndWinCbtPlayPage() {
             type="button"
             onClick={() =>
               router.push(
-                "/student/solve-and-win-cbt",
+                "/student/solve-and-win-cash",
               )
             }
             className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
@@ -752,7 +752,7 @@ export default function SolveAndWinCbtPlayPage() {
                 onRestart={handleRestart}
                 onSubjects={() =>
                   router.push(
-                    "/student/solve-and-win-cbt",
+                    "/student/solve-and-win-cash",
                   )
                 }
               />

@@ -2,10 +2,10 @@
 
 
 
-
 "use client";
 
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import DashboardLayout from "@/components/dashboard/layout/DashboardLayout";
 import FreeTrialCard from "@/components/access/FreeTrialCard";
@@ -16,17 +16,33 @@ export default function StudentLayout({
 }: {
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+
   const { user } = useAuthStore();
 
   const hasSecondaryPlan =
     Array.isArray(user?.plans) &&
     user.plans.includes("SECONDARY");
 
+  /*
+   * Do not show the Free Trial Card
+   * inside the Quiz Board live game.
+   *
+   * Example:
+   * /student/quiz-board/123/play
+   */
+  const isQuizBoardPlayPage =
+    pathname.includes("/quiz-board/") &&
+    pathname.endsWith("/play");
+
+  const shouldShowFreeTrial =
+    !hasSecondaryPlan && !isQuizBoardPlayPage;
+
   return (
     <DashboardLayout role="student">
       {children}
 
-      {!hasSecondaryPlan && (
+      {shouldShowFreeTrial && (
         <FreeTrialCard
           createdAt={user?.createdAt}
           actionHref="/student/access/secondary"

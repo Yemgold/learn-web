@@ -4,12 +4,16 @@
 
 
 
-
-
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Clock3, Sparkles, XCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 
 import AnswerSlots from "./AnswerSlots";
 import ClueCard from "./ClueCard";
@@ -37,7 +41,12 @@ interface WordChallengeGameProps {
   onExit?: () => void;
 }
 
-type GameState = "playing" | "correct" | "incorrect" | "time-up" | "finished";
+type GameState =
+  | "playing"
+  | "correct"
+  | "incorrect"
+  | "time-up"
+  | "finished";
 
 const DEFAULT_STARTING_POINTS = 20;
 const DEFAULT_TIME_LIMIT = 20;
@@ -81,7 +90,9 @@ function shuffleArray<T>(items: T[]): T[] {
   const copy = [...items];
 
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const randomIndex = Math.floor(Math.random() * (i + 1));
+    const randomIndex = Math.floor(
+      Math.random() * (i + 1),
+    );
 
     [copy[i], copy[randomIndex]] = [
       copy[randomIndex],
@@ -114,17 +125,6 @@ function calculateTimeBasedPoints(
     Math.min(1, timeLeft / timeLimit),
   );
 
-  /**
-   * Points decrease continuously with time.
-   *
-   * Example with 20 starting points / 20 seconds:
-   *
-   * 20 sec -> 20 pts
-   * 15 sec -> 15 pts
-   * 10 sec -> 10 pts
-   * 5 sec  -> 5 pts
-   * 0 sec  -> 0 pts
-   */
   return Math.max(
     0,
     Math.ceil(startingPoints * ratio),
@@ -137,27 +137,45 @@ export default function WordChallengeGame({
 }: WordChallengeGameProps) {
   const [questionIndex, setQuestionIndex] = useState(0);
 
-  const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
-  const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+  const [selectedLetters, setSelectedLetters] =
+    useState<string[]>([]);
 
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME_LIMIT);
+  const [selectedIndexes, setSelectedIndexes] =
+    useState<number[]>([]);
+
+  const [timeLeft, setTimeLeft] = useState(
+    DEFAULT_TIME_LIMIT,
+  );
+
   const [currentPoints, setCurrentPoints] = useState(
     DEFAULT_STARTING_POINTS,
   );
 
   const [clueShown, setClueShown] = useState(false);
-  const [gameState, setGameState] = useState<GameState>("playing");
+
+  /*
+   * Controls the visual "pump" animation when
+   * the clue is automatically revealed.
+   */
+  const [cluePumping, setCluePumping] =
+    useState(false);
+
+  const [gameState, setGameState] =
+    useState<GameState>("playing");
 
   const [score, setScore] = useState(0);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
 
-  const [lastEarnedPoints, setLastEarnedPoints] = useState(0);
+  const [correctAnswers, setCorrectAnswers] =
+    useState(0);
 
-  const [answerMessage, setAnswerMessage] = useState<string | null>(
-    null,
-  );
+  const [lastEarnedPoints, setLastEarnedPoints] =
+    useState(0);
 
-  const [displayLetters, setDisplayLetters] = useState<string[]>([]);
+  const [answerMessage, setAnswerMessage] =
+    useState<string | null>(null);
+
+  const [displayLetters, setDisplayLetters] =
+    useState<string[]>([]);
 
   const currentQuestion = questions[questionIndex];
 
@@ -190,23 +208,40 @@ export default function WordChallengeGame({
    */
   const initializeQuestion = useCallback(
     (question: WordChallengeQuestion) => {
-      const nextTimeLimit = getTimeLimit(question);
-      const nextStartingPoints = getStartingPoints(question);
+      const nextTimeLimit =
+        getTimeLimit(question);
+
+      const nextStartingPoints =
+        getStartingPoints(question);
 
       setSelectedLetters([]);
       setSelectedIndexes([]);
+
       setTimeLeft(nextTimeLimit);
+
       setCurrentPoints(nextStartingPoints);
+
       setClueShown(false);
+
+      /*
+       * Important:
+       * Reset the pump animation for every question.
+       */
+      setCluePumping(false);
+
       setGameState("playing");
+
       setAnswerMessage(null);
+
       setLastEarnedPoints(0);
 
       setDisplayLetters(
         shuffleArray(
           question.letters.length > 0
             ? question.letters
-            : normalizeAnswer(question.answer).split(""),
+            : normalizeAnswer(
+                question.answer,
+              ).split(""),
         ),
       );
     },
@@ -222,12 +257,13 @@ export default function WordChallengeGame({
     }
 
     initializeQuestion(currentQuestion);
-  }, [currentQuestion, initializeQuestion]);
+  }, [
+    currentQuestion,
+    initializeQuestion,
+  ]);
 
   /*
    * Countdown.
-   *
-   * This is intentionally frontend-only.
    */
   useEffect(() => {
     if (!isPlaying || !currentQuestion) {
@@ -240,7 +276,9 @@ export default function WordChallengeGame({
           window.clearInterval(timer);
 
           setGameState("time-up");
+
           setCurrentPoints(0);
+
           setAnswerMessage("Time is up!");
 
           return 0;
@@ -258,22 +296,26 @@ export default function WordChallengeGame({
   /*
    * Update points as time decreases.
    *
-   * Once the clue is visible, the reward is also reduced
-   * by the configured clue penalty.
+   * Once the clue is visible, the reward is also
+   * reduced by the configured clue penalty.
    */
   useEffect(() => {
     if (!isPlaying || !currentQuestion) {
       return;
     }
 
-    const calculatedPoints = calculateTimeBasedPoints(
-      startingPoints,
-      timeLeft,
-      timeLimit,
-    );
+    const calculatedPoints =
+      calculateTimeBasedPoints(
+        startingPoints,
+        timeLeft,
+        timeLimit,
+      );
 
     const reducedPoints = clueShown
-      ? Math.max(0, calculatedPoints - cluePenalty)
+      ? Math.max(
+          0,
+          calculatedPoints - cluePenalty,
+        )
       : calculatedPoints;
 
     setCurrentPoints(reducedPoints);
@@ -288,27 +330,55 @@ export default function WordChallengeGame({
   ]);
 
   /*
-   * Automatically reveal the clue when the countdown
-   * reaches the configured threshold.
+   * Automatically reveal the clue.
+   *
+   * When it appears, the card "pumps" for 1.2 seconds.
    */
   useEffect(() => {
-    if (!isPlaying || clueShown || !currentQuestion) {
+    if (
+      !isPlaying ||
+      clueShown ||
+      !currentQuestion
+    ) {
       return;
     }
 
     if (timeLeft <= clueThreshold) {
       setClueShown(true);
-      setAnswerMessage("💡 YOU NEED A CLUE");
 
-      const pointsAtClue = calculateTimeBasedPoints(
-        startingPoints,
-        timeLeft,
-        timeLimit,
+      /*
+       * Start the visual pump.
+       */
+      setCluePumping(true);
+
+      setAnswerMessage(
+        "💡 YOU NEED A CLUE",
       );
+
+      const pointsAtClue =
+        calculateTimeBasedPoints(
+          startingPoints,
+          timeLeft,
+          timeLimit,
+        );
 
       setCurrentPoints(
-        Math.max(0, pointsAtClue - cluePenalty),
+        Math.max(
+          0,
+          pointsAtClue - cluePenalty,
+        ),
       );
+
+      /*
+       * Stop the pump after 1.2 seconds.
+       */
+      const pumpTimer = window.setTimeout(() => {
+        setCluePumping(false);
+      }, 1200);
+
+      return () => {
+        window.clearTimeout(pumpTimer);
+      };
     }
   }, [
     timeLeft,
@@ -324,160 +394,268 @@ export default function WordChallengeGame({
   /*
    * Select a letter from the board.
    */
-  const handleSelectLetter = useCallback(
-    (letter: string, index: number) => {
-      if (!isPlaying || !currentQuestion) {
-        return;
-      }
-
-      if (selectedLetters.length >= answerLength) {
-        return;
-      }
-
-      if (selectedIndexes.includes(index)) {
-        return;
-      }
-
-      const nextLetters = [...selectedLetters, letter];
-      const nextIndexes = [...selectedIndexes, index];
-
-      setSelectedLetters(nextLetters);
-      setSelectedIndexes(nextIndexes);
-      setAnswerMessage(null);
-
-      /*
-       * Automatically check the answer when all required
-       * letters have been selected.
-       */
-      if (nextLetters.length === answerLength) {
-        const playerAnswer = normalizeAnswer(
-          nextLetters.join(""),
-        );
-
-        const correctAnswer = normalizeAnswer(
-          currentQuestion.answer,
-        );
-
-        if (playerAnswer === correctAnswer) {
-          const earnedPoints = Math.max(0, currentPoints);
-
-          setScore((previous) => previous + earnedPoints);
-          setCorrectAnswers((previous) => previous + 1);
-          setLastEarnedPoints(earnedPoints);
-          setGameState("correct");
-
-          setAnswerMessage(
-            `Correct! You earned ${earnedPoints} points.`,
-          );
-        } else {
-          setLastEarnedPoints(0);
-          setGameState("incorrect");
-
-          setAnswerMessage(
-            `Not quite. The answer was ${correctAnswer}.`,
-          );
+  const handleSelectLetter =
+    useCallback(
+      (
+        letter: string,
+        index: number,
+      ) => {
+        if (
+          !isPlaying ||
+          !currentQuestion
+        ) {
+          return;
         }
-      }
-    },
-    [
-      isPlaying,
-      currentQuestion,
-      selectedLetters,
-      selectedIndexes,
-      answerLength,
-      currentPoints,
-    ],
-  );
+
+        if (
+          selectedLetters.length >=
+          answerLength
+        ) {
+          return;
+        }
+
+        if (
+          selectedIndexes.includes(index)
+        ) {
+          return;
+        }
+
+        const nextLetters = [
+          ...selectedLetters,
+          letter,
+        ];
+
+        const nextIndexes = [
+          ...selectedIndexes,
+          index,
+        ];
+
+        setSelectedLetters(
+          nextLetters,
+        );
+
+        setSelectedIndexes(
+          nextIndexes,
+        );
+
+        setAnswerMessage(null);
+
+        /*
+         * Automatically check the answer when
+         * all required letters have been selected.
+         */
+        if (
+          nextLetters.length ===
+          answerLength
+        ) {
+          const playerAnswer =
+            normalizeAnswer(
+              nextLetters.join(""),
+            );
+
+          const correctAnswer =
+            normalizeAnswer(
+              currentQuestion.answer,
+            );
+
+          if (
+            playerAnswer ===
+            correctAnswer
+          ) {
+            const earnedPoints =
+              Math.max(
+                0,
+                currentPoints,
+              );
+
+            setScore(
+              (previous) =>
+                previous +
+                earnedPoints,
+            );
+
+            setCorrectAnswers(
+              (previous) =>
+                previous + 1,
+            );
+
+            setLastEarnedPoints(
+              earnedPoints,
+            );
+
+            setGameState(
+              "correct",
+            );
+
+            setAnswerMessage(
+              `Correct! You earned ${earnedPoints} points.`,
+            );
+          } else {
+            setLastEarnedPoints(0);
+
+            setGameState(
+              "incorrect",
+            );
+
+            setAnswerMessage(
+              `Not quite. The answer was ${correctAnswer}.`,
+            );
+          }
+        }
+      },
+      [
+        isPlaying,
+        currentQuestion,
+        selectedLetters,
+        selectedIndexes,
+        answerLength,
+        currentPoints,
+      ],
+    );
 
   /*
    * Remove a specific letter from the answer.
    */
-  const handleRemoveLetter = useCallback(
-    (index: number) => {
-      if (!isPlaying) {
-        return;
-      }
+  const handleRemoveLetter =
+    useCallback(
+      (index: number) => {
+        if (!isPlaying) {
+          return;
+        }
 
-      setSelectedLetters((previous) =>
-        previous.filter((_, letterIndex) => letterIndex !== index),
-      );
+        setSelectedLetters(
+          (previous) =>
+            previous.filter(
+              (_, letterIndex) =>
+                letterIndex !== index,
+            ),
+        );
 
-      /*
-       * AnswerSlots works with answer positions.
-       * The selected board indexes are therefore rebuilt
-       * from the current answer selection.
-       */
-      setSelectedIndexes((previous) => {
-        const next = [...previous];
-        next.splice(index, 1);
-        return next;
-      });
+        setSelectedIndexes(
+          (previous) => {
+            const next = [
+              ...previous,
+            ];
 
-      setAnswerMessage(null);
-    },
-    [isPlaying],
-  );
+            next.splice(index, 1);
+
+            return next;
+          },
+        );
+
+        setAnswerMessage(null);
+      },
+      [isPlaying],
+    );
 
   /*
    * Remove the most recently selected letter.
    */
-  const handleRemoveLast = useCallback(() => {
-    if (!isPlaying || selectedLetters.length === 0) {
-      return;
-    }
+  const handleRemoveLast =
+    useCallback(() => {
+      if (
+        !isPlaying ||
+        selectedLetters.length === 0
+      ) {
+        return;
+      }
 
-    setSelectedLetters((previous) => previous.slice(0, -1));
-    setSelectedIndexes((previous) => previous.slice(0, -1));
-    setAnswerMessage(null);
-  }, [isPlaying, selectedLetters.length]);
+      setSelectedLetters(
+        (previous) =>
+          previous.slice(0, -1),
+      );
+
+      setSelectedIndexes(
+        (previous) =>
+          previous.slice(0, -1),
+      );
+
+      setAnswerMessage(null);
+    }, [
+      isPlaying,
+      selectedLetters.length,
+    ]);
 
   /*
    * Clear the complete answer.
    */
-  const handleClear = useCallback(() => {
-    if (!isPlaying) {
-      return;
-    }
+  const handleClear =
+    useCallback(() => {
+      if (!isPlaying) {
+        return;
+      }
 
-    setSelectedLetters([]);
-    setSelectedIndexes([]);
-    setAnswerMessage(null);
-  }, [isPlaying]);
+      setSelectedLetters([]);
+
+      setSelectedIndexes([]);
+
+      setAnswerMessage(null);
+    }, [isPlaying]);
 
   /*
    * Move to the next question.
    */
-  const handleNextQuestion = useCallback(() => {
-    const nextIndex = questionIndex + 1;
+  const handleNextQuestion =
+    useCallback(() => {
+      const nextIndex =
+        questionIndex + 1;
 
-    if (nextIndex >= totalQuestions) {
-      setGameState("finished");
-      return;
-    }
+      if (
+        nextIndex >= totalQuestions
+      ) {
+        setGameState("finished");
 
-    setQuestionIndex(nextIndex);
-  }, [questionIndex, totalQuestions]);
+        return;
+      }
+
+      setQuestionIndex(nextIndex);
+    }, [
+      questionIndex,
+      totalQuestions,
+    ]);
 
   /*
    * Restart the complete game.
    */
-  const handlePlayAgain = useCallback(() => {
-    setQuestionIndex(0);
-    setScore(0);
-    setCorrectAnswers(0);
-    setSelectedLetters([]);
-    setSelectedIndexes([]);
-    setTimeLeft(DEFAULT_TIME_LIMIT);
-    setCurrentPoints(DEFAULT_STARTING_POINTS);
-    setClueShown(false);
-    setGameState("playing");
-    setAnswerMessage(null);
-    setLastEarnedPoints(0);
+  const handlePlayAgain =
+    useCallback(() => {
+      setQuestionIndex(0);
 
-    if (questions[0]) {
-      initializeQuestion(questions[0]);
-    }
-  }, [questions, initializeQuestion]);
+      setScore(0);
+
+      setCorrectAnswers(0);
+
+      setSelectedLetters([]);
+
+      setSelectedIndexes([]);
+
+      setTimeLeft(
+        DEFAULT_TIME_LIMIT,
+      );
+
+      setCurrentPoints(
+        DEFAULT_STARTING_POINTS,
+      );
+
+      setClueShown(false);
+
+      setCluePumping(false);
+
+      setGameState("playing");
+
+      setAnswerMessage(null);
+
+      setLastEarnedPoints(0);
+
+      if (questions[0]) {
+        initializeQuestion(
+          questions[0],
+        );
+      }
+    }, [
+      questions,
+      initializeQuestion,
+    ]);
 
   /*
    * If no questions were supplied.
@@ -494,7 +672,8 @@ export default function WordChallengeGame({
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-white/45">
-          Add some Word Challenge questions to start playing.
+          Add some Word Challenge
+          questions to start playing.
         </p>
 
         {onExit && (
@@ -517,9 +696,15 @@ export default function WordChallengeGame({
     return (
       <GameResult
         score={score}
-        totalQuestions={totalQuestions}
-        correctAnswers={correctAnswers}
-        onPlayAgain={handlePlayAgain}
+        totalQuestions={
+          totalQuestions
+        }
+        correctAnswers={
+          correctAnswers
+        }
+        onPlayAgain={
+          handlePlayAgain
+        }
         onExit={onExit}
       />
     );
@@ -529,7 +714,8 @@ export default function WordChallengeGame({
     return null;
   }
 
-  const answerDisplay = selectedLetters;
+  const answerDisplay =
+    selectedLetters;
 
   const isRoundComplete =
     gameState === "correct" ||
@@ -537,7 +723,8 @@ export default function WordChallengeGame({
     gameState === "time-up";
 
   const missedAnswer =
-    gameState === "incorrect" || gameState === "time-up";
+    gameState === "incorrect" ||
+    gameState === "time-up";
 
   return (
     <main className="mx-auto w-full max-w-3xl">
@@ -549,7 +736,8 @@ export default function WordChallengeGame({
           </p>
 
           <p className="mt-1 text-sm font-semibold text-white/70">
-            Round {questionIndex + 1} of {totalQuestions}
+            Round {questionIndex + 1} of{" "}
+            {totalQuestions}
           </p>
         </div>
 
@@ -568,10 +756,18 @@ export default function WordChallengeGame({
       <div className="space-y-4">
         {/* Description */}
         <DescriptionCard
-          description={currentQuestion.description}
-          category={currentQuestion.category}
-          questionNumber={questionIndex + 1}
-          totalQuestions={totalQuestions}
+          description={
+            currentQuestion.description
+          }
+          category={
+            currentQuestion.category
+          }
+          questionNumber={
+            questionIndex + 1
+          }
+          totalQuestions={
+            totalQuestions
+          }
           disabled={!isPlaying}
         />
 
@@ -580,17 +776,25 @@ export default function WordChallengeGame({
           <Countdown
             timeLeft={timeLeft}
             totalTime={timeLimit}
-            clueThreshold={clueThreshold}
+            clueThreshold={
+              clueThreshold
+            }
             disabled={!isPlaying}
           />
         </div>
 
         {/* Points */}
         <PointsDisplay
-          currentPoints={currentPoints}
-          startingPoints={startingPoints}
+          currentPoints={
+            currentPoints
+          }
+          startingPoints={
+            startingPoints
+          }
           clueUsed={clueShown}
-          cluePenalty={cluePenalty}
+          cluePenalty={
+            cluePenalty
+          }
           disabled={!isPlaying}
         />
 
@@ -598,27 +802,46 @@ export default function WordChallengeGame({
         <ClueCard
           clue={currentQuestion.clue}
           visible={clueShown}
-          reducedPoints={currentPoints}
+          reducedPoints={
+            currentPoints
+          }
+          pumping={cluePumping}
         />
 
         {/* Answer */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
           <AnswerSlots
             answer={answerDisplay}
-            maxLength={answerLength}
-            onRemoveLetter={handleRemoveLetter}
-            onClear={handleClear}
+            maxLength={
+              answerLength
+            }
+            onRemoveLetter={
+              handleRemoveLetter
+            }
+            onClear={
+              handleClear
+            }
             disabled={!isPlaying}
           />
         </div>
 
         {/* Letters */}
         <LetterBoard
-          letters={displayLetters}
-          selectedLetters={selectedLetters}
-          maxLength={answerLength}
-          onSelectLetter={handleSelectLetter}
-          onRemoveLast={handleRemoveLast}
+          letters={
+            displayLetters
+          }
+          selectedLetters={
+            selectedLetters
+          }
+          maxLength={
+            answerLength
+          }
+          onSelectLetter={
+            handleSelectLetter
+          }
+          onRemoveLast={
+            handleRemoveLast
+          }
           disabled={!isPlaying}
         />
 
@@ -629,17 +852,22 @@ export default function WordChallengeGame({
               "flex items-start gap-3 rounded-2xl border p-4",
               gameState === "correct"
                 ? "border-emerald-400/20 bg-emerald-400/[0.07]"
-                : gameState === "incorrect" ||
-                    gameState === "time-up"
+                : gameState ===
+                      "incorrect" ||
+                    gameState ===
+                      "time-up"
                   ? "border-red-400/20 bg-red-400/[0.07]"
                   : "border-amber-400/20 bg-amber-400/[0.07]",
             ].join(" ")}
           >
             <div className="mt-0.5 shrink-0">
-              {gameState === "correct" ? (
+              {gameState ===
+              "correct" ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              ) : gameState === "incorrect" ||
-                gameState === "time-up" ? (
+              ) : gameState ===
+                    "incorrect" ||
+                  gameState ===
+                    "time-up" ? (
                 <XCircle className="h-5 w-5 text-red-400" />
               ) : (
                 <Clock3 className="h-5 w-5 text-amber-300" />
@@ -651,9 +879,11 @@ export default function WordChallengeGame({
                 {answerMessage}
               </p>
 
-              {gameState === "correct" && (
+              {gameState ===
+                "correct" && (
                 <p className="mt-1 text-xs text-emerald-300/70">
-                  {lastEarnedPoints > 0
+                  {lastEarnedPoints >
+                  0
                     ? "The faster you solve, the more you earn."
                     : "Great job solving the word."}
                 </p>
@@ -661,9 +891,12 @@ export default function WordChallengeGame({
 
               {missedAnswer && (
                 <p className="mt-1 text-xs text-white/40">
-                  The correct word was{" "}
+                  The correct word
+                  was{" "}
                   <span className="font-bold text-white/70">
-                    {normalizeAnswer(currentQuestion.answer)}
+                    {normalizeAnswer(
+                      currentQuestion.answer,
+                    )}
                   </span>
                   .
                 </p>
@@ -676,10 +909,13 @@ export default function WordChallengeGame({
         {isRoundComplete && (
           <button
             type="button"
-            onClick={handleNextQuestion}
+            onClick={
+              handleNextQuestion
+            }
             className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-black transition hover:bg-white/90 active:scale-[0.99]"
           >
-            {questionIndex + 1 >= totalQuestions
+            {questionIndex + 1 >=
+            totalQuestions
               ? "See My Results"
               : "Next Word"}
 

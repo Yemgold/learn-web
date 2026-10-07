@@ -24,8 +24,8 @@ const competitions = [
     subject: "All UTME Subjects",
     startDate: "January 20, 2027",
     status: "Upcoming",
-    teams: "0 / 1000 Teams",
-    prize: "₦1,000,000",
+    teams: "0 / 5000 Teams",
+    prize: "₦10,000,000",
     joined: false,
   },
   {
@@ -35,7 +35,7 @@ const competitions = [
     startDate: "February 10, 2027",
     status: "Registration Open",
     teams: "0 / 500 Teams",
-    prize: "₦1,000,000",
+    prize: "₦1,500,000",
     joined: false,
   },
   {
@@ -45,7 +45,7 @@ const competitions = [
     startDate: "March 5, 2027",
     status: "Coming Soon",
     teams: "0 / 500 Teams",
-    prize: "₦500,000",
+    prize: "₦1,000,000",
     joined: false,
   },
 ];

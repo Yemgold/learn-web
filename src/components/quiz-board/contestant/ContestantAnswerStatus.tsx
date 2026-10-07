@@ -20,7 +20,7 @@ export type ContestantAnswerStatusType =
   | "CORRECT"
   | "INCORRECT"
   | "EXPIRED"
-  // | "WAITING"  
+  | "WAITING"  
   | "LOCKED";
 
 export interface ContestantAnswerStatusProps {
@@ -111,6 +111,16 @@ const STATUS_CONFIG: Record<
     iconClassName: "text-red-300",
   },
 
+   WAITING: {
+    icon: Clock3,
+    title: "Question waiting",
+    description:
+      "The host has waiting this question.",
+    className:
+      "border-amber-400/20 bg-amber-400/10 text-amber-100",
+    iconClassName: "text-amber-300",
+  },
+
   EXPIRED: {
     icon: Clock3,
     title: "Time expired",
@@ -130,6 +140,7 @@ const STATUS_CONFIG: Record<
       "border-amber-400/20 bg-amber-400/10 text-amber-100",
     iconClassName: "text-amber-300",
   },
+
 };
 
 function isValidStatus(

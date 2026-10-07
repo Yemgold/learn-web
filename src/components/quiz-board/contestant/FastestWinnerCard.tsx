@@ -27,7 +27,7 @@ export function FastestWinnerCard({
   showEmail = false,
   title = "Fastest Correct Answer",
   message = "Answered correctly before everyone else.",
-  duration = 5000,
+  duration = 10000,
   className = "",
 }: FastestWinnerCardProps) {
   const [visible, setVisible] = useState(true);

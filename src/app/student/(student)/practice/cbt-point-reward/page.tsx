@@ -25,6 +25,7 @@ const INITIAL_REDEEMED_REWARDS: RedeemedReward[] = [
     rewardId: "mock-exam-pack",
     title: "JAMB Mock Exam Pack",
     description: "Full practice examination pack",
+    image: "/rewards/jamb-mock-exam-pack.jpg",
     points: 500,
     status: "DELIVERED",
     redeemedAt: "2026-09-09T09:14:00",

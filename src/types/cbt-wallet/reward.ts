@@ -155,6 +155,8 @@ export interface RedeemedReward {
 
   description?: string;
 
+  image?: string | null;
+
   points: number;
 
   status: RedeemedRewardStatus;

@@ -8,7 +8,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
-  ExternalLink,
   MapPin,
   Package,
   RefreshCw,
@@ -109,7 +108,7 @@ export default function MyRewards({
         <div>
           <div className="mb-2 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
-              <ShoppingBag className="h-4.5 w-4.5" />
+              <ShoppingBag className="h-[18px] w-[18px]" />
             </div>
 
             <h2 className="text-lg font-bold text-white">
@@ -147,17 +146,19 @@ export default function MyRewards({
         </div>
       )}
 
-      {showViewAll && rewards.length > 0 && rewards.length <= limit && (
-        <div className="mt-4">
-          <a
-            href={viewAllHref}
-            className="group flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm font-medium text-slate-400 transition hover:border-slate-700 hover:bg-slate-900 hover:text-white"
-          >
-            View all my rewards
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </a>
-        </div>
-      )}
+      {showViewAll &&
+        rewards.length > 0 &&
+        rewards.length <= limit && (
+          <div className="mt-4">
+            <a
+              href={viewAllHref}
+              className="group flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm font-medium text-slate-400 transition hover:border-slate-700 hover:bg-slate-900 hover:text-white"
+            >
+              View all my rewards
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </a>
+          </div>
+        )}
     </section>
   );
 }
@@ -175,6 +176,11 @@ function MyRewardItem({
     statusConfig[reward.status] ?? statusConfig.ACTIVE;
 
   const StatusIcon = status.icon;
+
+  console.log("Redeemed reward image:", {
+  title: reward.title,
+  image: reward.image,
+});
 
   const isClickable = Boolean(onClick);
 
@@ -200,8 +206,30 @@ function MyRewardItem({
       ].join(" ")}
     >
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
-          <Package className="h-5 w-5" />
+        {/* Reward image with icon fallback */}
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-800">
+          {reward.image ? (
+            <img
+              src={reward.image}
+              alt={reward.title}
+              loading="lazy"
+              className="h-full w-full object-cover"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+                event.currentTarget.nextElementSibling?.classList.remove(
+                  "hidden",
+                );
+              }}
+            />
+          ) : null}
+
+          <div
+            className={`${
+              reward.image ? "hidden " : ""
+            }flex h-full w-full items-center justify-center bg-violet-500/10 text-violet-400`}
+          >
+            <Package className="h-5 w-5" />
+          </div>
         </div>
 
         <div className="min-w-0 flex-1">
@@ -228,18 +256,14 @@ function MyRewardItem({
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className="text-slate-600">
-                Redeemed:
-              </span>
+              <span className="text-slate-600">Redeemed:</span>
               <span className="text-slate-400">
                 {formatDate(reward.redeemedAt)}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className="text-slate-600">
-                Cost:
-              </span>
+              <span className="text-slate-600">Cost:</span>
               <span className="font-semibold text-violet-300">
                 {formatPoints(reward.points)} pts
               </span>
@@ -247,9 +271,7 @@ function MyRewardItem({
 
             {reward.redemptionReference && (
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <span className="text-slate-600">
-                  Ref:
-                </span>
+                <span className="text-slate-600">Ref:</span>
                 <span className="font-mono text-slate-400">
                   {reward.redemptionReference}
                 </span>

@@ -6,7 +6,7 @@
 
 
 
-
+// \src\hooks\quiz-board\useQuizSocket.ts
 
 
 
@@ -39,6 +39,12 @@ import type {
   UseQuizSocketOptions,
   QuizFastestWinner,
   UseQuizSocketResult,
+  QuizRoomLeaderboard,
+
+  TieBreakParticipant,
+  TieBreakSelectionPayload,
+  EnableTopWinnerToSolveTiePayload,
+
 } from "./quizSocketTypes";
 
 import {
@@ -175,6 +181,15 @@ export function useQuizSocket(
 
   const [leaderboard, setLeaderboard] =
     useState<HostLeaderboardEntry[]>([]);
+
+  const [roundLeaderboard, setRoundLeaderboard] =
+  useState<QuizRoomLeaderboard | null>(null);
+
+const [tieBreakPayload, setTieBreakPayload] =
+  useState<TieBreakSelectionPayload | null>(null);
+
+const [tieBreakLoading, setTieBreakLoading] =
+  useState(false);
 
   const [feedEvents, setFeedEvents] =
     useState<QuizFeedEvent[]>([]);
@@ -1052,6 +1067,9 @@ setQuestion(
 
       setParticipants,
       setLeaderboard,
+      setRoundLeaderboard,
+
+      setTieBreakPayload,
 
       setFeedEvents,
 
@@ -1094,6 +1112,138 @@ setQuestion(
     setRoomJoined,
     setSocketError,
   });
+
+/* ==============================================================
+   GET QUIZ ROOM Leaderboard
+============================================================== */
+
+const getQuizRoomLeaderboard = useCallback(
+  (roundNumber?: number) => {
+    const socket = socketRef.current;
+    const quizId = quizIdRef.current;
+    const roomId = roomIdRef.current;
+
+    if (!socket || !socket.connected) {
+      console.warn(
+        "[useQuizSocket] Cannot request round leaderboard: socket is not connected.",
+      );
+      return;
+    }
+
+    if (!quizId || !roomId) {
+      console.warn(
+        "[useQuizSocket] Cannot request round leaderboard: quizId or roomId is missing.",
+      );
+      return;
+    }
+
+    const resolvedRound =
+      roundNumber ?? currentRoundRef.current;
+
+    if (resolvedRound < 1) {
+      console.warn(
+        "[useQuizSocket] Cannot request round leaderboard: invalid round number.",
+      );
+      return;
+    }
+
+    const payload = {
+      roundNumber: resolvedRound,
+      roomId,
+      quizId,
+    };
+
+    console.log(
+      "[useQuizSocket] Requesting round leaderboard:",
+      payload,
+    );
+
+    socket.emit(
+      "get_quiz_room_leaderboard",
+      payload,
+    );
+  },
+  [],
+);
+
+
+/* ==============================================================
+   ENABLE TOP WINNER TO SOLVE TIE
+============================================================== */
+
+const enableTopWinnerToSolveTie = useCallback(
+  (topWinnerId: string) => {
+    const socket = socketRef.current;
+    const currentQuizId = quizIdRef.current;
+    const currentRoomId = roomIdRef.current;
+    const roundNumber = currentRoundRef.current;
+
+    if (!socket || !socket.connected) {
+      setSocketError(
+        "Cannot enable the tie-break because the socket is disconnected.",
+      );
+      return;
+    }
+
+    if (!currentQuizId || !currentRoomId) {
+      setSocketError(
+        "Cannot enable the tie-break because the quiz or room ID is missing.",
+      );
+      return;
+    }
+
+    if (!topWinnerId.trim()) {
+      setSocketError(
+        "Select a valid top winner before enabling the tie-break.",
+      );
+      return;
+    }
+
+    if (roundNumber < 1) {
+      setSocketError(
+        "Cannot enable the tie-break because the round number is invalid.",
+      );
+      return;
+    }
+
+    const payload: EnableTopWinnerToSolveTiePayload = {
+      quizId: currentQuizId,
+      roomId: currentRoomId,
+      roundNumber,
+      topWinnerId: topWinnerId.trim(),
+    };
+
+    setTieBreakLoading(true);
+    setSocketError(null);
+
+    console.log(
+      "[useQuizSocket] Enabling top-winner tie-break:",
+      payload,
+    );
+
+    socket.emit(
+      "enable_top_winner_to_solve_tie",
+      payload,
+      (response?: {
+        success?: boolean;
+        message?: string;
+      }) => {
+        setTieBreakLoading(false);
+
+        if (response?.success === false) {
+          setSocketError(
+            response.message ??
+              "The server could not enable the tie-break.",
+          );
+        }
+      },
+    );
+  },
+  [],
+);
+
+
+
 
   /* ==============================================================
      ACTIONS
@@ -1212,6 +1362,16 @@ setQuestion(
     answerSubmitted,
 
     submittingAnswer,
+
+    roundLeaderboard,
+
+    tieBreakPayload,
+
+tieBreakLoading,
+
+enableTopWinnerToSolveTie,
+
+    getQuizRoomLeaderboard,
 
     /*
      * Server-authoritative answer result.

@@ -1,8 +1,4 @@
 
-
-
-
-
 "use client";
 
 import {
@@ -37,6 +33,11 @@ import HostQuestionPreview, {
   type HostQuestionPreviewQuestion,
 } from "./HostQuestionPreview";
 
+import type {
+  TieBreakParticipant,
+  TieBreakSelectionPayload,
+} from "@/hooks/quiz-board/quizSocketTypes";
+
 export interface HostQuizShowProps {
   quizId: string;
   roomId: string;
@@ -68,9 +69,7 @@ export interface HostQuizShowProps {
   participants: HostParticipant[];
   leaderboard: HostLeaderboardEntry[];
 
-
   loading?: boolean;
-
   questionLoading?: boolean;
   actionLoading?: boolean;
 
@@ -82,57 +81,46 @@ export interface HostQuizShowProps {
 
   onBack?: () => void;
 
-  /**
-   * Host selects a question for preview.
-   * This does NOT start/broadcast the question.
-   */
   onSelectQuestion: (
     question: HostQuestionListItem,
   ) => void;
 
-  /**
-   * Actual Socket.IO start action belongs to the parent/socket layer.
-   */
   onStartQuestion: () => void;
-
-  /**
-   * Actual Socket.IO lock action.
-   */
   onLockQuestion: () => void;
-
-  /**
-   * Actual Socket.IO next-question action.
-   */
   onNextQuestion: () => void;
 
-  /**
-   * Optional host-side reset action.
-   */
   onResetQuestion?: () => void;
-
-  /**
-   * Optional time selector callback.
-   */
   onTimeLimitChange?: (seconds: number) => void;
 
-  /**
-   * Optional participant click handler.
-   */
   onParticipantClick?: (
     participant: HostParticipant,
   ) => void;
 
-  /**
-   * Optional leaderboard click handler.
-   */
   onLeaderboardParticipantClick?: (
     participant: HostLeaderboardEntry,
   ) => void;
 
-  /**
-   * Optional room refresh/reload action.
-   */
   onRefresh?: () => void;
+  onBroadcastLeaderboard?: () => void;
+
+  /**
+   * The top winner ID supplied by the backend.
+   * No manual ID entry is required.
+   */
+  topWinnerId?: string | null;
+
+  /**
+   * Tie-break participants received from the backend.
+   */
+  tieBreakPayload?: TieBreakSelectionPayload | null;
+
+  tieBreakLoading?: boolean;
+
+  /**
+   * Emits enable_top_winner_to_solve_tie through the
+   * existing socket hook using the backend-provided ID.
+   */
+  onEnableTieBreak?: (topWinnerId: string) => void;
 }
 
 const TIME_OPTIONS = [15, 30, 45, 60];
@@ -145,9 +133,26 @@ function formatTime(seconds: number) {
   return `${seconds}s`;
 }
 
+function getTieBreakParticipants(
+  payload: TieBreakSelectionPayload | null | undefined,
+): TieBreakParticipant[] {
+  if (!payload) {
+    return [];
+  }
+
+  const participants = payload.participantsWithLeastTie;
+
+  if (Array.isArray(participants)) {
+    return participants;
+  }
+
+  return participants.entries ?? [];
+}
+
 export default function HostQuizShow({
   quizId,
   roomId,
+
   quizTitle = "Quiz Competition",
   subject = "Quiz Board",
   description = "",
@@ -159,9 +164,7 @@ export default function HostQuizShow({
 
   selectedQuestionNumber = null,
   currentQuestionNumber = null,
-
   totalQuestions = null,
-
   selectedQuestion = null,
 
   questionStarted = false,
@@ -176,7 +179,6 @@ export default function HostQuizShow({
   leaderboard,
 
   loading = false,
-
   questionLoading = false,
   actionLoading = false,
 
@@ -189,20 +191,23 @@ export default function HostQuizShow({
   onBack,
 
   onSelectQuestion,
-
   onStartQuestion,
   onLockQuestion,
   onNextQuestion,
 
   onResetQuestion,
-
   onTimeLimitChange,
 
   onParticipantClick,
-
   onLeaderboardParticipantClick,
 
   onRefresh,
+  onBroadcastLeaderboard,
+
+  topWinnerId = null,
+  tieBreakPayload = null,
+  tieBreakLoading = false,
+  onEnableTieBreak,
 }: HostQuizShowProps) {
   const [mobilePanel, setMobilePanel] = useState<
     "questions" | "preview" | "participants" | "leaderboard"
@@ -237,9 +242,7 @@ export default function HostQuizShow({
     );
   }, [questions, selectedQuestionNumber]);
 
-  const isLive =
-    questionStarted &&
-    !questionLocked;
+  const isLive = questionStarted && !questionLocked;
 
   const roomStatus = !connected
     ? "OFFLINE"
@@ -273,15 +276,53 @@ export default function HostQuizShow({
             ? "border-violet-400/20 bg-violet-400/10 text-violet-300"
             : "border-red-400/20 bg-red-400/10 text-red-300";
 
+  const canBroadcastLeaderboard =
+    connected &&
+    roomActivated &&
+    Boolean(quizId) &&
+    Boolean(roomId) &&
+    Number.isInteger(currentRound) &&
+    currentRound >= 1 &&
+    Boolean(onBroadcastLeaderboard);
+
+  const canEnableTieBreak =
+    connected &&
+    roomActivated &&
+    Boolean(quizId) &&
+    Boolean(roomId) &&
+    Number.isInteger(currentRound) &&
+    currentRound >= 1 &&
+    Boolean(topWinnerId?.trim()) &&
+    Boolean(onEnableTieBreak) &&
+    !tieBreakLoading;
+
+  const handleBroadcastLeaderboard = () => {
+    if (!canBroadcastLeaderboard) {
+      return;
+    }
+
+    onBroadcastLeaderboard?.();
+  };
+
+  const handleEnableTieBreak = () => {
+    const winnerId = topWinnerId?.trim();
+
+    if (!canEnableTieBreak || !winnerId) {
+      return;
+    }
+
+    onEnableTieBreak?.(winnerId);
+  };
+
+  const tieBreakParticipants =
+    getTieBreakParticipants(tieBreakPayload);
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* =========================================================
-          HOST HEADER
-          ========================================================= */}
+      {/* HOST HEADER */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/95 backdrop-blur-xl">
         <div className="mx-auto max-w-[1800px] px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-4">
-            {/* Left */}
             <div className="flex min-w-0 items-center gap-3">
               {onBack && (
                 <button
@@ -319,7 +360,6 @@ export default function HostQuizShow({
               </div>
             </div>
 
-            {/* Right */}
             <div className="flex shrink-0 items-center gap-2">
               <div
                 className={[
@@ -352,9 +392,7 @@ export default function HostQuizShow({
         </div>
       </header>
 
-      {/* =========================================================
-          ERROR
-          ========================================================= */}
+      {/* ERROR */}
       {error && (
         <div className="mx-auto max-w-[1800px] px-4 pt-4 sm:px-6">
           <div className="flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-4">
@@ -373,12 +411,9 @@ export default function HostQuizShow({
         </div>
       )}
 
-      {/* =========================================================
-          ROOM SUMMARY
-          ========================================================= */}
+      {/* ROOM SUMMARY */}
       <div className="mx-auto max-w-[1800px] px-4 pt-4 sm:px-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {/* Room */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Radio className="h-4 w-4" />
@@ -396,7 +431,6 @@ export default function HostQuizShow({
             </p>
           </div>
 
-          {/* Participants */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Users className="h-4 w-4" />
@@ -412,7 +446,6 @@ export default function HostQuizShow({
             </p>
           </div>
 
-          {/* Question */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CircleDot className="h-4 w-4" />
@@ -421,9 +454,7 @@ export default function HostQuizShow({
 
             <p className="mt-2 text-xl font-bold text-white">
               {currentQuestionNumber ?? "—"}
-              {totalQuestions
-                ? ` / ${totalQuestions}`
-                : ""}
+              {totalQuestions ? ` / ${totalQuestions}` : ""}
             </p>
 
             <p className="mt-1 text-[11px] text-slate-500">
@@ -433,7 +464,6 @@ export default function HostQuizShow({
             </p>
           </div>
 
-          {/* Timer */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Clock3 className="h-4 w-4" />
@@ -451,9 +481,7 @@ export default function HostQuizShow({
         </div>
       </div>
 
-      {/* =========================================================
-          MOBILE PANEL NAVIGATION
-          ========================================================= */}
+      {/* MOBILE PANEL NAVIGATION */}
       <div className="mx-auto max-w-[1800px] px-4 pt-4 sm:px-6 lg:hidden">
         <div className="grid grid-cols-4 rounded-2xl border border-white/10 bg-white/[0.025] p-1">
           {[
@@ -487,14 +515,10 @@ export default function HostQuizShow({
         </div>
       </div>
 
-      {/* =========================================================
-          DESKTOP / MOBILE MAIN WORKSPACE
-          ========================================================= */}
+      {/* MAIN WORKSPACE */}
       <div className="mx-auto max-w-[1800px] px-4 py-4 sm:px-6 lg:py-6">
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px] xl:grid-cols-[330px_minmax(0,1fr)_360px]">
-          {/* =====================================================
-              LEFT: QUESTION BANK
-              ===================================================== */}
+          {/* LEFT: QUESTION BANK */}
           <aside
             className={[
               "min-w-0",
@@ -529,12 +553,8 @@ export default function HostQuizShow({
               {showQuestionBank && (
                 <HostQuestionList
                   questions={questions}
-                  selectedQuestionNumber={
-                    selectedQuestionNumber
-                  }
-                  currentQuestionNumber={
-                    currentQuestionNumber
-                  }
+                  selectedQuestionNumber={selectedQuestionNumber}
+                  currentQuestionNumber={currentQuestionNumber}
                   totalQuestions={totalQuestions}
                   loading={questionLoading || loading}
                   onSelectQuestion={(question) => {
@@ -551,9 +571,7 @@ export default function HostQuizShow({
             </div>
           </aside>
 
-          {/* =====================================================
-              CENTER: PREVIEW + CONTROLS
-              ===================================================== */}
+          {/* CENTER: PREVIEW + CONTROLS */}
           <section
             className={[
               "min-w-0 space-y-4",
@@ -562,7 +580,6 @@ export default function HostQuizShow({
                 : "hidden lg:block",
             ].join(" ")}
           >
-            {/* Selected question helper */}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.025] px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <ShieldCheck className="h-5 w-5 shrink-0 text-cyan-300" />
@@ -585,16 +602,16 @@ export default function HostQuizShow({
             </div>
 
             <HostQuestionPreview
-  question={selectedQuestion}
-  totalQuestions={totalQuestions}
-  loading={questionLoading}
-  questionStarted={questionStarted}
-  questionLocked={questionLocked}
-  showCorrectAnswer
-  showExplanation
-/>
+              question={selectedQuestion}
+              totalQuestions={totalQuestions}
+              loading={questionLoading}
+              questionStarted={questionStarted}
+              questionLocked={questionLocked}
+              showCorrectAnswer
+              showExplanation
+            />
 
-            {/* Time selection */}
+            {/* TIME SELECTION */}
             {onTimeLimitChange && (
               <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -614,9 +631,7 @@ export default function HostQuizShow({
                       <button
                         key={seconds}
                         type="button"
-                        onClick={() =>
-                          onTimeLimitChange(seconds)
-                        }
+                        onClick={() => onTimeLimitChange(seconds)}
                         disabled={
                           actionLoading ||
                           questionStarted ||
@@ -637,19 +652,17 @@ export default function HostQuizShow({
               </div>
             )}
 
-            {/* Main controls */}
+            {/* QUESTION CONTROLS */}
             <HostQuestionControls
               questionNumber={
-                selectedQuestionNumber ??
-                currentQuestionNumber
+                selectedQuestionNumber ?? currentQuestionNumber
               }
               totalQuestions={totalQuestions}
               timeLimit={timeLimit}
               questionStarted={questionStarted}
               questionLocked={questionLocked}
               canStart={
-                canStartQuestion &&
-                Boolean(selectedQuestion)
+                canStartQuestion && Boolean(selectedQuestion)
               }
               canLock={canLockQuestion}
               canNext={canNextQuestion}
@@ -660,7 +673,6 @@ export default function HostQuizShow({
               onResetQuestion={onResetQuestion}
             />
 
-            {/* Description */}
             {description && (
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -674,9 +686,7 @@ export default function HostQuizShow({
             )}
           </section>
 
-          {/* =====================================================
-              RIGHT: PARTICIPANTS + LEADERBOARD
-              ===================================================== */}
+          {/* RIGHT: PARTICIPANTS + LEADERBOARD */}
           <aside
             className={[
               "min-w-0 space-y-4",
@@ -686,7 +696,7 @@ export default function HostQuizShow({
                 : "hidden lg:block",
             ].join(" ")}
           >
-            {/* Participants */}
+            {/* PARTICIPANTS */}
             <div
               className={
                 mobilePanel === "leaderboard"
@@ -702,13 +712,11 @@ export default function HostQuizShow({
                 showStats
                 showConnectionStatus
                 showEliminated
-                onParticipantClick={
-                  onParticipantClick
-                }
+                onParticipantClick={onParticipantClick}
               />
             </div>
 
-            {/* Leaderboard */}
+            {/* LEADERBOARD */}
             <div
               className={
                 mobilePanel === "participants"
@@ -716,23 +724,151 @@ export default function HostQuizShow({
                   : "block"
               }
             >
+              <button
+                type="button"
+                onClick={handleBroadcastLeaderboard}
+                disabled={!canBroadcastLeaderboard}
+                title={
+                  !connected
+                    ? "Connect to the quiz room first"
+                    : !roomActivated
+                      ? "Activate the quiz room first"
+                      : !onBroadcastLeaderboard
+                        ? "Connect the leaderboard callback in the parent component"
+                        : currentRound < 1
+                          ? "A valid round is required"
+                          : `Request leaderboard for round ${currentRound}`
+                }
+                className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-3 text-sm font-bold text-violet-200 transition hover:border-violet-300/50 hover:bg-violet-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trophy className="h-4 w-4" />
+                Broadcast Round {currentRound} Leaderboard
+              </button>
+
               <HostLeaderboardPanel
                 entries={leaderboard}
                 title="Live Leaderboard"
-                currentQuestionNumber={
-                  currentQuestionNumber
-                }
+                currentQuestionNumber={currentQuestionNumber}
                 totalQuestions={totalQuestions}
                 showQuestionProgress
                 showConnectionStatus
                 showEliminated
-                onParticipantClick={
-                  onLeaderboardParticipantClick
-                }
+                onParticipantClick={onLeaderboardParticipantClick}
               />
             </div>
 
-            {/* Host reminder */}
+            {/* TIE-BREAK CONTROL */}
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4">
+              <div className="flex items-start gap-3">
+                <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-amber-200">
+                    Tie-Break Control
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                    The winner ID comes from the backend. No manual
+                    entry is required.
+                  </p>
+                </div>
+              </div>
+
+              {topWinnerId ? (
+                <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Backend-designated winner
+                  </p>
+
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">
+                    {topWinnerId}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 p-3 text-xs text-slate-500">
+                  Waiting for the backend to provide the top winner ID.
+                </p>
+              )}
+
+              {onEnableTieBreak && (
+                <button
+                  type="button"
+                  onClick={handleEnableTieBreak}
+                  disabled={!canEnableTieBreak}
+                  title={
+                    !topWinnerId
+                      ? "Waiting for the backend-provided winner ID"
+                      : !connected
+                        ? "Connect to the quiz room first"
+                        : !roomActivated
+                          ? "Activate the quiz room first"
+                          : tieBreakLoading
+                            ? "Tie-break request in progress"
+                            : "Enable the tie-break for the backend-designated winner"
+                  }
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-bold text-amber-200 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trophy className="h-4 w-4" />
+                  {tieBreakLoading
+                    ? "Enabling Tie-Break..."
+                    : "Enable Tie-Break"}
+                </button>
+              )}
+
+              {tieBreakPayload && (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <p className="text-xs font-semibold text-white">
+                    Tie-break participants received
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Round {tieBreakPayload.roundNumber}
+                  </p>
+
+                  {tieBreakParticipants.length === 0 ? (
+                    <p className="mt-3 text-xs text-slate-500">
+                      The backend sent no participants in this payload.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {tieBreakParticipants.map((participant) => (
+                        <div
+                          key={participant.userId}
+                          className="rounded-xl border border-white/10 bg-slate-950/70 p-3"
+                        >
+                          <p className="break-all text-xs font-semibold text-slate-200">
+                            {participant.userId}
+                          </p>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                            <span>
+                              Round score: {participant.roundScore}
+                            </span>
+                            <span>
+                              Total score: {participant.totalScore}
+                            </span>
+                            <span>
+                              Correct answers: {participant.correctAnswers}
+                            </span>
+                            <span>
+                              Time: {participant.timeTakenInSeconds}s
+                            </span>
+                          </div>
+
+                          {participant.isEliminated && (
+                            <p className="mt-2 text-[10px] font-bold uppercase text-red-300">
+                              Eliminated
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* HOST REMINDER */}
             <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.04] p-4">
               <div className="flex items-start gap-3">
                 <Trophy className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
@@ -754,9 +890,7 @@ export default function HostQuizShow({
         </div>
       </div>
 
-      {/* =========================================================
-          MOBILE QUICK STATUS
-          ========================================================= */}
+      {/* MOBILE QUICK STATUS */}
       <div className="mx-auto max-w-[1800px] px-4 pb-6 sm:px-6 lg:hidden">
         <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-[10px] text-slate-500">
           <span
@@ -773,7 +907,9 @@ export default function HostQuizShow({
               <WifiOff className="h-3 w-3" />
             )}
 
-            {connected ? "Socket connected" : "Socket disconnected"}
+            {connected
+              ? "Socket connected"
+              : "Socket disconnected"}
           </span>
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
@@ -788,9 +924,7 @@ export default function HostQuizShow({
         </div>
       </div>
 
-      {/* =========================================================
-          HOST ROLE FOOTER
-          ========================================================= */}
+      {/* HOST ROLE FOOTER */}
       <footer className="border-t border-white/10 bg-slate-950/80">
         <div className="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -809,3 +943,4 @@ export default function HostQuizShow({
     </main>
   );
 }
+

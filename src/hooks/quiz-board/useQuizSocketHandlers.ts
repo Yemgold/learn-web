@@ -7,16 +7,22 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
+
 import type { HostParticipant } from "@/components/quiz-board/host/HostParticipantPanel";
 import type { HostLeaderboardEntry } from "@/components/quiz-board/host/HostLeaderboardPanel";
 import type { QuizGameRole } from "@/types/quiz-board/quiz-role";
 
 import type {
-  LiveQuestion,
-  QuizFeedEvent,
- QuizAnswerResult,
- QuizFastestWinner,
-  QuizRoomDocument,
+LiveQuestion,
+QuizFeedEvent,
+QuizAnswerResult,
+QuizFastestWinner,
+QuizRoomDocument,
+QuizRoomLeaderboard,
+QuizRoomLeaderboardEntry,
+
+TieBreakParticipant,
+TieBreakSelectionPayload,
   
 } from "./quizSocketTypes";
 
@@ -164,12 +170,22 @@ export interface QuizSocketHandlerContext {
     roundNumber: number,
   ) => void;
 
+  setRoundLeaderboard: Dispatch<
+  SetStateAction<QuizRoomLeaderboard | null>
+>;
+
   applyQuestion: (
     payload: unknown,
     source: string,
     markStarted?: boolean,
   ) => boolean;
+
+ setTieBreakPayload: Dispatch<
+    SetStateAction<TieBreakSelectionPayload | null>
+  >;
 }
+
+ 
 
 /* ================================================================
    PARTICIPANTS
@@ -417,6 +433,8 @@ export function createQuizSocketHandlers(
     setRoomActivated,
     setRoomDoc,
     setSocketCurrentRound,
+    setRoundLeaderboard,
+    setTieBreakPayload,
     setQuestion,
     setCurrentQuestionNumber,
     setQuestionStarted,
@@ -435,7 +453,7 @@ export function createQuizSocketHandlers(
     applyQuestion,
 
     fastestWinner,
-    
+
   } = context;
 
   /* ==============================================================
@@ -1708,6 +1726,120 @@ const handleQuestionCompleted = (
     );
   };
 
+
+ 
+/* ================================================================
+   HANDLE QUIZ ROOM ROUND LEADERBOARD
+================================================================ */
+
+const handleQuizRoomLeaderboard = (
+  payload: unknown,
+) => {
+  if (disposedRef.current) {
+    return;
+  }
+
+  console.log(
+    "[useQuizSocket] get_quiz_room_leaderboard payload:",
+    payload,
+  );
+
+  const unwrapped = unwrapPayload(payload);
+
+  if (!isRecord(unwrapped)) {
+    console.warn(
+      "[useQuizSocket] Invalid round leaderboard payload:",
+      payload,
+    );
+    return;
+  }
+
+  /*
+   * Support either:
+   *
+   * { leaderboard: {...} }
+   *
+   * or a directly emitted leaderboard document.
+   */
+  const rawLeaderboard = isRecord(unwrapped.leaderboard)
+    ? unwrapped.leaderboard
+    : unwrapped;
+
+  if (!Array.isArray(rawLeaderboard.entries)) {
+    console.warn(
+      "[useQuizSocket] Round leaderboard has no entries array:",
+      rawLeaderboard,
+    );
+    return;
+  }
+
+  const entries = rawLeaderboard.entries.map(
+    (entry): QuizRoomLeaderboardEntry | null => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const userId = getString(entry.userId);
+
+      if (!userId) {
+        return null;
+      }
+
+      return {
+        userId,
+        roundScore: getNumber(entry.roundScore) ?? 0,
+        totalScore: getNumber(entry.totalScore) ?? 0,
+        answeredQuestions:
+          getNumber(entry.answeredQuestions) ?? 0,
+        correctAnswers:
+          getNumber(entry.correctAnswers) ?? 0,
+        timeTakenInSeconds:
+          getNumber(entry.timeTakenInSeconds) ?? 0,
+        rank: getNumber(entry.rank) ?? 0,
+        isTied: entry.isTied === true,
+        tieGroup:
+          getString(entry.tieGroup),
+        isEliminated: entry.isEliminated === true,
+      };
+    },
+  ).filter(
+    (entry): entry is QuizRoomLeaderboardEntry =>
+      entry !== null,
+  );
+
+  const leaderboard: QuizRoomLeaderboard = {
+    _id: getString(rawLeaderboard._id) ?? "",
+    quizId:
+      getString(rawLeaderboard.quizId) ??
+      quizIdRef.current,
+    roundNumber:
+      getNumber(rawLeaderboard.roundNumber) ??
+      currentRoundRef.current,
+    entries,
+    hasTie: rawLeaderboard.hasTie === true,
+    hasTieBreakOccurred:
+      rawLeaderboard.hasTieBreakOccurred === true,
+    createdAt: getString(rawLeaderboard.createdAt) ?? "",
+    updatedAt: getString(rawLeaderboard.updatedAt) ?? "",
+  };
+
+  setRoundLeaderboard(leaderboard);
+
+  addFeedEvent(
+    "quiz_room_round_leaderboard",
+    leaderboard,
+    `Round ${leaderboard.roundNumber} leaderboard received.`,
+  );
+
+  console.log(
+    "[useQuizSocket] Round leaderboard stored:",
+    leaderboard,
+  );
+};
+
+
+
+
   /* ==============================================================
      HANDLE PARTICIPANT SELECTED ANSWER
   ============================================================== */
@@ -1781,6 +1913,134 @@ const handleQuestionCompleted = (
       payload,
     );
   };
+
+
+
+  /* ==============================================================
+     HANDLE SELECT PARTICIPANTS TO BE REMOVED — TIE-BREAK
+  ============================================================== */
+
+  const handleSelectParticipantsToBeRemoved = (
+    payload: unknown,
+  ) => {
+    if (disposedRef.current) {
+      return;
+    }
+
+    console.log(
+      "[useQuizSocket] select_participants_to_be_removed:",
+      payload,
+    );
+
+    const unwrapped = unwrapPayload(payload);
+
+    if (!isRecord(unwrapped)) {
+      console.warn(
+        "[useQuizSocket] Invalid tie-break payload:",
+        payload,
+      );
+      return;
+    }
+
+    const data = isRecord(unwrapped.data)
+      ? unwrapped.data
+      : unwrapped;
+
+    const incomingQuizId =
+      getString(data.quizId ?? data.quiz_id);
+
+    const incomingRoomId =
+      getString(data.roomId ?? data.room_id);
+
+    const roundNumber =
+      getNumber(data.roundNumber ?? data.round_number);
+
+    /*
+     * Ignore a payload belonging to another quiz or room.
+     * The backend must still enforce recipient authorization.
+     */
+    if (
+      (incomingQuizId &&
+        incomingQuizId !== quizIdRef.current) ||
+      (incomingRoomId &&
+        incomingRoomId !== roomIdRef.current)
+    ) {
+      console.warn(
+        "[useQuizSocket] Ignoring tie-break payload for another room.",
+      );
+      return;
+    }
+
+    const rawTieParticipants =
+      data.participantsWithLeastTie;
+
+    let rawEntries: unknown[] = [];
+
+    if (Array.isArray(rawTieParticipants)) {
+      rawEntries = rawTieParticipants;
+    } else if (isRecord(rawTieParticipants)) {
+      if (Array.isArray(rawTieParticipants.entries)) {
+        rawEntries = rawTieParticipants.entries;
+      }
+    }
+
+    const entries: TieBreakParticipant[] =
+      rawEntries.flatMap((entry) => {
+        if (!isRecord(entry)) {
+          return [];
+        }
+
+        const userId = getString(
+          entry.userId ??
+            entry.user_id ??
+            entry._id,
+        );
+
+        if (!userId) {
+          return [];
+        }
+
+        return [{
+          userId,
+          roundScore: getNumber(entry.roundScore) ?? 0,
+          totalScore: getNumber(entry.totalScore) ?? 0,
+          answeredQuestions:
+            getNumber(entry.answeredQuestions) ?? 0,
+          correctAnswers:
+            getNumber(entry.correctAnswers) ?? 0,
+          timeTakenInSeconds:
+            getNumber(entry.timeTakenInSeconds) ?? 0,
+          rank: getNumber(entry.rank) ?? 0,
+          isTied: entry.isTied === true,
+          tieGroup: getString(entry.tieGroup),
+          isEliminated: entry.isEliminated === true,
+        }];
+      });
+
+    const tieBreakPayload: TieBreakSelectionPayload = {
+      quizId: incomingQuizId ?? quizIdRef.current,
+      roomId: incomingRoomId ?? roomIdRef.current ?? "",
+      roundNumber: roundNumber ?? currentRoundRef.current,
+      participantsWithLeastTie: entries,
+    };
+
+    setTieBreakPayload(tieBreakPayload);
+
+    setSocketError(null);
+
+    addFeedEvent(
+      "select_participants_to_be_removed",
+      tieBreakPayload,
+      "Tie-break participants received.",
+    );
+
+    console.log(
+      "[useQuizSocket] Tie-break participants stored:",
+      tieBreakPayload,
+    );
+  };
+
+
 
   /* ==============================================================
      HANDLE ANSWER RESULT
@@ -2083,6 +2343,8 @@ if (
     handleQuestionCompleted,
 
     handleQuestionFastestWinner,
+
+    handleSelectParticipantsToBeRemoved,
 
     handleSocketError,
   };

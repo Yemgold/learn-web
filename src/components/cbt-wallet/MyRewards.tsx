@@ -1,9 +1,9 @@
 
 
 
-
 "use client";
 
+import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -43,32 +43,27 @@ const statusConfig: Record<
 > = {
   ACTIVE: {
     label: "Active",
-    className:
-      "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
+    className: "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
     icon: CheckCircle2,
   },
   PROCESSING: {
     label: "Processing",
-    className:
-      "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-300",
     icon: Clock3,
   },
   DELIVERED: {
     label: "Delivered",
-    className:
-      "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
     icon: Truck,
   },
   USED: {
     label: "Used",
-    className:
-      "border-slate-700 bg-slate-800/80 text-slate-400",
+    className: "border-slate-700 bg-slate-800/80 text-slate-400",
     icon: CheckCircle2,
   },
   CANCELLED: {
     label: "Cancelled",
-    className:
-      "border-rose-500/20 bg-rose-500/10 text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/10 text-rose-300",
     icon: XCircle,
   },
 };
@@ -111,14 +106,10 @@ export default function MyRewards({
               <ShoppingBag className="h-[18px] w-[18px]" />
             </div>
 
-            <h2 className="text-lg font-bold text-white">
-              {title}
-            </h2>
+            <h2 className="text-lg font-bold text-white">{title}</h2>
           </div>
 
-          <p className="text-sm text-slate-500">
-            {description}
-          </p>
+          <p className="text-sm text-slate-500">{description}</p>
         </div>
 
         {showViewAll && rewards.length > limit && (
@@ -168,20 +159,9 @@ interface MyRewardItemProps {
   onClick?: (reward: RedeemedReward) => void;
 }
 
-function MyRewardItem({
-  reward,
-  onClick,
-}: MyRewardItemProps) {
-  const status =
-    statusConfig[reward.status] ?? statusConfig.ACTIVE;
-
+function MyRewardItem({ reward, onClick }: MyRewardItemProps) {
+  const status = statusConfig[reward.status] ?? statusConfig.ACTIVE;
   const StatusIcon = status.icon;
-
-  console.log("Redeemed reward image:", {
-  title: reward.title,
-  image: reward.image,
-});
-
   const isClickable = Boolean(onClick);
 
   return (
@@ -206,31 +186,10 @@ function MyRewardItem({
       ].join(" ")}
     >
       <div className="flex items-start gap-4">
-        {/* Reward image with icon fallback */}
-        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-800">
-          {reward.image ? (
-            <img
-              src={reward.image}
-              alt={reward.title}
-              loading="lazy"
-              className="h-full w-full object-cover"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-                event.currentTarget.nextElementSibling?.classList.remove(
-                  "hidden",
-                );
-              }}
-            />
-          ) : null}
-
-          <div
-            className={`${
-              reward.image ? "hidden " : ""
-            }flex h-full w-full items-center justify-center bg-violet-500/10 text-violet-400`}
-          >
-            <Package className="h-5 w-5" />
-          </div>
-        </div>
+        <RewardThumbnail
+          image={reward.image}
+          title={reward.title}
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -247,7 +206,6 @@ function MyRewardItem({
             </div>
 
             <StatusBadge
-              status={reward.status}
               icon={StatusIcon}
               className={status.className}
               label={status.label}
@@ -279,13 +237,12 @@ function MyRewardItem({
             )}
           </div>
 
-          {reward.status === "DELIVERED" &&
-            reward.deliveredAt && (
-              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Delivered {formatDate(reward.deliveredAt)}
-              </div>
-            )}
+          {reward.status === "DELIVERED" && reward.deliveredAt && (
+            <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Delivered {formatDate(reward.deliveredAt)}
+            </div>
+          )}
 
           {reward.status === "PROCESSING" && (
             <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-400">
@@ -297,9 +254,7 @@ function MyRewardItem({
           {reward.deliveryAddress && (
             <div className="mt-3 flex items-start gap-1.5 text-[11px] text-slate-500">
               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600" />
-              <span className="line-clamp-1">
-                {reward.deliveryAddress}
-              </span>
+              <span className="line-clamp-1">{reward.deliveryAddress}</span>
             </div>
           )}
 
@@ -321,18 +276,44 @@ function MyRewardItem({
   );
 }
 
-interface StatusBadgeProps {
-  status: RedeemedRewardStatus;
-  icon: React.ComponentType<{ className?: string }>;
-  className: string;
-  label: string;
+function RewardThumbnail({
+  image,
+  title,
+}: {
+  image?: string | null;
+  title: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = Boolean(image?.trim()) && !imageFailed;
+
+  return (
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-800">
+      {hasImage ? (
+        <img
+          src={image!}
+          alt={title}
+          loading="eager"
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-violet-500/10 text-violet-400">
+          <Package className="h-5 w-5" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function StatusBadge({
   icon: Icon,
   className,
   label,
-}: StatusBadgeProps) {
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  className: string;
+  label: string;
+}) {
   return (
     <span
       className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${className}`}
@@ -355,9 +336,8 @@ function EmptyRewardsState() {
       </h3>
 
       <p className="mx-auto mt-1.5 max-w-sm text-xs leading-5 text-slate-500">
-        Keep learning and earning CBT Points. You can use
-        your points to redeem gadgets, study materials,
-        education rewards, and more.
+        Keep learning and earning CBT Points. You can use your points to
+        redeem gadgets, study materials, education rewards, and more.
       </p>
 
       <a href="/student/rewards">

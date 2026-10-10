@@ -603,13 +603,15 @@ export default function StudentDashboardPage() {
       icon: "play",
     },
 
-    {
-      title: "Past Questions Mode",
-      description:
-        "Practice Past Questions",
-      href: "/student/practice",
-      icon: "book",
-    },
+   {
+  title: "Learnfi Books Shop",
+  description:
+    "Books that inspire growth and learning",
+  href: "/student/books",
+  icon: "book",
+},
+
+
   ];
 
   /* =======================================================

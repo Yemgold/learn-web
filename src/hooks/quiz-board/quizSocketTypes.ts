@@ -274,6 +274,21 @@ export interface UseQuizSocketResult {
 
   leaderboard: HostLeaderboardEntry[];
 
+  
+  roundLeaderboard: QuizRoomLeaderboard | null;
+
+  getQuizRoomLeaderboard: (
+    roundNumber?: number,
+  ) => void;
+
+  tieBreakPayload: TieBreakSelectionPayload | null;
+
+tieBreakLoading: boolean;
+
+enableTopWinnerToSolveTie: (
+  topWinnerId: string,
+) => void;
+
   feedEvents: QuizFeedEvent[];
 
   socketError: string | null;
@@ -385,4 +400,99 @@ export interface QuizFastestWinner {
   questionId?: string | null;
   timeTakenInSeconds?: number | null;
   scoreAwarded?: number | null;
+}
+
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Round leaderboard                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface QuizRoomLeaderboardEntry {
+  userId: string;
+
+  roundScore: number;
+
+  totalScore: number;
+
+  answeredQuestions: number;
+
+  correctAnswers: number;
+
+  timeTakenInSeconds: number;
+
+  rank: number;
+
+  isTied: boolean;
+
+  tieGroup: string | null;
+
+  isEliminated: boolean;
+}
+
+export interface QuizRoomLeaderboard {
+  _id: string;
+
+  quizId: string;
+
+  roundNumber: number;
+
+  entries: QuizRoomLeaderboardEntry[];
+
+  hasTie: boolean;
+
+  hasTieBreakOccurred: boolean;
+
+  createdAt: string;
+
+  updatedAt: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Get quiz room leaderboard request                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface GetQuizRoomLeaderboardPayload {
+  roundNumber: number;
+
+  roomId: string;
+
+  quizId: string;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* TieBreakParticipant                                        */
+/* -------------------------------------------------------------------------- */
+
+export interface TieBreakParticipant {
+  userId: string;
+  roundScore: number;
+  totalScore: number;
+  answeredQuestions: number;
+  correctAnswers: number;
+  timeTakenInSeconds: number;
+  rank: number;
+  isTied: boolean;
+  tieGroup: string | null;
+  isEliminated: boolean;
+}
+
+export interface TieBreakSelectionPayload {
+  quizId: string;
+  roomId: string;
+  roundNumber: number;
+  participantsWithLeastTie:
+    | TieBreakParticipant[]
+    | {
+        entries?: TieBreakParticipant[];
+      };
+}
+
+export interface EnableTopWinnerToSolveTiePayload {
+  quizId: string;
+  roomId: string;
+  roundNumber: number;
+  topWinnerId: string;
 }

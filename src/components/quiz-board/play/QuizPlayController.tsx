@@ -725,6 +725,11 @@ export default function QuizPlayController({
     loadRoundQuestions,
   ]);
 
+
+
+
+
+
   /* =======================================================
      ROUND CHANGE
   ======================================================= */
@@ -769,6 +774,8 @@ export default function QuizPlayController({
 
       onRoundChanged:
         handleRoundChanged,
+
+      
     });
 
   /* =======================================================
@@ -808,7 +815,25 @@ export default function QuizPlayController({
 
     setTimeLimit,
     refreshSocketState,
+
+    getQuizRoomLeaderboard,
+
+    enableTopWinnerToSolveTie,
+    tieBreakPayload,
+    tieBreakLoading,
+
   } = socketState;
+
+
+
+
+  const handleEnableTieBreak = useCallback(
+    (topWinnerId: string) => {
+      enableTopWinnerToSolveTie(topWinnerId);
+    },
+    [enableTopWinnerToSolveTie],
+  );
+
 
   /* =======================================================
      CRITICAL QUESTION TRACE
@@ -1010,6 +1035,7 @@ export default function QuizPlayController({
       },
       [],
     );
+    
 
   /* =======================================================
    CONTESTANT ANSWER SELECTION
@@ -1453,6 +1479,14 @@ const handleContestantSelectAnswer =
         onRefresh={
           refresh
         }
+        
+        onBroadcastLeaderboard={() =>
+          getQuizRoomLeaderboard(currentRound)
+        }
+        tieBreakPayload={tieBreakPayload}
+        tieBreakLoading={tieBreakLoading}
+        onEnableTieBreak={handleEnableTieBreak}
+      
       />
     );
   }

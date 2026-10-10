@@ -17,7 +17,6 @@ import {
   Headphones,
   Laptop,
   LampDesk,
-  Loader2,
   LockKeyhole,
   Medal,
   Pencil,
@@ -31,6 +30,7 @@ import {
   Trophy,
   Watch,
   Wifi,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,137 +52,61 @@ import type {
 } from "@/types/cbt-wallet/reward";
 
 interface StudentRewardsProps {
-  /**
-   * Current CBT Point balance.
-   */
   balance: number;
-
-  /**
-   * Called when a student chooses to redeem a reward.
-   */
   onRedeem?: (reward: StudentReward) => void;
-
-  /**
-   * Optional callback when the student chooses
-   * to save toward a reward.
-   */
   onSave?: (reward: StudentReward) => void;
-
-  /**
-   * Optional initial category.
-   */
   initialCategory?: "ALL" | RewardCategory;
-
-  /**
-   * Show featured rewards section.
-   */
   showFeatured?: boolean;
-
-  /**
-   * Maximum number of rewards shown in the main grid.
-   *
-   * Defaults to all rewards.
-   */
   limit?: number;
 }
 
 const categories: RewardCategoryOption[] = [
-  {
-    id: "ALL",
-    label: "All",
-    icon: "Gift",
-  },
-  {
-    id: "GADGETS",
-    label: "Gadgets",
-    icon: "Smartphone",
-  },
-  {
-    id: "STUDY",
-    label: "Study",
-    icon: "BookOpen",
-  },
-  {
-    id: "EDUCATION",
-    label: "Education",
-    icon: "GraduationCap",
-  },
-  {
-    id: "INTERNET",
-    label: "Internet",
-    icon: "Wifi",
-  },
-  {
-    id: "SCHOOL",
-    label: "School",
-    icon: "School",
-  },
-  {
-    id: "VOUCHERS",
-    label: "Vouchers",
-    icon: "Ticket",
-  },
-  {
-    id: "COMPETITION",
-    label: "Competition",
-    icon: "Trophy",
-  },
+  { id: "ALL", label: "All", icon: "Gift" },
+  { id: "GADGETS", label: "Gadgets", icon: "Smartphone" },
+  { id: "STUDY", label: "Study", icon: "BookOpen" },
+  { id: "EDUCATION", label: "Education", icon: "GraduationCap" },
+  { id: "INTERNET", label: "Internet", icon: "Wifi" },
+  { id: "SCHOOL", label: "School", icon: "School" },
+  { id: "VOUCHERS", label: "Vouchers", icon: "Ticket" },
+  { id: "COMPETITION", label: "Competition", icon: "Trophy" },
 ];
 
 function getRewardIcon(reward: StudentReward) {
   switch (reward.icon) {
     case "Smartphone":
       return Smartphone;
-
     case "Laptop":
       return Laptop;
-
     case "Headphones":
       return Headphones;
-
     case "Watch":
       return Watch;
-
     case "Speaker":
       return Speaker;
-
     case "Table":
       return Table;
-
     case "LampDesk":
       return LampDesk;
-
     case "Backpack":
       return Backpack;
-
     case "PenLine":
     case "Pencil":
       return Pencil;
-
     case "BookOpen":
-      return BookOpen;
-
-    case "GraduationCap":
-      return GraduationCap;
-
-    case "Sparkles":
-      return Sparkles;
-
     case "FileQuestion":
       return BookOpen;
-
+    case "GraduationCap":
+      return GraduationCap;
+    case "Sparkles":
+      return Sparkles;
     case "Wifi":
       return Wifi;
-
     case "Signal":
       return Signal;
-
     case "Ticket":
       return Ticket;
-
     case "Trophy":
       return Trophy;
-
     default:
       return Gift;
   }
@@ -192,131 +116,181 @@ function getCategoryIcon(category: string) {
   switch (category) {
     case "GADGETS":
       return Smartphone;
-
     case "STUDY":
       return BookOpen;
-
     case "EDUCATION":
       return GraduationCap;
-
     case "INTERNET":
       return Wifi;
-
     case "SCHOOL":
       return School;
-
     case "VOUCHERS":
       return Ticket;
-
     case "COMPETITION":
       return Trophy;
-
     default:
       return Gift;
   }
 }
 
-function getBadgeLabel(
-  badge: StudentReward["badge"]
-): string | null {
+function getBadgeLabel(badge: StudentReward["badge"]): string | null {
   switch (badge) {
     case "POPULAR":
       return "Popular";
-
     case "NEW":
       return "New";
-
     case "STUDENT_FAVOURITE":
       return "Student Favourite";
-
     case "LIMITED":
       return "Limited";
-
     case "BIG_GOAL":
       return "Big Goal";
-
     case "BEST_VALUE":
       return "Best Value";
-
     default:
       return null;
   }
 }
 
-function getBadgeClass(
-  badge: StudentReward["badge"]
-): string {
+function getBadgeClass(badge: StudentReward["badge"]): string {
   switch (badge) {
     case "POPULAR":
       return "bg-violet-500/15 text-violet-300 border-violet-500/20";
-
     case "NEW":
       return "bg-cyan-500/15 text-cyan-300 border-cyan-500/20";
-
     case "STUDENT_FAVOURITE":
       return "bg-amber-500/15 text-amber-300 border-amber-500/20";
-
     case "LIMITED":
       return "bg-rose-500/15 text-rose-300 border-rose-500/20";
-
     case "BIG_GOAL":
       return "bg-indigo-500/15 text-indigo-300 border-indigo-500/20";
-
     case "BEST_VALUE":
       return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-
     default:
       return "bg-slate-800 text-slate-300 border-slate-700";
   }
 }
 
-function getCategoryLabel(
-  category: RewardCategory
-): string {
+function getCategoryLabel(category: RewardCategory): string {
   switch (category) {
     case "GADGETS":
       return "Gadgets";
-
     case "STUDY":
       return "Study";
-
     case "EDUCATION":
       return "Education";
-
     case "INTERNET":
       return "Internet";
-
     case "SCHOOL":
       return "School";
-
     case "VOUCHERS":
       return "Vouchers";
-
     case "COMPETITION":
       return "Competition";
-
     default:
       return category;
   }
 }
 
-function getStockText(
-  reward: StudentReward
-): string | null {
-  if (reward.stock === undefined) {
-    return null;
-  }
-
-  if (reward.stock <= 0) {
-    return "Out of stock";
-  }
-
-  if (reward.stock <= 5) {
-    return `${reward.stock} left`;
-  }
-
+function getStockText(reward: StudentReward): string | null {
+  if (reward.stock === undefined) return null;
+  if (reward.stock <= 0) return "Out of stock";
+  if (reward.stock <= 5) return `${reward.stock} left`;
   return `${reward.stock} available`;
 }
+
+/* ============================================================
+   REUSABLE IMAGE WITH FULL-SCREEN PREVIEW
+============================================================ */
+
+function RewardImagePreview({
+  image,
+  title,
+  className = "",
+  fallback,
+}: {
+  image?: string;
+  title: string;
+  className?: string;
+  fallback?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const imageSrc = image?.trim();
+
+  if (!imageSrc || imageFailed) {
+    return <>{fallback ?? null}</>;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`group/reward-image relative block cursor-zoom-in overflow-hidden ${className}`}
+        aria-label={`View larger image of ${title}`}
+      >
+        <img
+          src={imageSrc}
+          alt={title}
+          className="h-full w-full object-cover transition duration-300 group-hover/reward-image:scale-105"
+          onError={() => setImageFailed(true)}
+        />
+
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-xs font-semibold text-white opacity-0 transition group-hover/reward-image:bg-black/35 group-hover/reward-image:opacity-100">
+          <span className="rounded-full bg-black/60 px-3 py-1.5">
+            Click to enlarge
+          </span>
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image preview: ${title}`}
+          onClick={() => setOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="absolute right-4 top-4 z-10 rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-xl transition hover:bg-slate-800 sm:right-7 sm:top-7"
+            aria-label="Close image preview"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          <div
+            className="flex max-h-[90vh] max-w-6xl flex-col items-center gap-4"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={imageSrc}
+              alt={title}
+              className="max-h-[78vh] max-w-full rounded-xl object-contain shadow-2xl"
+            />
+
+            <div className="rounded-full border border-white/10 bg-slate-900/90 px-5 py-2">
+              <p className="text-center text-sm font-semibold text-white sm:text-base">
+                {title}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Click outside the image or press the close button to return.
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============================================================
+   MAIN STUDENT REWARDS COMPONENT
+============================================================ */
 
 export default function StudentRewards({
   balance,
@@ -329,18 +303,14 @@ export default function StudentRewards({
   const [activeCategory, setActiveCategory] =
     useState<"ALL" | RewardCategory>(initialCategory);
 
-  const featuredRewards = useMemo(
-    () => getFeaturedRewards(),
-    []
-  );
+  const featuredRewards = useMemo(() => getFeaturedRewards(), []);
 
   const filteredRewards = useMemo(() => {
     const rewards =
       activeCategory === "ALL"
         ? studentRewards
         : studentRewards.filter(
-            (reward) =>
-              reward.category === activeCategory
+            (reward) => reward.category === activeCategory
           );
 
     return typeof limit === "number"
@@ -349,21 +319,14 @@ export default function StudentRewards({
   }, [activeCategory, limit]);
 
   return (
-    <section
-      id="wallet-rewards"
-      className="space-y-8"
-    >
-      {/* ====================================================== */}
-      {/* HEADER */}
-      {/* ====================================================== */}
-
+    <section id="wallet-rewards" className="space-y-8">
+      {/* Header */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
               <Gift className="h-5 w-5 text-violet-400" />
             </div>
-
             <span className="text-sm font-medium text-violet-400">
               Student Rewards
             </span>
@@ -374,23 +337,19 @@ export default function StudentRewards({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-            Earn CBT Points by learning, practicing and
-            competing. Use your points to unlock useful
-            rewards or save toward bigger goals.
+            Earn CBT Points by learning, practicing and competing. Use your
+            points to unlock useful rewards or save toward bigger goals.
           </p>
         </div>
 
-        {/* Balance */}
         <div className="flex w-fit items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/10 px-4 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15">
             <Sparkles className="h-4 w-4 text-violet-300" />
           </div>
-
           <div>
             <p className="text-[11px] uppercase tracking-wider text-slate-500">
               Your Balance
             </p>
-
             <p className="text-sm font-bold text-white">
               {formatRewardPoints(balance)}
             </p>
@@ -398,68 +357,49 @@ export default function StudentRewards({
         </div>
       </div>
 
-      {/* ====================================================== */}
-      {/* FEATURED REWARDS */}
-      {/* ====================================================== */}
-
-      {showFeatured &&
-        featuredRewards.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  Featured Rewards
-                </h3>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Rewards students are working toward
-                  right now.
-                </p>
-              </div>
-
-              <div className="hidden items-center gap-1 text-xs text-violet-400 sm:flex">
-                <Medal className="h-3.5 w-3.5" />
-                Student goals
-              </div>
+      {/* Featured Rewards */}
+      {showFeatured && featuredRewards.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white">Featured Rewards</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Rewards students are working toward right now.
+              </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {featuredRewards
-                .slice(0, 3)
-                .map((reward) => (
-                  <FeaturedRewardCard
-                    key={reward.id}
-                    reward={reward}
-                    balance={balance}
-                    onRedeem={onRedeem}
-                    onSave={onSave}
-                  />
-                ))}
+            <div className="hidden items-center gap-1 text-xs text-violet-400 sm:flex">
+              <Medal className="h-3.5 w-3.5" />
+              Student goals
             </div>
           </div>
-        )}
 
-      {/* ====================================================== */}
-      {/* CATEGORY TABS */}
-      {/* ====================================================== */}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {featuredRewards.slice(0, 3).map((reward) => (
+              <FeaturedRewardCard
+                key={reward.id}
+                reward={reward}
+                balance={balance}
+                onRedeem={onRedeem}
+                onSave={onSave}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* Category Tabs */}
       <div className="overflow-x-auto pb-1">
         <div className="flex min-w-max gap-2">
           {categories.map((category) => {
-            const Icon = getCategoryIcon(
-              category.id
-            );
-
-            const isActive =
-              activeCategory === category.id;
+            const Icon = getCategoryIcon(category.id);
+            const isActive = activeCategory === category.id;
 
             return (
               <button
                 key={category.id}
                 type="button"
-                onClick={() =>
-                  setActiveCategory(category.id)
-                }
+                onClick={() => setActiveCategory(category.id)}
                 className={[
                   "flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition",
                   isActive
@@ -475,24 +415,17 @@ export default function StudentRewards({
         </div>
       </div>
 
-      {/* ====================================================== */}
-      {/* REWARDS GRID */}
-      {/* ====================================================== */}
-
+      {/* Rewards Grid */}
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">
               {activeCategory === "ALL"
                 ? "All Rewards"
-                : getCategoryLabel(
-                    activeCategory
-                  )}
+                : getCategoryLabel(activeCategory)}
             </h3>
-
             <p className="mt-1 text-xs text-slate-500">
-              Choose something to redeem or save
-              toward.
+              Choose something to redeem or save toward.
             </p>
           </div>
 
@@ -518,40 +451,30 @@ export default function StudentRewards({
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800">
               <Gift className="h-6 w-6 text-slate-500" />
             </div>
-
             <h3 className="mt-4 text-sm font-semibold text-white">
               No rewards found
             </h3>
-
             <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-500">
-              There are currently no rewards in
-              this category.
+              There are currently no rewards in this category.
             </p>
           </div>
         )}
       </div>
 
-      {/* ====================================================== */}
-      {/* MOTIVATIONAL FOOTER */}
-      {/* ====================================================== */}
-
+      {/* Footer */}
       <div className="overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 via-slate-900 to-cyan-500/10">
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/15">
               <Trophy className="h-5 w-5 text-violet-300" />
             </div>
-
             <div>
               <h3 className="font-bold text-white">
-                Keep learning. Your next reward is
-                closer.
+                Keep learning. Your next reward is closer.
               </h3>
-
               <p className="mt-1 max-w-xl text-sm leading-5 text-slate-400">
-                Every practice session, challenge
-                and competition can move you closer
-                to something you really want.
+                Every practice session, challenge and competition can move you
+                closer to something you really want.
               </p>
             </div>
           </div>
@@ -563,9 +486,7 @@ export default function StudentRewards({
             onClick={() =>
               document
                 .getElementById("wallet-rewards")
-                ?.scrollIntoView({
-                  behavior: "smooth",
-                })
+                ?.scrollIntoView({ behavior: "smooth" })
             }
           >
             Explore Rewards
@@ -577,9 +498,9 @@ export default function StudentRewards({
   );
 }
 
-/* ============================================================ */
-/* FEATURED REWARD CARD */
-/* ============================================================ */
+/* ============================================================
+   FEATURED REWARD CARD
+============================================================ */
 
 interface RewardCardProps {
   reward: StudentReward;
@@ -595,32 +516,28 @@ function FeaturedRewardCard({
   onSave,
 }: RewardCardProps) {
   const Icon = getRewardIcon(reward);
-
-  const affordable = canRedeemReward(
-    reward,
-    balance
-  );
-
-  const progress = calculateRewardProgress(
-    reward,
-    balance
-  );
-
-  const remaining = getPointsRemaining(
-    reward,
-    balance
-  );
-
+  const affordable = canRedeemReward(reward, balance);
+  const progress = calculateRewardProgress(reward, balance);
+  const remaining = getPointsRemaining(reward, balance);
   const badge = getBadgeLabel(reward.badge);
 
   return (
     <Card className="group relative overflow-hidden border-violet-500/20 bg-slate-900/70 p-0 transition hover:-translate-y-0.5 hover:border-violet-500/30">
-      <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-0 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="relative p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10">
-            <Icon className="h-6 w-6 text-violet-300" />
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
+            <RewardImagePreview
+              image={reward.image}
+              title={reward.title}
+              className="h-full w-full"
+              fallback={
+                <div className="flex h-full w-full items-center justify-center bg-violet-500/10">
+                  <Icon className="h-6 w-6 text-violet-300" />
+                </div>
+              }
+            />
           </div>
 
           {badge && (
@@ -637,15 +554,11 @@ function FeaturedRewardCard({
 
         <div className="mt-5">
           <p className="text-[11px] font-medium uppercase tracking-wider text-violet-400">
-            {getCategoryLabel(
-              reward.category
-            )}
+            {getCategoryLabel(reward.category)}
           </p>
-
           <h3 className="mt-1 text-base font-bold text-white">
             {reward.title}
           </h3>
-
           <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
             {reward.description}
           </p>
@@ -653,10 +566,7 @@ function FeaturedRewardCard({
 
         <div className="mt-5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">
-              Required
-            </span>
-
+            <span className="text-slate-500">Required</span>
             <span className="font-bold text-white">
               {formatRewardPoints(reward.points)}
             </span>
@@ -667,15 +577,11 @@ function FeaturedRewardCard({
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
                 <div
                   className="h-full rounded-full bg-violet-500 transition-all"
-                  style={{
-                    width: `${progress}%`,
-                  }}
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-
               <p className="mt-2 text-[11px] text-slate-500">
-                {progress}% complete •{" "}
-                {formatRewardPoints(remaining)} more
+                {progress}% complete • {formatRewardPoints(remaining)} more
                 needed
               </p>
             </>
@@ -687,9 +593,7 @@ function FeaturedRewardCard({
             <Button
               type="button"
               className="flex-1 bg-violet-600 text-white hover:bg-violet-500"
-              onClick={() =>
-                onRedeem?.(reward)
-              }
+              onClick={() => onRedeem?.(reward)}
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Redeem
@@ -699,9 +603,7 @@ function FeaturedRewardCard({
               type="button"
               variant="outline"
               className="flex-1 border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white"
-              onClick={() =>
-                onSave?.(reward)
-              }
+              onClick={() => onSave?.(reward)}
             >
               Save for this
             </Button>
@@ -721,9 +623,9 @@ function FeaturedRewardCard({
   );
 }
 
-/* ============================================================ */
-/* NORMAL REWARD CARD */
-/* ============================================================ */
+/* ============================================================
+   NORMAL REWARD CARD
+============================================================ */
 
 function RewardCard({
   reward,
@@ -732,47 +634,38 @@ function RewardCard({
   onSave,
 }: RewardCardProps) {
   const Icon = getRewardIcon(reward);
-
-  const affordable = canRedeemReward(
-    reward,
-    balance
-  );
-
-  const progress = calculateRewardProgress(
-    reward,
-    balance
-  );
-
-  const remaining = getPointsRemaining(
-    reward,
-    balance
-  );
-
+  const affordable = canRedeemReward(reward, balance);
+  const progress = calculateRewardProgress(reward, balance);
+  const remaining = getPointsRemaining(reward, balance);
   const badge = getBadgeLabel(reward.badge);
-
   const stockText = getStockText(reward);
 
   const isOutOfStock =
-    reward.status === "OUT_OF_STOCK" ||
-    reward.stock === 0;
+    reward.status === "OUT_OF_STOCK" || reward.stock === 0;
 
-  const isComingSoon =
-    reward.status === "COMING_SOON";
+  const isComingSoon = reward.status === "COMING_SOON";
 
   return (
     <Card className="group relative overflow-hidden border-slate-800 bg-slate-900/60 p-0 transition hover:-translate-y-0.5 hover:border-slate-700 hover:bg-slate-900">
-      {/* Reward Icon Area */}
+      {/* Reward Image Area */}
       <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_60%)]" />
 
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-slate-700 bg-slate-900 shadow-xl transition group-hover:scale-105">
-          <Icon className="h-9 w-9 text-violet-300" />
-        </div>
+        <RewardImagePreview
+          image={reward.image}
+          title={reward.title}
+          className="absolute inset-0 z-[1] h-full w-full"
+          fallback={
+            <div className="relative z-[1] flex h-20 w-20 items-center justify-center rounded-3xl border border-slate-700 bg-slate-900 shadow-xl transition group-hover:scale-105">
+              <Icon className="h-9 w-9 text-violet-300" />
+            </div>
+          }
+        />
 
         {badge && (
           <span
             className={[
-              "absolute left-4 top-4 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
+              "pointer-events-none absolute left-4 top-4 z-10 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
               getBadgeClass(reward.badge),
             ].join(" ")}
           >
@@ -781,13 +674,13 @@ function RewardCard({
         )}
 
         {stockText && (
-          <span className="absolute right-4 top-4 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] text-slate-400">
+          <span className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] text-slate-400">
             {stockText}
           </span>
         )}
 
         {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-[1px]">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/60 backdrop-blur-[1px]">
             <span className="rounded-full bg-rose-500/15 px-3 py-1.5 text-xs font-semibold text-rose-300">
               Out of stock
             </span>
@@ -795,7 +688,7 @@ function RewardCard({
         )}
 
         {isComingSoon && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-[1px]">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/60 backdrop-blur-[1px]">
             <span className="rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-300">
               Coming soon
             </span>
@@ -807,19 +700,10 @@ function RewardCard({
       <div className="p-5">
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">
           {(() => {
-            const CategoryIcon =
-              getCategoryIcon(
-                reward.category
-              );
-
-            return (
-              <CategoryIcon className="h-3.5 w-3.5" />
-            );
+            const CategoryIcon = getCategoryIcon(reward.category);
+            return <CategoryIcon className="h-3.5 w-3.5" />;
           })()}
-
-          {getCategoryLabel(
-            reward.category
-          )}
+          {getCategoryLabel(reward.category)}
         </div>
 
         <h3 className="mt-2 text-base font-bold text-white">
@@ -836,11 +720,8 @@ function RewardCard({
             <p className="text-[10px] uppercase tracking-wider text-slate-500">
               Cost
             </p>
-
             <p className="mt-0.5 text-lg font-bold text-violet-300">
-              {formatRewardPoints(
-                reward.points
-              )}
+              {formatRewardPoints(reward.points)}
             </p>
           </div>
 
@@ -859,10 +740,7 @@ function RewardCard({
           !isComingSoon && (
             <div className="mt-4">
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-slate-500">
-                  Your progress
-                </span>
-
+                <span className="text-slate-500">Your progress</span>
                 <span className="font-semibold text-slate-300">
                   {progress}%
                 </span>
@@ -871,30 +749,23 @@ function RewardCard({
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
                 <div
                   className="h-full rounded-full bg-violet-500 transition-all"
-                  style={{
-                    width: `${progress}%`,
-                  }}
+                  style={{ width: `${progress}%` }}
                 />
               </div>
 
               <p className="mt-2 text-[10px] text-slate-500">
-                {formatRewardPoints(
-                  remaining
-                )}{" "}
-                more needed
+                {formatRewardPoints(remaining)} more needed
               </p>
             </div>
           )}
 
         {/* Delivery */}
-        {reward.deliveryAvailable &&
-          reward.deliveryTime && (
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] text-slate-500">
-              <Clock3 className="h-3 w-3" />
-              Estimated delivery:{" "}
-              {reward.deliveryTime}
-            </div>
-          )}
+        {reward.deliveryAvailable && reward.deliveryTime && (
+          <div className="mt-4 flex items-center gap-1.5 text-[10px] text-slate-500">
+            <Clock3 className="h-3 w-3" />
+            Estimated delivery: {reward.deliveryTime}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="mt-5 flex gap-2">
@@ -902,27 +773,18 @@ function RewardCard({
             <Button
               type="button"
               className="flex-1 bg-violet-600 text-white hover:bg-violet-500"
-              disabled={
-                isOutOfStock ||
-                isComingSoon
-              }
-              onClick={() =>
-                onRedeem?.(reward)
-              }
+              disabled={isOutOfStock || isComingSoon}
+              onClick={() => onRedeem?.(reward)}
             >
               <Gift className="mr-2 h-4 w-4" />
               Redeem
             </Button>
-          ) : reward.allowSaving &&
-            !isOutOfStock &&
-            !isComingSoon ? (
+          ) : reward.allowSaving && !isOutOfStock && !isComingSoon ? (
             <Button
               type="button"
               variant="outline"
               className="flex-1 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white"
-              onClick={() =>
-                onSave?.(reward)
-              }
+              onClick={() => onSave?.(reward)}
             >
               Save for this
             </Button>

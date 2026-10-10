@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Trophy,
   Video,
+  Book,
   Users,
   UserRound,
   FileQuestion,
@@ -71,6 +72,12 @@ export const adminNavigation: AdminNavSection[] = [
   label: "Video Lectures",
   href: "/admin/secondary/create/video-ai-lecture",
   icon: Video,
+},
+
+{
+  label: "Manage Books",
+  href: "/admin/books",
+  icon: Book,
 },
 
   ],

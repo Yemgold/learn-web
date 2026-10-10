@@ -1095,70 +1095,7 @@ export default function PracticePage() {
             </section>
           )}
 
-          {/* ================================================================
-              CBT SEPARATE FLOW — JAMB ONLY
-             ================================================================ */}
-
-          {examType === "jamb" && (
-            <section className="mt-12">
-
-              <Card className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-0 text-white shadow-2xl shadow-black/20 backdrop-blur-sm">
-
-                <div className="relative overflow-hidden p-6 sm:p-8">
-
-                  <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-600/20 blur-3xl" />
-
-                  <div className="pointer-events-none absolute -bottom-20 left-1/3 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
-
-                  <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
-                    <div>
-
-                      <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-300">
-
-                        <Clock3 className="h-4 w-4" />
-
-                        JAMB CBT Simulator
-
-                      </div>
-
-                      <h2 className="mt-4 text-2xl font-black text-white sm:text-3xl">
-                        Want to practise the full JAMB CBT?
-                      </h2>
-
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-                        Choose your four-subject JAMB combination
-                        and take a complete timed CBT examination
-                        under realistic examination conditions.
-                      </p>
-
-                    </div>
-
-                    <Link
-                      href="/student/practice/cbtcombination"
-                      className="shrink-0"
-                    >
-
-                      <Button
-                        size="lg"
-                        rightIcon={
-                          <ArrowRight className="h-5 w-5" />
-                        }
-                        className="w-full bg-blue-600 text-white shadow-lg shadow-blue-600/10 hover:bg-blue-500 sm:w-auto"
-                      >
-                        Start Full CBT
-                      </Button>
-
-                    </Link>
-
-                  </div>
-
-                </div>
-
-              </Card>
-
-            </section>
-          )}
+         
 
           {/* ================================================================
               PRACTICE HISTORY

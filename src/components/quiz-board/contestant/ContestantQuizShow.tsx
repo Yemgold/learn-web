@@ -407,9 +407,9 @@ export default function ContestantQuizShow({
               )}
 
               <div className="min-w-0">
-                {/* <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-white">
                   {quizTitle}
-                </p> */}
+                </p>
 
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   {subject && <span>{subject}</span>}
@@ -443,10 +443,19 @@ export default function ContestantQuizShow({
                 {connected ? "Live" : "Disconnected"}
               </div>
 
-              <div className="flex min-w-0 max-w-[48%] items-center gap-1.5 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs text-slate-400 sm:max-w-none sm:px-2.5">
+              
+<div className="flex min-w-0 max-w-[48%] items-center gap-1.5 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs text-slate-400 sm:max-w-none sm:px-2.5">
   <Radio className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+
   <span className="hidden sm:inline">Room</span>
-  <span className="truncate font-mono text-slate-300">
+
+  {/* Mobile: show only the last digits */}
+  <span className="truncate font-mono text-slate-300 sm:hidden">
+    {roomId?.split("_").pop() || roomId}
+  </span>
+
+  {/* Desktop: show the full Room ID */}
+  <span className="hidden truncate font-mono text-slate-300 sm:inline">
     {roomId}
   </span>
 </div>

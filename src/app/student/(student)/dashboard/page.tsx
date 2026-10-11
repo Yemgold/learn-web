@@ -607,7 +607,7 @@ export default function StudentDashboardPage() {
    {
   title: "Learnfi Books Shop",
   description:
-    "Books that inspire growth and learning",
+    "Inspire growth and learning",
   href: "/student/books",
   icon: "book",
 },

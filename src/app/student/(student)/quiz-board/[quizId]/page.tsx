@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   AlertCircle,
   ArrowLeft,
@@ -750,14 +751,13 @@ export default function QuizCompetitionDetailsPage() {
       return;
     }
 
-    /*
-     * IMPORTANT:
-     *
-     * If the student has already joined,
-     * do NOT call joinQuizById again.
-     *
-     * Just take the student to the waiting room.
-     */
+     // Already joined: navigate to My Competitions.
+  if (isJoined) {
+    router.push("/student/quiz-board/my-competitions");
+    return;
+  }
+
+  
     if (isJoined) {
       router.push(
         `/student/quiz-board/${quizId}/waiting-room`,
@@ -1679,7 +1679,7 @@ export default function QuizCompetitionDetailsPage() {
                     <>
                       <Trophy className="mr-2 h-5 w-5" />
 
-                      Enter Waiting Room
+                      View My Competitions
                     </>
                   ) : maxPlayers > 0 &&
                     joinedCount >=

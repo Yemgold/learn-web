@@ -744,6 +744,8 @@ export default function ContestantQuizShow({
               <div className="flex items-center gap-2">
                 <CircleDot className="h-4 w-4 text-cyan-300" />
 
+                
+                
                 <h3 className="text-sm font-semibold text-white">
                   Competition status
                 </h3>
@@ -755,13 +757,18 @@ export default function ContestantQuizShow({
               </p>
 
               <div className="mt-4 space-y-2 text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500">Room</span>
+                <div className="flex min-w-0 items-start justify-between gap-3">
+  <span className="shrink-0 text-slate-500">
+    Room
+  </span>
 
-                  <span className="font-mono text-slate-300">
-                    {roomId}
-                  </span>
-                </div>
+  <span
+    className="min-w-0 max-w-[75%] break-all text-right font-mono text-xs leading-5 text-slate-300"
+    title={roomId}
+  >
+    {roomId}
+  </span>
+</div>
 
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500">Connection</span>
@@ -821,6 +828,7 @@ export default function ContestantQuizShow({
                         ? "Waiting"
                         : "Closed"}
                   </span>
+
                 </div>
 
                 {tieBreakPayload && (

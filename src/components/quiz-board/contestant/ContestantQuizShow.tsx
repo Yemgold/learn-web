@@ -387,13 +387,13 @@ export default function ContestantQuizShow({
      ============================================================ */
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full overflow-x-clip bg-slate-950 text-white">
+  <div className="mx-auto w-full max-w-7xl min-w-0 px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
 
         {/* HEADER */}
 
-        <header className="sticky top-0 z-30 mb-4 rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-xl sm:px-5">
-          <div className="flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 mb-4 rounded-2xl border border-white/10 bg-slate-950/95 px-3 py-3 shadow-xl backdrop-blur-xl sm:px-5">
+          <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-4">
             <div className="flex min-w-0 items-center gap-3">
               {onBack && (
                 <button
@@ -443,15 +443,15 @@ export default function ContestantQuizShow({
                 {connected ? "Live" : "Disconnected"}
               </div>
 
-              <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-slate-400">
-                <Radio className="h-3.5 w-3.5 text-cyan-300" />
+              <div className="flex min-w-0 max-w-[48%] items-center gap-1.5 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs text-slate-400 sm:max-w-none sm:px-2.5">
+  <Radio className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+  <span className="hidden sm:inline">Room</span>
+  <span className="truncate font-mono text-slate-300">
+    {roomId}
+  </span>
+</div>
 
-                <span className="hidden sm:inline">Room</span>
 
-                <span className="font-mono text-slate-300">
-                  {roomId}
-                </span>
-              </div>
             </div>
           </div>
         </header>
@@ -489,7 +489,7 @@ export default function ContestantQuizShow({
         {/* TIE-BREAK SELECTION */}
 
         {tieBreakPayload && (
-          <section className="mb-6 rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5 sm:p-6">
+          <section className="mb-4 min-w-0 overflow-hidden rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-3 sm:mb-6 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
@@ -636,7 +636,7 @@ export default function ContestantQuizShow({
 
         {/* TOP STATUS */}
 
-        <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_auto]">
+        <div className="mb-4 grid min-w-0 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-stretch">
           <ContestantEliminationStatus
             status={effectiveEliminationStatus}
             currentRound={currentRound}
@@ -677,8 +677,8 @@ export default function ContestantQuizShow({
 
         {/* MAIN */}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <section className="min-w-0">
+       <div className="grid min-w-0 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+  <section className="min-w-0">
             {/* QUESTION */}
 
             {loading && !hasQuestion ? (
@@ -729,7 +729,7 @@ export default function ContestantQuizShow({
 
           {/* SCORE SIDEBAR */}
 
-          <aside className="space-y-4">
+          <aside className="grid min-w-0 grid-cols-1 gap-3 sm:gap-4 lg:block lg:space-y-4">
             <ContestantScore
               score={score}
               rank={rank}

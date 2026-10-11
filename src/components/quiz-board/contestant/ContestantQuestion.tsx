@@ -181,7 +181,7 @@ export default function ContestantQuestion({
     );
 
     return (
-      <section className="rounded-2xl border border-white/10 bg-slate-950/70 p-8 text-center shadow-xl">
+      <section className="w-full min-w-0 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-center shadow-xl sm:p-8">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04]">
           <HelpCircle className="h-6 w-6 text-slate-500" />
         </div>
@@ -190,7 +190,7 @@ export default function ContestantQuestion({
           Waiting for the next question
         </h2>
 
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
+        <p className="mx-auto mt-2 max-w-md break-words text-sm leading-6 text-slate-400">
           The host has not started a question yet.
           Stay on this screen and the next live
           question will appear automatically.
@@ -277,22 +277,23 @@ export default function ContestantQuestion({
   );
 
   return (
-    <section className="space-y-4">
+    <section className="w-full min-w-0 space-y-3 overflow-x-clip sm:space-y-4">
       {/* ======================================================
           QUESTION
           ====================================================== */}
       <div
         className={[
-          "rounded-2xl border border-white/10",
-          "bg-slate-950/80 shadow-xl shadow-black/10",
-          compact
-            ? "p-4"
-            : "p-5 sm:p-7",
-        ].join(" ")}
+  "w-full min-w-0 rounded-2xl border border-white/10",
+  "bg-slate-950/80 shadow-xl shadow-black/10",
+  compact
+    ? "p-3 sm:p-4"
+    : "p-3.5 sm:p-6 lg:p-7",
+].join(" ")}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:gap-3">
           {showQuestionNumber && (
-            <div className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs font-semibold text-cyan-300">
+
+            <div className="max-w-full rounded-full border border-cyan-400/20 bg-cyan-400/5 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-300 sm:px-3 sm:text-xs">
               Question{" "}
               {question.questionNumber ?? "—"}
 
@@ -312,12 +313,14 @@ export default function ContestantQuestion({
 
         <div className="mt-5">
           <h1
-            className={[
-              "font-semibold leading-relaxed tracking-tight text-white",
-              compact
-                ? "text-lg"
-                : "text-xl sm:text-2xl lg:text-3xl",
-            ].join(" ")}
+           className={[
+  "min-w-0 max-w-full whitespace-pre-wrap break-words",
+  "[overflow-wrap:anywhere] font-semibold leading-relaxed",
+  "tracking-tight text-white",
+  compact
+    ? "text-base sm:text-lg"
+    : "text-lg sm:text-2xl lg:text-3xl",
+].join(" ")}
           >
             {question.question}
           </h1>

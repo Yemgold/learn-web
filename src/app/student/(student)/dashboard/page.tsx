@@ -596,12 +596,13 @@ export default function StudentDashboardPage() {
 },
 
     {
-      title: "Learning Arena",
+      title: "Quiz Board",
       description:
-        "Learn through guided lessons",
-      href: "/student/arena",
+        "Answer fast and Qualify",
+      href: "/student/quiz-board",
       icon: "play",
     },
+
 
    {
   title: "Learnfi Books Shop",

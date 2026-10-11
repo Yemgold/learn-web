@@ -1,5 +1,5 @@
 
-
+//src\app\admin\(admin)\secondary\solveandwin\competitions\createquestion\questions\types.ts
 import type { QuestionBankItem } from "../../types";
 
 export const jambChemistryEasyQuestions: QuestionBankItem[] = [

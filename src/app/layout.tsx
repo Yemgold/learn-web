@@ -1,8 +1,4 @@
 
-
-
-
-
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
@@ -28,12 +24,17 @@ const siteDescription =
 const siteUrl = "https://learn-web-pink.vercel.app";
 
 /**
- * Place your logo image at:
+ * IMPORTANT:
+ * Make sure this image exists:
+ *
  * public/images/learnyfi-logo.png
  *
- * The public directory is served from the website root.
+ * Open Graph images use an absolute URL so social platforms
+ * can locate the image when someone shares your website.
  */
-const logoUrl = "/images/learnyfi-logo.png";
+const logoPath = "/images/learnyfi-logo.png";
+
+const logoUrl = `${siteUrl}${logoPath}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -76,7 +77,6 @@ export const metadata: Metadata = {
   ],
 
   creator: siteName,
-
   publisher: siteName,
 
   /* =======================================================
@@ -86,12 +86,12 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: logoUrl,
+        url: logoPath,
         type: "image/png",
       },
     ],
-    shortcut: logoUrl,
-    apple: logoUrl,
+    shortcut: logoPath,
+    apple: logoPath,
   },
 
   /* =======================================================
@@ -100,20 +100,17 @@ export const metadata: Metadata = {
 
   openGraph: {
     title: siteName,
-
     description: siteDescription,
-
     url: siteUrl,
-
     siteName,
-
     type: "website",
-
     locale: "en_NG",
 
     images: [
       {
         url: logoUrl,
+        width: 1200,
+        height: 630,
         alt: `${siteName} logo`,
       },
     ],
@@ -124,12 +121,9 @@ export const metadata: Metadata = {
   ======================================================= */
 
   twitter: {
-    card: "summary",
-
+    card: "summary_large_image",
     title: siteName,
-
     description: siteDescription,
-
     images: [
       {
         url: logoUrl,
@@ -145,6 +139,7 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+
     googleBot: {
       index: true,
       follow: true,
@@ -176,6 +171,7 @@ export default function RootLayout({
     </html>
   );
 }
+
 
 
 

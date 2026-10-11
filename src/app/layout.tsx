@@ -13,28 +13,31 @@ const inter = Inter({
 });
 
 /* =========================================================
-   WEBSITE BRANDING & SEO
+   LEARNYFI WEBSITE BRANDING
 ========================================================= */
 
 const siteName = "Learnyfi Educational Platform";
 
+const siteUrl = "https://learn-web-pink.vercel.app";
+
 const siteDescription =
   "Learn new skills, practise with interactive questions, prepare for exams, take courses, and compete with other learners on Learnyfi Educational Platform.";
 
-const siteUrl = "https://learn-web-pink.vercel.app";
-
 /**
- * IMPORTANT:
- * Make sure this image exists:
+ * REQUIRED IMAGE FILE:
  *
  * public/images/learnyfi-logo.png
  *
- * Open Graph images use an absolute URL so social platforms
- * can locate the image when someone shares your website.
+ * Public URL:
+ * https://learn-web-pink.vercel.app/images/learnyfi-logo.png
  */
 const logoPath = "/images/learnyfi-logo.png";
 
 const logoUrl = `${siteUrl}${logoPath}`;
+
+/* =========================================================
+   WEBSITE METADATA
+========================================================= */
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -70,70 +73,68 @@ export const metadata: Metadata = {
     "online study",
   ],
 
-  authors: [
-    {
-      name: siteName,
-    },
-  ],
+  authors: [{ name: siteName }],
 
   creator: siteName,
+
   publisher: siteName,
 
   /* =======================================================
-     BROWSER TAB ICON & DEVICE ICON
+     BROWSER TAB ICON
   ======================================================= */
 
   icons: {
-    icon: [
-      {
-        url: logoPath,
-        type: "image/png",
-      },
-    ],
+    icon: logoPath,
     shortcut: logoPath,
     apple: logoPath,
   },
 
   /* =======================================================
-     OPEN GRAPH — WHATSAPP, FACEBOOK & OTHER LINK PREVIEWS
+     WHATSAPP, FACEBOOK AND LINK PREVIEWS
   ======================================================= */
 
   openGraph: {
-    title: siteName,
-    description: siteDescription,
-    url: siteUrl,
-    siteName,
     type: "website",
+
+    url: siteUrl,
+
+    siteName,
+
+    title: siteName,
+
+    description: siteDescription,
+
     locale: "en_NG",
 
     images: [
       {
         url: logoUrl,
-        width: 1200,
-        height: 630,
-        alt: `${siteName} logo`,
+        alt: "Learnyfi Educational Platform logo",
       },
     ],
   },
 
   /* =======================================================
-     TWITTER / X LINK PREVIEW
+     TWITTER / X
   ======================================================= */
 
   twitter: {
     card: "summary_large_image",
+
     title: siteName,
+
     description: siteDescription,
+
     images: [
       {
         url: logoUrl,
-        alt: `${siteName} logo`,
+        alt: "Learnyfi Educational Platform logo",
       },
     ],
   },
 
   /* =======================================================
-     SEARCH ENGINE INDEXING
+     SEARCH ENGINE SETTINGS
   ======================================================= */
 
   robots: {
@@ -171,6 +172,7 @@ export default function RootLayout({
     </html>
   );
 }
+
 
 
 

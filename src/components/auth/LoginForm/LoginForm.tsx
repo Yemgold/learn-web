@@ -94,17 +94,17 @@ export default function LoginForm({
   ============================================================ */
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  register,
+  handleSubmit,
+  setValue,
+  formState: { errors },
+} = useForm<LoginFormData>({
+  resolver: zodResolver(loginSchema),
+  defaultValues: {
+    email: "",
+    password: "",
+  },
+});
 
   /* ============================================================
      REDIRECT USER BASED ON ROLE
@@ -435,13 +435,21 @@ export default function LoginForm({
           ================================================== */}
 
           <Input
-            label="Email Address"
-            type="email"
-            placeholder="example@email.com"
-            autoComplete="email"
-            {...register("email")}
-            error={errors.email?.message}
-          />
+  label="Email Address"
+  type="email"
+  placeholder="example@email.com"
+  autoComplete="email"
+  {...register("email", {
+    onBlur: (event) => {
+      const trimmedEmail = event.target.value.trim();
+
+      setValue("email", trimmedEmail, {
+        shouldValidate: true,
+      });
+    },
+  })}
+  error={errors.email?.message}
+/>
 
           {/* ==================================================
               PASSWORD

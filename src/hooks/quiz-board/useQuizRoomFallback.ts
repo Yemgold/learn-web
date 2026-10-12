@@ -2,7 +2,6 @@
 
 
 
-
 "use client";
 
 import {
@@ -29,44 +28,12 @@ export interface QuizRoomFallbackSnapshot {
 }
 
 export interface UseQuizRoomFallbackOptions {
-  /**
-   * ID of the quiz competition.
-   */
   quizId: string | null | undefined;
-
-  /**
-   * ID of the active room created for this competition.
-   *
-   * Required by the updated round-question endpoint.
-   */
   roomId: string | null | undefined;
-
-  /**
-   * Current round received from the socket.
-   * Defaults to round 1 when zero or missing.
-   */
   currentRound: number;
-
-  /**
-   * Existing Socket.IO connection state.
-   */
   socketConnected: boolean;
-
-  /**
-   * Disable recovery when it is not required.
-   */
   enabled?: boolean;
-
-  /**
-   * Poll interval during socket disconnection.
-   * Defaults to 5000 milliseconds.
-   */
   pollIntervalMs?: number;
-
-  /**
-   * Optional callback for applying recovered data
-   * to the existing component state.
-   */
   onSnapshot?: (
     snapshot: QuizRoomFallbackSnapshot,
   ) => void;
@@ -75,17 +42,11 @@ export interface UseQuizRoomFallbackOptions {
 export interface UseQuizRoomFallbackResult {
   quiz: QuizGameHttpQuiz | null;
   round: QuizGameHttpRound | null;
-
   loading: boolean;
   refreshing: boolean;
   usingFallback: boolean;
-
   error: string | null;
   lastSyncedAt: number | null;
-
-  /**
-   * Manually request another HTTP snapshot.
-   */
   refresh: () => Promise<void>;
 }
 
@@ -115,19 +76,19 @@ function getErrorMessage(error: unknown): string {
 ============================================================ */
 
 /**
- * HOST-ONLY RECOVERY HOOK
+ * HOST-ONLY HTTP RECOVERY.
  *
- * Round-question responses may contain answer keys.
- * Do not use this hook on student-facing pages unless the
- * backend provides a separate student-safe endpoint.
+ * Uses quizGameHttp.ts as the single source for HTTP requests.
  *
- * This hook recovers quiz information and round questions.
- * It does not replace server-authoritative game actions,
- * answer validation, scoring, activation or advancement.
+ * - Loads a baseline snapshot.
+ * - Refreshes after socket reconnection.
+ * - Polls while the socket is disconnected.
+ * - Rejects stale results after the quiz, room, or round changes.
  *
- * Updated round-question route:
+ * This hook does not broadcast questions to other participants.
+ * The backend remains authoritative for game actions and scoring.
  *
- * GET /quiz/get-round-questions/:quizId/:roomId
+ * Do not use with answer-bearing endpoints on student pages.
  */
 export function useQuizRoomFallback({
   quizId,
@@ -145,15 +106,25 @@ export function useQuizRoomFallback({
     Boolean(normalizedQuizId) &&
     Boolean(normalizedRoomId);
 
+  const requestedRound = Math.max(
+    1,
+    Math.floor(Number(currentRound) || 1),
+  );
+
   const safePollInterval = Math.max(
     1000,
     Math.floor(pollIntervalMs || 5000),
   );
 
-  const requestedRound = Math.max(
-    1,
-    Math.floor(Number(currentRound) || 1),
-  );
+  /*
+   * The identity includes the round because a response for an
+   * earlier round must not replace the currently requested round.
+   */
+  const requestIdentity = [
+    normalizedQuizId,
+    normalizedRoomId,
+    requestedRound,
+  ].join("::");
 
   /* ==========================================================
      STATE
@@ -191,6 +162,8 @@ export function useQuizRoomFallback({
 
   const firstLoadRef = useRef(true);
 
+  const currentIdentityRef = useRef(requestIdentity);
+
   const quizRef =
     useRef<QuizGameHttpQuiz | null>(null);
 
@@ -200,9 +173,10 @@ export function useQuizRoomFallback({
   const onSnapshotRef = useRef(onSnapshot);
 
   /*
-   * Always use the latest callback without restarting the
-   * polling effect when the parent creates a new callback.
+   * Keep these current during render. An asynchronous request
+   * can then verify that it still belongs to the active view.
    */
+  currentIdentityRef.current = requestIdentity;
   onSnapshotRef.current = onSnapshot;
 
   /* ==========================================================
@@ -218,7 +192,7 @@ export function useQuizRoomFallback({
   }, []);
 
   /* ==========================================================
-     RESET WHEN QUIZ OR ROOM CHANGES
+     RESET WHEN THE ACTIVE REQUEST CHANGES
   ========================================================== */
 
   useEffect(() => {
@@ -230,29 +204,19 @@ export function useQuizRoomFallback({
 
     setError(null);
     setLastSyncedAt(null);
-
-    setLoading(
-      enabled && hasRequiredIds,
-    );
-
     setRefreshing(false);
 
     firstLoadRef.current = true;
 
-    /*
-     * Requests already in progress cannot necessarily be
-     * cancelled here, but stale results are guarded below
-     * by checking the current request identity.
-     */
+    setLoading(Boolean(enabled && hasRequiredIds));
   }, [
-    normalizedQuizId,
-    normalizedRoomId,
+    requestIdentity,
     enabled,
     hasRequiredIds,
   ]);
 
   /* ==========================================================
-     FETCH SNAPSHOT
+     REFRESH
   ========================================================== */
 
   const refresh = useCallback(async (): Promise<void> => {
@@ -278,9 +242,9 @@ export function useQuizRoomFallback({
     }
 
     /*
-     * Avoid overlapping requests.
-     * Queue one more refresh if a request arrives while
-     * another refresh is already running.
+     * Serialize HTTP refreshes. If another refresh is requested
+     * while one is running, queue one follow-up using the latest
+     * quiz, room and round.
      */
     if (inFlightRef.current) {
       pendingRefreshRef.current = true;
@@ -289,17 +253,19 @@ export function useQuizRoomFallback({
 
     inFlightRef.current = true;
 
-    if (mountedRef.current) {
-      setRefreshing(true);
-      setLoading(firstLoadRef.current);
-    }
-
-    /*
-     * Capture IDs and round for this particular request.
-     */
     const requestQuizId = normalizedQuizId;
     const requestRoomId = normalizedRoomId;
     const requestRound = requestedRound;
+    const identityAtStart = requestIdentity;
+
+    const isCurrentRequest = () =>
+      mountedRef.current &&
+      currentIdentityRef.current === identityAtStart;
+
+    if (isCurrentRequest()) {
+      setRefreshing(true);
+      setLoading(firstLoadRef.current);
+    }
 
     try {
       const controller =
@@ -309,30 +275,21 @@ export function useQuizRoomFallback({
         );
 
       /*
-       * Load quiz information and round questions independently.
-       * One may succeed even if the other fails.
+       * The controller is the only place that defines these
+       * endpoint calls. Promise.allSettled preserves partial
+       * recovery if either endpoint fails.
        */
       const [quizResult, roundResult] =
         await Promise.allSettled([
           controller.getQuiz(),
-
-          controller.getRoundQuestions(
-            requestRound,
-          ),
+          controller.getRoundQuestions(requestRound),
         ]);
 
-      if (!mountedRef.current) {
-        return;
-      }
-
       /*
-       * Do not apply results from an old quiz/room request
-       * to the currently selected quiz/room.
+       * Never let a response for an old room or round overwrite
+       * the currently selected view.
        */
-      if (
-        requestQuizId !== normalizedQuizId ||
-        requestRoomId !== normalizedRoomId
-      ) {
+      if (!isCurrentRequest()) {
         return;
       }
 
@@ -342,45 +299,27 @@ export function useQuizRoomFallback({
       let recoveredQuiz = quizRef.current;
       let recoveredRound = roundRef.current;
 
-      /* ======================================================
-         QUIZ RESULT
-      ====================================================== */
-
-      if (quizResult.status === "fulfilled") {
-        recoveredQuiz = quizResult.value;
-        quizRef.current = recoveredQuiz;
-
-        setQuiz(recoveredQuiz);
-      } else {
-        quizError = getErrorMessage(
-          quizResult.reason,
-        );
-      }
-
-      /* ======================================================
-         ROUND RESULT
-      ====================================================== */
-
-      if (roundResult.status === "fulfilled") {
-        recoveredRound = roundResult.value;
-        roundRef.current = recoveredRound;
-
-        setRound(recoveredRound);
-      } else {
-        roundError = getErrorMessage(
-          roundResult.reason,
-        );
-      }
-
-      /* ======================================================
-         ERROR / PARTIAL RECOVERY STATUS
-      ====================================================== */
-
       const quizLoaded =
         quizResult.status === "fulfilled";
 
       const roundLoaded =
         roundResult.status === "fulfilled";
+
+      if (quizLoaded) {
+        recoveredQuiz = quizResult.value;
+        quizRef.current = recoveredQuiz;
+        setQuiz(recoveredQuiz);
+      } else {
+        quizError = getErrorMessage(quizResult.reason);
+      }
+
+      if (roundLoaded) {
+        recoveredRound = roundResult.value;
+        roundRef.current = recoveredRound;
+        setRound(recoveredRound);
+      } else {
+        roundError = getErrorMessage(roundResult.reason);
+      }
 
       if (!quizLoaded && !roundLoaded) {
         setError(
@@ -394,7 +333,6 @@ export function useQuizRoomFallback({
             quizError
               ? `Quiz information: ${quizError}`
               : null,
-
             roundError
               ? `Round questions: ${roundError}`
               : null,
@@ -405,10 +343,6 @@ export function useQuizRoomFallback({
       } else {
         setError(null);
       }
-
-      /* ======================================================
-         PUBLISH RECOVERED SNAPSHOT
-      ====================================================== */
 
       if (quizLoaded || roundLoaded) {
         const syncedAt = Date.now();
@@ -431,10 +365,8 @@ export function useQuizRoomFallback({
         }
       }
     } catch (requestError: unknown) {
-      if (mountedRef.current) {
-        setError(
-          getErrorMessage(requestError),
-        );
+      if (isCurrentRequest()) {
+        setError(getErrorMessage(requestError));
       }
 
       console.error(
@@ -444,15 +376,15 @@ export function useQuizRoomFallback({
     } finally {
       inFlightRef.current = false;
 
-      if (mountedRef.current) {
+      if (isCurrentRequest()) {
         setRefreshing(false);
         setLoading(false);
-
         firstLoadRef.current = false;
       }
 
       /*
-       * Run a queued refresh using the latest callback.
+       * If a refresh was requested while this request was
+       * running, perform one fresh request with current values.
        */
       if (
         pendingRefreshRef.current &&
@@ -472,12 +404,13 @@ export function useQuizRoomFallback({
     normalizedQuizId,
     normalizedRoomId,
     requestedRound,
+    requestIdentity,
   ]);
 
   refreshLatestRef.current = refresh;
 
   /* ==========================================================
-     SOCKET CONNECTION / FALLBACK POLLING
+     SOCKET CONNECTION AND POLLING
   ========================================================== */
 
   useEffect(() => {
@@ -485,7 +418,6 @@ export function useQuizRoomFallback({
       setLoading(false);
       setRefreshing(false);
       setError(null);
-
       return;
     }
 
@@ -493,36 +425,31 @@ export function useQuizRoomFallback({
       setLoading(false);
       setRefreshing(false);
       setError(null);
-
       return;
     }
 
     if (!normalizedRoomId) {
       setLoading(false);
       setRefreshing(false);
-
       setError(
         "Room ID is required to recover round questions.",
       );
-
       return;
     }
 
     /*
-     * Initial baseline load and reconnect recovery.
+     * Load a baseline snapshot on mount, round change, and
+     * reconnection. Socket events remain the primary live source.
      */
     void refresh();
 
-    /*
-     * When connected, sockets remain the primary live source.
-     * The HTTP request above still loads a baseline snapshot.
-     */
     if (socketConnected) {
       return;
     }
 
     /*
-     * When disconnected, poll HTTP endpoints periodically.
+     * While disconnected, periodically recover from REST.
+     * Polling does not broadcast to other participants.
      */
     const intervalId = window.setInterval(() => {
       void refreshLatestRef.current();
@@ -547,7 +474,6 @@ export function useQuizRoomFallback({
   return {
     quiz,
     round,
-
     loading,
     refreshing,
 
@@ -558,7 +484,6 @@ export function useQuizRoomFallback({
 
     error,
     lastSyncedAt,
-
     refresh,
   };
 }

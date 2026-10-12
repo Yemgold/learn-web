@@ -638,74 +638,7 @@ export default function PracticePage() {
             )}
           </section>
 
-          {/* ================================================================
-              STATISTICS
-             ================================================================ */}
-
-          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-            <Card
-              hoverable
-              className="border-white/10 bg-white/[0.03] text-center text-white shadow-xl shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <BookOpen className="mx-auto h-9 w-9 text-blue-300" />
-
-              <h2 className="mt-3 text-2xl font-black text-white">
-                —
-              </h2>
-
-              <p className="mt-1 text-sm text-white/40">
-                Tests Taken
-              </p>
-            </Card>
-
-            <Card
-              hoverable
-              className="border-white/10 bg-white/[0.03] text-center text-white shadow-xl shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <Target className="mx-auto h-9 w-9 text-emerald-300" />
-
-              <h2 className="mt-3 text-2xl font-black text-white">
-                —
-              </h2>
-
-              <p className="mt-1 text-sm text-white/40">
-                Average Score
-              </p>
-            </Card>
-
-            <Card
-              hoverable
-              className="border-white/10 bg-white/[0.03] text-center text-white shadow-xl shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <Clock3 className="mx-auto h-9 w-9 text-orange-300" />
-
-              <h2 className="mt-3 text-2xl font-black text-white">
-                —
-              </h2>
-
-              <p className="mt-1 text-sm text-white/40">
-                Study Time
-              </p>
-            </Card>
-
-            <Card
-              hoverable
-              className="border-white/10 bg-white/[0.03] text-center text-white shadow-xl shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <BarChart3 className="mx-auto h-9 w-9 text-violet-300" />
-
-              <h2 className="mt-3 text-2xl font-black text-white">
-                —
-              </h2>
-
-              <p className="mt-1 text-sm text-white/40">
-                Improvement
-              </p>
-            </Card>
-
-          </section>
-
+         
           {/* ================================================================
               STEP 1 — CHOOSE CLASS
              ================================================================ */}
@@ -1094,56 +1027,6 @@ export default function PracticePage() {
               </Card>
             </section>
           )}
-
-         
-
-          {/* ================================================================
-              PRACTICE HISTORY
-             ================================================================ */}
-
-          <section className="mt-6">
-
-            <Card className="flex flex-col gap-5 border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/10 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-
-              <div className="flex items-start gap-4">
-
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10">
-                  <BookMarked className="h-6 w-6 text-violet-300" />
-                </div>
-
-                <div>
-
-                  <h2 className="text-lg font-black text-white">
-                    Practice History
-                  </h2>
-
-                  <p className="mt-1 text-sm leading-6 text-white/40">
-                    Review previous attempts and monitor your
-                    improvement over time.
-                  </p>
-
-                </div>
-
-              </div>
-
-              <Link
-                href="/student/practice/history"
-                className="shrink-0"
-              >
-                <Button
-                  variant="outline"
-                  rightIcon={
-                    <ArrowRight className="h-4 w-4" />
-                  }
-                  className="border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.07] hover:text-white"
-                >
-                  View History
-                </Button>
-              </Link>
-
-            </Card>
-
-          </section>
 
         </div>
       </div>

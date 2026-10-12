@@ -2,7 +2,7 @@
 
 
 
-
+// src\components\quiz-board\waiting-room\LiveQuizCard.tsx
 
 "use client";
 
@@ -78,6 +78,7 @@ export default function LiveQuizCard({
       <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-emerald-400/10 blur-3xl" />
 
       <div className="relative">
+        
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -206,28 +207,6 @@ export default function LiveQuizCard({
           </div>
         </div>
 
-        {/* Enter button */}
-        {onEnterQuiz && (
-          <button
-            type="button"
-            onClick={onEnterQuiz}
-            disabled={navigating}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {navigating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Opening Quiz...
-              </>
-            ) : (
-              <>
-                <Flame className="h-4 w-4" />
-                Enter Live Quiz
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        )}
       </div>
     </section>
   );

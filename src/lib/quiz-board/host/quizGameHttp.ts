@@ -1,11 +1,4 @@
 
-
-
-
-
-
-// src/lib/quiz-board/host/quizGameHttp.ts
-
 import { axiosInstance } from "@/lib/api/axios";
 
 /* ============================================================
@@ -14,39 +7,36 @@ import { axiosInstance } from "@/lib/api/axios";
 
    PURPOSE
    ------------------------------------------------------------
-   Socket.IO is the PRIMARY mechanism for the live Quiz Board.
+   Provides HTTP recovery for the HOST Quiz Board.
 
-   This HTTP controller is the BACKUP / RECOVERY mechanism.
+   Responsibilities:
+   - Load quiz information.
+   - Load round questions.
+   - Recover round questions after a socket disconnect.
+   - Normalize API response formats.
+   - Provide a student-display projection that removes answer
+     fields from an already-loaded question object.
 
-   It is responsible for:
-   - Loading quiz information
-   - Loading round questions
-   - Recovering round questions after reconnect
-   - Refreshing quiz state when necessary
-
-   IMPORTANT
+   SECURITY
    ------------------------------------------------------------
-   Students should NOT use getRoundQuestions() if the response
-   contains correct answers.
+   getRoundQuestions() may return correct answers.
 
-   The host may use getRoundQuestions() because the host is the
-   trusted client.
+   This controller is HOST-ONLY.
 
-   Live game actions such as:
-   - starting questions
-   - submitting answers
-   - first-correct arbitration
-   - question locking
-   - leaderboard updates
-   - next question
+   Removing answer keys in frontend code does not protect them
+   from a student if they have already been sent to the browser.
+   Student-facing endpoints must omit answer keys on the server.
 
-   remain Socket.IO responsibilities.
+   LIVE GAME ACTIONS
+   ------------------------------------------------------------
+   Starting questions, validating answers, determining the
+   fastest correct answer, scoring, locking questions and
+   advancing rounds remain server-authoritative.
    ============================================================ */
-
 
 /* ============================================================
    TYPES
-   ============================================================ */
+============================================================ */
 
 export interface QuizGameHttpOption {
   label: string;
@@ -54,82 +44,56 @@ export interface QuizGameHttpOption {
   text: string;
 }
 
-
 export interface QuizGameHttpQuestion {
   id: string;
-
   question: string;
-
   options: QuizGameHttpOption[];
 
   questionNumber: number | null;
-
   totalQuestions: number | null;
-
   timeLimit: number | null;
 
   startedAt: string | null;
-
   expiresAt: string | null;
 
-  /*
-   * HOST-ONLY answer information.
-   *
-   * These fields must NEVER be forwarded to students.
-   */
+  /** Host-only answer data. */
   correctAnswer?: string | null;
-
   correctAnswers?: string[];
-
   answerKey?: string | string[] | null;
-
   correctValues?: string[];
 }
 
-
 export interface QuizGameHttpRound {
   quizId: string;
-
   roundNumber: number;
-
   totalQuestions: number;
-
   questions: QuizGameHttpQuestion[];
 }
 
-
 export interface QuizGameHttpQuiz {
   id: string;
-
   title: string;
-
   subject: string;
-
   description: string;
 
   currentRound: number;
-
   numberOfRounds: number;
-
   timePerQuestion: number;
 
   contestants: number;
-
   joinedCount: number;
 
   roomId: string | null;
-
   status: string | null;
 }
 
-
 /* ============================================================
    GENERIC HELPERS
-   ============================================================ */
+============================================================ */
 
-function isRecord(
-  value: unknown,
-): value is Record<string, unknown> {
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -137,106 +101,139 @@ function isRecord(
   );
 }
 
-
-function asString(
-  value: unknown,
-): string | null {
-  if (
-    typeof value === "string" &&
-    value.trim()
-  ) {
+function asString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
     return value.trim();
   }
 
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value)
-  ) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);
   }
 
   return null;
 }
 
-
-function asNumber(
-  value: unknown,
-): number | null {
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value)
-  ) {
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
 
-  if (
-    typeof value === "string" &&
-    value.trim()
-  ) {
-    const number = Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
 
-    if (
-      Number.isFinite(number)
-    ) {
-      return number;
+    if (Number.isFinite(parsed)) {
+      return parsed;
     }
   }
 
   return null;
 }
 
+/**
+ * Supports common API wrappers such as:
+ *
+ * { data: {...} }
+ * { success: true, data: {...} }
+ * { payload: {...} }
+ *
+ * Stops after a small number of unwraps to avoid infinite loops.
+ */
+function unwrapPayload(payload: unknown): unknown {
+  let current: unknown = payload;
 
-function getData(
-  payload: unknown,
-): unknown {
-  if (
-    !isRecord(payload)
-  ) {
-    return payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!isRecord(current)) {
+      return current;
+    }
+
+    const keys = Object.keys(current);
+
+    const hasData = Object.prototype.hasOwnProperty.call(
+      current,
+      "data",
+    );
+
+    const hasPayload = Object.prototype.hasOwnProperty.call(
+      current,
+      "payload",
+    );
+
+    if (
+      hasData &&
+      (
+        keys.length === 1 ||
+        "success" in current ||
+        "statusCode" in current ||
+        "message" in current
+      )
+    ) {
+      current = current.data;
+      continue;
+    }
+
+    if (hasPayload && keys.length <= 4) {
+      current = current.payload;
+      continue;
+    }
+
+    return current;
   }
 
-  if (
-    "data" in payload
-  ) {
-    return payload.data;
-  }
-
-  if (
-    "payload" in payload
-  ) {
-    return payload.payload;
-  }
-
-  return payload;
+  return current;
 }
 
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (!isRecord(error)) {
+    return fallback;
+  }
+
+  const response = isRecord(error.response)
+    ? error.response
+    : null;
+
+  const responseData =
+    response && isRecord(response.data)
+      ? response.data
+      : null;
+
+  const serverMessage = responseData?.message;
+
+  if (
+    typeof serverMessage === "string" &&
+    serverMessage.trim()
+  ) {
+    return serverMessage.trim();
+  }
+
+  const message = error.message;
+
+  if (typeof message === "string" && message.trim()) {
+    return message.trim();
+  }
+
+  return fallback;
+}
 
 /* ============================================================
    OPTION NORMALIZATION
-   ============================================================ */
+============================================================ */
 
 function normalizeOption(
   value: unknown,
   index: number,
 ): QuizGameHttpOption {
-  if (
-    !isRecord(value)
-  ) {
-    const text =
-      asString(value) ??
-      "";
+  const defaultLabel = String.fromCharCode(65 + index);
+
+  if (!isRecord(value)) {
+    const text = asString(value) ?? "";
 
     return {
-      label:
-        String.fromCharCode(
-          65 + index,
-        ),
-
-      value:
-        text,
-
-      text:
-        text,
+      label: defaultLabel,
+      value: text,
+      text,
     };
   }
 
@@ -246,62 +243,71 @@ function normalizeOption(
     asString(value.value) ??
     "";
 
-  const label =
-    asString(value.label) ??
-    String.fromCharCode(
-      65 + index,
-    );
-
-  const optionValue =
-    asString(value.value) ??
-    text;
-
   return {
-    label,
-
-    value:
-      optionValue,
-
+    label: asString(value.label) ?? defaultLabel,
+    value: asString(value.value) ?? text,
     text,
   };
 }
 
+/* ============================================================
+   ANSWER NORMALIZATION
+============================================================ */
+
+function normalizeStringArray(
+  value: unknown,
+): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map(asString)
+    .filter((item): item is string => item !== null);
+}
+
+function normalizeAnswerKey(
+  value: unknown,
+): string | string[] | null {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map(asString)
+      .filter((item): item is string => item !== null);
+  }
+
+  return null;
+}
 
 /* ============================================================
    QUESTION NORMALIZATION
-   ============================================================ */
+============================================================ */
 
 function normalizeQuestion(
   value: unknown,
 ): QuizGameHttpQuestion | null {
-  if (
-    !isRecord(value)
-  ) {
+  if (!isRecord(value)) {
     return null;
   }
 
   /*
-   * Some APIs return:
+   * Supports both:
    *
-   * {
-   *   question: {
-   *     id,
-   *     question,
-   *     options
-   *   }
-   * }
+   * { id, question: "Question text", options: [...] }
    *
-   * while others return the question directly.
+   * and:
+   *
+   * { question: { id, question: "Question text", options: [...] } }
    */
 
-  const nestedQuestion =
-    isRecord(value.question)
-      ? value.question
-      : null;
+  const nestedQuestion = isRecord(value.question)
+    ? value.question
+    : null;
 
-  const source =
-    nestedQuestion ??
-    value;
+  const source = nestedQuestion ?? value;
 
   const id =
     asString(source.id) ??
@@ -314,299 +320,165 @@ function normalizeQuestion(
     asString(source.text) ??
     asString(source.content);
 
-  if (
-    !id ||
-    !questionText
-  ) {
+  if (!id || !questionText) {
     return null;
   }
 
-  const rawOptions =
-    Array.isArray(source.options)
-      ? source.options
-      : Array.isArray(source.choices)
-        ? source.choices
-        : [];
+  const rawOptions = Array.isArray(source.options)
+    ? source.options
+    : Array.isArray(source.choices)
+      ? source.choices
+      : [];
 
-  const options =
-    rawOptions.map(
-      (
-        option,
-        index,
-      ) =>
-        normalizeOption(
-          option,
-          index,
-        ),
-    );
-
-
-  /* ==========================================================
-     HOST ANSWER DATA
-     ========================================================== */
+  const options = rawOptions.map((option, index) =>
+    normalizeOption(option, index),
+  );
 
   const correctAnswer =
-    asString(
-      source.correctAnswer,
-    ) ??
-    asString(
-      source.correct_answer,
-    );
-
-
-  const rawCorrectAnswers =
-    Array.isArray(
-      source.correctAnswers,
-    )
-      ? source.correctAnswers
-      : Array.isArray(
-          source.correct_answers,
-        )
-        ? source.correct_answers
-        : Array.isArray(
-            source.correctValues,
-          )
-          ? source.correctValues
-          : null;
-
+    asString(source.correctAnswer) ??
+    asString(source.correct_answer);
 
   const correctAnswers =
-    rawCorrectAnswers
-      ? rawCorrectAnswers
-          .map(asString)
-          .filter(
-            (
-              answer,
-            ): answer is string =>
-              Boolean(answer),
-          )
-      : undefined;
+    normalizeStringArray(
+      source.correctAnswers ??
+      source.correct_answers ??
+      source.correctValues ??
+      source.correct_values,
+    );
 
-
-  const rawAnswerKey =
-    source.answerKey ??
-    source.answer_key ??
-    null;
-
-
-  /* ==========================================================
-     QUESTION NUMBER
-     ========================================================== */
+  const answerKey = normalizeAnswerKey(
+    source.answerKey ?? source.answer_key,
+  );
 
   const questionNumber =
-    asNumber(
-      source.questionNumber,
-    ) ??
-    asNumber(
-      source.question_number,
-    ) ??
-    asNumber(
-      value.questionNumber,
-    ) ??
-    asNumber(
-      value.question_number,
-    ) ??
-    null;
-
-
-  /* ==========================================================
-     TOTAL QUESTIONS
-     ========================================================== */
+    asNumber(source.questionNumber) ??
+    asNumber(source.question_number) ??
+    asNumber(value.questionNumber) ??
+    asNumber(value.question_number);
 
   const totalQuestions =
-    asNumber(
-      source.totalQuestions,
-    ) ??
-    asNumber(
-      source.total_questions,
-    ) ??
-    asNumber(
-      value.totalQuestions,
-    ) ??
-    asNumber(
-      value.total_questions,
-    ) ??
-    null;
-
-
-  /* ==========================================================
-     TIME LIMIT
-     ========================================================== */
+    asNumber(source.totalQuestions) ??
+    asNumber(source.total_questions) ??
+    asNumber(value.totalQuestions) ??
+    asNumber(value.total_questions);
 
   const timeLimit =
-    asNumber(
-      source.timeLimit,
-    ) ??
-    asNumber(
-      source.time_limit,
-    ) ??
-    asNumber(
-      source.timePerQuestion,
-    ) ??
-    asNumber(
-      source.time_per_question,
-    ) ??
-    null;
-
-
-  /* ==========================================================
-     QUESTION TIMING
-     ========================================================== */
+    asNumber(source.timeLimit) ??
+    asNumber(source.time_limit) ??
+    asNumber(source.timePerQuestion) ??
+    asNumber(source.time_per_question);
 
   const startedAt =
-    asString(
-      source.startedAt,
-    ) ??
-    asString(
-      source.started_at,
-    ) ??
-    null;
-
+    asString(source.startedAt) ??
+    asString(source.started_at);
 
   const expiresAt =
-    asString(
-      source.expiresAt,
-    ) ??
-    asString(
-      source.expires_at,
-    ) ??
-    null;
-
+    asString(source.expiresAt) ??
+    asString(source.expires_at);
 
   return {
     id,
-
-    question:
-      questionText,
-
+    question: questionText,
     options,
 
     questionNumber,
-
     totalQuestions,
-
     timeLimit,
 
     startedAt,
-
     expiresAt,
 
-    /*
-     * HOST-ONLY answer information.
-     */
     correctAnswer,
-
     correctAnswers,
+    answerKey,
 
-    answerKey:
-      typeof rawAnswerKey ===
-        "string" ||
-      Array.isArray(
-        rawAnswerKey,
-      )
-        ? rawAnswerKey
-        : null,
-
-    correctValues:
-      correctAnswers,
+    correctValues: correctAnswers,
   };
 }
 
-
 /* ============================================================
    QUESTION ARRAY EXTRACTION
-   ============================================================ */
+============================================================ */
 
 function extractQuestions(
   payload: unknown,
 ): QuizGameHttpQuestion[] {
-  const data =
-    getData(payload);
+  const data = unwrapPayload(payload);
 
-  if (
-    Array.isArray(data)
-  ) {
+  if (Array.isArray(data)) {
     return data
-      .map(
-        normalizeQuestion,
-      )
+      .map(normalizeQuestion)
       .filter(
-        (
-          question,
-        ): question is QuizGameHttpQuestion =>
-          Boolean(question),
+        (question): question is QuizGameHttpQuestion =>
+          question !== null,
       );
   }
 
-  if (
-    !isRecord(data)
-  ) {
+  if (!isRecord(data)) {
     return [];
   }
 
-  const candidates = [
+  const nestedRound = isRecord(data.round)
+    ? data.round
+    : null;
+
+  const nestedQuiz = isRecord(data.quiz)
+    ? data.quiz
+    : null;
+
+  const candidates: unknown[] = [
     data.questions,
     data.questionList,
     data.question_list,
     data.roundQuestions,
     data.round_questions,
     data.items,
+    nestedRound?.questions,
+    nestedRound?.questionList,
+    nestedRound?.question_list,
+    nestedQuiz?.questions,
   ];
 
-  for (
-    const candidate of candidates
-  ) {
-    if (
-      !Array.isArray(candidate)
-    ) {
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) {
       continue;
     }
 
-    const questions =
-      candidate
-        .map(
-          normalizeQuestion,
-        )
-        .filter(
-          (
-            question,
-          ): question is QuizGameHttpQuestion =>
-            Boolean(question),
-        );
+    const questions = candidate
+      .map(normalizeQuestion)
+      .filter(
+        (question): question is QuizGameHttpQuestion =>
+          question !== null,
+      );
 
-    if (
-      questions.length > 0
-    ) {
+    if (questions.length > 0) {
       return questions;
     }
   }
 
-  const single =
-    normalizeQuestion(
-      data,
-    );
+  const singleQuestion = normalizeQuestion(data);
 
-  return single
-    ? [single]
-    : [];
+  return singleQuestion ? [singleQuestion] : [];
 }
-
 
 /* ============================================================
    QUIZ NORMALIZATION
-   ============================================================ */
+============================================================ */
 
 function normalizeQuiz(
   payload: unknown,
 ): QuizGameHttpQuiz | null {
-  const data =
-    getData(payload);
+  const unwrapped = unwrapPayload(payload);
 
-  if (
-    !isRecord(data)
-  ) {
+  if (!isRecord(unwrapped)) {
     return null;
   }
+
+  const data = isRecord(unwrapped.quiz)
+    ? unwrapped.quiz
+    : isRecord(unwrapped.quizData)
+      ? unwrapped.quizData
+      : unwrapped;
 
   const id =
     asString(data.id) ??
@@ -618,384 +490,207 @@ function normalizeQuiz(
     return null;
   }
 
+  const rawJoinedUsers =
+    data.joinedUsers ?? data.joined_users;
+
+  const joinedCount =
+    asNumber(data.joinedCount) ??
+    asNumber(data.joined_count) ??
+    (Array.isArray(rawJoinedUsers)
+      ? rawJoinedUsers.length
+      : asNumber(rawJoinedUsers)) ??
+    0;
+
   return {
     id,
 
     title:
-      asString(
-        data.title,
-      ) ??
-      asString(
-        data.quiz_title,
-      ) ??
-      asString(
-        data.quizTitle,
-      ) ??
+      asString(data.title) ??
+      asString(data.quiz_title) ??
+      asString(data.quizTitle) ??
       "Quiz Competition",
 
     subject:
-      asString(
-        data.subject,
-      ) ??
+      asString(data.subject) ??
+      asString(data.subjectName) ??
       "Quiz",
 
     description:
-      asString(
-        data.description,
-      ) ??
+      asString(data.description) ??
       "",
 
     currentRound:
-      asNumber(
-        data.currentRound,
-      ) ??
-      asNumber(
-        data.current_round,
-      ) ??
+      asNumber(data.currentRound) ??
+      asNumber(data.current_round) ??
       0,
 
     numberOfRounds:
-      asNumber(
-        data.numberOfRounds,
-      ) ??
-      asNumber(
-        data.number_of_rounds,
-      ) ??
+      asNumber(data.numberOfRounds) ??
+      asNumber(data.number_of_rounds) ??
+      asNumber(data.totalRounds) ??
+      asNumber(data.total_rounds) ??
       1,
 
     timePerQuestion:
-      asNumber(
-        data.timePerQuestion,
-      ) ??
-      asNumber(
-        data.time_per_question,
-      ) ??
+      asNumber(data.timePerQuestion) ??
+      asNumber(data.time_per_question) ??
       30,
 
     contestants:
-      asNumber(
-        data.noOfContestants,
-      ) ??
-      asNumber(
-        data.no_of_contestants,
-      ) ??
-      asNumber(
-        data.contestants,
-      ) ??
+      asNumber(data.noOfContestants) ??
+      asNumber(data.no_of_contestants) ??
+      asNumber(data.contestants) ??
       20,
 
-    joinedCount:
-      asNumber(
-        data.joinedCount,
-      ) ??
-      asNumber(
-        data.joined_count,
-      ) ??
-      asNumber(
-        data.joinedUsers,
-      ) ??
-      asNumber(
-        data.joined_users,
-      ) ??
-      0,
+    joinedCount,
 
     roomId:
-      asString(
-        data.roomId,
-      ) ??
-      asString(
-        data.room_id,
-      ),
+      asString(data.roomId) ??
+      asString(data.room_id),
 
     status:
-      asString(
-        data.status,
-      ),
+      asString(data.status),
   };
 }
 
-
 /* ============================================================
    CONTROLLER
-   ============================================================ */
+============================================================ */
 
 export class QuizGameHttpController {
   private readonly quizId: string;
 
+  constructor(quizId: string) {
+    this.quizId = String(quizId).trim();
 
-  constructor(
-    quizId: string,
-  ) {
-    this.quizId =
-      String(
-        quizId,
-      ).trim();
-
-    if (
-      !this.quizId
-    ) {
-      throw new Error(
-        "Quiz ID is required.",
-      );
+    if (!this.quizId) {
+      throw new Error("Quiz ID is required.");
     }
   }
-
 
   /* ==========================================================
      GET QUIZ
 
-     BACKUP:
-       GET /quiz/get-quiz-by-quizId/{quizId}
-     ========================================================== */
+     GET /quiz/get-quiz-by-quizId/{quizId}
+  ========================================================== */
 
   async getQuiz(): Promise<QuizGameHttpQuiz> {
-    console.log(
-      "[Quiz Game HTTP] Loading quiz:",
-      this.quizId,
-    );
-
-    const response =
-      await axiosInstance.get(
+    try {
+      const response = await axiosInstance.get(
         `/quiz/get-quiz-by-quizId/${encodeURIComponent(
           this.quizId,
         )}`,
       );
 
-    const quiz =
-      normalizeQuiz(
-        response?.data,
-      );
+      const quiz = normalizeQuiz(response.data);
 
-    if (!quiz) {
+      if (!quiz) {
+        throw new Error(
+          "The server returned quiz information in an unrecognized format.",
+        );
+      }
+
+      return quiz;
+    } catch (error: unknown) {
       throw new Error(
-        "Unable to parse quiz information from the server.",
+        getErrorMessage(
+          error,
+          "Unable to load quiz information.",
+        ),
       );
     }
-
-    return quiz;
   }
 
-
   /* ==========================================================
-     GET ROUND QUESTIONS
+     GET ROUND QUESTIONS — HOST ONLY
 
-     HOST BACKUP / RECOVERY
+     GET /quiz/get-round-questions/{quizId}?roundNumber=N
 
-     EXACT REQUEST:
-
-       GET /quiz/get-round-questions/{quizId}
-
-     WITH:
-
-       params: {
-         roundNumber,
-       }
-
-     IMPORTANT
-     ----------------------------------------------------------
-     roundNumber is sent as a QUERY PARAMETER.
-
-     Example:
-
-       GET /quiz/get-round-questions/123
-           ?roundNumber=2
-
-     This prevents the previous problem where the backend
-     received an invalid/missing round number.
-     ========================================================== */
+     roundNumber is a QUERY PARAMETER.
+  ========================================================== */
 
   async getRoundQuestions(
     roundNumber = 1,
   ): Promise<QuizGameHttpRound> {
-    const normalizedRound =
-      Math.max(
-        1,
-        Math.floor(
-          Number(
-            roundNumber,
-          ) || 1,
-        ),
-      );
-
-    console.log(
-      "[Quiz Game HTTP] Loading round questions:",
-      {
-        quizId:
-          this.quizId,
-
-        roundNumber:
-          normalizedRound,
-      },
+    const normalizedRound = Math.max(
+      1,
+      Math.floor(Number(roundNumber) || 1),
     );
 
-
-    /*
-     * ========================================================
-     * EXACT HTTP REQUEST
-     * ========================================================
-     *
-     * const response = await axiosInstance.get(
-     *   `/quiz/get-round-questions/${quizId}`,
-     *   {
-     *     params: {
-     *       roundNumber,
-     *     },
-     *   },
-     * );
-     *
-     * Since this controller stores quizId on the instance,
-     * this.quizId is used here.
-     */
-
-    const response =
-      await axiosInstance.get(
+    try {
+      const response = await axiosInstance.get(
         `/quiz/get-round-questions/${encodeURIComponent(
           this.quizId,
         )}`,
         {
           params: {
-            roundNumber:
-              normalizedRound,
+            roundNumber: normalizedRound,
           },
         },
       );
 
+      const questions = extractQuestions(response.data);
 
-    /* ========================================================
-       EXTRACT QUESTIONS
-       ======================================================== */
+      if (questions.length === 0) {
+        throw new Error(
+          `The server returned no recognizable questions for round ${normalizedRound}.`,
+        );
+      }
 
-    const questions =
-      extractQuestions(
-        response?.data,
-      );
-
-
-    if (
-      questions.length === 0
-    ) {
-      throw new Error(
-        `No questions were returned for round ${normalizedRound}.`,
-      );
-    }
-
-
-    /* ========================================================
-       NORMALIZE QUESTION NUMBERS
-       ======================================================== */
-
-    const normalizedQuestions =
-      questions.map(
-        (
-          question,
-          index,
-        ) => ({
+      const normalizedQuestions = questions.map(
+        (question, index) => ({
           ...question,
-
-          questionNumber:
-            question.questionNumber ??
-            index + 1,
-
+          questionNumber: question.questionNumber ?? index + 1,
           totalQuestions:
-            question.totalQuestions ??
-            questions.length,
+            question.totalQuestions ?? questions.length,
         }),
       );
 
-
-    /* ========================================================
-       RETURN NORMALIZED ROUND
-       ======================================================== */
-
-    return {
-      quizId:
-        this.quizId,
-
-      roundNumber:
-        normalizedRound,
-
-      totalQuestions:
-        normalizedQuestions.length,
-
-      questions:
-        normalizedQuestions,
-    };
+      return {
+        quizId: this.quizId,
+        roundNumber: normalizedRound,
+        totalQuestions: normalizedQuestions.length,
+        questions: normalizedQuestions,
+      };
+    } catch (error: unknown) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          `Unable to load questions for round ${normalizedRound}.`,
+        ),
+      );
+    }
   }
 
-
   /* ==========================================================
-     GET ALL ROUNDS
-
-     HOST BACKUP
-
-     Loads every round separately.
-
-     Example:
-
-       round 1
-       round 2
-       round 3
-       round 4
-       round 5
-
-     Each request becomes:
-
-       GET /quiz/get-round-questions/{quizId}
-       ?roundNumber=N
-     ========================================================== */
+     GET ALL ROUNDS — HOST ONLY
+  ========================================================== */
 
   async getAllRounds(
     numberOfRounds: number,
   ): Promise<QuizGameHttpRound[]> {
-    const totalRounds =
-      Math.max(
-        1,
-        Math.floor(
-          Number(
-            numberOfRounds,
-          ) || 1,
-        ),
-      );
+    const totalRounds = Math.max(
+      1,
+      Math.floor(Number(numberOfRounds) || 1),
+    );
 
-    const rounds:
-      QuizGameHttpRound[] =
-      [];
+    const rounds: QuizGameHttpRound[] = [];
 
-
-    for (
-      let round = 1;
-      round <= totalRounds;
-      round += 1
-    ) {
-      const result =
-        await this.getRoundQuestions(
-          round,
-        );
-
-      rounds.push(
-        result,
-      );
+    for (let round = 1; round <= totalRounds; round += 1) {
+      rounds.push(await this.getRoundQuestions(round));
     }
-
 
     return rounds;
   }
 
-
   /* ==========================================================
-     SAFE STUDENT QUESTION PROJECTION
+     STUDENT DISPLAY PROJECTION
 
-     IMPORTANT
+     This removes answer keys from an object already in memory.
 
-     Removes:
-
-       correctAnswer
-       correctAnswers
-       answerKey
-       correctValues
-
-     before a question reaches student UI.
-     ========================================================== */
+     It does NOT make an answer-containing API safe for students.
+     Student API responses must exclude answer keys on the server.
+  ========================================================== */
 
   toStudentQuestion(
     question: QuizGameHttpQuestion,
@@ -1017,20 +712,12 @@ export class QuizGameHttpController {
     return studentQuestion;
   }
 
-
-  /* ==========================================================
-     SAFE STUDENT ROUND PROJECTION
-     ========================================================== */
-
   toStudentRound(
     round: QuizGameHttpRound,
   ): {
     quizId: string;
-
     roundNumber: number;
-
     totalQuestions: number;
-
     questions: Array<
       Omit<
         QuizGameHttpQuestion,
@@ -1042,37 +729,22 @@ export class QuizGameHttpController {
     >;
   } {
     return {
-      quizId:
-        round.quizId,
-
-      roundNumber:
-        round.roundNumber,
-
-      totalQuestions:
-        round.totalQuestions,
-
-      questions:
-        round.questions.map(
-          (
-            question,
-          ) =>
-            this.toStudentQuestion(
-              question,
-            ),
-        ),
+      quizId: round.quizId,
+      roundNumber: round.roundNumber,
+      totalQuestions: round.totalQuestions,
+      questions: round.questions.map((question) =>
+        this.toStudentQuestion(question),
+      ),
     };
   }
 }
 
-
 /* ============================================================
    FACTORY
-   ============================================================ */
+============================================================ */
 
 export function createQuizGameHttpController(
   quizId: string,
 ): QuizGameHttpController {
-  return new QuizGameHttpController(
-    quizId,
-  );
+  return new QuizGameHttpController(quizId);
 }

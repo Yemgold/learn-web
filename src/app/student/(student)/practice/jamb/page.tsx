@@ -159,7 +159,7 @@ export default function JambPracticePage() {
         {/* ==================================================
             STATISTICS
            ================================================== */}
-
+{/* 
         <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <Card
             hoverable
@@ -220,7 +220,7 @@ export default function JambPracticePage() {
               Improvement
             </p>
           </Card>
-        </div>
+        </div> */}
 
         {/* ==================================================
             MAIN PRACTICE OPTIONS
@@ -563,42 +563,7 @@ export default function JambPracticePage() {
           </div>
         </div>
 
-        {/* ==================================================
-            RECENT ACTIVITY
-           ================================================== */}
-
-        <div className="mt-10">
-          <Card className="border border-white/10 bg-white/[0.04] shadow-none">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/5 bg-white/[0.03]">
-                  <History className="h-6 w-6 text-slate-400" />
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white">
-                    Recent JAMB Activity
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-400">
-                    Keep track of your latest practice sessions.
-                  </p>
-                </div>
-              </div>
-
-              <Link href="/student/practice/history?exam=jamb">
-                <Button
-                  variant="outline"
-                  rightIcon={
-                    <ArrowRight className="h-4 w-4" />
-                  }
-                >
-                  View All
-                </Button>
-              </Link>
-            </div>
-          </Card>
-        </div>
+      
       </div>
     </main>
   );

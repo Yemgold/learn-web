@@ -656,7 +656,7 @@ export default function QuizBoardPage() {
 
                       <div>
                         <p className="text-sm font-semibold text-white">
-                          Unable to load available competitions
+                          No available competitions
                         </p>
 
                         <p className="mt-1 text-xs leading-5 text-slate-400">

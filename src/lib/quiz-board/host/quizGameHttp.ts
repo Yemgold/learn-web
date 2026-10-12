@@ -1,4 +1,8 @@
 
+
+
+
+
 import { axiosInstance } from "@/lib/api/axios";
 
 /* ============================================================
@@ -11,27 +15,26 @@ import { axiosInstance } from "@/lib/api/axios";
 
    Responsibilities:
    - Load quiz information.
-   - Load round questions.
+   - Load round questions using quizId AND roomId.
    - Recover round questions after a socket disconnect.
-   - Normalize API response formats.
-   - Provide a student-display projection that removes answer
-     fields from an already-loaded question object.
+   - Normalize common API response formats.
+   - Remove answer keys from an already-loaded question when
+     creating a student-display projection.
 
-   SECURITY
+   IMPORTANT
    ------------------------------------------------------------
-   getRoundQuestions() may return correct answers.
+   This controller is HOST-ONLY when loading questions that
+   may contain correct answers.
 
-   This controller is HOST-ONLY.
-
-   Removing answer keys in frontend code does not protect them
-   from a student if they have already been sent to the browser.
-   Student-facing endpoints must omit answer keys on the server.
+   Removing answer keys in the frontend does not protect data
+   already sent to a student's browser. Student-facing APIs
+   must omit answer keys on the backend.
 
    LIVE GAME ACTIONS
    ------------------------------------------------------------
-   Starting questions, validating answers, determining the
-   fastest correct answer, scoring, locking questions and
-   advancing rounds remain server-authoritative.
+   Starting questions, validating answers, determining winners,
+   scoring, locking questions and advancing rounds remain
+   server-authoritative.
    ============================================================ */
 
 /* ============================================================
@@ -87,6 +90,21 @@ export interface QuizGameHttpQuiz {
   status: string | null;
 }
 
+export type StudentDisplayQuestion = Omit<
+  QuizGameHttpQuestion,
+  | "correctAnswer"
+  | "correctAnswers"
+  | "answerKey"
+  | "correctValues"
+>;
+
+export interface StudentDisplayRound {
+  quizId: string;
+  roundNumber: number;
+  totalQuestions: number;
+  questions: StudentDisplayQuestion[];
+}
+
 /* ============================================================
    GENERIC HELPERS
 ============================================================ */
@@ -130,13 +148,10 @@ function asNumber(value: unknown): number | null {
 }
 
 /**
- * Supports common API wrappers such as:
- *
+ * Supports common API wrappers:
  * { data: {...} }
  * { success: true, data: {...} }
  * { payload: {...} }
- *
- * Stops after a small number of unwraps to avoid infinite loops.
  */
 function unwrapPayload(payload: unknown): unknown {
   let current: unknown = payload;
@@ -294,12 +309,10 @@ function normalizeQuestion(
   }
 
   /*
-   * Supports both:
-   *
+   * Supports:
    * { id, question: "Question text", options: [...] }
    *
-   * and:
-   *
+   * And:
    * { question: { id, question: "Question text", options: [...] } }
    */
 
@@ -312,13 +325,17 @@ function normalizeQuestion(
   const id =
     asString(source.id) ??
     asString(source._id) ??
+    asString(source.questionId) ??
+    asString(source.question_id) ??
     asString(value.questionId) ??
     asString(value.question_id);
 
   const questionText =
     asString(source.question) ??
     asString(source.text) ??
-    asString(source.content);
+    asString(source.content) ??
+    asString(value.questionText) ??
+    asString(value.question_text);
 
   if (!id || !questionText) {
     return null;
@@ -338,13 +355,12 @@ function normalizeQuestion(
     asString(source.correctAnswer) ??
     asString(source.correct_answer);
 
-  const correctAnswers =
-    normalizeStringArray(
-      source.correctAnswers ??
+  const correctAnswers = normalizeStringArray(
+    source.correctAnswers ??
       source.correct_answers ??
       source.correctValues ??
       source.correct_values,
-    );
+  );
 
   const answerKey = normalizeAnswerKey(
     source.answerKey ?? source.answer_key,
@@ -516,8 +532,7 @@ function normalizeQuiz(
       "Quiz",
 
     description:
-      asString(data.description) ??
-      "",
+      asString(data.description) ?? "",
 
     currentRound:
       asNumber(data.currentRound) ??
@@ -548,8 +563,7 @@ function normalizeQuiz(
       asString(data.roomId) ??
       asString(data.room_id),
 
-    status:
-      asString(data.status),
+    status: asString(data.status),
   };
 }
 
@@ -559,9 +573,18 @@ function normalizeQuiz(
 
 export class QuizGameHttpController {
   private readonly quizId: string;
+  private readonly roomId: string | null;
 
-  constructor(quizId: string) {
-    this.quizId = String(quizId).trim();
+  /**
+   * roomId is optional here to preserve compatibility with
+   * code that constructs the controller using quizId alone.
+   *
+   * However, getRoundQuestions() requires a valid roomId,
+   * supplied either here or directly to that method.
+   */
+  constructor(quizId: string, roomId?: string | null) {
+    this.quizId = String(quizId ?? "").trim();
+    this.roomId = String(roomId ?? "").trim() || null;
 
     if (!this.quizId) {
       throw new Error("Quiz ID is required.");
@@ -604,24 +627,37 @@ export class QuizGameHttpController {
   /* ==========================================================
      GET ROUND QUESTIONS — HOST ONLY
 
-     GET /quiz/get-round-questions/{quizId}?roundNumber=N
+     Backend route:
+     GET /quiz/get-round-questions/{quizId}/{roomId}
 
-     roundNumber is a QUERY PARAMETER.
+     roundNumber remains a query parameter. Confirm that your
+     backend handler accepts it; the route itself requires both
+     quizId and roomId.
   ========================================================== */
 
   async getRoundQuestions(
     roundNumber = 1,
+    roomIdOverride?: string,
   ): Promise<QuizGameHttpRound> {
     const normalizedRound = Math.max(
       1,
       Math.floor(Number(roundNumber) || 1),
     );
 
+    const roomId =
+      String(roomIdOverride ?? this.roomId ?? "").trim();
+
+    if (!roomId) {
+      throw new Error(
+        "Room ID is required to load round questions. Pass roomId to the controller constructor or getRoundQuestions().",
+      );
+    }
+
     try {
       const response = await axiosInstance.get(
         `/quiz/get-round-questions/${encodeURIComponent(
           this.quizId,
-        )}`,
+        )}/${encodeURIComponent(roomId)}`,
         {
           params: {
             roundNumber: normalizedRound,
@@ -640,7 +676,8 @@ export class QuizGameHttpController {
       const normalizedQuestions = questions.map(
         (question, index) => ({
           ...question,
-          questionNumber: question.questionNumber ?? index + 1,
+          questionNumber:
+            question.questionNumber ?? index + 1,
           totalQuestions:
             question.totalQuestions ?? questions.length,
         }),
@@ -668,6 +705,7 @@ export class QuizGameHttpController {
 
   async getAllRounds(
     numberOfRounds: number,
+    roomIdOverride?: string,
   ): Promise<QuizGameHttpRound[]> {
     const totalRounds = Math.max(
       1,
@@ -677,7 +715,9 @@ export class QuizGameHttpController {
     const rounds: QuizGameHttpRound[] = [];
 
     for (let round = 1; round <= totalRounds; round += 1) {
-      rounds.push(await this.getRoundQuestions(round));
+      rounds.push(
+        await this.getRoundQuestions(round, roomIdOverride),
+      );
     }
 
     return rounds;
@@ -686,21 +726,13 @@ export class QuizGameHttpController {
   /* ==========================================================
      STUDENT DISPLAY PROJECTION
 
-     This removes answer keys from an object already in memory.
-
-     It does NOT make an answer-containing API safe for students.
-     Student API responses must exclude answer keys on the server.
+     Removes answer fields from a question already in memory.
+     This does not replace backend-side answer-key protection.
   ========================================================== */
 
   toStudentQuestion(
     question: QuizGameHttpQuestion,
-  ): Omit<
-    QuizGameHttpQuestion,
-    | "correctAnswer"
-    | "correctAnswers"
-    | "answerKey"
-    | "correctValues"
-  > {
+  ): StudentDisplayQuestion {
     const {
       correctAnswer: _correctAnswer,
       correctAnswers: _correctAnswers,
@@ -714,20 +746,7 @@ export class QuizGameHttpController {
 
   toStudentRound(
     round: QuizGameHttpRound,
-  ): {
-    quizId: string;
-    roundNumber: number;
-    totalQuestions: number;
-    questions: Array<
-      Omit<
-        QuizGameHttpQuestion,
-        | "correctAnswer"
-        | "correctAnswers"
-        | "answerKey"
-        | "correctValues"
-      >
-    >;
-  } {
+  ): StudentDisplayRound {
     return {
       quizId: round.quizId,
       roundNumber: round.roundNumber,
@@ -745,6 +764,8 @@ export class QuizGameHttpController {
 
 export function createQuizGameHttpController(
   quizId: string,
+  roomId?: string | null,
 ): QuizGameHttpController {
-  return new QuizGameHttpController(quizId);
+  return new QuizGameHttpController(quizId, roomId);
 }
+

@@ -842,9 +842,10 @@ const {
   refresh: refreshFallback,
 } = useQuizRoomFallback({
   quizId,
+  roomId,
   currentRound,
   socketConnected: connected,
-  enabled: Boolean(quizId),
+  enabled: Boolean(quizId && roomId),
   pollIntervalMs: 5000,
 });
 

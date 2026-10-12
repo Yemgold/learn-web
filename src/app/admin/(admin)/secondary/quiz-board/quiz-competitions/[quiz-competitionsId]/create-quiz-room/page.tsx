@@ -588,7 +588,10 @@ export default function CreateQuizRoomPage() {
             },
           );
 
-        
+        console.log(
+          "Create room response:",
+          response.data,
+        );
 
         const newRoomId =
           extractRoomId(

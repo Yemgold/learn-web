@@ -30,24 +30,30 @@ export interface QuizRoomFallbackSnapshot {
 
 export interface UseQuizRoomFallbackOptions {
   /**
-   * Quiz ID used by the existing HTTP endpoints.
+   * ID of the quiz competition.
    */
   quizId: string | null | undefined;
 
   /**
-   * Current round received from the socket.
+   * ID of the active room created for this competition.
    *
-   * Round 1 is used when this is zero or missing.
+   * Required by the updated round-question endpoint.
+   */
+  roomId: string | null | undefined;
+
+  /**
+   * Current round received from the socket.
+   * Defaults to round 1 when zero or missing.
    */
   currentRound: number;
 
   /**
-   * Pass your existing Socket.IO connected state.
+   * Existing Socket.IO connection state.
    */
   socketConnected: boolean;
 
   /**
-   * Disable recovery when the component does not need it.
+   * Disable recovery when it is not required.
    */
   enabled?: boolean;
 
@@ -58,8 +64,8 @@ export interface UseQuizRoomFallbackOptions {
   pollIntervalMs?: number;
 
   /**
-   * Optional callback for applying recovered data to
-   * your existing component state.
+   * Optional callback for applying recovered data
+   * to the existing component state.
    */
   onSnapshot?: (
     snapshot: QuizRoomFallbackSnapshot,
@@ -111,16 +117,21 @@ function getErrorMessage(error: unknown): string {
 /**
  * HOST-ONLY RECOVERY HOOK
  *
- * The round-question endpoint may return answer keys.
- * Do not use this hook for student-facing quiz pages unless
- * your backend provides a separate student-safe API.
+ * Round-question responses may contain answer keys.
+ * Do not use this hook on student-facing pages unless the
+ * backend provides a separate student-safe endpoint.
  *
- * This hook recovers quiz information and question data.
- * It does not replace socket events for answer submission,
- * score arbitration, room activation or question advancement.
+ * This hook recovers quiz information and round questions.
+ * It does not replace server-authoritative game actions,
+ * answer validation, scoring, activation or advancement.
+ *
+ * Updated round-question route:
+ *
+ * GET /quiz/get-round-questions/:quizId/:roomId
  */
 export function useQuizRoomFallback({
   quizId,
+  roomId,
   currentRound,
   socketConnected,
   enabled = true,
@@ -128,10 +139,20 @@ export function useQuizRoomFallback({
   onSnapshot,
 }: UseQuizRoomFallbackOptions): UseQuizRoomFallbackResult {
   const normalizedQuizId = quizId?.trim() ?? "";
+  const normalizedRoomId = roomId?.trim() ?? "";
+
+  const hasRequiredIds =
+    Boolean(normalizedQuizId) &&
+    Boolean(normalizedRoomId);
 
   const safePollInterval = Math.max(
     1000,
     Math.floor(pollIntervalMs || 5000),
+  );
+
+  const requestedRound = Math.max(
+    1,
+    Math.floor(Number(currentRound) || 1),
   );
 
   /* ==========================================================
@@ -176,17 +197,16 @@ export function useQuizRoomFallback({
   const roundRef =
     useRef<QuizGameHttpRound | null>(null);
 
-  const onSnapshotRef =
-    useRef(onSnapshot);
+  const onSnapshotRef = useRef(onSnapshot);
 
   /*
-   * Keep the latest callback without restarting the polling
-   * effect whenever the parent creates a new callback function.
+   * Always use the latest callback without restarting the
+   * polling effect when the parent creates a new callback.
    */
   onSnapshotRef.current = onSnapshot;
 
   /* ==========================================================
-     COMPONENT MOUNT STATUS
+     MOUNT STATUS
   ========================================================== */
 
   useEffect(() => {
@@ -198,7 +218,7 @@ export function useQuizRoomFallback({
   }, []);
 
   /* ==========================================================
-     RESET DATA WHEN THE QUIZ CHANGES
+     RESET WHEN QUIZ OR ROOM CHANGES
   ========================================================== */
 
   useEffect(() => {
@@ -211,10 +231,25 @@ export function useQuizRoomFallback({
     setError(null);
     setLastSyncedAt(null);
 
-    setLoading(true);
+    setLoading(
+      enabled && hasRequiredIds,
+    );
+
+    setRefreshing(false);
 
     firstLoadRef.current = true;
-  }, [normalizedQuizId]);
+
+    /*
+     * Requests already in progress cannot necessarily be
+     * cancelled here, but stale results are guarded below
+     * by checking the current request identity.
+     */
+  }, [
+    normalizedQuizId,
+    normalizedRoomId,
+    enabled,
+    hasRequiredIds,
+  ]);
 
   /* ==========================================================
      FETCH SNAPSHOT
@@ -223,17 +258,29 @@ export function useQuizRoomFallback({
   const refresh = useCallback(async (): Promise<void> => {
     if (
       !enabled ||
-      !normalizedQuizId
+      !normalizedQuizId ||
+      !normalizedRoomId
     ) {
+      if (mountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+
+        if (enabled && normalizedQuizId && !normalizedRoomId) {
+          setError(
+            "Room ID is required to recover round questions.",
+          );
+        } else {
+          setError(null);
+        }
+      }
+
       return;
     }
 
     /*
-     * Avoid overlapping HTTP requests.
-     *
-     * If another refresh is requested while a request is
-     * running, queue one additional refresh using the latest
-     * callback after the current request finishes.
+     * Avoid overlapping requests.
+     * Queue one more refresh if a request arrives while
+     * another refresh is already running.
      */
     if (inFlightRef.current) {
       pendingRefreshRef.current = true;
@@ -247,28 +294,30 @@ export function useQuizRoomFallback({
       setLoading(firstLoadRef.current);
     }
 
+    /*
+     * Capture IDs and round for this particular request.
+     */
+    const requestQuizId = normalizedQuizId;
+    const requestRoomId = normalizedRoomId;
+    const requestRound = requestedRound;
+
     try {
       const controller =
         createQuizGameHttpController(
-          normalizedQuizId,
+          requestQuizId,
+          requestRoomId,
         );
-
-      const requestedRound = Math.max(
-        1,
-        Math.floor(Number(currentRound) || 1),
-      );
 
       /*
        * Load quiz information and round questions independently.
-       *
-       * One request can succeed even if the other fails.
+       * One may succeed even if the other fails.
        */
       const [quizResult, roundResult] =
         await Promise.allSettled([
           controller.getQuiz(),
 
           controller.getRoundQuestions(
-            requestedRound,
+            requestRound,
           ),
         ]);
 
@@ -276,14 +325,22 @@ export function useQuizRoomFallback({
         return;
       }
 
+      /*
+       * Do not apply results from an old quiz/room request
+       * to the currently selected quiz/room.
+       */
+      if (
+        requestQuizId !== normalizedQuizId ||
+        requestRoomId !== normalizedRoomId
+      ) {
+        return;
+      }
+
       let quizError: string | null = null;
       let roundError: string | null = null;
 
-      let recoveredQuiz =
-        quizRef.current;
-
-      let recoveredRound =
-        roundRef.current;
+      let recoveredQuiz = quizRef.current;
+      let recoveredRound = roundRef.current;
 
       /* ======================================================
          QUIZ RESULT
@@ -291,7 +348,6 @@ export function useQuizRoomFallback({
 
       if (quizResult.status === "fulfilled") {
         recoveredQuiz = quizResult.value;
-
         quizRef.current = recoveredQuiz;
 
         setQuiz(recoveredQuiz);
@@ -307,7 +363,6 @@ export function useQuizRoomFallback({
 
       if (roundResult.status === "fulfilled") {
         recoveredRound = roundResult.value;
-
         roundRef.current = recoveredRound;
 
         setRound(recoveredRound);
@@ -329,10 +384,7 @@ export function useQuizRoomFallback({
 
       if (!quizLoaded && !roundLoaded) {
         setError(
-          [
-            quizError,
-            roundError,
-          ]
+          [quizError, roundError]
             .filter(Boolean)
             .join(" "),
         );
@@ -400,8 +452,7 @@ export function useQuizRoomFallback({
       }
 
       /*
-       * If a refresh was requested during the current request,
-       * perform another one using the latest function reference.
+       * Run a queued refresh using the latest callback.
        */
       if (
         pendingRefreshRef.current &&
@@ -419,12 +470,10 @@ export function useQuizRoomFallback({
   }, [
     enabled,
     normalizedQuizId,
-    currentRound,
+    normalizedRoomId,
+    requestedRound,
   ]);
 
-  /*
-   * Allows queued requests to use the latest refresh callback.
-   */
   refreshLatestRef.current = refresh;
 
   /* ==========================================================
@@ -432,35 +481,51 @@ export function useQuizRoomFallback({
   ========================================================== */
 
   useEffect(() => {
-    if (
-      !enabled ||
-      !normalizedQuizId
-    ) {
+    if (!enabled) {
       setLoading(false);
       setRefreshing(false);
+      setError(null);
+
+      return;
+    }
+
+    if (!normalizedQuizId) {
+      setLoading(false);
+      setRefreshing(false);
+      setError(null);
+
+      return;
+    }
+
+    if (!normalizedRoomId) {
+      setLoading(false);
+      setRefreshing(false);
+
+      setError(
+        "Room ID is required to recover round questions.",
+      );
 
       return;
     }
 
     /*
-     * Initial load and reconnect recovery.
+     * Initial baseline load and reconnect recovery.
      */
     void refresh();
 
     /*
-     * While connected, sockets remain the primary source.
-     * A one-time HTTP refresh above still provides a baseline.
+     * When connected, sockets remain the primary live source.
+     * The HTTP request above still loads a baseline snapshot.
      */
     if (socketConnected) {
       return;
     }
 
     /*
-     * Socket disconnected:
-     * recover quiz and round data periodically.
+     * When disconnected, poll HTTP endpoints periodically.
      */
     const intervalId = window.setInterval(() => {
-      void refresh();
+      void refreshLatestRef.current();
     }, safePollInterval);
 
     return () => {
@@ -469,6 +534,7 @@ export function useQuizRoomFallback({
   }, [
     enabled,
     normalizedQuizId,
+    normalizedRoomId,
     socketConnected,
     safePollInterval,
     refresh,
@@ -487,7 +553,7 @@ export function useQuizRoomFallback({
 
     usingFallback:
       enabled &&
-      Boolean(normalizedQuizId) &&
+      hasRequiredIds &&
       !socketConnected,
 
     error,

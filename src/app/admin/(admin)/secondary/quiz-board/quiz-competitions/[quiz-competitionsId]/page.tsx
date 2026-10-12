@@ -818,7 +818,7 @@ export default function QuizBoardQuestionsPage() {
       setQuiz(quizData);
     } catch (error) {
       console.error(
-        "Failed to fetch quiz details:",
+        "Failed to fetch quiz d:",
         error,
       );
 

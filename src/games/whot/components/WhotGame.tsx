@@ -3,7 +3,6 @@
 
 
 
-
 "use client";
 
 import {
@@ -35,8 +34,8 @@ import {
   getSelectedQuestion,
 } from "../lib/game-engine";
 import type {
-  WhotEngineState,
   WhotAnswerFeedback,
+  WhotEngineState,
 } from "../lib/game-engine";
 import type { WhotCard, WhotPlayerId } from "../types/whot";
 
@@ -97,8 +96,8 @@ function WhotGameComponent({
   const isShowingFeedback =
     answerFeedback !== null && !game.isFinished;
 
-  // Preserve the question card so feedback can reveal the correct
-  // answer after the question modal closes.
+  // Preserve the question for the feedback panel after the
+  // question modal closes.
   useEffect(() => {
     if (game.isQuestionOpen && selectedQuestion) {
       setLastQuestionCard(selectedQuestion);
@@ -110,7 +109,7 @@ function WhotGameComponent({
       if (
         !game.isPlayerTurn ||
         game.isQuestionOpen ||
-        isShowingFeedback ||
+        state.answerFeedback !== null ||
         game.isFinished
       ) {
         return;
@@ -120,7 +119,7 @@ function WhotGameComponent({
     },
     [
       game,
-      isShowingFeedback,
+      state.answerFeedback,
     ],
   );
 
@@ -128,7 +127,7 @@ function WhotGameComponent({
     if (
       !game.isPlayerTurn ||
       game.isQuestionOpen ||
-      isShowingFeedback ||
+      state.answerFeedback !== null ||
       game.isFinished
     ) {
       return;
@@ -137,18 +136,21 @@ function WhotGameComponent({
     game.drawCard();
   }, [
     game,
-    isShowingFeedback,
+    state.answerFeedback,
   ]);
 
   const handleContinue = useCallback(() => {
-    if (!isShowingFeedback || game.isFinished) {
+    if (
+      state.answerFeedback === null ||
+      game.isFinished
+    ) {
       return;
     }
 
     game.continueAfterFeedback();
   }, [
     game,
-    isShowingFeedback,
+    state.answerFeedback,
   ]);
 
   const handlePlayAgain = useCallback(() => {
@@ -163,11 +165,11 @@ function WhotGameComponent({
   const winner: WhotPlayerId | null = state.winner;
 
   const correctOption =
-    lastQuestionCard &&
-    answerFeedback &&
-    lastQuestionCard.options[
-      answerFeedback.correctAnswerIndex
-    ];
+    lastQuestionCard && answerFeedback
+      ? lastQuestionCard.options[
+          answerFeedback.correctAnswerIndex
+        ]
+      : undefined;
 
   const resultStats = useMemo(() => {
     const totalAnswers =
@@ -239,7 +241,7 @@ function WhotGameComponent({
           </div>
         </header>
 
-        {!game.isReady &&
+        {game.isReady &&
           !game.isPlaying &&
           !game.isFinished && (
             <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
@@ -264,29 +266,6 @@ function WhotGameComponent({
               >
                 <Sparkles className="h-5 w-5" />
                 Start game
-              </button>
-            </section>
-          )}
-
-        {game.isReady &&
-          !game.isPlaying &&
-          !game.isFinished && (
-            <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
-              <h2 className="text-2xl font-black">
-                Your game is ready
-              </h2>
-
-              <p className="mt-3 text-sm leading-6 text-slate-400">
-                Start the game when you are ready to challenge
-                the bot.
-              </p>
-
-              <button
-                type="button"
-                onClick={game.startGame}
-                className="mt-6 rounded-xl bg-cyan-400 px-7 py-3 font-extrabold text-slate-950 transition hover:bg-cyan-300"
-              >
-                Start playing
               </button>
             </section>
           )}
@@ -422,7 +401,9 @@ function WhotGameComponent({
                 status={state.status}
                 currentTurn={state.currentTurn}
                 winner={state.winner}
-                message={state.message}
+                message={
+                  isShowingFeedback ? "" : state.message
+                }
                 playerCards={state.player.hand}
                 botCardCount={state.bot.hand.length}
                 drawPileCount={state.drawPile.length}
@@ -434,8 +415,11 @@ function WhotGameComponent({
                 isPlayerTurn={
                   game.isPlayerTurn && !isShowingFeedback
                 }
-                isBotTurn={game.isBotTurn}
+                isBotTurn={
+                  game.isBotTurn && !isShowingFeedback
+                }
                 isQuestionOpen={game.isQuestionOpen}
+                isShowingFeedback={isShowingFeedback}
                 isFinished={game.isFinished}
                 timeRemaining={game.timeRemaining}
                 playerName={playerName}

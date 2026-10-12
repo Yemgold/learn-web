@@ -1,8 +1,4 @@
 
-
-
-
-
 "use client";
 
 import { memo } from "react";
@@ -13,7 +9,11 @@ import DrawPile from "./DrawPile";
 import GameStatus from "./GameStatus";
 import PlayerHand from "./PlayerHand";
 
-import type { WhotCard, WhotGameStatus, WhotPlayerId } from "../types/whot";
+import type {
+  WhotCard,
+  WhotGameStatus,
+  WhotPlayerId,
+} from "../types/whot";
 
 export interface GameTableProps {
   status: WhotGameStatus;
@@ -35,6 +35,7 @@ export interface GameTableProps {
   isPlayerTurn: boolean;
   isBotTurn: boolean;
   isQuestionOpen?: boolean;
+  isShowingFeedback?: boolean;
   isFinished?: boolean;
   isDrawing?: boolean;
   timeRemaining?: number | null;
@@ -46,7 +47,8 @@ export interface GameTableProps {
 }
 
 const SUBJECT_STYLES: Record<string, string> = {
-  MATHS: "from-blue-500/20 to-blue-950/80 border-blue-400/40 text-blue-200",
+  MATHS:
+    "from-blue-500/20 to-blue-950/80 border-blue-400/40 text-blue-200",
   ENGLISH:
     "from-fuchsia-500/20 to-fuchsia-950/80 border-fuchsia-400/40 text-fuchsia-200",
   BIOLOGY:
@@ -87,7 +89,11 @@ function CenterCard({ card }: { card: WhotCard }) {
         <span className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide sm:text-[10px]">
           {card.subject}
         </span>
-        <Sparkles size={16} className="shrink-0 opacity-70" aria-hidden="true" />
+        <Sparkles
+          size={16}
+          className="shrink-0 opacity-70"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="relative flex flex-1 flex-col items-center justify-center py-3 text-center">
@@ -139,6 +145,7 @@ function GameTable({
   isPlayerTurn,
   isBotTurn,
   isQuestionOpen = false,
+  isShowingFeedback = false,
   isFinished = false,
   isDrawing = false,
   timeRemaining = null,
@@ -147,7 +154,11 @@ function GameTable({
   compact = false,
   className = "",
 }: GameTableProps) {
-  const canInteract = isPlayerTurn && !isQuestionOpen && !isFinished;
+  const canInteract =
+    isPlayerTurn &&
+    !isQuestionOpen &&
+    !isShowingFeedback &&
+    !isFinished;
 
   return (
     <main
@@ -158,7 +169,7 @@ function GameTable({
         status={status}
         currentTurn={currentTurn}
         winner={winner}
-        message={message}
+        message={isShowingFeedback ? "" : message}
         centerSubject={centerCard.subject}
         playerCardCount={playerCards.length}
         botCardCount={botCardCount}
@@ -182,7 +193,7 @@ function GameTable({
           <BotHand
             cardCount={botCardCount}
             botName={botName}
-            isActive={isBotTurn && !isFinished}
+            isActive={isBotTurn && !isFinished && !isShowingFeedback}
             compact={compact}
           />
 
@@ -248,25 +259,27 @@ function GameTable({
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              {isQuestionOpen ? (
-                <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
-                  Answer the question to play your card
-                </span>
-              ) : isFinished ? (
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
-                  Game finished
-                </span>
-              ) : isPlayerTurn ? (
-                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                  Select a matching card or draw one
-                </span>
-              ) : (
-                <span className="rounded-full border border-white/10 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
-                  {isBotTurn ? "Bot is playing..." : "Waiting for your turn"}
-                </span>
-              )}
-            </div>
+            {!isShowingFeedback && (
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                {isQuestionOpen ? (
+                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
+                    Answer the question to play your card
+                  </span>
+                ) : isFinished ? (
+                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
+                    Game finished
+                  </span>
+                ) : isPlayerTurn ? (
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+                    Select a matching card or draw one
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-white/10 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                    {isBotTurn ? "Bot is playing..." : "Waiting for your turn"}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <PlayerHand
@@ -286,3 +299,4 @@ function GameTable({
 }
 
 export default memo(GameTable);
+

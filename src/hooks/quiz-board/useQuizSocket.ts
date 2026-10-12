@@ -1373,19 +1373,6 @@ enableTopWinnerToSolveTie,
 
     getQuizRoomLeaderboard,
 
-    /*
-     * Server-authoritative answer result.
-     *
-     * Contains:
-     *
-     * isCorrect
-     * isFirstCorrectAnswer
-     * scoreAwarded
-     * roundScore
-     * totalScore
-     * timeTakenInSeconds
-     * message
-     */
     answerResult,
 
     fastestWinner,
@@ -1418,22 +1405,6 @@ enableTopWinnerToSolveTie,
 
     selectContestantAnswer,
 
-    /*
-     * Existing action remains untouched.
-     *
-     * This is reserved for the existing/future
-     * spectator answer submission functionality.
-     *
-     * Contestant answer flow uses:
-     *
-     * selectContestantAnswer()
-     *        ↓
-     * submitParticipantAnswer()
-     *        ↓
-     * participant_selected_answer
-     *        ↓
-     * answer_result
-     */
     submitAnswer:
       actions.submitAnswer,
 

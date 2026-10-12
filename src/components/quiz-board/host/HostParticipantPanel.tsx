@@ -165,11 +165,9 @@ export default function HostParticipantPanel({
     0,
   );
 
-  const connectedCount =
-    participants.filter(
-      (participant) =>
-        participant.connected,
-    ).length;
+  const connectedCount = participants.filter(
+  (participant) => participant.connected === true
+).length;
 
   const disconnectedCount =
     participants.length -
@@ -424,7 +422,7 @@ export default function HostParticipantPanel({
                           <span
                             className={[
                               "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-slate-950",
-                              participant.connected
+                              participant.connected === true
                                 ? "bg-emerald-400"
                                 : "bg-slate-600",
                             ].join(" ")}
@@ -502,12 +500,12 @@ export default function HostParticipantPanel({
 
                                 <span
                                   className={
-                                    participant.connected
+                                    participant.connected === true
                                       ? "text-emerald-500"
                                       : "text-slate-600"
                                   }
                                 >
-                                  {participant.connected
+                                  {participant.connected === true
                                     ? "Online"
                                     : "Offline"}
                                 </span>

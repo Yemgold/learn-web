@@ -47,7 +47,7 @@ import ContestantQuizShow from "@/components/quiz-board/contestant/ContestantQui
 
 import { useQuizSocket } from "@/hooks/quiz-board/useQuizSocket";
 
-import { useQuizRoomFallback } from "@/hooks/quiz-board/useQuizRoomFallback";
+//import { useQuizRoomFallback } from "@/hooks/quiz-board/useQuizRoomFallback";
 
 /* =========================================================
    PROPs
@@ -831,23 +831,23 @@ export default function QuizPlayController({
    QUIZ ROOM FALLBACK
 ======================================================= */
 
-const {
-  quiz: recoveredQuiz,
-  round: recoveredRound,
-  loading: fallbackLoading,
-  refreshing: fallbackRefreshing,
-  usingFallback,
-  error: fallbackError,
-  lastSyncedAt,
-  refresh: refreshFallback,
-} = useQuizRoomFallback({
-  quizId,
-  roomId,
-  currentRound,
-  socketConnected: connected,
-  enabled: Boolean(quizId && roomId),
-  pollIntervalMs: 5000,
-});
+// const {
+//   quiz: recoveredQuiz,
+//   round: recoveredRound,
+//   loading: fallbackLoading,
+//   refreshing: fallbackRefreshing,
+//   usingFallback,
+//   error: fallbackError,
+//   lastSyncedAt,
+//   refresh: refreshFallback,
+// } = useQuizRoomFallback({
+//   quizId,
+//   roomId,
+//   currentRound,
+//   socketConnected: connected,
+//   enabled: Boolean(quizId && roomId),
+//   pollIntervalMs: 5000,
+// });
 
   const handleEnableTieBreak = useCallback(
     (topWinnerId: string) => {

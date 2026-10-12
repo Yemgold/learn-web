@@ -3,7 +3,6 @@
 
 
 
-
 /* ============================================================
    LEARNYFI WHOT — GAME TYPES
    ============================================================
@@ -18,7 +17,6 @@
    - Physics
    - History
    - General Knowledge
-
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -101,11 +99,7 @@ export interface WhotQuestion {
    ------------------------------------------------------------ */
 
 export interface WhotCard extends WhotQuestion {
-  /**
-   * Unique identifier for each physical card.
-   * Different copies of the same question must have
-   * different instance IDs.
-   */
+  /** Unique identifier for each physical card. */
   instanceId: string;
 }
 
@@ -114,13 +108,8 @@ export interface WhotCard extends WhotQuestion {
    ------------------------------------------------------------ */
 
 export interface WhotPlayer {
-  /** Player identifier. */
   id: WhotPlayerId;
-
-  /** Name displayed on the game table. */
   name: string;
-
-  /** Cards currently held by this player. */
   hand: WhotCard[];
 }
 
@@ -129,43 +118,18 @@ export interface WhotPlayer {
    ------------------------------------------------------------ */
 
 export interface WhotGameState {
-  /** Current lifecycle state of the game. */
   status: WhotGameStatus;
-
-  /** Human player's state. */
   player: WhotPlayer;
-
-  /** Computer opponent's state. */
   bot: WhotPlayer;
-
-  /** Remaining cards available to draw. */
   drawPile: WhotCard[];
-
-  /** Current card on the playing table. */
   centerCard: WhotCard;
-
-  /** Player whose turn it is. */
   currentTurn: WhotPlayerId;
-
-  /** ID of the card selected by the human player. */
   selectedCardInstanceId: string | null;
-
-  /** Deadline timestamp for the current question, if active. */
   questionDeadline: number | null;
-
-  /** Winner once the game has finished. */
   winner: WhotPlayerId | null;
-
-  /** Message displayed in the game interface. */
   message: string;
-
-  /** Number of correctly answered questions by the player. */
   correctAnswers: number;
-
-  /** Number of incorrectly answered questions by the player. */
   incorrectAnswers: number;
-
-  /** Number of completed turns. */
   turnsPlayed: number;
 }
 
@@ -232,6 +196,14 @@ export type WhotGameAction =
     }
   | {
       type: "RESTART_GAME";
+    }
+  /**
+   * Clear the previous answer feedback and allow the game
+   * to continue. The reducer must preserve the correct turn,
+   * score, hands, and bot challenge count.
+   */
+  | {
+      type: "CONTINUE_AFTER_FEEDBACK";
     };
 
 /* ------------------------------------------------------------

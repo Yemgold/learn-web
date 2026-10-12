@@ -1,8 +1,4 @@
 
-
-
-
-
 import {
   DEFAULT_WHOT_CONFIG,
   type WhotAnswerOutcome,
@@ -17,42 +13,80 @@ import {
 import { dealInitialCards, shuffle } from "./deck";
 
 /* ============================================================
-   LEARNYFI WHOT — GAME ENGINE
+   LEARNYFI WHOT — EDUCATIONAL CHALLENGE ENGINE
    ============================================================
 
-   Frontend-only game engine.
-
-   Rules:
+   RULES
    - Each player starts with six cards.
-   - A card can be played when its subject matches the
-     subject of the center card.
-   - Playing a card opens a question for that card.
-   - Correct answer: play the card and pass the turn.
-   - Wrong answer or timeout: draw two cards and pass the turn.
-   - Drawing from the market passes the turn to the bot.
-   - The first player with no cards wins.
-   - The bot automatically selects a playable card and answers
-     according to its simulated accuracy.
-   - Discarded cards can be recycled when the draw pile empties.
+   - Cards match the center card by subject.
+   - The player answers questions on their own selected cards.
+   - The bot plays a card and challenges the player with its
+     question instead of answering it automatically.
+   - Correct answers earn the player points.
+   - Wrong answers and timeouts award points to the bot.
+   - A wrong answer on a player card draws penalty cards.
+   - A wrong answer on a bot card allows the bot to challenge
+     again, up to three consecutive questions per turn.
+   - Answer feedback remains visible until Continue is clicked.
+   - The first player to empty their hand wins, subject to the
+     bot's final-question challenge rule.
+   - Discarded cards can be recycled when the market empties.
 
-   No API calls, sockets, or backend dependencies.
+   Frontend-only prototype. Answer keys are not secure against
+   inspection of client-side code.
    ============================================================ */
 
+const PLAYER_NAME = "You";
+const BOT_NAME = "Learnyfi Bot";
+
+export const MAX_BOT_CHALLENGES_PER_TURN = 3;
+
+const PLAYER_CORRECT_POINTS = {
+  EASY: 10,
+  MEDIUM: 15,
+  HARD: 20,
+} as const;
+
+const BOT_CORRECT_POINTS = 10;
+
+export type WhotQuestionSource = "player" | "bot";
+
+export interface WhotAnswerFeedback {
+  source: WhotQuestionSource;
+  correct: boolean;
+  correctAnswerIndex: number;
+  explanation?: string;
+  pointsAwarded: number;
+}
+
 export interface WhotEngineState extends WhotGameState {
-  /** Cards previously played, excluding the current center card. */
+  /** Cards previously played, excluding the center card. */
   discardPile: WhotCard[];
 
-  /** Configuration used for this game session. */
+  /** Configuration for this game session. */
   config: WhotGameConfig;
+
+  /** Card whose question is currently open. */
+  activeQuestionCard: WhotCard | null;
+
+  /** Identifies who played the card whose question is open. */
+  questionSource: WhotQuestionSource | null;
+
+  /** Educational points accumulated by each side. */
+  playerScore: number;
+  botScore: number;
+
+  /** Consecutive bot questions during the current challenge turn. */
+  botChallengeCount: number;
+
+  /** Last answer feedback, available for the UI to display. */
+  answerFeedback: WhotAnswerFeedback | null;
 }
 
 export interface WhotEngineOptions {
   config?: Partial<WhotGameConfig>;
   randomizeBotAnswers?: boolean;
 }
-
-const PLAYER_NAME = "You";
-const BOT_NAME = "Learnyfi Bot";
 
 function createConfig(
   overrides: Partial<WhotGameConfig> = {},
@@ -63,31 +97,42 @@ function createConfig(
   };
 }
 
-function createEmptyResultMessage(
+function withMessage(
   state: WhotEngineState,
   message: string,
 ): WhotEngineState {
-  return {
-    ...state,
-    message,
-  };
+  return { ...state, message };
 }
 
 function createMoveFailure(
   reason: Extract<WhotMoveResult, { success: false }>["reason"],
   message: string,
 ): WhotMoveResult {
-  return {
-    success: false,
-    reason,
-    message,
-  };
+  return { success: false, reason, message };
 }
 
 function createMoveSuccess(message: string): WhotMoveResult {
+  return { success: true, message };
+}
+
+function clearQuestion(
+  state: WhotEngineState,
+): WhotEngineState {
   return {
-    success: true,
-    message,
+    ...state,
+    selectedCardInstanceId: null,
+    questionDeadline: null,
+    activeQuestionCard: null,
+    questionSource: null,
+  };
+}
+
+function clearAnswerFeedback(
+  state: WhotEngineState,
+): WhotEngineState {
+  return {
+    ...state,
+    answerFeedback: null,
   };
 }
 
@@ -95,17 +140,10 @@ function createMoveSuccess(message: string): WhotMoveResult {
    GAME CREATION
    ============================================================ */
 
-/**
- * Creates a fresh game in READY state.
- *
- * The cards are dealt immediately. START_GAME changes the state
- * to PLAYING when the user is ready to begin.
- */
 export function createInitialGameState(
   configOverrides: Partial<WhotGameConfig> = {},
 ): WhotEngineState {
   const config = createConfig(configOverrides);
-
   validateConfig(config);
 
   const deal = dealInitialCards({
@@ -143,17 +181,23 @@ export function createInitialGameState(
     turnsPlayed: 0,
 
     config,
+
+    activeQuestionCard: null,
+    questionSource: null,
+
+    playerScore: 0,
+    botScore: 0,
+    botChallengeCount: 0,
+
+    answerFeedback: null,
   };
 }
 
-/**
- * Starts a game that has been dealt and is in READY state.
- */
 export function startWhotGame(
   state: WhotEngineState,
 ): WhotEngineState {
   if (state.status !== "READY") {
-    return createEmptyResultMessage(
+    return withMessage(
       state,
       "This game has already started or finished.",
     );
@@ -163,15 +207,10 @@ export function startWhotGame(
     ...state,
     status: "PLAYING",
     currentTurn: "player",
-    selectedCardInstanceId: null,
-    questionDeadline: null,
     message: "Your turn! Match the subject of the center card.",
   };
 }
 
-/**
- * Resets the game with a fresh shuffle and deal.
- */
 export function restartWhotGame(
   state: WhotEngineState,
 ): WhotEngineState {
@@ -229,10 +268,6 @@ function validateConfig(config: WhotGameConfig): void {
    PLAYABLE CARDS
    ============================================================ */
 
-/**
- * In this educational WHOT version, subjects determine whether
- * a card can be played.
- */
 export function isCardPlayable(
   card: WhotCard,
   centerCard: WhotCard,
@@ -240,9 +275,6 @@ export function isCardPlayable(
   return card.subject === centerCard.subject;
 }
 
-/**
- * Returns all cards the specified player can currently play.
- */
 export function getPlayableCards(
   state: WhotEngineState,
   playerId: WhotPlayerId = "player",
@@ -257,9 +289,6 @@ export function getPlayableCards(
   );
 }
 
-/**
- * Checks whether a player has at least one legal move.
- */
 export function hasPlayableCard(
   state: WhotEngineState,
   playerId: WhotPlayerId = "player",
@@ -268,36 +297,31 @@ export function hasPlayableCard(
 }
 
 /* ============================================================
-   CARD SELECTION
+   PLAYER CARD SELECTION
    ============================================================ */
 
-/**
- * Selects a card and starts its question timer.
- *
- * Selecting a card does not remove it from the hand.
- * The card is played only after a correct answer.
- */
 export function selectWhotCard(
   state: WhotEngineState,
   instanceId: string,
   now: number = Date.now(),
 ): WhotEngineState {
   if (state.status !== "PLAYING") {
-    return createEmptyResultMessage(
-      state,
-      "The game is not currently active.",
-    );
+    return withMessage(state, "The game is not currently active.");
   }
 
   if (state.currentTurn !== "player") {
-    return createEmptyResultMessage(
+    return withMessage(state, "Wait for your turn.");
+  }
+
+  if (state.answerFeedback !== null) {
+    return withMessage(
       state,
-      "Wait for your turn.",
+      "Review your answer feedback and click Continue first.",
     );
   }
 
-  if (state.selectedCardInstanceId !== null) {
-    return createEmptyResultMessage(
+  if (state.activeQuestionCard !== null) {
+    return withMessage(
       state,
       "Answer the current question before selecting another card.",
     );
@@ -308,14 +332,11 @@ export function selectWhotCard(
   );
 
   if (!card) {
-    return createEmptyResultMessage(
-      state,
-      "That card is no longer in your hand.",
-    );
+    return withMessage(state, "That card is no longer in your hand.");
   }
 
   if (!isCardPlayable(card, state.centerCard)) {
-    return createEmptyResultMessage(
+    return withMessage(
       state,
       `Choose a ${state.centerCard.subject} card to match the center card.`,
     );
@@ -323,31 +344,23 @@ export function selectWhotCard(
 
   return {
     ...state,
-    selectedCardInstanceId: instanceId,
-    questionDeadline:
-      now + state.config.questionTimeLimit * 1000,
+    selectedCardInstanceId: card.instanceId,
+    activeQuestionCard: card,
+    questionSource: "player",
+    questionDeadline: now + state.config.questionTimeLimit * 1000,
+    answerFeedback: null,
     message: `Answer the ${card.subject} question before time runs out!`,
   };
 }
 
 /* ============================================================
-   DRAW PILE AND DISCARD PILE
+   DRAW PILE
    ============================================================ */
 
-/**
- * Recycles discarded cards if the draw pile is empty.
- *
- * The current center card is never recycled because it is not
- * stored in discardPile.
- */
 function prepareDrawPile(
   state: WhotEngineState,
 ): WhotEngineState {
-  if (state.drawPile.length > 0) {
-    return state;
-  }
-
-  if (state.discardPile.length === 0) {
+  if (state.drawPile.length > 0 || state.discardPile.length === 0) {
     return state;
   }
 
@@ -363,11 +376,6 @@ interface DrawResult {
   cards: WhotCard[];
 }
 
-/**
- * Draws up to `count` cards, recycling the discard pile when
- * necessary. If there are no cards available anywhere, the
- * function safely returns fewer cards than requested.
- */
 function takeCards(
   initialState: WhotEngineState,
   count: number,
@@ -385,22 +393,12 @@ function takeCards(
     const [card, ...remainingPile] = state.drawPile;
 
     cards.push(card);
-
-    state = {
-      ...state,
-      drawPile: remainingPile,
-    };
+    state = { ...state, drawPile: remainingPile };
   }
 
-  return {
-    state,
-    cards,
-  };
+  return { state, cards };
 }
 
-/**
- * Adds cards to the selected player's hand.
- */
 function addCardsToHand(
   state: WhotEngineState,
   playerId: WhotPlayerId,
@@ -429,16 +427,13 @@ function addCardsToHand(
   };
 }
 
-/**
- * Draws cards for a player and returns the updated state.
- */
 export function drawCardsForPlayer(
   state: WhotEngineState,
   playerId: WhotPlayerId,
   count: number,
 ): WhotEngineState {
   if (!Number.isInteger(count) || count < 0) {
-    return createEmptyResultMessage(
+    return withMessage(
       state,
       "The number of cards to draw must be a non-negative integer.",
     );
@@ -465,7 +460,7 @@ export function drawCardsForPlayer(
 }
 
 /* ============================================================
-   TURN MANAGEMENT
+   TURN AND GAME FINISHING
    ============================================================ */
 
 function switchTurn(
@@ -474,10 +469,8 @@ function switchTurn(
   message: string,
 ): WhotEngineState {
   return {
-    ...state,
+    ...clearQuestion(state),
     currentTurn: nextPlayer,
-    selectedCardInstanceId: null,
-    questionDeadline: null,
     turnsPlayed: state.turnsPlayed + 1,
     message,
   };
@@ -491,45 +484,38 @@ function finishGame(
     winner === "player" ? PLAYER_NAME : BOT_NAME;
 
   return {
-    ...state,
+    ...clearQuestion(state),
     status: "FINISHED",
     winner,
-    selectedCardInstanceId: null,
-    questionDeadline: null,
     message:
       winner === "player"
-        ? "Congratulations! You won Learnyfi WHOT!"
-        : `${winnerName} wins this round. Try again!`,
+        ? `Congratulations! You won Learnyfi WHOT with ${state.playerScore} points!`
+        : `${winnerName} wins this round with ${state.botScore} points. Try again!`,
   };
 }
 
 /* ============================================================
-   ANSWER VALIDATION
+   ACTIVE QUESTION HELPERS
    ============================================================ */
 
-/**
- * Returns the question attached to the currently selected card.
- *
- * The UI can use this to display the question modal.
- */
 export function getSelectedQuestion(
   state: WhotEngineState,
 ): WhotCard | null {
+  if (state.activeQuestionCard) {
+    return state.activeQuestionCard;
+  }
+
   if (!state.selectedCardInstanceId) {
     return null;
   }
 
   return (
     state.player.hand.find(
-      (card) =>
-        card.instanceId === state.selectedCardInstanceId,
+      (card) => card.instanceId === state.selectedCardInstanceId,
     ) ?? null
   );
 }
 
-/**
- * Checks whether the selected question has expired.
- */
 export function isQuestionExpired(
   state: WhotEngineState,
   now: number = Date.now(),
@@ -540,83 +526,122 @@ export function isQuestionExpired(
   );
 }
 
-/**
- * Applies the result of a player's answer.
- *
- * Correct:
- *   - Remove the selected card from the player's hand.
- *   - Move the previous center card into the discard pile.
- *   - Make the selected card the new center card.
- *   - Check for a winner.
- *
- * Incorrect:
- *   - Keep the selected card in the player's hand.
- *   - Draw the configured penalty cards.
- *   - Pass the turn to the bot.
- */
+/* ============================================================
+   ANSWER FEEDBACK
+   ============================================================ */
+
+function createFeedback(
+  card: WhotCard,
+  source: WhotQuestionSource,
+  correct: boolean,
+  pointsAwarded: number,
+): WhotAnswerFeedback {
+  return {
+    source,
+    correct,
+    correctAnswerIndex: card.correctAnswerIndex,
+    explanation: card.explanation,
+    pointsAwarded,
+  };
+}
+
+function scoreCorrectPlayerAnswer(
+  _state: WhotEngineState,
+  card: WhotCard,
+): number {
+  return PLAYER_CORRECT_POINTS[card.difficulty];
+}
+
+function scoreBotForPlayerMistake(): number {
+  return BOT_CORRECT_POINTS;
+}
+
+/* ============================================================
+   PLAYER ANSWERS A QUESTION
+   ============================================================ */
+
 export function submitWhotAnswer(
   state: WhotEngineState,
   answerIndex: number,
 ): WhotEngineState {
   if (state.status !== "PLAYING") {
-    return createEmptyResultMessage(
+    return withMessage(state, "The game is not currently active.");
+  }
+
+  if (state.answerFeedback !== null) {
+    return withMessage(
       state,
-      "The game is not currently active.",
+      "Your previous answer has already been recorded. Click Continue.",
     );
   }
 
-  if (state.currentTurn !== "player") {
-    return createEmptyResultMessage(
+  if (
+    state.activeQuestionCard === null ||
+    state.questionSource === null
+  ) {
+    return withMessage(
       state,
-      "It is not your turn.",
-    );
-  }
-
-  const selectedCard = getSelectedQuestion(state);
-
-  if (!selectedCard) {
-    return createEmptyResultMessage(
-      state,
-      "Select a playable card before answering.",
+      "There is no active question to answer.",
     );
   }
 
   if (
     !Number.isInteger(answerIndex) ||
     answerIndex < 0 ||
-    answerIndex >= selectedCard.options.length
+    answerIndex >= state.activeQuestionCard.options.length
   ) {
-    return createEmptyResultMessage(
-      state,
-      "Select a valid answer option.",
-    );
+    return withMessage(state, "Select a valid answer option.");
   }
 
-  const correct = answerIndex === selectedCard.correctAnswerIndex;
+  const card = state.activeQuestionCard;
+  const source = state.questionSource;
+  const correct = answerIndex === card.correctAnswerIndex;
 
+  if (source === "player") {
+    if (state.currentTurn !== "player") {
+      return withMessage(state, "It is not your turn.");
+    }
+
+    return resolvePlayerCardAnswer(state, card, answerIndex, correct);
+  }
+
+  if (state.currentTurn !== "player") {
+    return withMessage(state, "Wait until the bot's question is ready.");
+  }
+
+  return resolveBotCardAnswer(state, card, answerIndex, correct);
+}
+
+function resolvePlayerCardAnswer(
+  state: WhotEngineState,
+  card: WhotCard,
+  _answerIndex: number,
+  correct: boolean,
+): WhotEngineState {
   if (correct) {
+    const points = scoreCorrectPlayerAnswer(state, card);
+
     const remainingHand = state.player.hand.filter(
-      (card) => card.instanceId !== selectedCard.instanceId,
+      (item) => item.instanceId !== card.instanceId,
     );
 
     const nextState: WhotEngineState = {
       ...state,
-
       player: {
         ...state.player,
         hand: remainingHand,
       },
-
-      centerCard: selectedCard,
-      discardPile: [
-        ...state.discardPile,
-        state.centerCard,
-      ],
-
-      selectedCardInstanceId: null,
-      questionDeadline: null,
+      centerCard: card,
+      discardPile: [...state.discardPile, state.centerCard],
+      playerScore: state.playerScore + points,
       correctAnswers: state.correctAnswers + 1,
       turnsPlayed: state.turnsPlayed + 1,
+      answerFeedback: createFeedback(card, "player", true, points),
+      selectedCardInstanceId: null,
+      activeQuestionCard: null,
+      questionSource: null,
+      questionDeadline: null,
+      botChallengeCount: 0,
     };
 
     if (remainingHand.length === 0) {
@@ -626,16 +651,18 @@ export function submitWhotAnswer(
     return {
       ...nextState,
       currentTurn: "bot",
-      message: "Correct answer! Your card is played. The bot is next.",
+      message: `Correct! +${points} points. Your ${card.subject} card is played. Click Continue when you're ready for the bot's turn.`,
     };
   }
+
+  const points = scoreBotForPlayerMistake();
 
   const result = takeCards(
     {
       ...state,
-      selectedCardInstanceId: null,
-      questionDeadline: null,
       incorrectAnswers: state.incorrectAnswers + 1,
+      botScore: state.botScore + points,
+      answerFeedback: createFeedback(card, "player", false, points),
     },
     state.config.wrongAnswerPenalty,
   );
@@ -649,20 +676,129 @@ export function submitWhotAnswer(
   return switchTurn(
     penalizedState,
     "bot",
-    result.cards.length === 0
-      ? "Incorrect answer. No penalty cards are available. The bot is next."
-      : `Incorrect answer. You drew ${result.cards.length} card(s). The bot is next.`,
+    `Incorrect! The correct answer was revealed. The bot earns ${points} points, and you draw ${result.cards.length} card(s). Click Continue to proceed.`,
   );
 }
 
-/**
- * Applies a timeout as an incorrect answer.
- */
+function resolveBotCardAnswer(
+  state: WhotEngineState,
+  card: WhotCard,
+  _answerIndex: number,
+  correct: boolean,
+): WhotEngineState {
+  if (correct) {
+    const points = scoreCorrectPlayerAnswer(state, card);
+
+    let nextState: WhotEngineState = {
+      ...state,
+      playerScore: state.playerScore + points,
+      correctAnswers: state.correctAnswers + 1,
+      turnsPlayed: state.turnsPlayed + 1,
+      botChallengeCount: 0,
+      answerFeedback: createFeedback(card, "bot", true, points),
+      selectedCardInstanceId: null,
+      activeQuestionCard: null,
+      questionSource: null,
+      questionDeadline: null,
+    };
+
+    // The bot's final card only wins if the player fails to
+    // answer its question. A correct answer forces the bot to
+    // draw a replacement card.
+    if (nextState.bot.hand.length === 0) {
+      const drawResult = takeCards(nextState, 1);
+
+      nextState = addCardsToHand(
+        drawResult.state,
+        "bot",
+        drawResult.cards,
+      );
+
+      if (drawResult.cards.length === 0) {
+        return finishGame(nextState, "player");
+      }
+
+      return {
+        ...nextState,
+        currentTurn: "player",
+        message: `Correct! +${points} points. You stopped the bot's final-card challenge, and it had to draw a card. Click Continue for your turn.`,
+      };
+    }
+
+    return {
+      ...nextState,
+      currentTurn: "player",
+      message: `Correct! +${points} points. The bot's card stays on the table. Click Continue for your turn.`,
+    };
+  }
+
+  const points = scoreBotForPlayerMistake();
+  const nextChallengeCount = state.botChallengeCount + 1;
+
+  const result = takeCards(
+    {
+      ...state,
+      incorrectAnswers: state.incorrectAnswers + 1,
+      botScore: state.botScore + points,
+      answerFeedback: createFeedback(card, "bot", false, points),
+    },
+    state.config.wrongAnswerPenalty,
+  );
+
+  let nextState = addCardsToHand(
+    result.state,
+    "player",
+    result.cards,
+  );
+
+  nextState = {
+    ...clearQuestion(nextState),
+    botChallengeCount: nextChallengeCount,
+    turnsPlayed: nextState.turnsPlayed + 1,
+  };
+
+  // The bot's final card wins only after the player fails the
+  // final question. Keep the feedback for the UI to display.
+  if (nextState.bot.hand.length === 0) {
+    return finishGame(
+      {
+        ...nextState,
+        message: `Incorrect! The bot earns ${points} points. ${result.cards.length} penalty card(s) added.`,
+      },
+      "bot",
+    );
+  }
+
+  if (nextChallengeCount >= MAX_BOT_CHALLENGES_PER_TURN) {
+    return {
+      ...nextState,
+      currentTurn: "player",
+      botChallengeCount: 0,
+      message: `Incorrect! The bot earns ${points} points. You drew ${result.cards.length} card(s). The bot's three-question challenge is over. Click Continue for your turn.`,
+    };
+  }
+
+  return {
+    ...nextState,
+    currentTurn: "bot",
+    message: `Incorrect! The correct answer was revealed. The bot earns ${points} points. You drew ${result.cards.length} card(s). Click Continue for the bot's next challenge.`,
+  };
+}
+
+/* ============================================================
+   QUESTION TIMEOUT
+   ============================================================ */
+
 export function handleQuestionTimeout(
   state: WhotEngineState,
   now: number = Date.now(),
 ): WhotEngineState {
-  if (state.selectedCardInstanceId === null) {
+  if (
+    state.status !== "PLAYING" ||
+    state.answerFeedback !== null ||
+    state.activeQuestionCard === null ||
+    state.questionSource === null
+  ) {
     return state;
   }
 
@@ -670,73 +806,55 @@ export function handleQuestionTimeout(
     state.questionDeadline !== null &&
     now < state.questionDeadline
   ) {
-    return createEmptyResultMessage(
+    return withMessage(
       state,
       "There is still time to answer the question.",
     );
   }
 
-  const result = takeCards(
-    {
-      ...state,
-      selectedCardInstanceId: null,
-      questionDeadline: null,
-      incorrectAnswers: state.incorrectAnswers + 1,
-    },
-    state.config.wrongAnswerPenalty,
-  );
+  const card = state.activeQuestionCard;
+  const source = state.questionSource;
 
-  const penalizedState = addCardsToHand(
-    result.state,
-    "player",
-    result.cards,
-  );
+  if (source === "player") {
+    return resolvePlayerCardAnswer(state, card, -1, false);
+  }
 
-  return switchTurn(
-    penalizedState,
-    "bot",
-    `Time is up! You drew ${result.cards.length} card(s). The bot is next.`,
-  );
+  return resolveBotCardAnswer(state, card, -1, false);
 }
 
 /* ============================================================
    MARKET DRAW
    ============================================================ */
 
-/**
- * Lets the player draw one card from the market.
- *
- * Drawing passes the turn to the bot. The player must not have
- * an unanswered question open.
- */
 export function drawMarketCard(
   state: WhotEngineState,
 ): WhotEngineState {
   if (state.status !== "PLAYING") {
-    return createEmptyResultMessage(
-      state,
-      "The game is not currently active.",
-    );
+    return withMessage(state, "The game is not currently active.");
   }
 
   if (state.currentTurn !== "player") {
-    return createEmptyResultMessage(
+    return withMessage(state, "Wait for your turn before drawing a card.");
+  }
+
+  if (state.answerFeedback !== null) {
+    return withMessage(
       state,
-      "Wait for your turn before drawing a card.",
+      "Review your answer feedback and click Continue first.",
     );
   }
 
-  if (state.selectedCardInstanceId !== null) {
-    return createEmptyResultMessage(
+  if (state.activeQuestionCard !== null) {
+    return withMessage(
       state,
-      "Answer your current question before drawing a card.",
+      "Answer the current question before drawing a card.",
     );
   }
 
   const result = takeCards(state, 1);
 
   if (result.cards.length === 0) {
-    return createEmptyResultMessage(
+    return withMessage(
       result.state,
       "The market is empty. No cards are available to draw.",
     );
@@ -748,72 +866,40 @@ export function drawMarketCard(
     result.cards,
   );
 
-  return switchTurn(
-    nextState,
-    "bot",
-    "You drew a card from the market. The bot is next.",
-  );
+  return {
+    ...switchTurn(
+      nextState,
+      "bot",
+      "You drew a card from the market. Click Continue if feedback is visible, otherwise the bot will play next.",
+    ),
+    botChallengeCount: 0,
+  };
 }
 
 /* ============================================================
-   BOT TURN
+   BOT CHALLENGE TURN
    ============================================================ */
 
-function getBotAnswerAccuracy(card: WhotCard): number {
-  switch (card.difficulty) {
-    case "EASY":
-      return 0.92;
-    case "MEDIUM":
-      return 0.78;
-    case "HARD":
-      return 0.62;
-    default:
-      return 0.75;
-  }
-}
-
-function simulateBotAnswer(
-  card: WhotCard,
-  randomizeBotAnswers: boolean,
-): boolean {
-  if (!randomizeBotAnswers) {
-    return true;
-  }
-
-  return Math.random() < getBotAnswerAccuracy(card);
-}
-
-/**
- * Runs one complete bot turn.
- *
- * The bot:
- *   1. Finds cards matching the center subject.
- *   2. Selects one of those cards if possible.
- *   3. Simulates answering its question.
- *   4. Plays it on a correct answer.
- *   5. Draws penalty cards on an incorrect answer.
- *   6. Draws one card if it has no playable card.
- *
- * The bot does not expose its answer key to the player UI.
- * This is a frontend simulation, not a security boundary.
- */
 export function performBotTurn(
   state: WhotEngineState,
-  options: WhotEngineOptions = {},
+  _options: WhotEngineOptions = {},
 ): WhotEngineState {
   if (state.status !== "PLAYING") {
     return state;
   }
 
   if (state.currentTurn !== "bot") {
-    return createEmptyResultMessage(
-      state,
-      "It is not the bot's turn.",
-    );
+    return withMessage(state, "It is not the bot's turn.");
   }
 
-  const randomizeBotAnswers =
-    options.randomizeBotAnswers ?? true;
+  if (state.activeQuestionCard !== null) {
+    return state;
+  }
+
+  // Wait until the player has dismissed the previous feedback.
+  if (state.answerFeedback !== null) {
+    return state;
+  }
 
   const playableCards = getPlayableCards(state, "bot");
 
@@ -829,18 +915,20 @@ export function performBotTurn(
       result.cards,
     );
 
-    return switchTurn(
-      nextState,
-      "player",
-      result.cards.length > 0
-        ? `The bot had no matching card and drew ${result.cards.length} card(s). Your turn!`
-        : "The bot had no matching card, and the market is empty. Your turn!",
-    );
+    return {
+      ...switchTurn(
+        nextState,
+        "player",
+        result.cards.length > 0
+          ? `The bot had no matching card and drew ${result.cards.length} card(s). Your turn!`
+          : "The bot had no matching card and the market is empty. Your turn!",
+      ),
+      botChallengeCount: 0,
+    };
   }
 
-  // Prefer an easier question, then randomly choose among cards
-  // with the same difficulty. This keeps the bot playable while
-  // avoiding a fixed, predictable card order.
+  // Prefer an easier question, then randomly select among cards
+  // of that difficulty.
   const difficultyRank = {
     EASY: 1,
     MEDIUM: 2,
@@ -854,44 +942,17 @@ export function performBotTurn(
   );
 
   const preferredCards = playableCards.filter(
-    (card) =>
-      difficultyRank[card.difficulty] === easiestDifficulty,
+    (card) => difficultyRank[card.difficulty] === easiestDifficulty,
   );
 
   const selectedCard =
-    preferredCards[
-      Math.floor(Math.random() * preferredCards.length)
-    ];
-
-  const correct = simulateBotAnswer(
-    selectedCard,
-    randomizeBotAnswers,
-  );
-
-  if (!correct) {
-    const result = takeCards(
-      state,
-      state.config.wrongAnswerPenalty,
-    );
-
-    const nextState = addCardsToHand(
-      result.state,
-      "bot",
-      result.cards,
-    );
-
-    return switchTurn(
-      nextState,
-      "player",
-      `The bot answered incorrectly and drew ${result.cards.length} card(s). Your turn!`,
-    );
-  }
+    preferredCards[Math.floor(Math.random() * preferredCards.length)];
 
   const remainingHand = state.bot.hand.filter(
     (card) => card.instanceId !== selectedCard.instanceId,
   );
 
-  const nextState: WhotEngineState = {
+  return {
     ...state,
 
     bot: {
@@ -900,25 +961,19 @@ export function performBotTurn(
     },
 
     centerCard: selectedCard,
-    discardPile: [
-      ...state.discardPile,
-      state.centerCard,
-    ],
+    discardPile: [...state.discardPile, state.centerCard],
 
-    turnsPlayed: state.turnsPlayed + 1,
-    selectedCardInstanceId: null,
-    questionDeadline: null,
-
-    message: `The bot played a ${selectedCard.subject} card. Your turn!`,
-  };
-
-  if (remainingHand.length === 0) {
-    return finishGame(nextState, "bot");
-  }
-
-  return {
-    ...nextState,
     currentTurn: "player",
+    selectedCardInstanceId: selectedCard.instanceId,
+    activeQuestionCard: selectedCard,
+    questionSource: "bot",
+    questionDeadline:
+      Date.now() + state.config.questionTimeLimit * 1000,
+
+    answerFeedback: null,
+    turnsPlayed: state.turnsPlayed + 1,
+
+    message: `The bot played a ${selectedCard.subject} card! Answer its question to defend your turn.`,
   };
 }
 
@@ -926,13 +981,6 @@ export function performBotTurn(
    ANSWER OUTCOME HELPER
    ============================================================ */
 
-/**
- * Produces an answer outcome for UI feedback.
- *
- * Use this only where the answer is already known to the caller.
- * Do not send the correct answer index to contestant-facing
- * components before an answer has been submitted.
- */
 export function evaluateWhotAnswer(
   card: WhotCard,
   answerIndex: number | null,
@@ -961,12 +1009,6 @@ export function evaluateWhotAnswer(
    MOVE VALIDATION
    ============================================================ */
 
-/**
- * Validates whether the player can select a particular card.
- *
- * This helper is useful for disabling non-playable cards in
- * the UI before the user clicks them.
- */
 export function validatePlayerCardMove(
   state: WhotEngineState,
   instanceId: string,
@@ -979,9 +1021,20 @@ export function validatePlayerCardMove(
   }
 
   if (state.currentTurn !== "player") {
+    return createMoveFailure("NOT_YOUR_TURN", "Wait for your turn.");
+  }
+
+  if (state.answerFeedback !== null) {
     return createMoveFailure(
-      "NOT_YOUR_TURN",
-      "Wait for your turn.",
+      "INVALID_MOVE",
+      "Review your answer feedback and click Continue first.",
+    );
+  }
+
+  if (state.activeQuestionCard !== null) {
+    return createMoveFailure(
+      "INVALID_MOVE",
+      "Answer the current question before selecting another card.",
     );
   }
 
@@ -1007,17 +1060,9 @@ export function validatePlayerCardMove(
 }
 
 /* ============================================================
-   GAME REDUCER
+   REDUCER
    ============================================================ */
 
-/**
- * Central reducer for connecting the engine to React state.
- *
- * Note:
- * BOT_TURN is deliberately a separate action. The UI can call
- * it after the player's turn ends, for example from a
- * useEffect, instead of running bot logic during rendering.
- */
 export function whotGameReducer(
   state: WhotEngineState,
   action: WhotGameAction,
@@ -1043,6 +1088,16 @@ export function whotGameReducer(
 
     case "RESTART_GAME":
       return restartWhotGame(state);
+
+    case "CONTINUE_AFTER_FEEDBACK":
+      if (
+        state.status !== "PLAYING" ||
+        state.answerFeedback === null
+      ) {
+        return state;
+      }
+
+      return clearAnswerFeedback(state);
 
     default:
       return state;

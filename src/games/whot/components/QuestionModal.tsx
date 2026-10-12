@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock3,
   Lightbulb,
+  ShieldCheck,
   X,
   XCircle,
 } from "lucide-react";
@@ -23,10 +24,13 @@ import {
 
 import type { WhotCard } from "../types/whot";
 
+export type WhotQuestionSource = "player" | "bot";
+
 export interface QuestionModalProps {
   isOpen: boolean;
   card: WhotCard | null;
   timeRemaining: number | null;
+  questionSource?: WhotQuestionSource | null;
   onSubmitAnswer: (answerIndex: number) => void;
   onTimeout?: () => void;
   onClose?: () => void;
@@ -46,23 +50,23 @@ function QuestionModalComponent({
   isOpen,
   card,
   timeRemaining,
+  questionSource = "player",
   onSubmitAnswer,
-  onTimeout,
   onClose,
   disabled = false,
   showExplanation = false,
   className = "",
 }: QuestionModalProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(
+    null,
+  );
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const timeoutCalledRef = useRef(false);
+
   const submittedRef = useRef(false);
 
-  const isExpired =
-    timeRemaining !== null && timeRemaining <= 0;
-
-  const isUrgent =
-    timeRemaining !== null && timeRemaining <= 5;
+  const isBotChallenge = questionSource === "bot";
+  const isExpired = timeRemaining !== null && timeRemaining <= 0;
+  const isUrgent = timeRemaining !== null && timeRemaining <= 5;
 
   const canAnswer =
     isOpen &&
@@ -72,34 +76,10 @@ function QuestionModalComponent({
     !isExpired;
 
   useEffect(() => {
-    if (!isOpen) {
-      setSelectedAnswer(null);
-      setHasSubmitted(false);
-      submittedRef.current = false;
-      timeoutCalledRef.current = false;
-      return;
-    }
-
     setSelectedAnswer(null);
     setHasSubmitted(false);
     submittedRef.current = false;
-    timeoutCalledRef.current = false;
-  }, [isOpen, card?.instanceId]);
-
-  useEffect(() => {
-    if (!isOpen || !isExpired || disabled || !onTimeout) {
-      return;
-    }
-
-    if (timeoutCalledRef.current || submittedRef.current) {
-      return;
-    }
-
-    timeoutCalledRef.current = true;
-    submittedRef.current = true;
-    setHasSubmitted(true);
-    onTimeout();
-  }, [isOpen, isExpired, disabled, onTimeout]);
+  }, [isOpen, card?.instanceId, questionSource]);
 
   const handleSubmit = useCallback(() => {
     if (
@@ -139,25 +119,14 @@ function QuestionModalComponent({
         key as (typeof LETTERS)[number],
       );
 
-      if (
-        answerIndex >= 0 &&
-        answerIndex < card.options.length
-      ) {
+      if (answerIndex >= 0 && answerIndex < card.options.length) {
         event.preventDefault();
         setSelectedAnswer(answerIndex);
       }
 
       if (event.key === "Enter") {
         event.preventDefault();
-
-        if (
-          selectedAnswer !== null &&
-          !submittedRef.current
-        ) {
-          submittedRef.current = true;
-          setHasSubmitted(true);
-          onSubmitAnswer(selectedAnswer);
-        }
+        handleSubmit();
       }
     };
 
@@ -166,24 +135,17 @@ function QuestionModalComponent({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    isOpen,
-    onClose,
-    disabled,
-    canAnswer,
-    card,
-    selectedAnswer,
-    onSubmitAnswer,
-  ]);
+  }, [isOpen, onClose, disabled, canAnswer, card, handleSubmit]);
 
   if (!isOpen || !card) return null;
 
+  const timeLimit = 15;
   const progress =
     timeRemaining === null
       ? 100
       : Math.max(
           0,
-          Math.min(100, (timeRemaining / 15) * 100),
+          Math.min(100, (timeRemaining / timeLimit) * 100),
         );
 
   return (
@@ -209,7 +171,13 @@ function QuestionModalComponent({
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-300">
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                  isBotChallenge
+                    ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
+                    : "border-cyan-400/20 bg-cyan-400/10 text-cyan-300"
+                }`}
+              >
                 {card.subject}
               </span>
 
@@ -218,12 +186,34 @@ function QuestionModalComponent({
               </span>
             </div>
 
+            <div
+              className={`mt-3 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider ${
+                isBotChallenge ? "text-amber-300" : "text-cyan-300"
+              }`}
+            >
+              {isBotChallenge ? (
+                <ShieldCheck className="h-4 w-4" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+
+              {isBotChallenge ? "Bot challenge" : "Your card"}
+            </div>
+
             <h2
-              className="mt-3 text-lg font-bold sm:text-xl"
+              className="mt-2 text-lg font-bold sm:text-xl"
               id="whot-question-title"
             >
-              Answer correctly to play your card
+              {isBotChallenge
+                ? "Answer the bot's question"
+                : "Answer correctly to play your card"}
             </h2>
+
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              {isBotChallenge
+                ? "Get it right to score points and keep your turn. A wrong answer gives the bot points and another chance to challenge you."
+                : "Get it right to play this card. A wrong answer gives the bot points, and you must draw penalty cards."}
+            </p>
           </div>
 
           {onClose && (
@@ -253,7 +243,9 @@ function QuestionModalComponent({
             <span
               aria-live="polite"
               className={`font-mono text-xl font-black tabular-nums ${
-                isUrgent ? "animate-pulse text-rose-400" : "text-white"
+                isUrgent
+                  ? "animate-pulse text-rose-400"
+                  : "text-white"
               }`}
             >
               {timeRemaining === null
@@ -317,7 +309,8 @@ function QuestionModalComponent({
             <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
-                Time is up. Your answer was not submitted.
+                Time is up. The game will count this as an unanswered
+                question.
               </p>
             </div>
           )}

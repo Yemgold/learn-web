@@ -3,11 +3,15 @@
 
 
 
-
 "use client";
 
 import { memo } from "react";
-import { Layers3, Sparkles, Brain } from "lucide-react";
+import {
+  Brain,
+  CheckCircle2,
+  Layers3,
+  Sparkles,
+} from "lucide-react";
 
 import BotHand from "./BotHand";
 import DrawPile from "./DrawPile";
@@ -79,19 +83,36 @@ const SUBJECT_LABELS: Record<string, string> = {
   GENERAL: "General Knowledge",
 };
 
-function CenterCard({ card }: { card: WhotCard }) {
+function CenterCard({
+  card,
+  isBeingChallenged = false,
+}: {
+  card: WhotCard;
+  isBeingChallenged?: boolean;
+}) {
   const subjectStyle =
     SUBJECT_STYLES[card.subject] ??
     "from-slate-700/30 to-slate-950 border-white/20 text-white";
 
   return (
     <div
-      className={`relative flex min-h-[190px] w-[140px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-3 shadow-[0_15px_40px_rgba(0,0,0,0.3)] sm:min-h-[220px] sm:w-[165px] sm:p-4 ${subjectStyle}`}
+      className={[
+        "relative flex min-h-[190px] w-[140px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-3",
+        "shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-300",
+        "sm:min-h-[220px] sm:w-[165px] sm:p-4",
+        subjectStyle,
+        isBeingChallenged
+          ? "scale-[1.03] ring-2 ring-cyan-300/70 shadow-[0_0_35px_rgba(34,211,238,0.25)]"
+          : "",
+      ].join(" ")}
       aria-label={`Center card: ${
         SUBJECT_LABELS[card.subject] ?? card.subject
       }`}
     >
-      <div className="absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full bg-white/[0.05] blur-2xl" />
+      <div
+        className="absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full bg-white/[0.05] blur-2xl"
+        aria-hidden="true"
+      />
 
       <div className="relative flex items-start justify-between gap-2">
         <span className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide sm:text-[10px]">
@@ -107,7 +128,10 @@ function CenterCard({ card }: { card: WhotCard }) {
 
       <div className="relative flex flex-1 flex-col items-center justify-center py-3 text-center">
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-black/20 sm:h-14 sm:w-14">
-          <span className="text-2xl font-black sm:text-3xl" aria-hidden="true">
+          <span
+            className="text-2xl font-black sm:text-3xl"
+            aria-hidden="true"
+          >
             {card.subject === "MATHS"
               ? "∑"
               : card.subject === "ENGLISH"
@@ -131,7 +155,7 @@ function CenterCard({ card }: { card: WhotCard }) {
 
       <div className="relative border-t border-white/15 pt-2 text-center">
         <p className="text-[9px] font-semibold uppercase tracking-[0.15em] opacity-70">
-          Current card
+          {isBeingChallenged ? "Question challenge" : "Current card"}
         </p>
       </div>
     </div>
@@ -147,7 +171,7 @@ function BotThinkingCard() {
       className="pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2"
     >
       <div className="relative flex flex-col items-center">
-        <div className="absolute -inset-4 rounded-full bg-cyan-400/20 blur-2xl animate-pulse" />
+        <div className="absolute -inset-4 animate-pulse rounded-full bg-cyan-400/20 blur-2xl" />
 
         <div className="relative flex h-[88px] w-[62px] animate-bounce flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-cyan-300 bg-gradient-to-br from-cyan-400 via-blue-700 to-indigo-950 shadow-[0_0_28px_rgba(34,211,238,0.55)] ring-4 ring-cyan-300/10">
           <div className="absolute inset-1 rounded-lg border border-white/35" />
@@ -168,7 +192,11 @@ function BotThinkingCard() {
         </div>
 
         <div className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-950/95 px-3 py-1.5 shadow-xl">
-          <Brain size={13} className="text-cyan-300" aria-hidden="true" />
+          <Brain
+            size={13}
+            className="text-cyan-300"
+            aria-hidden="true"
+          />
           <span className="whitespace-nowrap text-[10px] font-bold text-cyan-100">
             Choosing an answer
           </span>
@@ -216,6 +244,16 @@ function GameTable({
     !isShowingFeedback &&
     !isFinished;
 
+  const showPlayedCard =
+    isQuestionOpen && !isShowingFeedback && !isFinished;
+
+  const playedByLabel =
+    showPlayedCard && currentTurn === "player"
+      ? `${playerName} played this card`
+      : showPlayedCard && currentTurn === "bot"
+        ? `${botName} played this card`
+        : "";
+
   return (
     <main
       aria-label="Learnyfi WHOT game table"
@@ -246,7 +284,7 @@ function GameTable({
         />
 
         <div className="relative space-y-5">
-          {/* Bot hand and visible thinking animation */}
+          {/* Bot hand and thinking animation */}
           <div className="relative">
             <BotHand
               cardCount={botCardCount}
@@ -286,6 +324,35 @@ function GameTable({
               <span className="h-px w-8 bg-white/10 sm:w-12" />
             </div>
 
+            {/* Clearly identify the card currently being challenged. */}
+            {showPlayedCard && (
+              <div className="mb-4 flex flex-col items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-3 py-1.5">
+                  {showBotThinking ? (
+                    <Brain
+                      size={14}
+                      className="text-cyan-300"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <CheckCircle2
+                      size={14}
+                      className="text-cyan-300"
+                      aria-hidden="true"
+                    />
+                  )}
+
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-100 sm:text-xs">
+                    {playedByLabel}
+                  </span>
+                </div>
+
+                <p className="text-center text-[11px] text-slate-400">
+                  This card stays on the table until the question is resolved.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-2 sm:gap-4">
               <div className="flex min-w-0 flex-col items-center gap-2">
                 <DrawPile
@@ -305,19 +372,45 @@ function GameTable({
               <div className="flex min-w-0 flex-col items-center gap-3">
                 <div className="text-center">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">
-                    Match this subject
+                    {showPlayedCard
+                      ? "Card being challenged"
+                      : "Match this subject"}
                   </p>
 
                   <p className="mt-1 text-xs font-semibold text-white">
-                    {SUBJECT_LABELS[centerCard.subject] ?? centerCard.subject}
+                    {SUBJECT_LABELS[centerCard.subject] ??
+                      centerCard.subject}
                   </p>
                 </div>
 
-                <CenterCard card={centerCard} />
+                <div
+                  className={
+                    showPlayedCard
+                      ? "relative rounded-3xl p-1 transition-all duration-300"
+                      : ""
+                  }
+                >
+                  {showPlayedCard && (
+                    <div className="pointer-events-none absolute -inset-3 animate-pulse rounded-[2rem] bg-cyan-400/10 blur-xl" />
+                  )}
+
+                  <div className="relative">
+                    <CenterCard
+                      card={centerCard}
+                      isBeingChallenged={showPlayedCard}
+                    />
+                  </div>
+                </div>
 
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Center card
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      showPlayedCard
+                        ? "animate-pulse bg-cyan-300"
+                        : "bg-emerald-400"
+                    }`}
+                  />
+                  {showPlayedCard ? "Question card" : "Center card"}
                 </div>
               </div>
 
@@ -364,7 +457,9 @@ function GameTable({
                   </span>
                 ) : (
                   <span className="rounded-full border border-white/10 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
-                    {isBotTurn ? "Bot is playing..." : "Waiting for your turn"}
+                    {isBotTurn
+                      ? "Bot is playing..."
+                      : "Waiting for your turn"}
                   </span>
                 )}
               </div>

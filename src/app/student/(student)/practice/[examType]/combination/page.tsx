@@ -1,4 +1,4 @@
-//C:\student\(student)\practice\[examType]\combination\page.tsx
+
 
 
 
@@ -23,6 +23,9 @@ import {
   Loader2,
   RotateCcw,
   Sparkles,
+  GraduationCap,
+  BriefcaseBusiness,
+  Palette,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -35,25 +38,12 @@ import {
 
 import { usePracticeStore } from "@/stores/practiceStore";
 
-/* ============================================================
-   CONFIG
-   ============================================================ */
-
 const ITEMS_PER_PAGE = 50;
-
 const JAMB_MAX_SUBJECTS = 4;
-
 const OTHER_EXAM_MAX_SUBJECTS = 20;
 
-/* ============================================================
-   EXAM TYPE
-   ============================================================ */
-
 type ExamType = "jamb" | "waec" | "neco";
-
-/* ============================================================
-   EXAM CONFIG
-   ============================================================ */
+type JambClass = "science" | "commercial" | "art";
 
 const examConfig: Record<
   ExamType,
@@ -62,60 +52,90 @@ const examConfig: Record<
     title: string;
     description: string;
     maxSubjects: number;
-    requiresEnglish: boolean;
   }
 > = {
   jamb: {
     label: "JAMB Practice",
     title: "Set Your JAMB Combination",
     description:
-      "Select the four subjects you want to practise. Use of English is compulsory.",
+      "Choose your class first, then select three optional subjects alongside compulsory Use of English.",
     maxSubjects: JAMB_MAX_SUBJECTS,
-    requiresEnglish: true,
   },
-
   waec: {
     label: "WAEC Practice",
     title: "Select Your WAEC Subjects",
-    description:
-      "Select the WAEC subjects you want to practise.",
+    description: "Select the WAEC subjects you want to practise.",
     maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
-    requiresEnglish: false,
   },
-
   neco: {
     label: "NECO Practice",
     title: "Select Your NECO Subjects",
-    description:
-      "Select the NECO subjects you want to practise.",
+    description: "Select the NECO subjects you want to practise.",
     maxSubjects: OTHER_EXAM_MAX_SUBJECTS,
-    requiresEnglish: false,
   },
 };
 
-/* ============================================================
-   SUBJECT ICONS
-   ============================================================ */
+/*
+ * Each JAMB class offers four optional subjects.
+ * Students choose three, in addition to Use of English.
+ */
+const jambClassOptions: {
+  id: JambClass;
+  title: string;
+  description: string;
+  icon: typeof GraduationCap;
+  subjects: string[];
+}[] = [
+  {
+    id: "science",
+    title: "Science",
+    description: "For science and technology courses",
+    icon: Atom,
+    subjects: [
+      "mathematics",
+      "physics",
+      "chemistry",
+      "biology",
+    ],
+  },
+  {
+    id: "commercial",
+    title: "Commercial",
+    description: "For business, finance and management courses",
+    icon: BriefcaseBusiness,
+    subjects: [
+      "mathematics",
+      "economics",
+      "commerce",
+      "accounting",
+    ],
+  },
+  {
+    id: "art",
+    title: "Art",
+    description: "For arts, humanities and related courses",
+    icon: Palette,
+    subjects: [
+      "government",
+      "literature",
+      "history",
+      "crs",
+    ],
+  },
+];
 
 const subjectIcons = {
   english: BookOpen,
   useofenglish: BookOpen,
-
   mathematics: Calculator,
   maths: Calculator,
-
   physics: Atom,
   chemistry: FlaskConical,
   biology: Brain,
-
   government: Landmark,
   geography: Globe,
   literature: Languages,
 } as const;
-
-/* ============================================================
-   SUBJECT STYLES
-   ============================================================ */
 
 const subjectStyles = {
   english: {
@@ -124,63 +144,54 @@ const subjectStyles = {
     selected:
       "border-blue-500/50 bg-blue-500/[0.08] ring-2 ring-blue-500/10",
   },
-
   useofenglish: {
     color: "text-blue-400",
     bg: "bg-blue-500/10",
     selected:
       "border-blue-500/50 bg-blue-500/[0.08] ring-2 ring-blue-500/10",
   },
-
   mathematics: {
     color: "text-green-400",
     bg: "bg-green-500/10",
     selected:
       "border-green-500/50 bg-green-500/[0.08] ring-2 ring-green-500/10",
   },
-
   maths: {
     color: "text-green-400",
     bg: "bg-green-500/10",
     selected:
       "border-green-500/50 bg-green-500/[0.08] ring-2 ring-green-500/10",
   },
-
   physics: {
     color: "text-purple-400",
     bg: "bg-purple-500/10",
     selected:
       "border-purple-500/50 bg-purple-500/[0.08] ring-2 ring-purple-500/10",
   },
-
   chemistry: {
     color: "text-orange-400",
     bg: "bg-orange-500/10",
     selected:
       "border-orange-500/50 bg-orange-500/[0.08] ring-2 ring-orange-500/10",
   },
-
   biology: {
     color: "text-pink-400",
     bg: "bg-pink-500/10",
     selected:
       "border-pink-500/50 bg-pink-500/[0.08] ring-2 ring-pink-500/10",
   },
-
   government: {
     color: "text-red-400",
     bg: "bg-red-500/10",
     selected:
       "border-red-500/50 bg-red-500/[0.08] ring-2 ring-red-500/10",
   },
-
   geography: {
     color: "text-cyan-400",
     bg: "bg-cyan-500/10",
     selected:
       "border-cyan-500/50 bg-cyan-500/[0.08] ring-2 ring-cyan-500/10",
   },
-
   literature: {
     color: "text-indigo-400",
     bg: "bg-indigo-500/10",
@@ -189,27 +200,14 @@ const subjectStyles = {
   },
 } as const;
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
-
 function normalizeExam(value: unknown): ExamType {
   const exam = String(value ?? "").toLowerCase();
 
-  if (exam === "waec") {
-    return "waec";
-  }
-
-  if (exam === "neco") {
-    return "neco";
-  }
+  if (exam === "waec") return "waec";
+  if (exam === "neco") return "neco";
 
   return "jamb";
 }
-
-/* ============================================================
-   SUBJECT KEY
-   ============================================================ */
 
 function getSubjectKey(name: string): string {
   return name
@@ -218,36 +216,31 @@ function getSubjectKey(name: string): string {
     .replace(/[^a-z]/g, "");
 }
 
-/* ============================================================
-   SUBJECT DISPLAY NAME
-   ============================================================ */
+function isEnglishSubject(name: string): boolean {
+  const key = getSubjectKey(name);
+  return key === "english" || key === "useofenglish";
+}
 
 function getSubjectDisplayName(name: string): string {
   const names: Record<string, string> = {
     english: "Use of English",
     useofenglish: "Use of English",
-
     mathematics: "Mathematics",
     maths: "Mathematics",
-
     physics: "Physics",
     chemistry: "Chemistry",
     biology: "Biology",
-
     government: "Government",
     geography: "Geography",
     literature: "Literature",
-
     englishlit: "Literature",
-
     crk: "Christian Religious Knowledge",
-    christianreligiousknowledge:
-      "Christian Religious Knowledge",
-
+    crs: "Christian Religious Studies",
+    christianreligiousknowledge: "Christian Religious Knowledge",
+    christianreligiousstudies: "Christian Religious Studies",
+    christianreligion: "Christian Religious Studies",
     irk: "Islamic Religious Knowledge",
-    islamicreligiousknowledge:
-      "Islamic Religious Knowledge",
-
+    islamicreligiousknowledge: "Islamic Religious Knowledge",
     economics: "Economics",
     currentaffairs: "Current Affairs",
     insurance: "Insurance",
@@ -258,45 +251,26 @@ function getSubjectDisplayName(name: string): string {
     agriculturalscience: "Agricultural Science",
   };
 
-  const normalizedName = name
-    .toLowerCase()
-    .replace(/\s+/g, "");
-
-  return (
-    names[normalizedName] ??
-    name
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/\b\w/g, (char) =>
-        char.toUpperCase(),
-      )
-  );
-}
-
-/* ============================================================
-   SUBJECT ICON
-   ============================================================ */
-
-function getSubjectIcon(name: string) {
   const key = getSubjectKey(name);
 
   return (
-    subjectIcons[
-      key as keyof typeof subjectIcons
-    ] ?? BookOpen
+    names[key] ??
+    name
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
   );
 }
 
-/* ============================================================
-   SUBJECT STYLE
-   ============================================================ */
+function getSubjectIcon(name: string) {
+  const key = getSubjectKey(name);
+  return subjectIcons[key as keyof typeof subjectIcons] ?? BookOpen;
+}
 
 function getSubjectStyle(name: string) {
   const key = getSubjectKey(name);
 
   return (
-    subjectStyles[
-      key as keyof typeof subjectStyles
-    ] ?? {
+    subjectStyles[key as keyof typeof subjectStyles] ?? {
       color: "text-slate-400",
       bg: "bg-white/[0.04]",
       selected:
@@ -305,60 +279,72 @@ function getSubjectStyle(name: string) {
   );
 }
 
-/* ============================================================
-   PAGE
-   ============================================================ */
+function getClassForSubject(name: string): JambClass | null {
+  const key = getSubjectKey(name);
+
+  if (
+    [
+      "mathematics",
+      "maths",
+      "physics",
+      "chemistry",
+      "biology",
+    ].includes(key)
+  ) {
+    return "science";
+  }
+
+  if (
+    [
+      "economics",
+      "commerce",
+      "accounting",
+    ].includes(key)
+  ) {
+    return "commercial";
+  }
+
+  if (
+    [
+      "government",
+      "literature",
+      "history",
+      "crs",
+      "crk",
+      "christianreligiousknowledge",
+      "christianreligiousstudies",
+      "christianreligion",
+    ].includes(key)
+  ) {
+    return "art";
+  }
+
+  return null;
+}
 
 export default function PracticeCombinationPage() {
   const params = useParams();
-
-  /* ==========================================================
-     IMPORTANT
-
-     The exam comes from:
-
-     /practice/[examType]/combination
-
-     NOT from ?exam=jamb
-     ========================================================== */
-
   const exam = normalizeExam(params?.examType);
-
   const config = examConfig[exam];
 
-  /* ==========================================================
-     STATE
-     ========================================================== */
-
   const [subjects, setSubjects] = useState<Subject[]>([]);
-
   const [loading, setLoading] = useState(true);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  /* ==========================================================
-     PRACTICE STORE
-     ========================================================== */
+  const [error, setError] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] =
+    useState<JambClass | null>(null);
 
   const {
     jambCombination,
     setJambCombination,
     toggleJambSubject,
     clearJambCombination,
-
     waecCombination,
     toggleWaecSubject,
     clearWaecCombination,
-
     necoCombination,
     toggleNecoSubject,
     clearNecoCombination,
   } = usePracticeStore();
-
-  /* ==========================================================
-     ACTIVE COMBINATION
-     ========================================================== */
 
   const combination =
     exam === "jamb"
@@ -366,10 +352,6 @@ export default function PracticeCombinationPage() {
       : exam === "waec"
         ? waecCombination
         : necoCombination;
-
-  /* ==========================================================
-     LOAD SUBJECTS
-     ========================================================== */
 
   useEffect(() => {
     let cancelled = false;
@@ -379,200 +361,143 @@ export default function PracticeCombinationPage() {
         setLoading(true);
         setError(null);
 
-        const response =
-          await getSubjectsByPlan(
-            "SECONDARY",
-            1,
-            ITEMS_PER_PAGE,
-          );
+        const response = await getSubjectsByPlan(
+          "SECONDARY",
+          1,
+          ITEMS_PER_PAGE,
+        );
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        const loadedSubjects =
-          response.data?.subjectObj ?? [];
-
+        const loadedSubjects = response.data?.subjectObj ?? [];
         setSubjects(loadedSubjects);
 
-        /* ----------------------------------------------------
-           JAMB ONLY
-
-           Automatically add Use of English.
-
-           WAEC and NECO do NOT get English
-           automatically.
-           ---------------------------------------------------- */
-
         if (exam === "jamb") {
-          const currentJambCombination =
-            usePracticeStore.getState()
-              .jambCombination;
+          const currentCombination =
+            usePracticeStore.getState().jambCombination;
 
-          if (
-            currentJambCombination.length === 0
-          ) {
-            const englishSubject =
-              loadedSubjects.find(
-                (subject) => {
-                  const key =
-                    getSubjectKey(
-                      subject.name,
-                    );
+          if (currentCombination.length === 0) {
+            const english = loadedSubjects.find((subject) =>
+              isEnglishSubject(subject.name),
+            );
 
-                  return (
-                    key === "english" ||
-                    key === "useofenglish"
-                  );
-                },
-              );
-
-            if (englishSubject) {
-              setJambCombination([
-                englishSubject._id,
-              ]);
+            if (english) {
+              setJambCombination([english._id]);
             }
           }
         }
       } catch (err: unknown) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        console.error(
-          `Failed to load ${exam} subjects:`,
-          err,
-        );
+        console.error(`Failed to load ${exam} subjects:`, err);
 
-        const message =
+        const responseMessage =
           err &&
           typeof err === "object" &&
           "response" in err &&
           typeof (
             err as {
-              response?: {
-                data?: {
-                  message?: string;
-                };
-              };
+              response?: { data?: { message?: unknown } };
             }
-          ).response?.data?.message ===
-            "string"
+          ).response?.data?.message === "string"
             ? (
                 err as {
-                  response: {
-                    data: {
-                      message: string;
-                    };
-                  };
+                  response: { data: { message: string } };
                 }
               ).response.data.message
-            : `Unable to load ${config.label} subjects.`;
+            : null;
 
-        setError(message);
+        setError(
+          responseMessage ?? `Unable to load ${config.label} subjects.`,
+        );
         setSubjects([]);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
-    loadSubjects();
+    void loadSubjects();
 
     return () => {
       cancelled = true;
     };
+  }, [exam, config.label, setJambCombination]);
 
-    // Zustand combination state intentionally
-    // does not belong in this dependency array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exam]);
+  const englishSubject = useMemo(
+    () => subjects.find((subject) => isEnglishSubject(subject.name)),
+    [subjects],
+  );
 
-  /* ==========================================================
-     ENGLISH SUBJECT
-     ========================================================== */
+  const visibleSubjects = useMemo(() => {
+    if (exam !== "jamb") return subjects;
+    if (!selectedClass) return [];
 
-  const englishSubject = useMemo(() => {
-    return subjects.find((subject) => {
+    const selectedClassConfig = jambClassOptions.find(
+      (item) => item.id === selectedClass,
+    );
+
+    if (!selectedClassConfig) return [];
+
+    return subjects.filter((subject) => {
+      if (isEnglishSubject(subject.name)) return true;
+
       const key = getSubjectKey(subject.name);
 
-      return (
-        key === "english" ||
-        key === "useofenglish"
-      );
+      return selectedClassConfig.subjects.includes(key);
     });
-  }, [subjects]);
+  }, [exam, selectedClass, subjects]);
 
-  /* ==========================================================
-     SELECTED SUBJECTS
-     ========================================================== */
-
-  const selectedSubjects = useMemo(() => {
-    return subjects.filter((subject) =>
-      combination.includes(subject._id),
-    );
-  }, [subjects, combination]);
-
-  /* ==========================================================
-     OPTIONAL JAMB COUNT
-     ========================================================== */
+  const selectedSubjects = useMemo(
+    () =>
+      subjects.filter((subject) =>
+        combination.includes(subject._id),
+      ),
+    [subjects, combination],
+  );
 
   const optionalSelectedCount =
     exam === "jamb"
-      ? Math.max(
-          combination.length -
-            (englishSubject &&
-            combination.includes(
-              englishSubject._id,
-            )
-              ? 1
-              : 0),
-          0,
-        )
+      ? combination.filter((id) => {
+          const subject = subjects.find((item) => item._id === id);
+          return subject ? !isEnglishSubject(subject.name) : false;
+        }).length
       : combination.length;
-
-  /* ==========================================================
-     COMPLETION
-     ========================================================== */
 
   const combinationComplete =
     exam === "jamb"
-      ? combination.length ===
-        JAMB_MAX_SUBJECTS
+      ? Boolean(selectedClass) &&
+        Boolean(englishSubject) &&
+        combination.length === JAMB_MAX_SUBJECTS &&
+        combination.includes(englishSubject?._id ?? "")
       : combination.length > 0;
 
-  /* ==========================================================
-     SUBJECT TOGGLE
-     ========================================================== */
+  function handleClassChange(nextClass: JambClass) {
+    if (nextClass === selectedClass) return;
 
-  function handleSubjectToggle(
-    subject: Subject,
-  ) {
-    const subjectKey =
-      getSubjectKey(subject.name);
+    setSelectedClass(nextClass);
 
-    const isEnglish =
-      subjectKey === "english" ||
-      subjectKey === "useofenglish";
-
-    const isSelected =
-      combination.includes(subject._id);
-
-    /* --------------------------------------------------------
-       JAMB ENGLISH CANNOT BE REMOVED
-       -------------------------------------------------------- */
-
-    if (
-      exam === "jamb" &&
-      isEnglish
-    ) {
-      return;
+    /*
+     * A class change clears the previous optional subjects.
+     * Keep Use of English as the compulsory JAMB subject.
+     */
+    if (englishSubject) {
+      setJambCombination([englishSubject._id]);
+    } else {
+      clearJambCombination();
     }
+  }
 
-    /* --------------------------------------------------------
-       REMOVE
-       -------------------------------------------------------- */
+  function handleSubjectToggle(subject: Subject) {
+    const isEnglish = isEnglishSubject(subject.name);
+    const isSelected = combination.includes(subject._id);
+
+    if (exam === "jamb") {
+      if (!selectedClass || isEnglish) return;
+
+      const allowedClass = getClassForSubject(subject.name);
+
+      if (allowedClass !== selectedClass) return;
+    }
 
     if (isSelected) {
       if (exam === "jamb") {
@@ -586,20 +511,7 @@ export default function PracticeCombinationPage() {
       return;
     }
 
-    /* --------------------------------------------------------
-       MAXIMUM
-       -------------------------------------------------------- */
-
-    if (
-      combination.length >=
-      config.maxSubjects
-    ) {
-      return;
-    }
-
-    /* --------------------------------------------------------
-       ADD
-       -------------------------------------------------------- */
+    if (combination.length >= config.maxSubjects) return;
 
     if (exam === "jamb") {
       toggleJambSubject(subject._id);
@@ -610,24 +522,13 @@ export default function PracticeCombinationPage() {
     }
   }
 
-  /* ==========================================================
-     RESET
-     ========================================================== */
-
   function handleResetCombination() {
     if (exam === "jamb") {
-      clearJambCombination();
-
-      /*
-       * Restore compulsory Use of English.
-       */
-
       if (englishSubject) {
-        setJambCombination([
-          englishSubject._id,
-        ]);
+        setJambCombination([englishSubject._id]);
+      } else {
+        clearJambCombination();
       }
-
       return;
     }
 
@@ -639,143 +540,63 @@ export default function PracticeCombinationPage() {
     clearNecoCombination();
   }
 
-  /* ==========================================================
-     NEXT ROUTE
-     ==========================================================
-
-     Current page:
-
-       /student/practice/[examType]/combination
-
-     After selecting subjects:
-
-       /student/practice/[examType]/combination/subjects
-
-     Therefore:
-
-       JAMB -> /student/practice/jamb/combination/subjects
-       WAEC -> /student/practice/waec/combination/subjects
-       NECO -> /student/practice/neco/combination/subjects
-  */
-
   const nextRoute =
     `/student/practice/${exam}/combination/subjects`;
 
-  /* ==========================================================
-     LOADING
-     ========================================================== */
-
   if (loading) {
     return (
-      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-        {/* Background identity */}
-
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-
-          <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-
-          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/[0.06] blur-3xl" />
-        </div>
-
-        <div className="relative container mx-auto flex min-h-[70vh] items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10">
-              <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
-            </div>
-
-            <div>
-              <h2 className="font-semibold text-white">
-                Loading{" "}
-                {exam.toUpperCase()}{" "}
-                subjects
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Preparing your subject
-                selection...
-              </p>
-            </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Loader2 className="h-9 w-9 animate-spin text-blue-400" />
+          <div>
+            <h2 className="font-semibold">
+              Loading {exam.toUpperCase()} subjects
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Preparing your subject selection...
+            </p>
           </div>
         </div>
       </main>
     );
   }
 
-  /* ==========================================================
-     ERROR
-     ========================================================== */
-
   if (error) {
     return (
-      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-        {/* Background identity */}
-
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-
-          <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-        </div>
-
-        <div className="relative container mx-auto flex min-h-[70vh] items-center justify-center px-4">
-          <Card className="w-full max-w-md border border-white/10 bg-white/[0.04] p-8 text-center shadow-none">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10">
-              <BookOpen className="h-7 w-7 text-red-400" />
-            </div>
-
-            <h2 className="mt-5 text-xl font-bold text-white">
-              Unable to load subjects
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-400">
-              {error}
-            </p>
-
-            <Button
-              className="mt-6"
-              onClick={() =>
-                window.location.reload()
-              }
-            >
-              Try Again
-            </Button>
-          </Card>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+        <Card className="w-full max-w-md border-white/10 bg-white/[0.04] p-8 text-center">
+          <BookOpen className="mx-auto h-10 w-10 text-red-400" />
+          <h2 className="mt-5 text-xl font-bold">
+            Unable to load subjects
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">{error}</p>
+          <Button
+            className="mt-6"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </Card>
       </main>
     );
   }
 
-  /* ==========================================================
-     PAGE
-     ========================================================== */
-
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      {/* ====================================================
-          BACKGROUND IDENTITY
-         ==================================================== */}
-
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-
         <div className="absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/[0.06] blur-3xl" />
       </div>
 
       <div className="relative container mx-auto max-w-6xl px-4 py-6 sm:py-8">
-        {/* ====================================================
-            HEADER
-           ==================================================== */}
-
-        <section className="mb-6">
+        <section className="mb-7">
           <div className="flex items-center gap-2 text-sm font-semibold text-blue-400">
             <Sparkles className="h-4 w-4" />
-
             {config.label}
           </div>
 
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
             {config.title}
           </h1>
 
@@ -784,299 +605,299 @@ export default function PracticeCombinationPage() {
           </p>
         </section>
 
-        {/* ====================================================
-            COMBINATION SUMMARY
-           ==================================================== */}
+        {/* STEP 1: CLASS SELECTION — JAMB ONLY */}
+        {exam === "jamb" && (
+          <section className="mb-8">
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
+                Step 1
+              </p>
+              <h2 className="mt-1 text-xl font-bold">
+                Choose your class
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Your class determines the optional subjects available to you.
+              </p>
+            </div>
 
-        <Card className="mb-6 overflow-hidden border border-white/10 bg-white/[0.04] p-0 shadow-none">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {jambClassOptions.map((item) => {
+                const Icon = item.icon;
+                const isSelected = selectedClass === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleClassChange(item.id)}
+                    aria-pressed={isSelected}
+                    className={[
+                      "relative rounded-2xl border p-5 text-left transition-all",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+                      isSelected
+                        ? "border-blue-500/60 bg-blue-500/10 ring-2 ring-blue-500/20"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
+                    ].join(" ")}
+                  >
+                    {isSelected && (
+                      <span className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600">
+                        <Check className="h-4 w-4" />
+                      </span>
+                    )}
+
+                    <span
+                      className={[
+                        "flex h-12 w-12 items-center justify-center rounded-xl",
+                        isSelected
+                          ? "bg-blue-500/15 text-blue-300"
+                          : "bg-white/[0.06] text-slate-300",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </span>
+
+                    <h3 className="mt-4 font-bold">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-5 text-slate-400">
+                      {item.description}
+                    </p>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      {item.subjects
+                        .map((key) => {
+                          const subject = subjects.find(
+                            (candidate) =>
+                              getSubjectKey(candidate.name) === key ||
+                              (key === "mathematics" &&
+                                getSubjectKey(candidate.name) === "maths"),
+                          );
+
+                          const fallbackNames: Record<string, string> = {
+                            mathematics: "Mathematics",
+                            physics: "Physics",
+                            chemistry: "Chemistry",
+                            biology: "Biology",
+                            economics: "Economics",
+                            commerce: "Commerce",
+                            accounting: "Accounting",
+                            government: "Government",
+                            literature: "Literature",
+                            history: "History",
+                            crs: "CRS",
+                          };
+
+                          return subject
+                            ? getSubjectDisplayName(subject.name)
+                            : fallbackNames[key] ?? key;
+                        })
+                        .join(" · ")}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* COMBINATION SUMMARY */}
+        <Card className="mb-7 overflow-hidden border border-white/10 bg-white/[0.04] p-0 shadow-none">
           <div className="border-b border-white/5 bg-gradient-to-r from-blue-950/60 via-blue-950/30 to-slate-950 px-5 py-4">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
-                  {exam === "jamb"
-                    ? "Your combination"
-                    : "Selected subjects"}
+                  {exam === "jamb" ? "Your combination" : "Selected subjects"}
                 </p>
-
-                <h2 className="mt-1 text-lg font-bold text-white">
+                <h2 className="mt-1 text-lg font-bold">
                   {combination.length}
-
-                  {exam === "jamb"
-                    ? ` / ${JAMB_MAX_SUBJECTS}`
-                    : ""}{" "}
-
-                  {exam === "jamb"
-                    ? "subjects selected"
-                    : combination.length === 1
-                      ? "subject selected"
-                      : "subjects selected"}
+                  {exam === "jamb" ? ` / ${JAMB_MAX_SUBJECTS}` : ""}{" "}
+                  {combination.length === 1
+                    ? "subject selected"
+                    : "subjects selected"}
                 </h2>
+                {exam === "jamb" && selectedClass && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Class:{" "}
+                    {jambClassOptions.find(
+                      (item) => item.id === selectedClass,
+                    )?.title}
+                  </p>
+                )}
               </div>
 
               <button
                 type="button"
-                onClick={
-                  handleResetCombination
-                }
+                onClick={handleResetCombination}
                 className="inline-flex items-center gap-2 self-start text-sm font-medium text-slate-400 transition hover:text-red-400 sm:self-auto"
               >
                 <RotateCcw className="h-4 w-4" />
-
-                Reset
+                Reset subjects
               </button>
             </div>
           </div>
 
           <div className="px-5 py-4">
             <div className="flex flex-wrap gap-2">
-              {selectedSubjects.map(
-                (subject, index) => {
-                  const key =
-                    getSubjectKey(
-                      subject.name,
-                    );
+              {selectedSubjects.map((subject, index) => {
+                const isEnglish = isEnglishSubject(subject.name);
 
-                  const isEnglish =
-                    key === "english" ||
-                    key ===
-                      "useofenglish";
-
-                  return (
-                    <div
-                      key={subject._id}
-                      className="flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-                        {index + 1}
+                return (
+                  <div
+                    key={subject._id}
+                    className="flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                      {index + 1}
+                    </span>
+                    {getSubjectDisplayName(subject.name)}
+                    {exam === "jamb" && isEnglish && (
+                      <span className="text-[10px] font-semibold uppercase text-blue-400">
+                        Required
                       </span>
+                    )}
+                  </div>
+                );
+              })}
 
-                      {getSubjectDisplayName(
-                        subject.name,
-                      )}
-
-                      {exam === "jamb" &&
-                        isEnglish && (
-                          <span className="text-[10px] font-semibold uppercase text-blue-400">
-                            Required
-                          </span>
-                        )}
-                    </div>
-                  );
-                },
+              {exam === "jamb" && !combinationComplete && (
+                <div className="rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
+                  Select {Math.max(0, JAMB_MAX_SUBJECTS - combination.length)} more
+                </div>
               )}
 
-              {/* JAMB remaining */}
-
-              {!combinationComplete &&
-                exam === "jamb" && (
-                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
-                    Select{" "}
-                    {JAMB_MAX_SUBJECTS -
-                      combination.length}{" "}
-                    more
-                  </div>
-                )}
-
-              {/* WAEC / NECO empty */}
-
-              {!combinationComplete &&
-                exam !== "jamb" &&
-                combination.length ===
-                  0 && (
-                  <div className="flex items-center rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
-                    Select at least one
-                    subject
-                  </div>
-                )}
+              {exam !== "jamb" && combination.length === 0 && (
+                <div className="rounded-full border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500">
+                  Select at least one subject
+                </div>
+              )}
             </div>
           </div>
         </Card>
 
-        {/* ====================================================
-            SUBJECT SELECTION
-           ==================================================== */}
-
+        {/* STEP 2: SUBJECT SELECTION */}
         <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-white">
-                Choose your subjects
-              </h2>
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
+              {exam === "jamb" ? "Step 2" : "Subject selection"}
+            </p>
 
-              <p className="mt-1 text-sm text-slate-500">
-                {exam === "jamb"
-                  ? `${optionalSelectedCount} of 3 optional subjects selected`
-                  : `${combination.length} subject${
-                      combination.length ===
-                      1
-                        ? ""
-                        : "s"
-                    } selected`}
-              </p>
-            </div>
+            <h2 className="mt-1 text-lg font-bold">
+              {exam === "jamb" && !selectedClass
+                ? "Choose a class to continue"
+                : "Choose your subjects"}
+            </h2>
 
-            <span className="hidden rounded-full border border-white/5 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-400 sm:block">
+            <p className="mt-1 text-sm text-slate-500">
               {exam === "jamb"
-                ? "4 subjects maximum"
-                : "Select your subjects"}
-            </span>
+                ? selectedClass
+                  ? `${optionalSelectedCount} of 3 optional subjects selected. Use of English is compulsory.`
+                  : "Your available subjects will appear after you choose a class."
+                : `${combination.length} subject${combination.length === 1 ? "" : "s"} selected`}
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {subjects.map((subject) => {
-              const Icon =
-                getSubjectIcon(
-                  subject.name,
-                );
+          {exam === "jamb" && !selectedClass ? (
+            <Card className="border border-dashed border-white/10 bg-white/[0.02] p-8 text-center shadow-none">
+              <GraduationCap className="mx-auto h-10 w-10 text-slate-500" />
+              <p className="mt-3 font-semibold text-slate-300">
+                Select Science, Commercial or Art
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                We will show the subjects for your chosen class here.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {visibleSubjects.map((subject) => {
+                const Icon = getSubjectIcon(subject.name);
+                const style = getSubjectStyle(subject.name);
+                const displayName = getSubjectDisplayName(subject.name);
+                const isSelected = combination.includes(subject._id);
+                const isEnglish = isEnglishSubject(subject.name);
 
-              const style =
-                getSubjectStyle(
-                  subject.name,
-                );
+                const disabled =
+                  (!isSelected &&
+                    combination.length >= config.maxSubjects) ||
+                  (exam === "jamb" && isEnglish);
 
-              const displayName =
-                getSubjectDisplayName(
-                  subject.name,
-                );
-
-              const isSelected =
-                combination.includes(
-                  subject._id,
-                );
-
-              const key =
-                getSubjectKey(
-                  subject.name,
-                );
-
-              const isEnglish =
-                key === "english" ||
-                key === "useofenglish";
-
-              const disabled =
-                !isSelected &&
-                combination.length >=
-                  config.maxSubjects;
-
-              return (
-                <button
-                  key={subject._id}
-                  type="button"
-                  disabled={
-                    disabled ||
-                    (exam === "jamb" &&
-                      isEnglish)
-                  }
-                  onClick={() =>
-                    handleSubjectToggle(
-                      subject,
-                    )
-                  }
-                  className={[
-                    "group relative rounded-xl border bg-white/[0.04] p-4 text-left transition-all duration-200",
-                    "hover:-translate-y-0.5 hover:bg-white/[0.06] hover:shadow-none",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500/40",
-
-                    isSelected
-                      ? style.selected
-                      : "border-white/10 hover:border-white/20",
-
-                    disabled
-                      ? "cursor-not-allowed opacity-40 hover:translate-y-0 hover:bg-white/[0.04]"
-                      : "",
-                  ].join(" ")}
-                >
-                  {/* Selected indicator */}
-
-                  {isSelected && (
-                    <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
-                      <Check className="h-3.5 w-3.5" />
-                    </div>
-                  )}
-
-                  {/* Icon */}
-
-                  <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl border border-white/5 ${style.bg}`}
+                return (
+                  <button
+                    key={subject._id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => handleSubjectToggle(subject)}
+                    className={[
+                      "group relative rounded-xl border bg-white/[0.04] p-4 text-left transition-all duration-200",
+                      "hover:-translate-y-0.5 hover:bg-white/[0.06]",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+                      isSelected
+                        ? style.selected
+                        : "border-white/10 hover:border-white/20",
+                      disabled
+                        ? "cursor-not-allowed opacity-50 hover:translate-y-0"
+                        : "",
+                    ].join(" ")}
                   >
-                    <Icon
-                      className={`h-5 w-5 ${style.color}`}
-                    />
-                  </div>
+                    {isSelected && (
+                      <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                    )}
 
-                  {/* Name */}
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-xl border border-white/5 ${style.bg}`}
+                    >
+                      <Icon className={`h-5 w-5 ${style.color}`} />
+                    </span>
 
-                  <h3 className="mt-4 pr-5 text-sm font-bold text-white sm:text-base">
-                    {displayName}
-                  </h3>
+                    <h3 className="mt-4 pr-5 text-sm font-bold sm:text-base">
+                      {displayName}
+                    </h3>
 
-                  {/* Status */}
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    {exam === "jamb" &&
-                    isEnglish
-                      ? "Compulsory"
-                      : isSelected
-                        ? "Selected"
-                        : "Tap to select"}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {exam === "jamb" && isEnglish
+                        ? "Compulsory"
+                        : isSelected
+                          ? "Selected"
+                          : "Tap to select"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
 
-        {/* ====================================================
-            BOTTOM ACTION
-           ==================================================== */}
-
+        {/* BOTTOM ACTION */}
         <div className="sticky bottom-4 z-20 mt-6">
           <Card className="border border-white/10 bg-slate-950/90 p-3 shadow-none backdrop-blur-xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold">
                   {combinationComplete
                     ? `Your ${exam.toUpperCase()} selection is ready`
-                    : "Select your subjects"}
+                    : exam === "jamb" && !selectedClass
+                      ? "Choose your class first"
+                      : "Complete your subject selection"}
                 </p>
 
                 <p className="text-xs text-slate-500">
                   {combinationComplete
                     ? "You can now continue to practice."
                     : exam === "jamb"
-                      ? `Select ${
-                          JAMB_MAX_SUBJECTS -
-                          combination.length
-                        } more subject${
-                          JAMB_MAX_SUBJECTS -
-                            combination.length ===
-                          1
-                            ? ""
-                            : "s"
-                        }.`
+                      ? selectedClass
+                        ? `Select ${Math.max(0, JAMB_MAX_SUBJECTS - combination.length)} more subject${JAMB_MAX_SUBJECTS - combination.length === 1 ? "" : "s"}.`
+                        : "Your class determines the optional subjects."
                       : "Select at least one subject to continue."}
                 </p>
               </div>
 
-              {/* ==================================================
-                  CONTINUE
-                 ================================================== */}
-
               {combinationComplete ? (
-                <Link
-                  href={nextRoute}
-                  className="w-full sm:w-auto"
-                >
+                <Link href={nextRoute} className="w-full sm:w-auto">
                   <Button
                     fullWidth
-                    rightIcon={
-                      <ArrowRight className="h-4 w-4" />
-                    }
+                    rightIcon={<ArrowRight className="h-4 w-4" />}
                     className="sm:min-w-[220px]"
                   >
-                    Start{" "}
-                    {exam.toUpperCase()}{" "}
-                    Practice
+                    Start {exam.toUpperCase()} Practice
                   </Button>
                 </Link>
               ) : (
@@ -1086,10 +907,9 @@ export default function PracticeCombinationPage() {
                   className="sm:w-auto sm:min-w-[220px]"
                 >
                   {exam === "jamb"
-                    ? `Select ${
-                        JAMB_MAX_SUBJECTS -
-                        combination.length
-                      } more`
+                    ? !selectedClass
+                      ? "Choose a class"
+                      : `Select ${Math.max(0, JAMB_MAX_SUBJECTS - combination.length)} more`
                     : "Select a subject"}
                 </Button>
               )}

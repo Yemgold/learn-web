@@ -1,12 +1,21 @@
 
+
+
+
+
+
 "use client";
 
 import { memo } from "react";
 import {
+  ArrowDownToLine,
   Brain,
   CheckCircle2,
+  Clock3,
   Layers3,
   Sparkles,
+  UserRound,
+  Wifi,
 } from "lucide-react";
 
 import BotHand from "./BotHand";
@@ -40,40 +49,47 @@ export interface GameTableProps {
   isPlayerTurn: boolean;
   isBotTurn: boolean;
   isBotAnswering?: boolean;
+
   isQuestionOpen?: boolean;
   isShowingFeedback?: boolean;
   isFinished?: boolean;
   isDrawing?: boolean;
-  timeRemaining?: number | null;
 
-  /**
-   * Identifies who played the card currently being challenged.
-   * "player": the bot is answering the player's card.
-   * "bot": the player is answering the bot's card.
-   */
+  timeRemaining?: number | null;
   questionSource?: "player" | "bot" | null;
 
   playerName?: string;
   botName?: string;
+
   compact?: boolean;
   className?: string;
 }
 
 const SUBJECT_STYLES: Record<string, string> = {
   MATHS:
-    "from-blue-500/20 to-blue-950/80 border-blue-400/40 text-blue-200",
+    "from-blue-500/25 via-blue-950 to-slate-950 border-blue-400/70 text-blue-100",
   ENGLISH:
-    "from-fuchsia-500/20 to-fuchsia-950/80 border-fuchsia-400/40 text-fuchsia-200",
+    "from-fuchsia-500/25 via-fuchsia-950 to-slate-950 border-fuchsia-400/70 text-fuchsia-100",
   BIOLOGY:
-    "from-emerald-500/20 to-emerald-950/80 border-emerald-400/40 text-emerald-200",
+    "from-emerald-500/25 via-emerald-950 to-slate-950 border-emerald-400/70 text-emerald-100",
   CHEMISTRY:
-    "from-orange-500/20 to-orange-950/80 border-orange-400/40 text-orange-200",
+    "from-orange-500/25 via-orange-950 to-slate-950 border-orange-400/70 text-orange-100",
   PHYSICS:
-    "from-cyan-500/20 to-cyan-950/80 border-cyan-400/40 text-cyan-200",
+    "from-cyan-500/25 via-cyan-950 to-slate-950 border-cyan-400/70 text-cyan-100",
   HISTORY:
-    "from-amber-500/20 to-amber-950/80 border-amber-400/40 text-amber-200",
+    "from-amber-500/25 via-amber-950 to-slate-950 border-amber-400/70 text-amber-100",
   GENERAL:
-    "from-violet-500/20 to-violet-950/80 border-violet-400/40 text-violet-200",
+    "from-violet-500/25 via-violet-950 to-slate-950 border-violet-400/70 text-violet-100",
+};
+
+const SUBJECT_ACCENTS: Record<string, string> = {
+  MATHS: "bg-blue-400",
+  ENGLISH: "bg-fuchsia-400",
+  BIOLOGY: "bg-emerald-400",
+  CHEMISTRY: "bg-orange-400",
+  PHYSICS: "bg-cyan-400",
+  HISTORY: "bg-amber-400",
+  GENERAL: "bg-violet-400",
 };
 
 const SUBJECT_LABELS: Record<string, string> = {
@@ -86,155 +102,154 @@ const SUBJECT_LABELS: Record<string, string> = {
   GENERAL: "General Knowledge",
 };
 
-function CenterCard({
-  card,
-  isBeingChallenged = false,
-}: {
+const SUBJECT_SYMBOLS: Record<string, string> = {
+  MATHS: "∑",
+  ENGLISH: "Aa",
+  BIOLOGY: "✳",
+  CHEMISTRY: "⚗",
+  PHYSICS: "⚡",
+  HISTORY: "⌛",
+  GENERAL: "★",
+};
+
+interface CenterCardProps {
   card: WhotCard;
-  isBeingChallenged?: boolean;
-}) {
+  compact?: boolean;
+}
+
+function CenterCard({ card, compact = false }: CenterCardProps) {
   const subjectStyle =
     SUBJECT_STYLES[card.subject] ??
-    "from-slate-700/30 to-slate-950 border-white/20 text-white";
+    "from-slate-700 via-slate-900 to-slate-950 border-white/20 text-slate-100";
+
+  const subjectLabel =
+    SUBJECT_LABELS[card.subject] ?? card.subject;
+
+  const symbol = SUBJECT_SYMBOLS[card.subject] ?? "★";
+
+  const accent =
+    SUBJECT_ACCENTS[card.subject] ?? "bg-slate-400";
 
   return (
-    <div
-      className={[
-        "relative flex min-h-[190px] w-[140px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-3",
-        "shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-300",
-        "sm:min-h-[220px] sm:w-[165px] sm:p-4",
-        subjectStyle,
-        isBeingChallenged
-          ? "scale-[1.03] ring-2 ring-cyan-300/70 shadow-[0_0_35px_rgba(34,211,238,0.25)]"
-          : "",
-      ].join(" ")}
-      aria-label={`Center card: ${
-        SUBJECT_LABELS[card.subject] ?? card.subject
-      }`}
+    <article
+      aria-label={`Center card: ${subjectLabel}`}
+      className={`relative mx-auto flex w-full max-w-[190px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br shadow-[0_16px_45px_rgba(0,0,0,0.3)] transition-all duration-300 ${
+        compact
+          ? "min-h-[170px] max-w-[155px] p-3 min-[400px]:min-h-[185px] min-[400px]:max-w-[165px]"
+          : "min-h-[185px] p-3.5 sm:min-h-[220px] sm:max-w-[180px] sm:p-4"
+      } ${subjectStyle}`}
     >
       <div
-        className="absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full bg-white/[0.05] blur-2xl"
+        className={`absolute inset-x-0 top-0 h-1 ${accent}`}
         aria-hidden="true"
       />
 
-      <div className="relative flex items-start justify-between gap-2">
-        <span className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide sm:text-[10px]">
-          {card.subject}
+      <div className="flex items-start justify-between gap-2">
+        <span className="rounded-lg border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white/90 sm:text-[10px]">
+          Centre card
         </span>
 
-        <Sparkles
-          size={16}
-          className="shrink-0 opacity-70"
-          aria-hidden="true"
-        />
+        <span
+          className={`rounded-md px-1.5 py-1 text-[9px] font-extrabold uppercase ${
+            card.difficulty === "EASY"
+              ? "bg-emerald-400/15 text-emerald-200"
+              : card.difficulty === "MEDIUM"
+                ? "bg-amber-400/15 text-amber-200"
+                : "bg-rose-400/15 text-rose-200"
+          }`}
+        >
+          {card.difficulty}
+        </span>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center py-3 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-black/20 sm:h-14 sm:w-14">
-          <span
-            className="text-2xl font-black sm:text-3xl"
-            aria-hidden="true"
-          >
-            {card.subject === "MATHS"
-              ? "∑"
-              : card.subject === "ENGLISH"
-                ? "Aa"
-                : card.subject === "BIOLOGY"
-                  ? "✳"
-                  : card.subject === "CHEMISTRY"
-                    ? "⚗"
-                    : card.subject === "PHYSICS"
-                      ? "⚡"
-                      : card.subject === "HISTORY"
-                        ? "⌛"
-                        : "★"}
-          </span>
+      <div className="flex flex-1 flex-col items-center justify-center py-3 text-center">
+        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-black/20 text-2xl font-black text-white shadow-inner sm:h-14 sm:w-14 sm:text-3xl">
+          {symbol}
         </div>
 
-        <p className="line-clamp-4 text-xs font-bold leading-5 text-white sm:text-sm">
-          {card.question}
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/70 sm:text-[11px]">
+          {subjectLabel}
         </p>
+
+        <h3 className="mt-2 line-clamp-4 break-words text-sm font-extrabold leading-5 text-white sm:text-base sm:leading-6">
+          {card.question}
+        </h3>
       </div>
 
-      <div className="relative border-t border-white/15 pt-2 text-center">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.15em] opacity-70">
-          {isBeingChallenged ? "Question challenge" : "Current card"}
-        </p>
+      <div className="mt-auto border-t border-white/15 pt-2">
+        <div className="flex items-center justify-center gap-1.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${accent}`} />
+          <span className="text-[9px] font-bold uppercase tracking-wider text-white/65">
+            Match the subject
+          </span>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-function BotThinkingCard() {
+interface BotThinkingCardProps {
+  compact?: boolean;
+}
+
+function BotThinkingCard({
+  compact = false,
+}: BotThinkingCardProps) {
   return (
     <div
       role="status"
       aria-live="polite"
-      aria-label="Bot is thinking and selecting an answer"
-      className="pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2"
+      className={`mx-auto flex w-full max-w-[190px] flex-col items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/10 via-violet-950/70 to-slate-950 px-3 text-center ${
+        compact ? "min-h-[170px] max-w-[155px]" : "min-h-[185px] sm:min-h-[220px]"
+      }`}
     >
-      <div className="relative flex flex-col items-center">
-        <div className="absolute -inset-4 animate-pulse rounded-full bg-cyan-400/20 blur-2xl" />
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/10 text-amber-200">
+        <Brain size={25} aria-hidden="true" />
+      </div>
 
-        <div className="relative flex h-[88px] w-[62px] animate-bounce flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-cyan-300 bg-gradient-to-br from-cyan-400 via-blue-700 to-indigo-950 shadow-[0_0_28px_rgba(34,211,238,0.55)] ring-4 ring-cyan-300/10">
-          <div className="absolute inset-1 rounded-lg border border-white/35" />
+      <p className="text-sm font-extrabold text-white">
+        Bot is thinking
+      </p>
 
-          <Sparkles
-            size={20}
-            className="relative text-cyan-100"
-            aria-hidden="true"
-          />
+      <p className="mt-1 text-xs leading-5 text-slate-400">
+        Choosing an answer…
+      </p>
 
-          <span className="relative mt-1 text-2xl font-black text-white">
-            ?
-          </span>
-
-          <span className="absolute bottom-1.5 text-[7px] font-black uppercase tracking-[0.18em] text-cyan-100">
-            WHOT
-          </span>
-        </div>
-
-        <div className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-950/95 px-3 py-1.5 shadow-xl">
-          <Brain
-            size={13}
-            className="text-cyan-300"
-            aria-hidden="true"
-          />
-          <span className="whitespace-nowrap text-[10px] font-bold text-cyan-100">
-            Choosing an answer
-          </span>
-        </div>
+      <div className="mt-3 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300 [animation-delay:-0.2s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300 [animation-delay:-0.1s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300" />
       </div>
     </div>
   );
 }
 
-/**
- * Displays the latest game message directly below the center card.
- * This keeps turn changes and draw-pile messages near the main
- * playing area rather than requiring the player to scroll upward.
- */
-function CenterTurnMessage({
-  message,
-  currentTurn,
-  playerName,
-  botName,
-  isQuestionOpen,
-  isBotAnswering,
-  isShowingFeedback,
-  isFinished,
-}: {
-  message: string;
+interface CenterTurnMessageProps {
+  message?: string;
   currentTurn: WhotPlayerId;
-  playerName: string;
-  botName: string;
+  isPlayerTurn: boolean;
+  isBotTurn: boolean;
   isQuestionOpen: boolean;
   isBotAnswering: boolean;
   isShowingFeedback: boolean;
   isFinished: boolean;
-}) {
+  isDrawing: boolean;
+}
+
+function CenterTurnMessage({
+  message,
+  currentTurn,
+  isPlayerTurn,
+  isBotTurn,
+  isQuestionOpen,
+  isBotAnswering,
+  isShowingFeedback,
+  isFinished,
+  isDrawing,
+}: CenterTurnMessageProps) {
+  const text = message?.trim() ?? "";
+
   if (
-    !message.trim() ||
     isQuestionOpen ||
     isBotAnswering ||
     isShowingFeedback ||
@@ -243,49 +258,150 @@ function CenterTurnMessage({
     return null;
   }
 
-  const isPlayerTurn = currentTurn === "player";
-  const isDrawMessage = /draw|drew|drawn|pick(?:ed)? up/i.test(message);
-  const isBotDrawMessage = /bot.*(?:draw|drew|drawn)|(?:draw|drew|drawn).*bot/i.test(
-    message,
-  );
+  const lower = text.toLowerCase();
+
+  const isDrawMessage =
+    lower.includes("draw") ||
+    lower.includes("drew") ||
+    lower.includes("no matching card");
+
+  const isBotDrawMessage =
+    isDrawMessage &&
+    (lower.includes("bot") || lower.includes("computer"));
+
+  const isPlayerDrawMessage =
+    isDrawMessage &&
+    (lower.includes("you") || lower.includes("player"));
+
+  const isPlayerActive =
+    isPlayerTurn || (!isBotTurn && currentTurn === "player");
+
+  const isBotActive =
+    isBotTurn || (!isPlayerTurn && currentTurn === "bot");
+
+  const isPlayerMessage =
+    isPlayerDrawMessage ||
+    (!isBotDrawMessage && isPlayerActive);
+
+  const heading = isFinished
+    ? "Game complete"
+    : isDrawing
+      ? "Drawing card"
+      : isDrawMessage
+        ? "Card draw"
+        : isPlayerActive
+          ? "Your turn"
+          : "Bot's turn";
+
+  const description =
+    text ||
+    (isDrawing
+      ? "Taking a card from the draw pile…"
+      : isPlayerActive
+        ? "Choose a playable card or draw a card."
+        : "The bot is preparing its move.");
+
+  const playerStyle =
+    "border-cyan-400/35 bg-gradient-to-r from-cyan-500/10 to-blue-500/[0.06]";
+
+  const botStyle =
+    "border-amber-400/35 bg-gradient-to-r from-amber-500/10 to-violet-500/[0.06]";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="w-full max-w-[340px] rounded-2xl border border-cyan-300/30 bg-gradient-to-br from-cyan-950/95 via-slate-900 to-emerald-950/90 p-3 text-center shadow-lg shadow-cyan-950/20 sm:max-w-[380px] sm:p-4"
+      className={`mx-auto mt-3 w-full max-w-md rounded-xl border px-3 py-3 text-center shadow-lg sm:px-4 ${
+        isDrawMessage
+          ? "border-emerald-400/35 bg-emerald-500/[0.07]"
+          : isPlayerMessage
+            ? playerStyle
+            : botStyle
+      }`}
     >
-      <div className="flex items-start justify-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-base">
-          {isDrawMessage ? "🃏" : isPlayerTurn ? "🎯" : "🤖"}
-        </span>
+      <div className="flex items-center justify-center gap-2">
+        {isDrawMessage ? (
+          <ArrowDownToLine
+            size={16}
+            className="shrink-0 text-emerald-300"
+            aria-hidden="true"
+          />
+        ) : isPlayerMessage ? (
+          <UserRound
+            size={16}
+            className="shrink-0 text-cyan-300"
+            aria-hidden="true"
+          />
+        ) : (
+          <Brain
+            size={16}
+            className="shrink-0 text-amber-300"
+            aria-hidden="true"
+          />
+        )}
 
-        <p className="min-w-0 pt-1 text-xs font-bold leading-5 text-white sm:text-sm">
-          {message}
-        </p>
-      </div>
-
-      <div className="mt-3 flex justify-center">
-        <span
-          className={[
-            "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-extrabold sm:text-xs",
-            isPlayerTurn
-              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-              : "border-amber-400/30 bg-amber-400/10 text-amber-200",
-          ].join(" ")}
+        <p
+          className={`text-xs font-extrabold sm:text-sm ${
+            isDrawMessage
+              ? "text-emerald-200"
+              : isPlayerMessage
+                ? "text-cyan-100"
+                : "text-amber-100"
+          }`}
         >
-          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-current" />
-          <span className="break-words">
-            {isPlayerTurn ? `${playerName}'s turn` : `${botName}'s turn`}
-          </span>
-        </span>
+          {heading}
+        </p>
+
+        {isDrawing && (
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+        )}
       </div>
 
-      {isBotDrawMessage && isPlayerTurn && (
-        <p className="mt-2 text-[10px] font-medium text-emerald-200/80">
-          You can now play a matching card or draw a card.
-        </p>
-      )}
+      <p className="mt-1.5 break-words text-xs leading-5 text-slate-300 sm:text-sm">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+interface DrawPilePanelProps {
+  count: number;
+  disabled: boolean;
+  isDrawing: boolean;
+  onDrawCard: () => void;
+  compact?: boolean;
+}
+
+function DrawPilePanel({
+  count,
+  disabled,
+  isDrawing,
+  onDrawCard,
+  compact = false,
+}: DrawPilePanelProps) {
+  return (
+    <div className="flex min-w-0 flex-col items-center justify-center gap-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 sm:text-xs">
+        <Layers3 size={14} aria-hidden="true" />
+        <span>Draw pile</span>
+      </div>
+
+     <div className="flex min-h-[90px] w-full items-center justify-center sm:min-h-[115px]">
+        <DrawPile
+          cardCount={count}
+          onDraw={onDrawCard}
+          disabled={disabled}
+          isDrawing={isDrawing}
+          isPlayerTurn={!disabled && !isDrawing}
+          compact={compact}
+          title="Draw Pile"
+          className="w-full border-0 bg-transparent p-0"
+        />
+      </div>
+
+      <span className="text-[10px] text-slate-500">
+        {Math.max(0, count)} remaining
+      </span>
     </div>
   );
 }
@@ -317,780 +433,261 @@ function GameTable({
   compact = false,
   className = "",
 }: GameTableProps) {
-  const canInteract =
+  const gameIsFinished =
+    isFinished || status === "FINISHED" || winner !== null;
+
+  const canDraw =
+    status === "PLAYING" &&
     isPlayerTurn &&
     !isQuestionOpen &&
+    !isShowingFeedback &&
     !isBotAnswering &&
-    !isShowingFeedback &&
-    !isFinished;
+    !gameIsFinished &&
+    !isDrawing;
 
-  const showBotThinking =
-    isBotAnswering &&
-    questionSource === "player" &&
-    !isShowingFeedback &&
-    !isFinished;
+  const showTimer =
+    typeof timeRemaining === "number" &&
+    Number.isFinite(timeRemaining) &&
+    timeRemaining >= 0 &&
+    isQuestionOpen;
 
-  const showPlayedCard =
-    (isQuestionOpen || isBotAnswering) &&
-    !isShowingFeedback &&
-    !isFinished;
-
-  const playedByLabel =
+  const activePlayer =
     questionSource === "player"
-      ? `${playerName} played this card`
+      ? playerName
       : questionSource === "bot"
-        ? `${botName} played this card`
-        : "";
+        ? botName
+        : currentTurn === "player"
+          ? playerName
+          : botName;
 
   return (
     <main
-      aria-label="Learnyfi WHOT game table"
-      className={`mx-auto w-full max-w-6xl space-y-4 ${className}`}
+      className={`mx-auto w-full min-w-0 max-w-7xl space-y-3 overflow-x-clip text-white sm:space-y-4 ${className}`}
     >
-      <GameStatus
-        status={status}
-        currentTurn={currentTurn}
-        winner={winner}
-        message={isShowingFeedback ? "" : message}
-        centerSubject={centerCard.subject}
-        playerCardCount={playerCards.length}
-        botCardCount={botCardCount}
-        drawPileCount={drawPileCount}
-        timeRemaining={timeRemaining}
-        isQuestionOpen={isQuestionOpen}
-        compact={compact}
-      />
+      
+<GameStatus
+  status={status}
+  currentTurn={currentTurn}
+  winner={winner}
+  message={message}
+  centerSubject={centerCard.subject}
+  playerCardCount={playerCards.length}
+  botCardCount={botCardCount}
+  drawPileCount={drawPileCount}
+  timeRemaining={timeRemaining}
+  isQuestionOpen={isQuestionOpen}
+  compact={compact}
+/>
 
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-300/10 bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 p-3 shadow-2xl sm:p-5 lg:p-6">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 50% 45%, rgba(16,185,129,0.16), transparent 55%)",
-          }}
-        />
 
-        <div className="relative space-y-5">
-          {/* Bot hand and thinking animation */}
-          <div className="relative">
-            <BotHand
-              cardCount={botCardCount}
-              botName={botName}
-              isActive={
-                (isBotTurn || showBotThinking) &&
-                !isFinished &&
-                !isShowingFeedback
-              }
-              compact={compact}
-            />
+      <section className="relative min-w-0 overflow-hidden rounded-2xl border border-emerald-400/15 bg-gradient-to-br from-emerald-950/80 via-slate-950 to-slate-950 p-2.5 shadow-2xl sm:rounded-3xl sm:p-4 md:p-5">
+        <div className="pointer-events-none absolute inset-2 rounded-xl border border-emerald-300/[0.07] sm:inset-3 sm:rounded-2xl" />
 
-            {showBotThinking && <BotThinkingCard />}
-          </div>
+        <div className="relative space-y-3 sm:space-y-4">
+          <BotHand
+            cardCount={botCardCount}
+            botName={botName}
+            isActive={
+              isBotTurn ||
+              (isBotAnswering && questionSource === "bot")
+            }
+            compact={compact}
+          />
 
-          {showBotThinking && (
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-300" />
-              </span>
-
-              <p className="text-center text-xs font-semibold text-cyan-100">
-                {botName} is answering your card&apos;s question...
-              </p>
+          {isBotAnswering && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-xs font-semibold text-amber-200">
+              <Brain size={15} aria-hidden="true" />
+              <span>{botName} is answering the question</span>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300" />
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/[0.07] bg-black/10 p-3 sm:p-5">
-            <div className="mb-4 flex items-center justify-center gap-2">
-              <span className="h-px w-8 bg-white/10 sm:w-12" />
-
-              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
-                Playing table
+          {showTimer && (
+            <div
+              role="timer"
+              aria-live="off"
+              className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 ${
+                timeRemaining !== null && timeRemaining <= 5
+                  ? "border-rose-400/40 bg-rose-500/10 text-rose-200"
+                  : "border-cyan-400/25 bg-cyan-400/[0.05] text-cyan-100"
+              }`}
+            >
+              <Clock3 size={16} aria-hidden="true" />
+              <span className="text-xs font-bold sm:text-sm">
+                {activePlayer} has
               </span>
+              <span className="text-lg font-black tabular-nums">
+                {Math.ceil(timeRemaining as number)}s
+              </span>
+              {timeRemaining !== null && timeRemaining <= 5 && (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider">
+                  Hurry!
+                </span>
+              )}
+            </div>
+          )}
 
-              <span className="h-px w-8 bg-white/10 sm:w-12" />
+          <div className="rounded-2xl border border-white/[0.07] bg-black/20 p-2.5 sm:p-4">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <Sparkles
+                size={15}
+                className="text-emerald-300"
+                aria-hidden="true"
+              />
+              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-emerald-100/80 sm:text-xs">
+                Play area
+              </h2>
+              <Sparkles
+                size={15}
+                className="text-emerald-300"
+                aria-hidden="true"
+              />
             </div>
 
-            {showPlayedCard && playedByLabel && (
-              <div className="mb-4 flex flex-col items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-3 py-1.5">
-                  {showBotThinking ? (
-                    <Brain
-                      size={14}
-                      className="text-cyan-300"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <CheckCircle2
-                      size={14}
-                      className="text-cyan-300"
-                      aria-hidden="true"
-                    />
-                  )}
+            <div className="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_minmax(0,0.8fr)] items-center gap-1.5 min-[400px]:gap-3 sm:gap-5">
+              <DrawPilePanel
+                count={drawPileCount}
+                disabled={!canDraw}
+                isDrawing={isDrawing}
+                onDrawCard={onDrawCard}
+                compact={compact}
+              />
 
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-100 sm:text-xs">
-                    {playedByLabel}
-                  </span>
-                </div>
-
-                <p className="text-center text-[11px] text-slate-400">
-                  This card stays on the table until the question is resolved.
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] items-start gap-2 sm:gap-4">
-              {/* Draw pile */}
-              <div className="flex min-w-0 flex-col items-center gap-2 pt-8">
-                <DrawPile
-                  cardCount={drawPileCount}
-                  onDraw={onDrawCard}
-                  isPlayerTurn={canInteract}
-                  disabled={!canInteract}
-                  isDrawing={isDrawing}
-                  compact
-                />
-
-                <p className="text-center text-[10px] text-slate-500">
-                  Draw pile
-                </p>
-              </div>
-
-              {/* Center card and its immediate status message */}
-              <div className="flex min-w-0 flex-col items-center gap-3">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">
-                    {showPlayedCard
-                      ? "Card being challenged"
-                      : "Match this subject"}
-                  </p>
-
-                  <p className="mt-1 text-xs font-semibold text-white">
-                    {SUBJECT_LABELS[centerCard.subject] ??
-                      centerCard.subject}
-                  </p>
-                </div>
-
-                <div
-                  className={
-                    showPlayedCard
-                      ? "relative rounded-3xl p-1 transition-all duration-300"
-                      : ""
-                  }
-                >
-                  {showPlayedCard && (
-                    <div className="pointer-events-none absolute -inset-3 animate-pulse rounded-[2rem] bg-cyan-400/10 blur-xl" />
-                  )}
-
-                  <div className="relative">
-                    <CenterCard
-                      card={centerCard}
-                      isBeingChallenged={showPlayedCard}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      showPlayedCard
-                        ? "animate-pulse bg-cyan-300"
-                        : "bg-emerald-400"
-                    }`}
+              <div className="min-w-0">
+                {isBotAnswering ? (
+                  <BotThinkingCard compact={compact} />
+                ) : (
+                  <CenterCard
+                    card={centerCard}
+                    compact={compact}
                   />
-                  {showPlayedCard ? "Question card" : "Center card"}
-                </div>
-
-                {/* This message appears directly beneath the center card. */}
-                <CenterTurnMessage
-                  message={message}
-                  currentTurn={currentTurn}
-                  playerName={playerName}
-                  botName={botName}
-                  isQuestionOpen={isQuestionOpen}
-                  isBotAnswering={isBotAnswering}
-                  isShowingFeedback={isShowingFeedback}
-                  isFinished={isFinished}
-                />
+                )}
               </div>
 
-              {/* Player card count */}
-              <div className="flex min-w-0 flex-col items-center gap-2 pt-8">
-                <div className="flex min-h-[124px] w-full flex-col items-center justify-center rounded-xl border border-white/10 bg-slate-950/50 p-2 text-center sm:min-h-[150px]">
-                  <Layers3
-                    size={22}
-                    className="mb-2 text-cyan-300"
+              <div className="flex min-w-0 flex-col items-center justify-center gap-2">
+                <div className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 min-[400px]:text-[10px] sm:text-xs">
+                  <UserRound
+                    size={13}
+                    className="text-cyan-300"
                     aria-hidden="true"
                   />
-
-                  <span className="text-xl font-black tabular-nums text-white">
-                    {playerCards.length}
-                  </span>
-
-                  <span className="mt-1 text-[10px] text-slate-400">
-                    Your cards
-                  </span>
+                  <span className="truncate">Your cards</span>
                 </div>
 
-                <p className="text-center text-[10px] text-slate-500">
-                  {playerName}
-                </p>
+                <div className="flex min-h-[90px] w-full flex-col items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.08] to-blue-500/[0.04] p-2 sm:min-h-[115px] sm:p-3">
+                  <span className="text-2xl font-black tabular-nums text-cyan-100 sm:text-3xl">
+                    {playerCards.length}
+                  </span>
+                  <span className="mt-1 text-center text-[9px] text-slate-400 sm:text-[10px]">
+                    {playerCards.length === 1 ? "card left" : "cards left"}
+                  </span>
+
+                  {isPlayerTurn && !gameIsFinished && (
+                    <span className="mt-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[8px] font-extrabold uppercase tracking-wider text-cyan-200 sm:text-[9px]">
+                      Your turn
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {!isShowingFeedback && (
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                {showBotThinking ? (
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                    Bot is selecting an answer
-                  </span>
-                ) : isQuestionOpen && questionSource === "bot" ? (
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
-                    Answer the bot&apos;s question to continue
-                  </span>
-                ) : isQuestionOpen && questionSource === "player" ? (
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                    Bot is answering your card
-                  </span>
-                ) : isFinished ? (
-                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
-                    Game finished
-                  </span>
-                ) : isPlayerTurn ? (
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                    Select a matching card or draw one
-                  </span>
+            <CenterTurnMessage
+              message={message}
+              currentTurn={currentTurn}
+              isPlayerTurn={isPlayerTurn}
+              isBotTurn={isBotTurn}
+              isQuestionOpen={isQuestionOpen}
+              isBotAnswering={isBotAnswering}
+              isShowingFeedback={isShowingFeedback}
+              isFinished={gameIsFinished}
+              isDrawing={isDrawing}
+            />
+          </div>
+
+          {status === "PLAYING" &&
+            !isQuestionOpen &&
+            !isShowingFeedback &&
+            !isBotAnswering &&
+            !gameIsFinished && (
+              <div className="flex items-start gap-2 rounded-xl border border-white/[0.07] bg-slate-950/50 px-3 py-2.5 text-[11px] leading-5 text-slate-400 sm:text-xs">
+                {isPlayerTurn ? (
+                  <>
+                    <CheckCircle2
+                      size={15}
+                      className="mt-0.5 shrink-0 text-cyan-300"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      Select a highlighted card that matches the centre
+                      subject, or use the draw pile when you have no
+                      playable card.
+                    </p>
+                  </>
                 ) : (
-                  <span className="rounded-full border border-white/10 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
-                    {isBotTurn
-                      ? "Bot is playing..."
-                      : "Waiting for your turn"}
-                  </span>
+                  <>
+                    <Wifi
+                      size={15}
+                      className="mt-0.5 shrink-0 text-amber-300"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      {botName} is the active opponent. Watch the centre
+                      card for the next question.
+                    </p>
+                  </>
                 )}
               </div>
             )}
-          </div>
 
           <PlayerHand
             cards={playerCards}
             playableCardIds={playableCardIds}
             selectedCardInstanceId={selectedCardInstanceId}
             onSelectCard={onSelectCard}
-            isPlayerTurn={canInteract}
-            disabled={!canInteract}
+            isPlayerTurn={isPlayerTurn}
+            disabled={
+              status !== "PLAYING" ||
+              isQuestionOpen ||
+              isShowingFeedback ||
+              isBotAnswering ||
+              isDrawing ||
+              gameIsFinished
+            }
             playerName={playerName}
             compact={compact}
           />
+
+          {gameIsFinished && (
+            <div
+              role="status"
+              className={`rounded-xl border px-4 py-3 text-center ${
+                winner === "player"
+                  ? "border-emerald-400/40 bg-emerald-500/10"
+                  : winner === "bot"
+                    ? "border-amber-400/40 bg-amber-500/10"
+                    : "border-white/10 bg-slate-900/70"
+              }`}
+            >
+              <p className="text-sm font-extrabold text-white">
+                {winner === "player"
+                  ? "You won!"
+                  : winner === "bot"
+                    ? `${botName} won this round`
+                    : "Game finished"}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {winner === "player"
+                  ? "Well played! You cleared your hand."
+                  : winner === "bot"
+                    ? "Try again and see if you can win the next round."
+                    : "This round has ended."}
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
     </main>
   );
 }
 
 export default memo(GameTable);
-
-
-
-
-
-
-
-// "use client";
-
-// import { memo } from "react";
-// import {
-//   Brain,
-//   CheckCircle2,
-//   Layers3,
-//   Sparkles,
-// } from "lucide-react";
-
-// import BotHand from "./BotHand";
-// import DrawPile from "./DrawPile";
-// import GameStatus from "./GameStatus";
-// import PlayerHand from "./PlayerHand";
-
-// import type {
-//   WhotCard,
-//   WhotGameStatus,
-//   WhotPlayerId,
-// } from "../types/whot";
-
-// export interface GameTableProps {
-//   status: WhotGameStatus;
-//   currentTurn: WhotPlayerId;
-//   winner?: WhotPlayerId | null;
-//   message?: string;
-
-//   playerCards: WhotCard[];
-//   botCardCount: number;
-//   drawPileCount: number;
-//   centerCard: WhotCard;
-
-//   playableCardIds?: string[];
-//   selectedCardInstanceId?: string | null;
-
-//   onSelectCard: (instanceId: string) => void;
-//   onDrawCard: () => void;
-
-//   isPlayerTurn: boolean;
-//   isBotTurn: boolean;
-//   isBotAnswering?: boolean;
-//   isQuestionOpen?: boolean;
-//   isShowingFeedback?: boolean;
-//   isFinished?: boolean;
-//   isDrawing?: boolean;
-//   timeRemaining?: number | null;
-
-//   /**
-//    * Identifies who played the card currently being challenged.
-//    * "player": the bot is answering the player's card.
-//    * "bot": the player is answering the bot's card.
-//    */
-//   questionSource?: "player" | "bot" | null;
-
-//   playerName?: string;
-//   botName?: string;
-//   compact?: boolean;
-//   className?: string;
-// }
-
-// const SUBJECT_STYLES: Record<string, string> = {
-//   MATHS:
-//     "from-blue-500/20 to-blue-950/80 border-blue-400/40 text-blue-200",
-//   ENGLISH:
-//     "from-fuchsia-500/20 to-fuchsia-950/80 border-fuchsia-400/40 text-fuchsia-200",
-//   BIOLOGY:
-//     "from-emerald-500/20 to-emerald-950/80 border-emerald-400/40 text-emerald-200",
-//   CHEMISTRY:
-//     "from-orange-500/20 to-orange-950/80 border-orange-400/40 text-orange-200",
-//   PHYSICS:
-//     "from-cyan-500/20 to-cyan-950/80 border-cyan-400/40 text-cyan-200",
-//   HISTORY:
-//     "from-amber-500/20 to-amber-950/80 border-amber-400/40 text-amber-200",
-//   GENERAL:
-//     "from-violet-500/20 to-violet-950/80 border-violet-400/40 text-violet-200",
-// };
-
-// const SUBJECT_LABELS: Record<string, string> = {
-//   MATHS: "Mathematics",
-//   ENGLISH: "English",
-//   BIOLOGY: "Biology",
-//   CHEMISTRY: "Chemistry",
-//   PHYSICS: "Physics",
-//   HISTORY: "History",
-//   GENERAL: "General Knowledge",
-// };
-
-// function CenterCard({
-//   card,
-//   isBeingChallenged = false,
-// }: {
-//   card: WhotCard;
-//   isBeingChallenged?: boolean;
-// }) {
-//   const subjectStyle =
-//     SUBJECT_STYLES[card.subject] ??
-//     "from-slate-700/30 to-slate-950 border-white/20 text-white";
-
-//   return (
-//     <div
-//       className={[
-//         "relative flex min-h-[190px] w-[140px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-3",
-//         "shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-300",
-//         "sm:min-h-[220px] sm:w-[165px] sm:p-4",
-//         subjectStyle,
-//         isBeingChallenged
-//           ? "scale-[1.03] ring-2 ring-cyan-300/70 shadow-[0_0_35px_rgba(34,211,238,0.25)]"
-//           : "",
-//       ].join(" ")}
-//       aria-label={`Center card: ${
-//         SUBJECT_LABELS[card.subject] ?? card.subject
-//       }`}
-//     >
-//       <div
-//         className="absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full bg-white/[0.05] blur-2xl"
-//         aria-hidden="true"
-//       />
-
-//       <div className="relative flex items-start justify-between gap-2">
-//         <span className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide sm:text-[10px]">
-//           {card.subject}
-//         </span>
-
-//         <Sparkles
-//           size={16}
-//           className="shrink-0 opacity-70"
-//           aria-hidden="true"
-//         />
-//       </div>
-
-//       <div className="relative flex flex-1 flex-col items-center justify-center py-3 text-center">
-//         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-black/20 sm:h-14 sm:w-14">
-//           <span
-//             className="text-2xl font-black sm:text-3xl"
-//             aria-hidden="true"
-//           >
-//             {card.subject === "MATHS"
-//               ? "∑"
-//               : card.subject === "ENGLISH"
-//                 ? "Aa"
-//                 : card.subject === "BIOLOGY"
-//                   ? "✳"
-//                   : card.subject === "CHEMISTRY"
-//                     ? "⚗"
-//                     : card.subject === "PHYSICS"
-//                       ? "⚡"
-//                       : card.subject === "HISTORY"
-//                         ? "⌛"
-//                         : "★"}
-//           </span>
-//         </div>
-
-//         <p className="line-clamp-4 text-xs font-bold leading-5 text-white sm:text-sm">
-//           {card.question}
-//         </p>
-//       </div>
-
-//       <div className="relative border-t border-white/15 pt-2 text-center">
-//         <p className="text-[9px] font-semibold uppercase tracking-[0.15em] opacity-70">
-//           {isBeingChallenged ? "Question challenge" : "Current card"}
-//         </p>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function BotThinkingCard() {
-//   return (
-//     <div
-//       role="status"
-//       aria-live="polite"
-//       aria-label="Bot is thinking and selecting an answer"
-//       className="pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2"
-//     >
-//       <div className="relative flex flex-col items-center">
-//         <div className="absolute -inset-4 animate-pulse rounded-full bg-cyan-400/20 blur-2xl" />
-
-//         <div className="relative flex h-[88px] w-[62px] animate-bounce flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-cyan-300 bg-gradient-to-br from-cyan-400 via-blue-700 to-indigo-950 shadow-[0_0_28px_rgba(34,211,238,0.55)] ring-4 ring-cyan-300/10">
-//           <div className="absolute inset-1 rounded-lg border border-white/35" />
-
-//           <Sparkles
-//             size={20}
-//             className="relative text-cyan-100"
-//             aria-hidden="true"
-//           />
-
-//           <span className="relative mt-1 text-2xl font-black text-white">
-//             ?
-//           </span>
-
-//           <span className="absolute bottom-1.5 text-[7px] font-black uppercase tracking-[0.18em] text-cyan-100">
-//             WHOT
-//           </span>
-//         </div>
-
-//         <div className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-950/95 px-3 py-1.5 shadow-xl">
-//           <Brain
-//             size={13}
-//             className="text-cyan-300"
-//             aria-hidden="true"
-//           />
-//           <span className="whitespace-nowrap text-[10px] font-bold text-cyan-100">
-//             Choosing an answer
-//           </span>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function GameTable({
-//   status,
-//   currentTurn,
-//   winner = null,
-//   message = "",
-//   playerCards,
-//   botCardCount,
-//   drawPileCount,
-//   centerCard,
-//   playableCardIds = [],
-//   selectedCardInstanceId = null,
-//   onSelectCard,
-//   onDrawCard,
-//   isPlayerTurn,
-//   isBotTurn,
-//   isBotAnswering = false,
-//   isQuestionOpen = false,
-//   isShowingFeedback = false,
-//   isFinished = false,
-//   isDrawing = false,
-//   timeRemaining = null,
-//   questionSource = null,
-//   playerName = "You",
-//   botName = "Learnyfi Bot",
-//   compact = false,
-//   className = "",
-// }: GameTableProps) {
-//   const canInteract =
-//     isPlayerTurn &&
-//     !isQuestionOpen &&
-//     !isBotAnswering &&
-//     !isShowingFeedback &&
-//     !isFinished;
-
-//   const showBotThinking =
-//     isBotAnswering &&
-//     questionSource === "player" &&
-//     !isShowingFeedback &&
-//     !isFinished;
-
-//   // Keep the played card highlighted while its question is active,
-//   // including while the bot is answering the player's question.
-//   const showPlayedCard =
-//     (isQuestionOpen || isBotAnswering) &&
-//     !isShowingFeedback &&
-//     !isFinished;
-
-//   // Use questionSource rather than currentTurn because currentTurn
-//   // may change while a question is being resolved.
-//   const playedByLabel =
-//     questionSource === "player"
-//       ? `${playerName} played this card`
-//       : questionSource === "bot"
-//         ? `${botName} played this card`
-//         : "";
-
-//   return (
-//     <main
-//       aria-label="Learnyfi WHOT game table"
-//       className={`mx-auto w-full max-w-6xl space-y-4 ${className}`}
-//     >
-//       <GameStatus
-//         status={status}
-//         currentTurn={currentTurn}
-//         winner={winner}
-//         message={isShowingFeedback ? "" : message}
-//         centerSubject={centerCard.subject}
-//         playerCardCount={playerCards.length}
-//         botCardCount={botCardCount}
-//         drawPileCount={drawPileCount}
-//         timeRemaining={timeRemaining}
-//         isQuestionOpen={isQuestionOpen}
-//         compact={compact}
-//       />
-
-//       <div className="relative overflow-hidden rounded-3xl border border-emerald-300/10 bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 p-3 shadow-2xl sm:p-5 lg:p-6">
-//         <div
-//           className="pointer-events-none absolute inset-0 opacity-30"
-//           aria-hidden="true"
-//           style={{
-//             backgroundImage:
-//               "radial-gradient(circle at 50% 45%, rgba(16,185,129,0.16), transparent 55%)",
-//           }}
-//         />
-
-//         <div className="relative space-y-5">
-//           {/* Bot hand and thinking animation */}
-//           <div className="relative">
-//             <BotHand
-//               cardCount={botCardCount}
-//               botName={botName}
-//               isActive={
-//                 (isBotTurn || showBotThinking) &&
-//                 !isFinished &&
-//                 !isShowingFeedback
-//               }
-//               compact={compact}
-//             />
-
-//             {showBotThinking && <BotThinkingCard />}
-//           </div>
-
-//           {showBotThinking && (
-//             <div className="flex items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2">
-//               <span className="relative flex h-2 w-2">
-//                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
-//                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-300" />
-//               </span>
-
-//               <p className="text-center text-xs font-semibold text-cyan-100">
-//                 {botName} is answering your card&apos;s question...
-//               </p>
-//             </div>
-//           )}
-
-//           <div className="rounded-2xl border border-white/[0.07] bg-black/10 p-3 sm:p-5">
-//             <div className="mb-4 flex items-center justify-center gap-2">
-//               <span className="h-px w-8 bg-white/10 sm:w-12" />
-
-//               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
-//                 Playing table
-//               </span>
-
-//               <span className="h-px w-8 bg-white/10 sm:w-12" />
-//             </div>
-
-//             {showPlayedCard && playedByLabel && (
-//               <div className="mb-4 flex flex-col items-center gap-2">
-//                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-3 py-1.5">
-//                   {showBotThinking ? (
-//                     <Brain
-//                       size={14}
-//                       className="text-cyan-300"
-//                       aria-hidden="true"
-//                     />
-//                   ) : (
-//                     <CheckCircle2
-//                       size={14}
-//                       className="text-cyan-300"
-//                       aria-hidden="true"
-//                     />
-//                   )}
-
-//                   <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-100 sm:text-xs">
-//                     {playedByLabel}
-//                   </span>
-//                 </div>
-
-//                 <p className="text-center text-[11px] text-slate-400">
-//                   This card stays on the table until the question is resolved.
-//                 </p>
-//               </div>
-//             )}
-
-//             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-2 sm:gap-4">
-//               <div className="flex min-w-0 flex-col items-center gap-2">
-//                 <DrawPile
-//                   cardCount={drawPileCount}
-//                   onDraw={onDrawCard}
-//                   isPlayerTurn={canInteract}
-//                   disabled={!canInteract}
-//                   isDrawing={isDrawing}
-//                   compact
-//                 />
-
-//                 <p className="text-center text-[10px] text-slate-500">
-//                   Draw pile
-//                 </p>
-//               </div>
-
-//               <div className="flex min-w-0 flex-col items-center gap-3">
-//                 <div className="text-center">
-//                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">
-//                     {showPlayedCard
-//                       ? "Card being challenged"
-//                       : "Match this subject"}
-//                   </p>
-
-//                   <p className="mt-1 text-xs font-semibold text-white">
-//                     {SUBJECT_LABELS[centerCard.subject] ??
-//                       centerCard.subject}
-//                   </p>
-//                 </div>
-
-//                 <div
-//                   className={
-//                     showPlayedCard
-//                       ? "relative rounded-3xl p-1 transition-all duration-300"
-//                       : ""
-//                   }
-//                 >
-//                   {showPlayedCard && (
-//                     <div className="pointer-events-none absolute -inset-3 animate-pulse rounded-[2rem] bg-cyan-400/10 blur-xl" />
-//                   )}
-
-//                   <div className="relative">
-//                     <CenterCard
-//                       card={centerCard}
-//                       isBeingChallenged={showPlayedCard}
-//                     />
-//                   </div>
-//                 </div>
-
-//                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-//                   <span
-//                     className={`h-1.5 w-1.5 rounded-full ${
-//                       showPlayedCard
-//                         ? "animate-pulse bg-cyan-300"
-//                         : "bg-emerald-400"
-//                     }`}
-//                   />
-//                   {showPlayedCard ? "Question card" : "Center card"}
-//                 </div>
-//               </div>
-
-//               <div className="flex min-w-0 flex-col items-center gap-2">
-//                 <div className="flex min-h-[124px] w-full flex-col items-center justify-center rounded-xl border border-white/10 bg-slate-950/50 p-2 text-center sm:min-h-[150px]">
-//                   <Layers3
-//                     size={22}
-//                     className="mb-2 text-cyan-300"
-//                     aria-hidden="true"
-//                   />
-
-//                   <span className="text-xl font-black tabular-nums text-white">
-//                     {playerCards.length}
-//                   </span>
-
-//                   <span className="mt-1 text-[10px] text-slate-400">
-//                     Your cards
-//                   </span>
-//                 </div>
-
-//                 <p className="text-center text-[10px] text-slate-500">
-//                   {playerName}
-//                 </p>
-//               </div>
-//             </div>
-
-//             {!isShowingFeedback && (
-//               <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-//                 {showBotThinking ? (
-//                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-//                     Bot is selecting an answer
-//                   </span>
-//                 ) : isQuestionOpen && questionSource === "bot" ? (
-//                   <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
-//                     Answer the bot&apos;s question to continue
-//                   </span>
-//                 ) : isQuestionOpen && questionSource === "player" ? (
-//                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-//                     Bot is answering your card
-//                   </span>
-//                 ) : isFinished ? (
-//                   <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
-//                     Game finished
-//                   </span>
-//                 ) : isPlayerTurn ? (
-//                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-//                     Select a matching card or draw one
-//                   </span>
-//                 ) : (
-//                   <span className="rounded-full border border-white/10 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300">
-//                     {isBotTurn
-//                       ? "Bot is playing..."
-//                       : "Waiting for your turn"}
-//                   </span>
-//                 )}
-//               </div>
-//             )}
-//           </div>
-
-//           <PlayerHand
-//             cards={playerCards}
-//             playableCardIds={playableCardIds}
-//             selectedCardInstanceId={selectedCardInstanceId}
-//             onSelectCard={onSelectCard}
-//             isPlayerTurn={canInteract}
-//             disabled={!canInteract}
-//             playerName={playerName}
-//             compact={compact}
-//           />
-//         </div>
-//       </div>
-//     </main>
-//   );
-// }
-
-// export default memo(GameTable);

@@ -121,7 +121,7 @@ export function useWhotGame(
   const {
     config,
     botDelay = 2000,
-    botResponseDelay = 6000,
+    botResponseDelay = 9000,
     randomizeBotAnswers = true,
     autoStart = false,
   } = options;

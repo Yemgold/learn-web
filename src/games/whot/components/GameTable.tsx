@@ -3,9 +3,6 @@
 
 
 
-
-
-
 "use client";
 
 import { memo } from "react";
@@ -192,13 +189,13 @@ function DrawPilePanel({
   compact?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1.5">
-      <div className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 sm:text-[10px]">
+    <div className="mx-auto flex w-full max-w-[150px] min-w-0 flex-col items-center gap-1">
+      <div className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 sm:text-[10px]">
         <Layers3 size={12} aria-hidden="true" />
-        <span>Draw</span>
+        <span>Draw Pile</span>
       </div>
 
-      <div className="flex min-h-[100px] w-full items-center justify-center sm:min-h-[130px]">
+      <div className="flex w-full items-center justify-center">
         <DrawPile
           cardCount={count}
           onDraw={onDrawCard}
@@ -212,7 +209,7 @@ function DrawPilePanel({
       </div>
 
       <span className="text-[9px] text-slate-500">
-        {Math.max(0, count)} left
+        {Math.max(0, count)} cards left
       </span>
     </div>
   );
@@ -232,7 +229,7 @@ function GameTable({
   onSelectCard,
   onDrawCard,
   isPlayerTurn,
-  isBotTurn,
+  isBotTurn: _isBotTurn,
   isBotAnswering = false,
   isQuestionOpen = false,
   isShowingFeedback = false,
@@ -288,12 +285,11 @@ function GameTable({
             ? "Your turn — play a card"
             : `${botName} is thinking…`;
 
-  const turnStyle =
-    gameIsFinished
-      ? "border-white/10 bg-slate-900 text-slate-200"
-      : isPlayerTurn
-        ? "border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-100"
-        : "border-amber-400/25 bg-amber-400/[0.06] text-amber-100";
+  const turnStyle = gameIsFinished
+    ? "border-white/10 bg-slate-900 text-slate-200"
+    : isPlayerTurn
+      ? "border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-100"
+      : "border-amber-400/25 bg-amber-400/[0.06] text-amber-100";
 
   return (
     <section
@@ -301,34 +297,35 @@ function GameTable({
       className={`mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl border border-emerald-400/15 bg-gradient-to-br from-emerald-950/80 via-slate-950 to-slate-950 p-2.5 shadow-2xl sm:rounded-3xl sm:p-4 md:p-5 ${className}`}
     >
       <div className="space-y-3 sm:space-y-4">
-        {/* Opponent: show identity and card count only */}
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] px-3 py-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/10 text-amber-200">
-              <Brain size={17} aria-hidden="true" />
+        {/* Opponent identity and actual face-down cards */}
+        <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] px-2.5 py-2 sm:px-3 sm:py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/10 text-amber-200">
+                <Brain size={17} aria-hidden="true" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-xs font-extrabold text-amber-100">
+                  {botName}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Opponent hand
+                </p>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <p className="truncate text-xs font-extrabold text-amber-100">
-                {botName}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                Opponent
-              </p>
-            </div>
+            <span className="shrink-0 rounded-lg bg-amber-400/10 px-2 py-1 text-xs font-black tabular-nums text-amber-100">
+              {botCardCount} {botCardCount === 1 ? "card" : "cards"}
+            </span>
           </div>
 
-          <div className="shrink-0 text-right">
-            <p className="text-base font-black tabular-nums text-white">
-              {botCardCount}
-            </p>
-            <p className="text-[9px] text-slate-500">
-              {botCardCount === 1 ? "card left" : "cards left"}
-            </p>
+          <div className="min-w-0 overflow-hidden">
+            <BotHand cardCount={botCardCount} compact={compact} />
           </div>
         </div>
 
-        {/* Only show the countdown while a question is active */}
+        {/* Countdown appears only while a question is active */}
         {showTimer && (
           <div
             role="timer"
@@ -340,16 +337,14 @@ function GameTable({
             }`}
           >
             <Clock3 size={15} aria-hidden="true" />
-            <span className="text-xs font-semibold">
-              {activeName}
-            </span>
+            <span className="text-xs font-semibold">{activeName}</span>
             <span className="text-lg font-black tabular-nums">
               {Math.ceil(timeRemaining)}s
             </span>
           </div>
         )}
 
-        {/* Main play area */}
+        {/* Main play area: Bot hand | Centre card | Your card count */}
         <div className="rounded-2xl border border-white/[0.07] bg-black/20 p-2.5 sm:p-4">
           <div className="mb-3 flex items-center justify-center gap-2">
             <Sparkles
@@ -362,19 +357,32 @@ function GameTable({
             </h2>
           </div>
 
-          <div className="grid min-w-0 grid-cols-[minmax(0,0.85fr)_minmax(0,1.3fr)_minmax(0,0.85fr)] items-center gap-1.5 min-[400px]:gap-3 sm:gap-5">
-            <DrawPilePanel
-              count={drawPileCount}
-              disabled={!canDraw}
-              isDrawing={isDrawing}
-              onDrawCard={onDrawCard}
-              compact={compact}
-            />
+          <div className="grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] items-center gap-1.5 min-[400px]:gap-3 sm:gap-5">
+            {/* Left: Bot hand */}
+            <div className="flex min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-1.5 sm:p-2">
+              <Brain
+                size={16}
+                className="text-amber-200"
+                aria-hidden="true"
+              />
+              <span className="text-center text-[9px] font-extrabold text-amber-100 sm:text-[10px]">
+                Bot hand
+              </span>
+              <span className="text-lg font-black tabular-nums text-white sm:text-xl">
+                {botCardCount}
+              </span>
+              <span className="text-center text-[8px] text-slate-500">
+                {botCardCount === 1 ? "card left" : "cards left"}
+              </span>
+            </div>
 
-            <div className="min-w-0">
+            {/* Centre: current card and draw pile beneath it */}
+            <div className="flex min-w-0 flex-col items-center gap-3">
               {isBotAnswering ? (
-                <div className="mx-auto flex min-h-[155px] max-w-[165px] flex-col items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/[0.05] px-2 text-center sm:min-h-[190px] sm:max-w-[180px]">
-                  <Loader2Icon />
+                <div className="flex min-h-[155px] w-full max-w-[165px] flex-col items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/[0.05] px-2 text-center sm:min-h-[190px] sm:max-w-[180px]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
+                    <Brain size={22} aria-hidden="true" />
+                  </div>
                   <p className="mt-2 text-xs font-extrabold text-amber-100">
                     Bot is thinking
                   </p>
@@ -385,27 +393,37 @@ function GameTable({
               ) : (
                 <CenterCard card={centerCard} compact={compact} />
               )}
+
+              <DrawPilePanel
+                count={drawPileCount}
+                disabled={!canDraw}
+                isDrawing={isDrawing}
+                onDrawCard={onDrawCard}
+                compact={compact}
+              />
             </div>
 
-            <div className="flex min-w-0 flex-col items-center gap-1.5">
-              <div className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-cyan-200 sm:text-[10px]">
-                <UserRound size={12} aria-hidden="true" />
-                <span className="truncate">Your hand</span>
-              </div>
-
-              <div className="flex min-h-[100px] w-full flex-col items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-2 sm:min-h-[130px]">
-                <span className="text-2xl font-black tabular-nums text-cyan-100 sm:text-3xl">
-                  {playerCards.length}
-                </span>
-                <span className="mt-1 text-center text-[9px] text-slate-500">
-                  {playerCards.length === 1 ? "card left" : "cards left"}
-                </span>
-              </div>
+            {/* Right: your card count */}
+            <div className="flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-1.5 sm:p-2">
+              <UserRound
+                size={16}
+                className="text-cyan-200"
+                aria-hidden="true"
+              />
+              <span className="text-center text-[9px] font-extrabold text-cyan-100 sm:text-[10px]">
+                Your hand
+              </span>
+              <span className="text-lg font-black tabular-nums text-cyan-100 sm:text-xl">
+                {playerCards.length}
+              </span>
+              <span className="text-center text-[8px] text-slate-500">
+                {playerCards.length === 1 ? "card left" : "cards left"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* One short turn indicator instead of several status panels */}
+        {/* One concise turn indicator */}
         <div
           role="status"
           aria-live="polite"
@@ -419,7 +437,7 @@ function GameTable({
           <p className="text-xs font-bold sm:text-sm">{turnText}</p>
         </div>
 
-        {/* Player hand stays at the bottom */}
+        {/* Your actual playable cards stay at the bottom */}
         <div className="rounded-2xl border border-cyan-400/10 bg-slate-950/50 p-2 sm:p-3">
           <PlayerHand
             cards={playerCards}
@@ -450,14 +468,6 @@ function GameTable({
         )}
       </div>
     </section>
-  );
-}
-
-function Loader2Icon() {
-  return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-      <Brain size={22} aria-hidden="true" />
-    </div>
   );
 }
 

@@ -1,13 +1,20 @@
 
+
+
+
+
+
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import {
   CheckCircle2,
+  Eye,
   Layers3,
   MousePointerClick,
   Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 
 import type { WhotCard } from "../types/whot";
@@ -65,11 +72,51 @@ function PlayerHand({
   compact = false,
   className = "",
 }: PlayerHandProps) {
+  const [previewCardId, setPreviewCardId] = useState<string | null>(null);
+  const [touchPreviewCardId, setTouchPreviewCardId] = useState<string | null>(
+    null,
+  );
+
   const canInteract = isPlayerTurn && !disabled;
   const playableIds = new Set(playableCardIds);
+
   const playableCount = cards.filter((card) =>
     playableIds.has(card.instanceId),
   ).length;
+
+  const previewCard =
+    cards.find((card) => card.instanceId === previewCardId) ??
+    cards.find((card) => card.instanceId === touchPreviewCardId) ??
+    cards.find((card) => card.instanceId === selectedCardInstanceId) ??
+    null;
+
+  const previewIsPlayable = previewCard
+    ? playableIds.has(previewCard.instanceId)
+    : false;
+
+  const closePreview = () => {
+    setPreviewCardId(null);
+    setTouchPreviewCardId(null);
+  };
+
+  const handleCardClick = (instanceId: string) => {
+    // First tap on a touch device opens the preview.
+    // A second tap on the same card selects it.
+    if (touchPreviewCardId !== instanceId) {
+      setTouchPreviewCardId(instanceId);
+      setPreviewCardId(null);
+      return;
+    }
+
+    if (
+      canInteract &&
+      playableIds.has(instanceId) &&
+      onSelectCard
+    ) {
+      onSelectCard(instanceId);
+      closePreview();
+    }
+  };
 
   return (
     <section
@@ -104,7 +151,7 @@ function PlayerHand({
 
             <p className="mt-0.5 text-[11px] text-slate-400 sm:text-xs">
               {canInteract
-                ? "Choose a playable card"
+                ? "Preview a question before playing"
                 : "Your card collection"}
             </p>
           </div>
@@ -136,9 +183,144 @@ function PlayerHand({
           />
           <span>
             {playableCount > 0
-              ? `${playableCount} playable ${playableCount === 1 ? "card" : "cards"} — tap a card to play.`
+              ? `${playableCount} playable ${
+                  playableCount === 1 ? "card" : "cards"
+                }. Hover to preview, then play.`
               : "No matching card available. Draw a card to continue."}
           </span>
+        </div>
+      )}
+
+      {/* Large question preview */}
+      {previewCard && (
+        <div
+          className="mb-4 overflow-hidden rounded-2xl border border-cyan-300/40 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 shadow-[0_0_25px_rgba(34,211,238,0.08)]"
+          aria-live="polite"
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-cyan-200">
+                <Eye size={19} aria-hidden="true" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-300">
+                  Question preview
+                </p>
+                <p className="text-xs text-slate-400">
+                  Read the full question before playing
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={closePreview}
+              aria-label="Close question preview"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-5">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide ${
+                  SUBJECT_STYLES[previewCard.subject] ??
+                  "border-white/20 bg-slate-700 text-slate-200"
+                }`}
+              >
+                {SUBJECT_LABELS[previewCard.subject] ??
+                  previewCard.subject}
+              </span>
+
+              <span
+                className={`rounded-lg px-2.5 py-1.5 text-[10px] font-extrabold uppercase ${
+                  previewCard.difficulty === "EASY"
+                    ? "bg-emerald-400/10 text-emerald-300"
+                    : previewCard.difficulty === "MEDIUM"
+                      ? "bg-amber-400/10 text-amber-300"
+                      : "bg-rose-400/10 text-rose-300"
+                }`}
+              >
+                {previewCard.difficulty}
+              </span>
+
+              {previewIsPlayable ? (
+                <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] font-extrabold uppercase text-emerald-300">
+                  <CheckCircle2 size={12} aria-hidden="true" />
+                  Playable
+                </span>
+              ) : (
+                <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold uppercase text-slate-400">
+                  Not playable now
+                </span>
+              )}
+            </div>
+
+            <h4 className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">
+              Read the question
+            </h4>
+
+            <p className="whitespace-pre-wrap break-words text-base font-semibold leading-7 text-white sm:text-lg sm:leading-8">
+              {previewCard.question}
+            </p>
+
+            {previewCard.options.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-500">
+                  Answer options
+                </p>
+
+                {previewCard.options.map((option, index) => (
+                  <div
+                    key={`${previewCard.instanceId}-option-${index}`}
+                    className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-[11px] font-extrabold text-cyan-200">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <span className="min-w-0 break-words text-sm leading-6 text-slate-200">
+                      {option}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {canInteract && (
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  disabled={!previewIsPlayable || !onSelectCard}
+                  onClick={() => {
+                    if (
+                      previewIsPlayable &&
+                      onSelectCard
+                    ) {
+                      onSelectCard(previewCard.instanceId);
+                      closePreview();
+                    }
+                  }}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+                >
+                  <CheckCircle2 size={17} aria-hidden="true" />
+                  {previewIsPlayable
+                    ? "Play this card"
+                    : "Card cannot be played yet"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={closePreview}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                >
+                  Back to hand
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -171,6 +353,9 @@ function PlayerHand({
             const isDisabled =
               !canInteract || !isPlayable || !onSelectCard;
 
+            const isPreviewed =
+              previewCard?.instanceId === card.instanceId;
+
             const subjectStyle =
               SUBJECT_STYLES[card.subject] ??
               "border-white/20 bg-slate-700 text-slate-200";
@@ -185,22 +370,37 @@ function PlayerHand({
                 key={card.instanceId}
                 type="button"
                 disabled={isDisabled}
-                onClick={() => onSelectCard?.(card.instanceId)}
+                onMouseEnter={() => {
+                  setPreviewCardId(card.instanceId);
+                  setTouchPreviewCardId(null);
+                }}
+                onMouseLeave={() => {
+                  setPreviewCardId(null);
+                }}
+                onFocus={() => {
+                  setPreviewCardId(card.instanceId);
+                }}
+                onBlur={() => {
+                  setPreviewCardId(null);
+                }}
+                onClick={() => handleCardClick(card.instanceId)}
                 aria-pressed={isSelected}
                 aria-label={`${subjectLabel} card ${index + 1}, ${
                   isPlayable ? "playable" : "not playable"
-                }${isSelected ? ", selected" : ""}`}
+                }${isSelected ? ", selected" : ""}. Hover or focus to preview.`}
                 title={
                   isPlayable
-                    ? `Play ${subjectLabel}`
-                    : `Cannot play ${subjectLabel} yet`
+                    ? `Preview and play ${subjectLabel}`
+                    : `Preview ${subjectLabel}`
                 }
                 className={`group relative flex min-h-[132px] min-w-0 flex-col overflow-hidden rounded-xl border p-2 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:min-h-[158px] sm:p-3 ${
                   isSelected
                     ? "z-10 -translate-y-0.5 border-amber-300 bg-amber-400/10 shadow-[0_0_20px_rgba(252,211,77,0.16)] ring-2 ring-amber-300/60"
-                    : isPlayable && canInteract
-                      ? "border-cyan-400/60 bg-slate-900 shadow-md hover:border-cyan-300 hover:bg-slate-800 active:scale-[0.98] sm:hover:-translate-y-1"
-                      : "cursor-not-allowed border-white/10 bg-slate-900/80 opacity-70"
+                    : isPreviewed
+                      ? "z-10 -translate-y-1 border-cyan-300 bg-slate-800 shadow-[0_0_22px_rgba(34,211,238,0.2)]"
+                      : isPlayable && canInteract
+                        ? "border-cyan-400/60 bg-slate-900 shadow-md hover:border-cyan-300 hover:bg-slate-800 active:scale-[0.98] sm:hover:-translate-y-1"
+                        : "cursor-not-allowed border-white/10 bg-slate-900/80 opacity-70"
                 }`}
               >
                 <div className="mb-2 flex w-full min-w-0 items-start justify-between gap-1">
@@ -214,6 +414,12 @@ function PlayerHand({
                     <CheckCircle2
                       size={16}
                       className="shrink-0 text-amber-300"
+                      aria-hidden="true"
+                    />
+                  ) : isPreviewed ? (
+                    <Eye
+                      size={15}
+                      className="shrink-0 text-cyan-300"
                       aria-hidden="true"
                     />
                   ) : isPlayable && canInteract ? (

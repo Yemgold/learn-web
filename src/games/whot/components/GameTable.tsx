@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import { memo } from "react";
@@ -113,6 +112,7 @@ function CenterCard({
   compact?: boolean;
 }) {
   const subject = card.subject;
+
   const subjectStyle =
     SUBJECT_STYLES[subject] ??
     "from-slate-700 via-slate-900 to-slate-950 border-white/20 text-slate-100";
@@ -267,27 +267,15 @@ function GameTable({
           ? playerName
           : botName;
 
-  const turnText = gameIsFinished
-    ? winner === "player"
-      ? "You won!"
-      : winner === "bot"
-        ? `${botName} won`
-        : "Game finished"
-    : isBotAnswering
-      ? `${botName} is answering…`
-      : isQuestionOpen
-        ? `${activeName} is answering`
-        : isDrawing
-          ? "Drawing a card…"
-          : isPlayerTurn
-            ? "Your turn — play a card"
-            : `${botName} is thinking…`;
-
-  const turnStyle = gameIsFinished
-    ? "border-white/10 bg-slate-900 text-slate-200"
-    : isPlayerTurn
-      ? "border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-100"
-      : "border-amber-400/25 bg-amber-400/[0.06] text-amber-100";
+  // Show the blinking instruction only while the player can act.
+  const showTurnIndicator =
+    status === "PLAYING" &&
+    isPlayerTurn &&
+    !gameIsFinished &&
+    !isQuestionOpen &&
+    !isShowingFeedback &&
+    !isBotAnswering &&
+    !isDrawing;
 
   return (
     <section
@@ -295,7 +283,7 @@ function GameTable({
       className={`mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl border border-emerald-400/15 bg-gradient-to-br from-emerald-950/80 via-slate-950 to-slate-950 p-2.5 shadow-2xl sm:rounded-3xl sm:p-4 md:p-5 ${className}`}
     >
       <div className="space-y-3 sm:space-y-4">
-        {/* Opponent identity and actual face-down cards */}
+        {/* Opponent identity and face-down cards */}
         <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] px-2.5 py-2 sm:px-3 sm:py-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -342,7 +330,7 @@ function GameTable({
           </div>
         )}
 
-        {/* Main play area: Bot hand | Centre card | Your card count */}
+        {/* Main play area */}
         <div className="rounded-2xl border border-white/[0.07] bg-black/20 p-2.5 sm:p-4">
           <div className="mb-3 flex items-center justify-center gap-2">
             <Sparkles
@@ -356,7 +344,7 @@ function GameTable({
           </div>
 
           <div className="grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] items-center gap-1.5 min-[400px]:gap-3 sm:gap-5">
-            {/* Left: Bot hand */}
+            {/* Left: Bot hand count */}
             <div className="flex min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-1.5 sm:p-2">
               <Brain
                 size={16}
@@ -374,7 +362,7 @@ function GameTable({
               </span>
             </div>
 
-            {/* Centre: current card and draw pile beneath it */}
+            {/* Centre card and draw pile */}
             <div className="flex min-w-0 flex-col items-center gap-3">
               {isBotAnswering ? (
                 <div className="flex min-h-[155px] w-full max-w-[165px] flex-col items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/[0.05] px-2 text-center sm:min-h-[190px] sm:max-w-[180px]">
@@ -392,24 +380,21 @@ function GameTable({
                 <CenterCard card={centerCard} compact={compact} />
               )}
 
-              <p className="text-[10px] text-white">
-  Debug: canDraw={String(canDraw)} | playable={playableCardIds.length} | pile={drawPileCount}
-</p>
-
-{canDraw &&
-  playableCardIds.length === 0 &&
-  drawPileCount > 0 && (
-    <DrawPilePanel
-      count={drawPileCount}
-      disabled={false}
-      isDrawing={isDrawing}
-      onDrawCard={onDrawCard}
-      compact={compact}
-    />
-  )}
+              {/* Draw only when the player has no playable cards */}
+              {canDraw &&
+                playableCardIds.length === 0 &&
+                drawPileCount > 0 && (
+                  <DrawPilePanel
+                    count={drawPileCount}
+                    disabled={false}
+                    isDrawing={isDrawing}
+                    onDrawCard={onDrawCard}
+                    compact={compact}
+                  />
+                )}
             </div>
 
-            {/* Right: your card count */}
+            {/* Right: Player hand count */}
             <div className="flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-1.5 sm:p-2">
               <UserRound
                 size={16}
@@ -429,21 +414,25 @@ function GameTable({
           </div>
         </div>
 
-        {/* One concise turn indicator */}
-        <div
-          role="status"
-          aria-live="polite"
-          className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center ${turnStyle}`}
-        >
-          {isBotAnswering || (!isPlayerTurn && !gameIsFinished) ? (
-            <Brain size={15} className="shrink-0" aria-hidden="true" />
-          ) : (
-            <UserRound size={15} className="shrink-0" aria-hidden="true" />
-          )}
-          <p className="text-xs font-bold sm:text-sm">{turnText}</p>
-        </div>
+        {/* Blinking instruction appears only when the player can act */}
+        {showTurnIndicator && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex animate-pulse items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2.5 text-center text-cyan-100"
+          >
+            <Sparkles
+              size={15}
+              className="shrink-0"
+              aria-hidden="true"
+            />
+            <p className="text-xs font-bold sm:text-sm">
+              Your turn — play a card
+            </p>
+          </div>
+        )}
 
-        {/* Your actual playable cards stay at the bottom */}
+        {/* Player's actual cards */}
         <div className="rounded-2xl border border-cyan-400/10 bg-slate-950/50 p-2 sm:p-3">
           <PlayerHand
             cards={playerCards}
@@ -464,6 +453,7 @@ function GameTable({
           />
         </div>
 
+        {/* Final game message */}
         {gameIsFinished && (
           <p className="text-center text-xs text-slate-500">
             {message ||

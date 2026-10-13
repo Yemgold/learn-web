@@ -536,13 +536,25 @@ function WhotGameComponent({
 
       {/* Only the human player gets an answer modal. The bot answers
           the player's card automatically through the game engine. */}
-      <QuestionModal
-        isOpen={isPlayerAnswering && !game.isFinished}
-        card={isPlayerAnswering ? questionCard : null}
-        timeRemaining={game.timeRemaining}
-        questionSource={state.questionSource}
-        onSubmitAnswer={game.submitAnswer}
-      />
+
+      
+<QuestionModal
+  isOpen={
+    !game.isFinished &&
+    !isShowingFeedback &&
+    (isPlayerAnswering || isBotAnswering)
+  }
+  card={
+    isPlayerAnswering || isBotAnswering
+      ? questionCard
+      : null
+  }
+  timeRemaining={game.timeRemaining}
+  questionSource={state.questionSource}
+  onSubmitAnswer={game.submitAnswer}
+  disabled={isBotAnswering || isShowingFeedback || game.isFinished}
+/>
+
 
       <GameResultModal
         isOpen={game.isFinished}

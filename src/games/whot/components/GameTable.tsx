@@ -1,6 +1,6 @@
 
 
-
+//C:\Users\Lara Spellman\Jamb\jamb-league\src\games\whot\components\GameTable.tsx
 
 
 "use client";

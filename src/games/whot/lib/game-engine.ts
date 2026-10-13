@@ -239,12 +239,17 @@ function validateConfig(config: WhotGameConfig): void {
    PLAYABLE CARDS
    ============================================================ */
 
+
 export function isCardPlayable(
   card: WhotCard,
   centerCard: WhotCard,
 ): boolean {
-  return card.subject === centerCard.subject;
+  return (
+    card.subject === centerCard.subject ||
+    card.difficulty === centerCard.difficulty
+  );
 }
+
 
 export function getPlayableCards(
   state: WhotEngineState,
@@ -489,12 +494,14 @@ export function selectWhotCard(
     return withMessage(state, "That card is no longer in your hand.");
   }
 
-  if (!isCardPlayable(card, state.centerCard)) {
-    return withMessage(
-      state,
-      `Choose a ${state.centerCard.subject} card to match the center card.`,
-    );
-  }
+ 
+if (!isCardPlayable(card, state.centerCard)) {
+  return withMessage(
+    state,
+    `Choose a ${state.centerCard.subject} card or a ${state.centerCard.difficulty} difficulty card.`,
+  );
+}
+
 
   const remainingHand = state.player.hand.filter(
     (item) => item.instanceId !== card.instanceId,
@@ -1047,12 +1054,13 @@ export function validatePlayerCardMove(
     );
   }
 
-  if (!isCardPlayable(card, state.centerCard)) {
-    return createMoveFailure(
-      "INVALID_MOVE",
-      `You can only play a ${state.centerCard.subject} card.`,
-    );
-  }
+
+if (!isCardPlayable(card, state.centerCard)) {
+  return createMoveFailure(
+    "INVALID_MOVE",
+    `Play a ${state.centerCard.subject} card or a ${state.centerCard.difficulty} difficulty card.`,
+  );
+}
 
   return createMoveSuccess("This card can be played.");
 }

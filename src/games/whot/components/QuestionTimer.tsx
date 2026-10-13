@@ -31,7 +31,7 @@ function formatTime(seconds: number): string {
 
 function QuestionTimerComponent({
   timeRemaining,
-  totalSeconds = 15,
+  totalSeconds = 25,
   isActive = true,
   warningThreshold = 5,
   showProgress = true,

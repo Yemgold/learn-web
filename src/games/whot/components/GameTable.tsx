@@ -1,8 +1,6 @@
 
 
 
-
-
 "use client";
 
 import { memo } from "react";
@@ -49,6 +47,13 @@ export interface GameTableProps {
   isFinished?: boolean;
   isDrawing?: boolean;
   timeRemaining?: number | null;
+
+  /**
+   * Identifies who played the card currently being challenged.
+   * "player": the bot is answering the player's card.
+   * "bot": the player is answering the bot's card.
+   */
+  questionSource?: "player" | "bot" | null;
 
   playerName?: string;
   botName?: string;
@@ -227,6 +232,7 @@ function GameTable({
   isFinished = false,
   isDrawing = false,
   timeRemaining = null,
+  questionSource = null,
   playerName = "You",
   botName = "Learnyfi Bot",
   compact = false,
@@ -235,22 +241,29 @@ function GameTable({
   const canInteract =
     isPlayerTurn &&
     !isQuestionOpen &&
+    !isBotAnswering &&
     !isShowingFeedback &&
     !isFinished;
 
   const showBotThinking =
     isBotAnswering &&
-    isQuestionOpen &&
+    questionSource === "player" &&
     !isShowingFeedback &&
     !isFinished;
 
+  // Keep the played card highlighted while its question is active,
+  // including while the bot is answering the player's question.
   const showPlayedCard =
-    isQuestionOpen && !isShowingFeedback && !isFinished;
+    (isQuestionOpen || isBotAnswering) &&
+    !isShowingFeedback &&
+    !isFinished;
 
+  // Use questionSource rather than currentTurn because currentTurn
+  // may change while a question is being resolved.
   const playedByLabel =
-    showPlayedCard && currentTurn === "player"
+    questionSource === "player"
       ? `${playerName} played this card`
-      : showPlayedCard && currentTurn === "bot"
+      : questionSource === "bot"
         ? `${botName} played this card`
         : "";
 
@@ -324,8 +337,7 @@ function GameTable({
               <span className="h-px w-8 bg-white/10 sm:w-12" />
             </div>
 
-            {/* Clearly identify the card currently being challenged. */}
-            {showPlayedCard && (
+            {showPlayedCard && playedByLabel && (
               <div className="mb-4 flex flex-col items-center gap-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-3 py-1.5">
                   {showBotThinking ? (
@@ -443,9 +455,13 @@ function GameTable({
                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
                     Bot is selecting an answer
                   </span>
-                ) : isQuestionOpen ? (
+                ) : isQuestionOpen && questionSource === "bot" ? (
                   <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
-                    Answer the question to continue
+                    Answer the bot&apos;s question to continue
+                  </span>
+                ) : isQuestionOpen && questionSource === "player" ? (
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+                    Bot is answering your card
                   </span>
                 ) : isFinished ? (
                   <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">

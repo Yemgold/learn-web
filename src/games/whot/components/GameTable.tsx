@@ -394,13 +394,15 @@ function GameTable({
                 <CenterCard card={centerCard} compact={compact} />
               )}
 
-              <DrawPilePanel
-                count={drawPileCount}
-                disabled={!canDraw}
-                isDrawing={isDrawing}
-                onDrawCard={onDrawCard}
-                compact={compact}
-              />
+             {canDraw && playableCardIds.length === 0 && (
+  <DrawPilePanel
+    count={drawPileCount}
+    disabled={false}
+    isDrawing={isDrawing}
+    onDrawCard={onDrawCard}
+    compact={compact}
+  />
+)}
             </div>
 
             {/* Right: your card count */}

@@ -1,8 +1,13 @@
 
+
+
+
+
+
 "use client";
 
 import { memo } from "react";
-import { Layers3, Sparkles } from "lucide-react";
+import { Layers3, Sparkles, Brain } from "lucide-react";
 
 import BotHand from "./BotHand";
 import DrawPile from "./DrawPile";
@@ -34,6 +39,7 @@ export interface GameTableProps {
 
   isPlayerTurn: boolean;
   isBotTurn: boolean;
+  isBotAnswering?: boolean;
   isQuestionOpen?: boolean;
   isShowingFeedback?: boolean;
   isFinished?: boolean;
@@ -81,7 +87,9 @@ function CenterCard({ card }: { card: WhotCard }) {
   return (
     <div
       className={`relative flex min-h-[190px] w-[140px] flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-3 shadow-[0_15px_40px_rgba(0,0,0,0.3)] sm:min-h-[220px] sm:w-[165px] sm:p-4 ${subjectStyle}`}
-      aria-label={`Center card: ${SUBJECT_LABELS[card.subject] ?? card.subject}`}
+      aria-label={`Center card: ${
+        SUBJECT_LABELS[card.subject] ?? card.subject
+      }`}
     >
       <div className="absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full bg-white/[0.05] blur-2xl" />
 
@@ -89,6 +97,7 @@ function CenterCard({ card }: { card: WhotCard }) {
         <span className="rounded-md border border-white/15 bg-black/20 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide sm:text-[10px]">
           {card.subject}
         </span>
+
         <Sparkles
           size={16}
           className="shrink-0 opacity-70"
@@ -129,6 +138,46 @@ function CenterCard({ card }: { card: WhotCard }) {
   );
 }
 
+function BotThinkingCard() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Bot is thinking and selecting an answer"
+      className="pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2"
+    >
+      <div className="relative flex flex-col items-center">
+        <div className="absolute -inset-4 rounded-full bg-cyan-400/20 blur-2xl animate-pulse" />
+
+        <div className="relative flex h-[88px] w-[62px] animate-bounce flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-cyan-300 bg-gradient-to-br from-cyan-400 via-blue-700 to-indigo-950 shadow-[0_0_28px_rgba(34,211,238,0.55)] ring-4 ring-cyan-300/10">
+          <div className="absolute inset-1 rounded-lg border border-white/35" />
+
+          <Sparkles
+            size={20}
+            className="relative text-cyan-100"
+            aria-hidden="true"
+          />
+
+          <span className="relative mt-1 text-2xl font-black text-white">
+            ?
+          </span>
+
+          <span className="absolute bottom-1.5 text-[7px] font-black uppercase tracking-[0.18em] text-cyan-100">
+            WHOT
+          </span>
+        </div>
+
+        <div className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-950/95 px-3 py-1.5 shadow-xl">
+          <Brain size={13} className="text-cyan-300" aria-hidden="true" />
+          <span className="whitespace-nowrap text-[10px] font-bold text-cyan-100">
+            Choosing an answer
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GameTable({
   status,
   currentTurn,
@@ -144,6 +193,7 @@ function GameTable({
   onDrawCard,
   isPlayerTurn,
   isBotTurn,
+  isBotAnswering = false,
   isQuestionOpen = false,
   isShowingFeedback = false,
   isFinished = false,
@@ -157,6 +207,12 @@ function GameTable({
   const canInteract =
     isPlayerTurn &&
     !isQuestionOpen &&
+    !isShowingFeedback &&
+    !isFinished;
+
+  const showBotThinking =
+    isBotAnswering &&
+    isQuestionOpen &&
     !isShowingFeedback &&
     !isFinished;
 
@@ -190,19 +246,43 @@ function GameTable({
         />
 
         <div className="relative space-y-5">
-          <BotHand
-            cardCount={botCardCount}
-            botName={botName}
-            isActive={isBotTurn && !isFinished && !isShowingFeedback}
-            compact={compact}
-          />
+          {/* Bot hand and visible thinking animation */}
+          <div className="relative">
+            <BotHand
+              cardCount={botCardCount}
+              botName={botName}
+              isActive={
+                (isBotTurn || showBotThinking) &&
+                !isFinished &&
+                !isShowingFeedback
+              }
+              compact={compact}
+            />
+
+            {showBotThinking && <BotThinkingCard />}
+          </div>
+
+          {showBotThinking && (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-300" />
+              </span>
+
+              <p className="text-center text-xs font-semibold text-cyan-100">
+                {botName} is answering your card&apos;s question...
+              </p>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-white/[0.07] bg-black/10 p-3 sm:p-5">
             <div className="mb-4 flex items-center justify-center gap-2">
               <span className="h-px w-8 bg-white/10 sm:w-12" />
+
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
                 Playing table
               </span>
+
               <span className="h-px w-8 bg-white/10 sm:w-12" />
             </div>
 
@@ -216,6 +296,7 @@ function GameTable({
                   isDrawing={isDrawing}
                   compact
                 />
+
                 <p className="text-center text-[10px] text-slate-500">
                   Draw pile
                 </p>
@@ -226,6 +307,7 @@ function GameTable({
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">
                     Match this subject
                   </p>
+
                   <p className="mt-1 text-xs font-semibold text-white">
                     {SUBJECT_LABELS[centerCard.subject] ?? centerCard.subject}
                   </p>
@@ -246,13 +328,16 @@ function GameTable({
                     className="mb-2 text-cyan-300"
                     aria-hidden="true"
                   />
+
                   <span className="text-xl font-black tabular-nums text-white">
                     {playerCards.length}
                   </span>
+
                   <span className="mt-1 text-[10px] text-slate-400">
                     Your cards
                   </span>
                 </div>
+
                 <p className="text-center text-[10px] text-slate-500">
                   {playerName}
                 </p>
@@ -261,9 +346,13 @@ function GameTable({
 
             {!isShowingFeedback && (
               <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                {isQuestionOpen ? (
+                {showBotThinking ? (
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+                    Bot is selecting an answer
+                  </span>
+                ) : isQuestionOpen ? (
                   <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200">
-                    Answer the question to play your card
+                    Answer the question to continue
                   </span>
                 ) : isFinished ? (
                   <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
@@ -299,4 +388,3 @@ function GameTable({
 }
 
 export default memo(GameTable);
-

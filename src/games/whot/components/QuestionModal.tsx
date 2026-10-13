@@ -10,9 +10,9 @@ import {
   CheckCircle2,
   Clock3,
   Lightbulb,
+  Loader2,
   ShieldCheck,
   X,
-  XCircle,
 } from "lucide-react";
 import {
   memo,
@@ -50,7 +50,7 @@ function QuestionModalComponent({
   isOpen,
   card,
   timeRemaining,
-  questionSource = "player",
+  questionSource = "bot",
   onSubmitAnswer,
   onClose,
   disabled = false,
@@ -64,13 +64,21 @@ function QuestionModalComponent({
 
   const submittedRef = useRef(false);
 
-  const isBotChallenge = questionSource === "bot";
-  const isExpired = timeRemaining !== null && timeRemaining <= 0;
-  const isUrgent = timeRemaining !== null && timeRemaining <= 5;
+  // "player" means the player played the card, so the bot answers.
+  // "bot" means the bot played the card, so the human answers.
+  const isBotAnswering = questionSource === "player";
+  const isHumanAnswering = questionSource === "bot";
+
+  const isExpired =
+    timeRemaining !== null && timeRemaining <= 0;
+
+  const isUrgent =
+    timeRemaining !== null && timeRemaining <= 5;
 
   const canAnswer =
     isOpen &&
     Boolean(card) &&
+    isHumanAnswering &&
     !disabled &&
     !hasSubmitted &&
     !isExpired;
@@ -107,19 +115,28 @@ function QuestionModalComponent({
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && onClose && !disabled) {
+      if (
+        event.key === "Escape" &&
+        onClose &&
+        !disabled
+      ) {
         onClose();
         return;
       }
 
+      // Keyboard answers are only enabled when the human is answering.
       if (!canAnswer || !card) return;
 
       const key = event.key.toUpperCase();
+
       const answerIndex = LETTERS.indexOf(
         key as (typeof LETTERS)[number],
       );
 
-      if (answerIndex >= 0 && answerIndex < card.options.length) {
+      if (
+        answerIndex >= 0 &&
+        answerIndex < card.options.length
+      ) {
         event.preventDefault();
         setSelectedAnswer(answerIndex);
       }
@@ -135,11 +152,19 @@ function QuestionModalComponent({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose, disabled, canAnswer, card, handleSubmit]);
+  }, [
+    isOpen,
+    onClose,
+    disabled,
+    canAnswer,
+    card,
+    handleSubmit,
+  ]);
 
   if (!isOpen || !card) return null;
 
   const timeLimit = 15;
+
   const progress =
     timeRemaining === null
       ? 100
@@ -150,7 +175,7 @@ function QuestionModalComponent({
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6 ${className}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/85 p-3 backdrop-blur-sm sm:p-6 ${className}`}
       role="presentation"
     >
       <section
@@ -169,13 +194,13 @@ function QuestionModalComponent({
         </div>
 
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                  isBotChallenge
-                    ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
-                    : "border-cyan-400/20 bg-cyan-400/10 text-cyan-300"
+                  isBotAnswering
+                    ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
+                    : "border-amber-400/30 bg-amber-400/10 text-amber-300"
                 }`}
               >
                 {card.subject}
@@ -188,31 +213,35 @@ function QuestionModalComponent({
 
             <div
               className={`mt-3 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider ${
-                isBotChallenge ? "text-amber-300" : "text-cyan-300"
+                isBotAnswering
+                  ? "text-cyan-300"
+                  : "text-amber-300"
               }`}
             >
-              {isBotChallenge ? (
-                <ShieldCheck className="h-4 w-4" />
+              {isBotAnswering ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <CheckCircle2 className="h-4 w-4" />
+                <ShieldCheck className="h-4 w-4" />
               )}
 
-              {isBotChallenge ? "Bot challenge" : "Your card"}
+              {isBotAnswering
+                ? "Bot is answering"
+                : "Your turn to answer"}
             </div>
 
             <h2
               className="mt-2 text-lg font-bold sm:text-xl"
               id="whot-question-title"
             >
-              {isBotChallenge
-                ? "Answer the bot's question"
-                : "Answer correctly to play your card"}
+              {isBotAnswering
+                ? "Read the question on your card"
+                : "Answer the bot's question"}
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              {isBotChallenge
-                ? "Get it right to score points and keep your turn. A wrong answer gives the bot points and another chance to challenge you."
-                : "Get it right to play this card. A wrong answer gives the bot points, and you must draw penalty cards."}
+              {isBotAnswering
+                ? "Your question appears first. Read it and consider the options while Learnyfi Bot prepares its answer."
+                : "Choose the correct answer. Your result will determine the points and penalties for this turn."}
             </p>
           </div>
 
@@ -220,7 +249,7 @@ function QuestionModalComponent({
             <button
               aria-label="Close question"
               className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={disabled}
+              disabled={disabled || isBotAnswering}
               onClick={onClose}
               type="button"
             >
@@ -230,14 +259,26 @@ function QuestionModalComponent({
         </div>
 
         <div className="px-5 py-6 sm:px-7 sm:py-7">
-          <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+          <div
+            className={`mb-6 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
+              isBotAnswering
+                ? "border-cyan-400/20 bg-cyan-400/5"
+                : "border-white/10 bg-slate-950/50"
+            }`}
+          >
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <Clock3
                 className={`h-5 w-5 ${
-                  isUrgent ? "text-rose-400" : "text-cyan-300"
+                  isUrgent
+                    ? "text-rose-400"
+                    : "text-cyan-300"
                 }`}
               />
-              <span>Time remaining</span>
+              <span>
+                {isBotAnswering
+                  ? "Question time"
+                  : "Time remaining"}
+              </span>
             </div>
 
             <span
@@ -254,9 +295,11 @@ function QuestionModalComponent({
             </span>
           </div>
 
-          <p className="mb-6 text-lg font-semibold leading-8 text-white sm:text-xl">
-            {card.question}
-          </p>
+          <div className="mb-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4 sm:p-5">
+            <p className="text-lg font-semibold leading-8 text-white sm:text-xl">
+              {card.question}
+            </p>
+          </div>
 
           <div
             aria-label="Answer options"
@@ -268,15 +311,17 @@ function QuestionModalComponent({
 
               return (
                 <button
-                  aria-pressed={isSelected}
+                  aria-pressed={
+                    isHumanAnswering ? isSelected : undefined
+                  }
                   className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition duration-150 ${
                     isSelected
                       ? "border-cyan-400 bg-cyan-400/10 ring-2 ring-cyan-400/20"
-                      : "border-white/10 bg-slate-800/60 hover:border-slate-500 hover:bg-slate-800"
+                      : "border-white/10 bg-slate-800/60"
                   } ${
-                    !canAnswer
-                      ? "cursor-not-allowed opacity-70"
-                      : "cursor-pointer"
+                    canAnswer
+                      ? "cursor-pointer hover:border-slate-500 hover:bg-slate-800"
+                      : "cursor-default"
                   }`}
                   disabled={!canAnswer}
                   key={`${card.instanceId}-option-${index}`}
@@ -287,7 +332,7 @@ function QuestionModalComponent({
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold transition ${
                       isSelected
                         ? "bg-cyan-400 text-slate-950"
-                        : "bg-slate-700 text-slate-200 group-hover:bg-slate-600"
+                        : "bg-slate-700 text-slate-200"
                     }`}
                   >
                     {LETTERS[index] ?? index + 1}
@@ -305,12 +350,30 @@ function QuestionModalComponent({
             })}
           </div>
 
+          {isBotAnswering && (
+            <div
+              aria-live="polite"
+              className="mt-5 flex items-start gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4"
+            >
+              <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-cyan-300" />
+              <div>
+                <p className="text-sm font-bold text-cyan-100">
+                  Learnyfi Bot is thinking…
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  The options are displayed for you to read. The
+                  bot will submit its own answer automatically.
+                </p>
+              </div>
+            </div>
+          )}
+
           {isExpired && (
             <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
-                Time is up. The game will count this as an unanswered
-                question.
+                Time is up. The game engine will resolve the
+                unanswered question.
               </p>
             </div>
           )}
@@ -323,32 +386,26 @@ function QuestionModalComponent({
           )}
 
           <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-center gap-2 text-xs leading-5 text-slate-400">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 font-bold text-slate-300">
-                A
-              </span>
-              Choose an option or use A–F on your keyboard.
+            <p className="text-xs leading-5 text-slate-400">
+              {isBotAnswering
+                ? "Read the question and options while the bot answers."
+                : "Select an option or use A–F on your keyboard."}
             </p>
 
-            <button
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-6 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-              disabled={
-                selectedAnswer === null ||
-                !canAnswer ||
-                hasSubmitted
-              }
-              onClick={handleSubmit}
-              type="button"
-            >
-              {hasSubmitted ? (
-                <>
-                  <XCircle className="h-4 w-4" />
-                  Answer submitted
-                </>
-              ) : (
-                "Submit answer"
-              )}
-            </button>
+            {isHumanAnswering && (
+              <button
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-6 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                disabled={
+                  selectedAnswer === null ||
+                  !canAnswer ||
+                  hasSubmitted
+                }
+                onClick={handleSubmit}
+                type="button"
+              >
+                {hasSubmitted ? "Answer submitted" : "Submit answer"}
+              </button>
+            )}
           </div>
         </div>
       </section>

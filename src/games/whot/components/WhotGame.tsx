@@ -1,7 +1,4 @@
 
-
-
-
 "use client";
 
 import {
@@ -61,6 +58,7 @@ function WhotGameComponent({
   const game = useWhotGame({
     autoStart,
     botDelay,
+    botResponseDelay: 6000,
     config: {
       initialHandSize: 6,
       questionTimeLimit,
@@ -93,33 +91,27 @@ function WhotGameComponent({
   const answerFeedback: WhotAnswerFeedback | null =
     state.answerFeedback;
 
-  // Keep feedback visible until Continue is pressed.
+  // Keep feedback on screen until Continue is pressed.
   const isShowingFeedback =
     answerFeedback !== null && !game.isFinished;
 
-  // A bot-played card requires the human player to answer.
   const isPlayerAnswering =
     game.isQuestionOpen &&
     state.activeQuestionCard !== null &&
     state.questionSource === "bot" &&
     answerFeedback === null;
 
-  // A player-played card requires the bot to answer automatically.
   const isBotAnswering =
     game.isQuestionOpen &&
     state.activeQuestionCard !== null &&
     state.questionSource === "player" &&
     answerFeedback === null;
 
-  // Always prefer the active question card. It remains available
-  // even after the engine removes it from the player's/bot's hand.
   const questionCard =
     state.activeQuestionCard ??
     selectedQuestion ??
     lastQuestionCard;
 
-  // Preserve the card for the feedback panel after the active
-  // question has been cleared by the engine.
   useEffect(() => {
     if (state.activeQuestionCard) {
       setLastQuestionCard(state.activeQuestionCard);
@@ -181,12 +173,6 @@ function WhotGameComponent({
       ? questionCard.options[answerFeedback.correctAnswerIndex]
       : undefined;
 
-  /*
-   * questionSource identifies who played the card:
-   *
-   * "player" means the bot answers the player's card.
-   * "bot" means the player answers the bot's card.
-   */
   const pointRecipient =
     answerFeedback?.source === "bot"
       ? answerFeedback.correct
@@ -233,47 +219,48 @@ function WhotGameComponent({
       className={`min-h-screen bg-slate-950 text-white ${className}`}
     >
       <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            {onExit ? (
-              <button
-                type="button"
-                onClick={handleExit}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                aria-label="Exit WHOT game"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            ) : (
-              <Link
-                href="/student/games"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                aria-label="Back to games"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            )}
+        {!isShowingFeedback && (
+          <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {onExit ? (
+                <button
+                  type="button"
+                  onClick={handleExit}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                  aria-label="Exit WHOT game"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              ) : (
+                <Link
+                  href="/student/games"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                  aria-label="Back to games"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+              )}
 
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
-              <BookOpen className="h-6 w-6 text-cyan-300" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
+                <BookOpen className="h-6 w-6 text-cyan-300" />
+              </div>
+
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">
+                  Learnyfi <span className="text-cyan-300">WHOT</span>
+                </h1>
+                <p className="text-xs text-slate-400 sm:text-sm">
+                  Play your card. Answer correctly. Win the game.
+                </p>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">
-                Learnyfi <span className="text-cyan-300">WHOT</span>
-              </h1>
-
-              <p className="text-xs text-slate-400 sm:text-sm">
-                Play your card. Answer correctly. Win the game.
-              </p>
+            <div className="flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-200 sm:text-sm">
+              <Sparkles className="h-4 w-4" />
+              <span>Learn while you play</span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-200 sm:text-sm">
-            <Sparkles className="h-4 w-4" />
-            <span>Learn while you play</span>
-          </div>
-        </header>
+          </header>
+        )}
 
         {game.isReady && !game.isPlaying && !game.isFinished && (
           <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
@@ -302,8 +289,9 @@ function WhotGameComponent({
           </section>
         )}
 
-        {game.isPlaying && (
+        {game.isPlaying && !isShowingFeedback && (
           <>
+            {/* Score cards */}
             <section className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-2xl border border-cyan-400/20 bg-slate-900 p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
@@ -342,8 +330,7 @@ function WhotGameComponent({
               </div>
             </section>
 
-            {/* The player's card remains at the centre while the bot
-                answers its question. */}
+            {/* Bot thinking status */}
             {isBotAnswering && (
               <section
                 aria-live="polite"
@@ -357,11 +344,10 @@ function WhotGameComponent({
                   <h2 className="font-extrabold text-cyan-100">
                     {botName} is thinking…
                   </h2>
-
                   <p className="mt-1 text-sm leading-6 text-slate-300">
-                    The bot is answering the question attached
-                    to your card. The result and points will appear
-                    when its answer has been checked.
+                    The bot is answering the question attached to
+                    your card. The result will appear when its answer
+                    has been checked.
                   </p>
 
                   {questionCard && (
@@ -373,152 +359,42 @@ function WhotGameComponent({
               </section>
             )}
 
-            {/* Keep answer feedback visible until Continue is clicked. */}
-            {isShowingFeedback && answerFeedback && (
-              <section
-                aria-live="polite"
-                className={`mb-5 rounded-2xl border p-4 sm:p-5 ${
-                  answerFeedback.correct
-                    ? "border-emerald-400/25 bg-emerald-400/10"
-                    : "border-rose-400/25 bg-rose-400/10"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {answerFeedback.correct ? (
-                    <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-300" />
-                  ) : (
-                    <XCircle className="mt-0.5 h-6 w-6 shrink-0 text-rose-300" />
-                  )}
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h2
-                        className={`text-lg font-extrabold ${
-                          answerFeedback.correct
-                            ? "text-emerald-200"
-                            : "text-rose-200"
-                        }`}
-                      >
-                        {answerFeedback.correct
-                          ? "Correct!"
-                          : "Incorrect answer"}
-                      </h2>
-
-                      <span className="rounded-full bg-slate-950/50 px-3 py-1 text-sm font-extrabold text-white">
-                        {answerFeedback.pointsAwarded > 0
-                          ? `+${answerFeedback.pointsAwarded} points`
-                          : "No points awarded"}
-                      </span>
-                    </div>
-
-                    {!answerFeedback.correct && (
-                      <p className="mt-2 text-sm font-semibold text-rose-100">
-                        The card/penalty outcome is assigned to{" "}
-                        {cardRecipient} according to the game rules.
-                      </p>
-                    )}
-
-                    <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Correct answer
-                      </p>
-
-                      <p className="mt-1 text-base font-extrabold text-white">
-                        {correctOption ?? "Answer unavailable"}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3">
-                      <p className="text-sm font-extrabold text-amber-200">
-                        {pointRecipient} gets{" "}
-                        {answerFeedback.pointsAwarded > 0
-                          ? `+${answerFeedback.pointsAwarded} points`
-                          : "no points"}
-                      </p>
-                    </div>
-
-                    {answerFeedback.explanation && (
-                      <p className="mt-3 text-sm leading-6 text-slate-300">
-                        {answerFeedback.explanation}
-                      </p>
-                    )}
-
-                    <p className="mt-3 text-xs leading-5 text-slate-400">
-                      Any penalty cards and score changes are handled
-                      by the game engine.
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-                      <p className="text-xs leading-5 text-slate-400">
-                        Review the answer, then continue when you are ready.
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={handleContinue}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-slate-950"
-                      >
-                        Continue
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Freeze table interactions during feedback. The centre
-                card is supplied from state.centerCard for both players. */}
-            <div
-              className={
-                isShowingFeedback
-                  ? "pointer-events-none opacity-60"
-                  : ""
-              }
-              aria-disabled={isShowingFeedback}
-            >
-              <GameTable
-                status={state.status}
-                currentTurn={state.currentTurn}
-                winner={state.winner}
-                message={isShowingFeedback ? "" : state.message}
-                playerCards={state.player.hand}
-                botCardCount={state.bot.hand.length}
-                drawPileCount={state.drawPile.length}
-                centerCard={state.centerCard}
-                playableCardIds={playableCardIds}
-                selectedCardInstanceId={state.selectedCardInstanceId}
-                onSelectCard={handleSelectCard}
-                onDrawCard={handleDrawCard}
-                isPlayerTurn={
-                  game.isPlayerTurn && !isShowingFeedback
-                }
-                isBotTurn={
-                  game.isBotTurn && !isShowingFeedback
-                }
-                isBotAnswering={isBotAnswering}
-                isQuestionOpen={game.isQuestionOpen}
-                isShowingFeedback={isShowingFeedback}
-                isFinished={game.isFinished}
-                timeRemaining={game.timeRemaining}
-                playerName={playerName}
-                botName={botName}
-              />
-            </div>
+            {/* Game table */}
+            <GameTable
+              status={state.status}
+              currentTurn={state.currentTurn}
+              winner={state.winner}
+              message={state.message}
+              playerCards={state.player.hand}
+              botCardCount={state.bot.hand.length}
+              drawPileCount={state.drawPile.length}
+              centerCard={state.centerCard}
+              playableCardIds={playableCardIds}
+              selectedCardInstanceId={state.selectedCardInstanceId}
+              onSelectCard={handleSelectCard}
+              onDrawCard={handleDrawCard}
+              isPlayerTurn={game.isPlayerTurn}
+              isBotTurn={game.isBotTurn}
+              isBotAnswering={isBotAnswering}
+              isQuestionOpen={game.isQuestionOpen}
+              isShowingFeedback={false}
+              isFinished={game.isFinished}
+              timeRemaining={game.timeRemaining}
+              playerName={playerName}
+              botName={botName}
+            />
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-4">
               <p className="text-sm leading-6 text-slate-400">
-                {isShowingFeedback
-                  ? "Review the result above, then click Continue."
-                  : isPlayerAnswering
-                    ? `${botName} has played a card. Answer its question before continuing.`
-                    : isBotAnswering
-                      ? `${botName} is answering your card's question automatically.`
-                      : game.isQuestionOpen
-                        ? "The question is being resolved."
-                        : game.isPlayerTurn
-                          ? "Select a playable card or draw from the market."
-                          : "The bot is preparing its next move."}
+                {isPlayerAnswering
+                  ? `${botName} has played a card. Answer its question before continuing.`
+                  : isBotAnswering
+                    ? `${botName} is answering your card's question automatically.`
+                    : game.isQuestionOpen
+                      ? "The question is being resolved."
+                      : game.isPlayerTurn
+                        ? "Select a playable card or draw from the market."
+                        : "The bot is preparing its next move."}
               </p>
 
               <button
@@ -534,27 +410,168 @@ function WhotGameComponent({
         )}
       </div>
 
-      {/* Only the human player gets an answer modal. The bot answers
-          the player's card automatically through the game engine. */}
+      {/* Full-screen centred feedback view.
+          The game layout is hidden until Continue is pressed. */}
+      {isShowingFeedback && answerFeedback && (
+        <section
+          aria-live="polite"
+          aria-labelledby="whot-feedback-title"
+          className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/95 p-3 backdrop-blur-md sm:p-6"
+        >
+          <div className="my-auto flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/50">
+            {/* Feedback header */}
+            <div
+              className={`shrink-0 border-b px-5 py-5 sm:px-7 ${
+                answerFeedback.correct
+                  ? "border-emerald-400/20 bg-emerald-400/10"
+                  : "border-rose-400/20 bg-rose-400/10"
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
+                    answerFeedback.correct
+                      ? "bg-emerald-400/15"
+                      : "bg-rose-400/15"
+                  }`}
+                >
+                  {answerFeedback.correct ? (
+                    <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+                  ) : (
+                    <XCircle className="h-8 w-8 text-rose-300" />
+                  )}
+                </div>
 
-      
-<QuestionModal
-  isOpen={
-    !game.isFinished &&
-    !isShowingFeedback &&
-    (isPlayerAnswering || isBotAnswering)
-  }
-  card={
-    isPlayerAnswering || isBotAnswering
-      ? questionCard
-      : null
-  }
-  timeRemaining={game.timeRemaining}
-  questionSource={state.questionSource}
-  onSubmitAnswer={game.submitAnswer}
-  disabled={isBotAnswering || isShowingFeedback || game.isFinished}
-/>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                    WHOT answer result
+                  </p>
+                  <h2
+                    id="whot-feedback-title"
+                    className={`mt-1 text-2xl font-black sm:text-3xl ${
+                      answerFeedback.correct
+                        ? "text-emerald-200"
+                        : "text-rose-200"
+                    }`}
+                  >
+                    {answerFeedback.correct
+                      ? "Correct!"
+                      : "Incorrect answer"}
+                  </h2>
+                </div>
+              </div>
+            </div>
 
+            {/* Scroll only this inner area on short screens */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
+              <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Points awarded
+                </p>
+                <p
+                  className={`mt-2 text-4xl font-black tabular-nums sm:text-5xl ${
+                    answerFeedback.pointsAwarded > 0
+                      ? "text-cyan-300"
+                      : "text-slate-400"
+                  }`}
+                >
+                  {answerFeedback.pointsAwarded > 0 ? "+" : ""}
+                  {answerFeedback.pointsAwarded}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">
+                  {pointRecipient}{" "}
+                  {answerFeedback.pointsAwarded > 0
+                    ? "gets these points"
+                    : "receives no points"}
+                </p>
+              </div>
+
+              {!answerFeedback.correct && (
+                <div className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/5 p-3">
+                  <p className="text-sm leading-6 text-rose-100">
+                    The card/penalty outcome is assigned to{" "}
+                    <strong>{cardRecipient}</strong> according to
+                    the game rules.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                  Correct answer
+                </p>
+                <p className="mt-2 text-base font-extrabold leading-6 text-white sm:text-lg">
+                  {correctOption ?? "Answer unavailable"}
+                </p>
+              </div>
+
+              {questionCard && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-200">
+                    {questionCard.subject}
+                  </span>
+                  <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
+                    {questionCard.difficulty}
+                  </span>
+                </div>
+              )}
+
+              {answerFeedback.explanation && (
+                <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                    Explanation
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-200">
+                    {answerFeedback.explanation}
+                  </p>
+                </div>
+              )}
+
+              <p className="mt-4 text-center text-xs leading-5 text-slate-500">
+                Your score and any penalty cards are managed by the
+                game engine.
+              </p>
+            </div>
+
+            {/* Always-visible Continue footer */}
+            <div className="shrink-0 border-t border-white/10 bg-slate-900 px-5 py-4 sm:px-7">
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-6 py-4 text-base font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                Continue
+                <ArrowRight className="h-5 w-5" />
+              </button>
+              <p className="mt-2 text-center text-xs text-slate-500">
+                Review the result, then continue your game.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Shared question modal for both turns */}
+      <QuestionModal
+        isOpen={
+          !game.isFinished &&
+          !isShowingFeedback &&
+          (isPlayerAnswering || isBotAnswering)
+        }
+        card={
+          isPlayerAnswering || isBotAnswering
+            ? questionCard
+            : null
+        }
+        timeRemaining={game.timeRemaining}
+        questionSource={state.questionSource}
+        onSubmitAnswer={game.submitAnswer}
+        disabled={
+          isBotAnswering ||
+          isShowingFeedback ||
+          game.isFinished
+        }
+      />
 
       <GameResultModal
         isOpen={game.isFinished}

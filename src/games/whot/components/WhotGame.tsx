@@ -1,6 +1,4 @@
 
-
-
 "use client";
 
 import {
@@ -95,7 +93,7 @@ function WhotGameComponent({
   const isShowingFeedback =
     answerFeedback !== null && !game.isFinished;
 
-  // The human only answers questions attached to bot-played cards.
+  // The human answers questions attached to bot-played cards.
   const isPlayerAnswering =
     game.isQuestionOpen &&
     state.activeQuestionCard !== null &&
@@ -112,8 +110,8 @@ function WhotGameComponent({
   const questionCard =
     state.activeQuestionCard ?? selectedQuestion ?? lastQuestionCard;
 
-  // Remember the active card so the feedback panel can display
-  // the correct answer after the question has been resolved.
+  // Preserve the question card so feedback can show its answer
+  // after the engine resolves the question.
   useEffect(() => {
     if (state.activeQuestionCard) {
       setLastQuestionCard(state.activeQuestionCard);
@@ -135,10 +133,7 @@ function WhotGameComponent({
 
       game.selectCard(instanceId);
     },
-    [
-      game,
-      state.answerFeedback,
-    ],
+    [game, state.answerFeedback],
   );
 
   const handleDrawCard = useCallback(() => {
@@ -152,24 +147,15 @@ function WhotGameComponent({
     }
 
     game.drawCard();
-  }, [
-    game,
-    state.answerFeedback,
-  ]);
+  }, [game, state.answerFeedback]);
 
   const handleContinue = useCallback(() => {
-    if (
-      state.answerFeedback === null ||
-      game.isFinished
-    ) {
+    if (state.answerFeedback === null || game.isFinished) {
       return;
     }
 
     game.continueAfterFeedback();
-  }, [
-    game,
-    state.answerFeedback,
-  ]);
+  }, [game, state.answerFeedback]);
 
   const handlePlayAgain = useCallback(() => {
     setLastQuestionCard(null);
@@ -184,10 +170,36 @@ function WhotGameComponent({
 
   const correctOption =
     questionCard && answerFeedback
-      ? questionCard.options[
-          answerFeedback.correctAnswerIndex
-        ]
+      ? questionCard.options[answerFeedback.correctAnswerIndex]
       : undefined;
+
+  /*
+   * The source identifies who played the card whose question
+   * was asked:
+   *
+   * source === "bot": the player answered the bot's card.
+   * source === "player": the bot answered the player's card.
+   *
+   * Points are awarded to the answerer when correct and to
+   * the opponent when incorrect.
+   */
+  const pointRecipient =
+    answerFeedback?.source === "bot"
+      ? answerFeedback.correct
+        ? playerName
+        : botName
+      : answerFeedback?.correct
+        ? botName
+        : playerName;
+
+  const cardRecipient =
+    answerFeedback?.source === "bot"
+      ? answerFeedback.correct
+        ? playerName
+        : botName
+      : answerFeedback?.correct
+        ? botName
+        : playerName;
 
   const resultStats = useMemo(() => {
     const totalAnswers =
@@ -244,8 +256,7 @@ function WhotGameComponent({
 
             <div className="min-w-0">
               <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">
-                Learnyfi{" "}
-                <span className="text-cyan-300">WHOT</span>
+                Learnyfi <span className="text-cyan-300">WHOT</span>
               </h1>
 
               <p className="text-xs text-slate-400 sm:text-sm">
@@ -260,34 +271,32 @@ function WhotGameComponent({
           </div>
         </header>
 
-        {game.isReady &&
-          !game.isPlaying &&
-          !game.isFinished && (
-            <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-400/10">
-                <Trophy className="h-8 w-8 text-cyan-300" />
-              </div>
+        {game.isReady && !game.isPlaying && !game.isFinished && (
+          <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-400/10">
+              <Trophy className="h-8 w-8 text-cyan-300" />
+            </div>
 
-              <h2 className="mt-5 text-2xl font-black">
-                Ready to play?
-              </h2>
+            <h2 className="mt-5 text-2xl font-black">
+              Ready to play?
+            </h2>
 
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">
-                Match the subject on the centre card, answer
-                questions, earn points, and clear your hand
-                before the bot.
-              </p>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">
+              Match the subject on the centre card, answer
+              questions, earn points, and clear your hand
+              before the bot.
+            </p>
 
-              <button
-                type="button"
-                onClick={game.startGame}
-                className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-7 py-3 font-extrabold text-slate-950 transition hover:bg-cyan-300"
-              >
-                <Sparkles className="h-5 w-5" />
-                Start game
-              </button>
-            </section>
-          )}
+            <button
+              type="button"
+              onClick={game.startGame}
+              className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-7 py-3 font-extrabold text-slate-950 transition hover:bg-cyan-300"
+            >
+              <Sparkles className="h-5 w-5" />
+              Start game
+            </button>
+          </section>
+        )}
 
         {game.isPlaying && (
           <>
@@ -329,7 +338,6 @@ function WhotGameComponent({
               </div>
             </section>
 
-            {/* Bot is automatically answering the player's card. */}
             {isBotAnswering && (
               <section
                 aria-live="polite"
@@ -343,22 +351,24 @@ function WhotGameComponent({
                   <h2 className="font-extrabold text-cyan-100">
                     {botName} is thinking…
                   </h2>
+
                   <p className="mt-1 text-sm leading-6 text-slate-300">
                     The bot is answering the question attached
                     to your card. Your points will update when
                     its answer is checked.
                   </p>
+
                   {questionCard && (
                     <p className="mt-2 text-xs font-semibold text-cyan-200/80">
-                      {questionCard.subject} ·{" "}
-                      {questionCard.difficulty}
+                      {questionCard.subject} · {questionCard.difficulty}
                     </p>
                   )}
                 </div>
               </section>
             )}
 
-            {/* Feedback remains visible until the player continues. */}
+            {/* Answer feedback: card recipient, point recipient,
+                correct answer and explanation. */}
             {isShowingFeedback && answerFeedback && (
               <section
                 aria-live="polite"
@@ -378,57 +388,63 @@ function WhotGameComponent({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h2
-                        className={`font-extrabold ${
+                        className={`text-lg font-extrabold ${
                           answerFeedback.correct
                             ? "text-emerald-200"
                             : "text-rose-200"
                         }`}
                       >
                         {answerFeedback.correct
-                          ? "Correct answer!"
-                          : "Incorrect answer"}
+                          ? "Correct!"
+                          : "You Are Wrong"}
                       </h2>
 
-                      <span className="rounded-full bg-slate-950/40 px-3 py-1 text-sm font-extrabold text-white">
+                      <span className="rounded-full bg-slate-950/50 px-3 py-1 text-sm font-extrabold text-white">
                         {answerFeedback.pointsAwarded > 0
                           ? `+${answerFeedback.pointsAwarded} points`
                           : "No points awarded"}
                       </span>
                     </div>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-300">
-                      {answerFeedback.source === "player"
-                        ? `${botName} answered the question on your card.`
-                        : `You answered the question on ${botName}'s card.`}
-                    </p>
+                    {!answerFeedback.correct && (
+                      <p className="mt-2 text-sm font-semibold text-rose-100">
+                        Card goes to {cardRecipient}.
+                      </p>
+                    )}
 
-                    {!answerFeedback.correct &&
-                      correctOption && (
-                        <p className="mt-2 text-sm leading-6 text-slate-200">
-                          Correct answer:{" "}
-                          <span className="font-bold text-white">
-                            {correctOption}
-                          </span>
-                        </p>
-                      )}
+                    <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Correct answer
+                      </p>
+
+                      <p className="mt-1 text-base font-extrabold text-white">
+                        {correctOption ?? "Answer unavailable"}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3">
+                      <p className="text-sm font-extrabold text-amber-200">
+                        {pointRecipient} gets{" "}
+                        {answerFeedback.pointsAwarded > 0
+                          ? `+${answerFeedback.pointsAwarded} points`
+                          : "no points"}
+                      </p>
+                    </div>
 
                     {answerFeedback.explanation && (
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                      <p className="mt-3 text-sm leading-6 text-slate-300">
                         {answerFeedback.explanation}
                       </p>
                     )}
 
-                    {!answerFeedback.correct && (
-                      <p className="mt-2 text-xs leading-5 text-slate-400">
-                        Any penalty cards and score changes have
-                        been handled by the game engine.
-                      </p>
-                    )}
+                    <p className="mt-3 text-xs leading-5 text-slate-400">
+                      Any penalty cards and score changes have been
+                      handled by the game engine.
+                    </p>
 
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
                       <p className="text-xs leading-5 text-slate-400">
-                        Review the answer, then continue when
-                        you are ready.
+                        Review the answer, then continue when you are ready.
                       </p>
 
                       <button
@@ -457,9 +473,7 @@ function WhotGameComponent({
                 status={state.status}
                 currentTurn={state.currentTurn}
                 winner={state.winner}
-                message={
-                  isShowingFeedback ? "" : state.message
-                }
+                message={isShowingFeedback ? "" : state.message}
                 playerCards={state.player.hand}
                 botCardCount={state.bot.hand.length}
                 drawPileCount={state.drawPile.length}
@@ -489,7 +503,7 @@ function WhotGameComponent({
                 {isShowingFeedback
                   ? "Review the result above, then click Continue."
                   : isPlayerAnswering
-                    ? "The bot has played a card. Answer its question before continuing."
+                    ? `${botName} has played a card. Answer its question before continuing.`
                     : isBotAnswering
                       ? `${botName} is answering your card's question automatically.`
                       : game.isQuestionOpen
@@ -512,7 +526,6 @@ function WhotGameComponent({
         )}
       </div>
 
-      {/* Only show the answer modal when the bot has played a card. */}
       <QuestionModal
         isOpen={isPlayerAnswering && !game.isFinished}
         card={isPlayerAnswering ? questionCard : null}
@@ -538,6 +551,557 @@ const WhotGame = memo(WhotGameComponent);
 WhotGame.displayName = "WhotGame";
 
 export default WhotGame;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// "use client";
+
+// import {
+//   ArrowLeft,
+//   ArrowRight,
+//   BookOpen,
+//   CheckCircle2,
+//   Loader2,
+//   RotateCcw,
+//   Sparkles,
+//   Trophy,
+//   XCircle,
+// } from "lucide-react";
+// import Link from "next/link";
+// import {
+//   memo,
+//   useCallback,
+//   useEffect,
+//   useMemo,
+//   useState,
+// } from "react";
+
+// import GameResultModal from "./GameResultModal";
+// import GameTable from "./GameTable";
+// import QuestionModal from "./QuestionModal";
+
+// import { useWhotGame } from "../hook/useWhotGame";
+// import {
+//   getPlayableCards,
+//   getSelectedQuestion,
+// } from "../lib/game-engine";
+// import type {
+//   WhotAnswerFeedback,
+//   WhotEngineState,
+// } from "../lib/game-engine";
+// import type { WhotCard, WhotPlayerId } from "../types/whot";
+
+// export interface WhotGameProps {
+//   playerName?: string;
+//   botName?: string;
+//   autoStart?: boolean;
+//   botDelay?: number;
+//   questionTimeLimit?: number;
+//   onExit?: () => void;
+//   className?: string;
+// }
+
+// function WhotGameComponent({
+//   playerName = "You",
+//   botName = "Learnyfi Bot",
+//   autoStart = true,
+//   botDelay = 900,
+//   questionTimeLimit = 15,
+//   onExit,
+//   className = "",
+// }: WhotGameProps) {
+//   const game = useWhotGame({
+//     autoStart,
+//     botDelay,
+//     config: {
+//       initialHandSize: 6,
+//       questionTimeLimit,
+//       wrongAnswerPenalty: 2,
+//       drawOnNoMatch: 1,
+//       copiesPerQuestion: 2,
+//     },
+//   });
+
+//   const state = game.state as WhotEngineState;
+
+//   const [lastQuestionCard, setLastQuestionCard] =
+//     useState<WhotCard | null>(null);
+
+//   const selectedQuestion = useMemo(
+//     () => getSelectedQuestion(state),
+//     [state],
+//   );
+
+//   const playableCards = useMemo(
+//     () => getPlayableCards(state, "player"),
+//     [state],
+//   );
+
+//   const playableCardIds = useMemo(
+//     () => playableCards.map((card) => card.instanceId),
+//     [playableCards],
+//   );
+
+//   const answerFeedback: WhotAnswerFeedback | null =
+//     state.answerFeedback;
+
+//   const isShowingFeedback =
+//     answerFeedback !== null && !game.isFinished;
+
+//   // The human only answers questions attached to bot-played cards.
+//   const isPlayerAnswering =
+//     game.isQuestionOpen &&
+//     state.activeQuestionCard !== null &&
+//     state.questionSource === "bot";
+
+//   // The bot automatically answers questions attached to
+//   // player-played cards.
+//   const isBotAnswering =
+//     game.isQuestionOpen &&
+//     state.activeQuestionCard !== null &&
+//     state.questionSource === "player" &&
+//     answerFeedback === null;
+
+//   const questionCard =
+//     state.activeQuestionCard ?? selectedQuestion ?? lastQuestionCard;
+
+//   // Remember the active card so the feedback panel can display
+//   // the correct answer after the question has been resolved.
+//   useEffect(() => {
+//     if (state.activeQuestionCard) {
+//       setLastQuestionCard(state.activeQuestionCard);
+//     } else if (selectedQuestion) {
+//       setLastQuestionCard(selectedQuestion);
+//     }
+//   }, [state.activeQuestionCard, selectedQuestion]);
+
+//   const handleSelectCard = useCallback(
+//     (instanceId: string) => {
+//       if (
+//         !game.isPlayerTurn ||
+//         game.isQuestionOpen ||
+//         state.answerFeedback !== null ||
+//         game.isFinished
+//       ) {
+//         return;
+//       }
+
+//       game.selectCard(instanceId);
+//     },
+//     [
+//       game,
+//       state.answerFeedback,
+//     ],
+//   );
+
+//   const handleDrawCard = useCallback(() => {
+//     if (
+//       !game.isPlayerTurn ||
+//       game.isQuestionOpen ||
+//       state.answerFeedback !== null ||
+//       game.isFinished
+//     ) {
+//       return;
+//     }
+
+//     game.drawCard();
+//   }, [
+//     game,
+//     state.answerFeedback,
+//   ]);
+
+//   const handleContinue = useCallback(() => {
+//     if (
+//       state.answerFeedback === null ||
+//       game.isFinished
+//     ) {
+//       return;
+//     }
+
+//     game.continueAfterFeedback();
+//   }, [
+//     game,
+//     state.answerFeedback,
+//   ]);
+
+//   const handlePlayAgain = useCallback(() => {
+//     setLastQuestionCard(null);
+//     game.restartGame();
+//   }, [game]);
+
+//   const handleExit = useCallback(() => {
+//     onExit?.();
+//   }, [onExit]);
+
+//   const winner: WhotPlayerId | null = state.winner;
+
+//   const correctOption =
+//     questionCard && answerFeedback
+//       ? questionCard.options[
+//           answerFeedback.correctAnswerIndex
+//         ]
+//       : undefined;
+
+//   const resultStats = useMemo(() => {
+//     const totalAnswers =
+//       state.correctAnswers + state.incorrectAnswers;
+
+//     const accuracy =
+//       totalAnswers > 0
+//         ? Math.round(
+//             (state.correctAnswers / totalAnswers) * 100,
+//           )
+//         : 0;
+
+//     return {
+//       correctAnswers: state.correctAnswers,
+//       incorrectAnswers: state.incorrectAnswers,
+//       accuracy,
+//       cardsPlayed: state.turnsPlayed,
+//     };
+//   }, [
+//     state.correctAnswers,
+//     state.incorrectAnswers,
+//     state.turnsPlayed,
+//   ]);
+
+//   return (
+//     <main
+//       className={`min-h-screen bg-slate-950 text-white ${className}`}
+//     >
+//       <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
+//         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+//           <div className="flex min-w-0 items-center gap-3">
+//             {onExit ? (
+//               <button
+//                 type="button"
+//                 onClick={handleExit}
+//                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+//                 aria-label="Exit WHOT game"
+//               >
+//                 <ArrowLeft className="h-5 w-5" />
+//               </button>
+//             ) : (
+//               <Link
+//                 href="/student/games"
+//                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+//                 aria-label="Back to games"
+//               >
+//                 <ArrowLeft className="h-5 w-5" />
+//               </Link>
+//             )}
+
+//             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
+//               <BookOpen className="h-6 w-6 text-cyan-300" />
+//             </div>
+
+//             <div className="min-w-0">
+//               <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">
+//                 Learnyfi{" "}
+//                 <span className="text-cyan-300">WHOT</span>
+//               </h1>
+
+//               <p className="text-xs text-slate-400 sm:text-sm">
+//                 Play your card. Answer correctly. Win the game.
+//               </p>
+//             </div>
+//           </div>
+
+//           <div className="flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-200 sm:text-sm">
+//             <Sparkles className="h-4 w-4" />
+//             <span>Learn while you play</span>
+//           </div>
+//         </header>
+
+//         {game.isReady &&
+//           !game.isPlaying &&
+//           !game.isFinished && (
+//             <section className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-900 p-6 text-center shadow-xl sm:p-10">
+//               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-400/10">
+//                 <Trophy className="h-8 w-8 text-cyan-300" />
+//               </div>
+
+//               <h2 className="mt-5 text-2xl font-black">
+//                 Ready to play?
+//               </h2>
+
+//               <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">
+//                 Match the subject on the centre card, answer
+//                 questions, earn points, and clear your hand
+//                 before the bot.
+//               </p>
+
+//               <button
+//                 type="button"
+//                 onClick={game.startGame}
+//                 className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-7 py-3 font-extrabold text-slate-950 transition hover:bg-cyan-300"
+//               >
+//                 <Sparkles className="h-5 w-5" />
+//                 Start game
+//               </button>
+//             </section>
+//           )}
+
+//         {game.isPlaying && (
+//           <>
+//             <section className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+//               <div className="rounded-2xl border border-cyan-400/20 bg-slate-900 p-4">
+//                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+//                   Your points
+//                 </p>
+//                 <p className="mt-2 text-2xl font-black text-cyan-300">
+//                   {state.playerScore}
+//                 </p>
+//               </div>
+
+//               <div className="rounded-2xl border border-amber-400/20 bg-slate-900 p-4">
+//                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+//                   Bot points
+//                 </p>
+//                 <p className="mt-2 text-2xl font-black text-amber-300">
+//                   {state.botScore}
+//                 </p>
+//               </div>
+
+//               <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
+//                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+//                   Correct answers
+//                 </p>
+//                 <p className="mt-2 text-2xl font-black text-emerald-300">
+//                   {state.correctAnswers}
+//                 </p>
+//               </div>
+
+//               <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
+//                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+//                   Your cards
+//                 </p>
+//                 <p className="mt-2 text-2xl font-black text-white">
+//                   {state.player.hand.length}
+//                 </p>
+//               </div>
+//             </section>
+
+//             {/* Bot is automatically answering the player's card. */}
+//             {isBotAnswering && (
+//               <section
+//                 aria-live="polite"
+//                 className="mb-5 flex items-center gap-4 rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-4 sm:p-5"
+//               >
+//                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-400/15">
+//                   <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
+//                 </div>
+
+//                 <div className="min-w-0 flex-1">
+//                   <h2 className="font-extrabold text-cyan-100">
+//                     {botName} is thinking…
+//                   </h2>
+//                   <p className="mt-1 text-sm leading-6 text-slate-300">
+//                     The bot is answering the question attached
+//                     to your card. Your points will update when
+//                     its answer is checked.
+//                   </p>
+//                   {questionCard && (
+//                     <p className="mt-2 text-xs font-semibold text-cyan-200/80">
+//                       {questionCard.subject} ·{" "}
+//                       {questionCard.difficulty}
+//                     </p>
+//                   )}
+//                 </div>
+//               </section>
+//             )}
+
+//             {/* Feedback remains visible until the player continues. */}
+//             {isShowingFeedback && answerFeedback && (
+//               <section
+//                 aria-live="polite"
+//                 className={`mb-5 rounded-2xl border p-4 sm:p-5 ${
+//                   answerFeedback.correct
+//                     ? "border-emerald-400/25 bg-emerald-400/10"
+//                     : "border-rose-400/25 bg-rose-400/10"
+//                 }`}
+//               >
+//                 <div className="flex items-start gap-3">
+//                   {answerFeedback.correct ? (
+//                     <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-300" />
+//                   ) : (
+//                     <XCircle className="mt-0.5 h-6 w-6 shrink-0 text-rose-300" />
+//                   )}
+
+//                   <div className="min-w-0 flex-1">
+//                     <div className="flex flex-wrap items-center justify-between gap-2">
+//                       <h2
+//                         className={`font-extrabold ${
+//                           answerFeedback.correct
+//                             ? "text-emerald-200"
+//                             : "text-rose-200"
+//                         }`}
+//                       >
+//                         {answerFeedback.correct
+//                           ? "Correct answer!"
+//                           : "Incorrect answer"}
+//                       </h2>
+
+//                       <span className="rounded-full bg-slate-950/40 px-3 py-1 text-sm font-extrabold text-white">
+//                         {answerFeedback.pointsAwarded > 0
+//                           ? `+${answerFeedback.pointsAwarded} points`
+//                           : "No points awarded"}
+//                       </span>
+//                     </div>
+
+//                     <p className="mt-2 text-sm leading-6 text-slate-300">
+//                       {answerFeedback.source === "player"
+//                         ? `${botName} answered the question on your card.`
+//                         : `You answered the question on ${botName}'s card.`}
+//                     </p>
+
+//                     {!answerFeedback.correct &&
+//                       correctOption && (
+//                         <p className="mt-2 text-sm leading-6 text-slate-200">
+//                           Correct answer:{" "}
+//                           <span className="font-bold text-white">
+//                             {correctOption}
+//                           </span>
+//                         </p>
+//                       )}
+
+//                     {answerFeedback.explanation && (
+//                       <p className="mt-2 text-sm leading-6 text-slate-300">
+//                         {answerFeedback.explanation}
+//                       </p>
+//                     )}
+
+//                     {!answerFeedback.correct && (
+//                       <p className="mt-2 text-xs leading-5 text-slate-400">
+//                         Any penalty cards and score changes have
+//                         been handled by the game engine.
+//                       </p>
+//                     )}
+
+//                     <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+//                       <p className="text-xs leading-5 text-slate-400">
+//                         Review the answer, then continue when
+//                         you are ready.
+//                       </p>
+
+//                       <button
+//                         type="button"
+//                         onClick={handleContinue}
+//                         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-slate-950"
+//                       >
+//                         Continue
+//                         <ArrowRight className="h-4 w-4" />
+//                       </button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </section>
+//             )}
+
+//             <div
+//               className={
+//                 isShowingFeedback
+//                   ? "pointer-events-none opacity-60"
+//                   : ""
+//               }
+//               aria-disabled={isShowingFeedback}
+//             >
+//               <GameTable
+//                 status={state.status}
+//                 currentTurn={state.currentTurn}
+//                 winner={state.winner}
+//                 message={
+//                   isShowingFeedback ? "" : state.message
+//                 }
+//                 playerCards={state.player.hand}
+//                 botCardCount={state.bot.hand.length}
+//                 drawPileCount={state.drawPile.length}
+//                 centerCard={state.centerCard}
+//                 playableCardIds={playableCardIds}
+//                 selectedCardInstanceId={state.selectedCardInstanceId}
+//                 onSelectCard={handleSelectCard}
+//                 onDrawCard={handleDrawCard}
+//                 isPlayerTurn={
+//                   game.isPlayerTurn && !isShowingFeedback
+//                 }
+//                 isBotTurn={
+//                   game.isBotTurn && !isShowingFeedback
+//                 }
+//                 isBotAnswering={isBotAnswering}
+//                 isQuestionOpen={game.isQuestionOpen}
+//                 isShowingFeedback={isShowingFeedback}
+//                 isFinished={game.isFinished}
+//                 timeRemaining={game.timeRemaining}
+//                 playerName={playerName}
+//                 botName={botName}
+//               />
+//             </div>
+
+//             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+//               <p className="text-sm leading-6 text-slate-400">
+//                 {isShowingFeedback
+//                   ? "Review the result above, then click Continue."
+//                   : isPlayerAnswering
+//                     ? "The bot has played a card. Answer its question before continuing."
+//                     : isBotAnswering
+//                       ? `${botName} is answering your card's question automatically.`
+//                       : game.isQuestionOpen
+//                         ? "The question is being resolved."
+//                         : game.isPlayerTurn
+//                           ? "Select a playable card or draw from the market."
+//                           : "The bot is preparing its next move."}
+//               </p>
+
+//               <button
+//                 type="button"
+//                 onClick={handlePlayAgain}
+//                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
+//               >
+//                 <RotateCcw className="h-4 w-4" />
+//                 Restart
+//               </button>
+//             </div>
+//           </>
+//         )}
+//       </div>
+
+//       {/* Only show the answer modal when the bot has played a card. */}
+//       <QuestionModal
+//         isOpen={isPlayerAnswering && !game.isFinished}
+//         card={isPlayerAnswering ? questionCard : null}
+//         timeRemaining={game.timeRemaining}
+//         questionSource={state.questionSource}
+//         onSubmitAnswer={game.submitAnswer}
+//       />
+
+//       <GameResultModal
+//         isOpen={game.isFinished}
+//         result={winner === "player" ? "WIN" : "LOSS"}
+//         playerName={playerName}
+//         stats={resultStats}
+//         onPlayAgain={handlePlayAgain}
+//         onExit={onExit ? handleExit : undefined}
+//       />
+//     </main>
+//   );
+// }
+
+// const WhotGame = memo(WhotGameComponent);
+
+// WhotGame.displayName = "WhotGame";
+
+// export default WhotGame;
 
 
 

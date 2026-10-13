@@ -120,8 +120,8 @@ export function useWhotGame(
 ): UseWhotGameReturn {
   const {
     config,
-    botDelay = 900,
-    botResponseDelay = 500,
+    botDelay = 2000,
+    botResponseDelay = 600,
     randomizeBotAnswers = true,
     autoStart = false,
   } = options;
@@ -331,9 +331,7 @@ export function useWhotGame(
     botAnswerLockRef.current = true;
     botAnswerKeyRef.current = answerKey;
 
-    const delay =
-      Math.max(0, botDelay) +
-      Math.max(0, botResponseDelay);
+    const delay = Math.max(0, botResponseDelay);
 
     const timeoutId = window.setTimeout(() => {
       internalDispatch({

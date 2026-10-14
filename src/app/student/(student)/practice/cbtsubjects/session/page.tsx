@@ -585,7 +585,7 @@ export default function CbtSessionPage() {
     }, [answers]);
 
  const showQuestionProgress =
-  hasSelectedFirstAnswer;
+  hasSelectedFirstAnswer || hasAnyAnswer;
 
   /* ==========================================================
      UNANSWERED COUNT
@@ -1862,20 +1862,26 @@ export default function CbtSessionPage() {
               </div>
             )}
 
-            {/* QUESTION CARD */}
+          
+{/* QUESTION CARD */}
 
-            {currentQuestion && (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-1 shadow-2xl shadow-black/20 backdrop-blur-sm">
-                <CbtQuestionCard
-                  question={currentQuestion}
-                  questionNumber={
-                    currentQuestionIndex + 1
-                  }
-                  selectedAnswer={currentAnswer}
-                  onSelectAnswer={handleAnswer}
-                />
-              </div>
-            )}
+{currentQuestion && (
+  <div className="w-full min-w-0 rounded-3xl border border-white/10 bg-white/[0.03] p-1 shadow-2xl shadow-black/20 backdrop-blur-sm">
+    <CbtQuestionCard
+      question={currentQuestion}
+      questionNumber={
+        showQuestionProgress
+          ? currentQuestionIndex + 1
+          : 0
+      }
+      selectedAnswer={currentAnswer}
+      onSelectAnswer={handleAnswer}
+      isFlagged={isCurrentQuestionFlagged}
+      onToggleFlag={handleToggleFlag}
+    />
+  </div>
+)}
+
 
             {/* FLAG QUESTION */}
 

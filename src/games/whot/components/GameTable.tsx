@@ -312,11 +312,14 @@ function GameTable({
     playableCount === 0 &&
     drawPileCount > 0;
 
-  const botIsFocused =
-    botHasTurn &&
-    !isQuestionOpen &&
-    !isShowingFeedback &&
-    !gameIsFinished;
+  
+const botIsFocused =
+  status === "PLAYING" &&
+  currentTurn === "bot" &&
+  !isFinished &&
+  !isQuestionOpen &&
+  !isShowingFeedback;
+
 
   const playerIsFocused =
     playerHasTurn &&

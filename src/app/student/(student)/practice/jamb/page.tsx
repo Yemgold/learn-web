@@ -1,25 +1,20 @@
 
 
 
-
-
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
 import {
   Brain,
   Clock3,
-  Target,
   ArrowRight,
-  BarChart3,
   BookMarked,
-  Trophy,
-  BookOpen,
-  History,
-  Zap,
   WalletCards,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -27,6 +22,12 @@ import { Button } from "@/components/ui/button";
 
 import { useAuthStore } from "@/stores";
 import { useWallet } from "@/hooks/wallet/useWallet";
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+
+const CBT_COST_PER_QUESTION = 2;
 
 /* ============================================================
    JAMB PRACTICE DASHBOARD
@@ -54,14 +55,8 @@ export default function JambPracticePage() {
     user.plans.includes("SECONDARY");
 
   /* ============================================================
-     CBT WALLET REQUIREMENT
-     
-     CBT deducts ₦2 per question.
-     Student must have at least ₦2 before
-     entering the CBT.
+     WALLET STATUS
      ============================================================ */
-
-  const CBT_COST_PER_QUESTION = 2;
 
   const walletBalance = Number(balance ?? 0);
 
@@ -73,9 +68,7 @@ export default function JambPracticePage() {
      ============================================================ */
 
   const handleStartCBT = () => {
-    if (walletLoading) {
-      return;
-    }
+    if (walletLoading) return;
 
     if (!canStartCBT) {
       setShowWalletWarning(true);
@@ -88,15 +81,12 @@ export default function JambPracticePage() {
     }
 
     router.push(
-      "/student/practice/cbtsubjects?exam=jamb"
+      "/student/practice/cbtsubjects?exam=jamb",
     );
   };
 
   /* ============================================================
      FUND WALLET
-     
-     Shows a short warning before taking the student
-     to the wallet page.
      ============================================================ */
 
   const handleFundWallet = () => {
@@ -110,9 +100,9 @@ export default function JambPracticePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      {/* ==================================================
-          BACKGROUND IDENTITY
-         ================================================== */}
+      {/* ========================================================
+          BACKGROUND
+         ======================================================== */}
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
@@ -122,371 +112,449 @@ export default function JambPracticePage() {
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-blue-500/[0.06] blur-3xl" />
       </div>
 
-      <div className="relative container mx-auto px-4 py-10">
-        {/* ==================================================
+      <div className="relative container mx-auto px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        {/* ======================================================
             HEADER
-           ================================================== */}
+           ====================================================== */}
 
-        <div className="mb-10">
+        <header className="mb-10">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1 text-sm font-semibold text-blue-300">
                 JAMB Practice
               </span>
 
-              <h1 className="mt-4 text-4xl font-bold tracking-tight text-white">
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 JAMB Practice Dashboard
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-7 text-slate-400">
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400 sm:text-lg">
                 Prepare for JAMB with past questions, timed CBT
-                practice, subject-based practice, and
-                performance tracking.
+                practice, subject-based practice, and performance
+                tracking.
               </p>
             </div>
 
-            {/* Back to examination selection */}
-
             <Link
               href="/student/practice"
-              className="shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
             >
               Change Examination
             </Link>
           </div>
-        </div>
+        </header>
 
-        {/* ==================================================
-            STATISTICS
-           ================================================== */}
-{/* 
-        <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <Card
-            hoverable
-            className="border border-white/10 bg-white/[0.04] text-center shadow-none"
-          >
-            <BookOpen className="mx-auto h-10 w-10 text-blue-400" />
+        {/* ======================================================
+            PRACTICE OPTIONS
+           ====================================================== */}
 
-            <h2 className="mt-4 text-3xl font-bold text-white">
-              12
-            </h2>
-
-            <p className="mt-2 text-slate-400">
-              Tests Taken
-            </p>
-          </Card>
-
-          <Card
-            hoverable
-            className="border border-white/10 bg-white/[0.04] text-center shadow-none"
-          >
-            <Target className="mx-auto h-10 w-10 text-green-400" />
-
-            <h2 className="mt-4 text-3xl font-bold text-white">
-              82%
-            </h2>
-
-            <p className="mt-2 text-slate-400">
-              Average Score
-            </p>
-          </Card>
-
-          <Card
-            hoverable
-            className="border border-white/10 bg-white/[0.04] text-center shadow-none"
-          >
-            <Clock3 className="mx-auto h-10 w-10 text-orange-400" />
-
-            <h2 className="mt-4 text-3xl font-bold text-white">
-              18h
-            </h2>
-
-            <p className="mt-2 text-slate-400">
-              Study Time
-            </p>
-          </Card>
-
-          <Card
-            hoverable
-            className="border border-white/10 bg-white/[0.04] text-center shadow-none"
-          >
-            <BarChart3 className="mx-auto h-10 w-10 text-purple-400" />
-
-            <h2 className="mt-4 text-3xl font-bold text-white">
-              +15%
-            </h2>
-
-            <p className="mt-2 text-slate-400">
-              Improvement
-            </p>
-          </Card>
-        </div> */}
-
-        {/* ==================================================
-            MAIN PRACTICE OPTIONS
-           ================================================== */}
-
-        <div className="mb-10">
+        <section>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white">
               Start Practising
             </h2>
 
-            <p className="mt-2 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-slate-400 sm:text-base">
               Choose how you want to prepare for JAMB.
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          {/* Equal-height grid */}
+
+          <div className="grid items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
             {/* ==================================================
-                PAST QUESTIONS
+                CARD 1: PAST QUESTIONS
                ================================================== */}
 
             <Card
               hoverable
-              className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
+              className="flex h-full min-w-0 flex-col overflow-hidden border border-white/10 bg-white/[0.04] p-5 shadow-none transition-colors hover:border-blue-500/30 hover:bg-white/[0.06] sm:p-6"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
-                <Brain className="h-7 w-7 text-blue-400" />
+              {/* Icon and heading */}
+
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
+                  <Brain className="h-7 w-7 text-blue-400" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                    Subject Practice
+                  </p>
+
+                  <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                    Past Questions
+                  </h3>
+                </div>
               </div>
 
-              <h3 className="mt-5 text-2xl font-bold text-white">
-                Practice Past Questions
-              </h3>
+              {/* Description */}
 
-              <p className="mt-3 leading-6 text-slate-400">
+              <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
                 Practise authentic JAMB questions by subject,
-                year, topic, and question category.
+                year, topic, and question category. Build
+                confidence with focused revision.
               </p>
 
-             
-{/* ==================================================
-    PRACTICE INFORMATION
-   ================================================== */}
+              {/* Plan information */}
 
-<div className="mt-4 flex items-center justify-between rounded-xl border border-green-500/10 bg-green-500/5 px-4 py-3">
-  <span className="text-xs font-medium text-slate-400">
-    Cost Per Year
-  </span>
+              <div className="mt-5 rounded-xl border border-white/10 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-slate-500">
+                      Annual access
+                    </p>
 
-  <span className="text-sm font-bold text-green-400">
-    ₦3,000.00 only
-  </span>
-</div>
+                    <p className="mt-1 text-lg font-bold text-white">
+                      ₦3,000.00
+                    </p>
+                  </div>
 
-<div className="mt-2 flex items-center gap-2">
-  <span
-    className={`h-2 w-2 rounded-full ${
-      hasSecondaryPlan
-        ? "bg-green-400"
-        : "bg-red-400"
-    }`}
-  />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-500/10">
+                    <BookMarked className="h-5 w-5 text-green-400" />
+                  </div>
+                </div>
 
-  <p
-    className={`text-xs font-semibold ${
-      hasSecondaryPlan
-        ? "text-green-400"
-        : "text-red-400"
-    }`}
-  >
-    {hasSecondaryPlan ? "Paid" : "Not Yet Paid"}
-  </p>
-</div>
+                <div className="my-4 border-t border-white/[0.07]" />
 
-<Link
-  href="/student/practice/jamb/combination"
-  className="mt-6 inline-flex"
->
-  <Button
-    rightIcon={
-      <ArrowRight className="h-4 w-4" />
-    }
-  >
-    {hasSecondaryPlan
-      ? "Start Practice"
-      : "Start Free Practice"}
-  </Button>
-</Link>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-slate-400">
+                    Plan status
+                  </span>
 
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      hasSecondaryPlan
+                        ? "bg-green-500/10 text-green-400"
+                        : "bg-amber-500/10 text-amber-400"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        hasSecondaryPlan
+                          ? "bg-green-400"
+                          : "bg-amber-400"
+                      }`}
+                    />
 
+                    {hasSecondaryPlan
+                      ? "Paid"
+                      : "Free Trial"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Aligned action */}
+
+              <div className="mt-auto pt-6">
+                <Link
+                  href="/student/practice/jamb/combination"
+                  className="block w-full"
+                >
+                  <Button
+                    fullWidth
+                    rightIcon={
+                      <ArrowRight className="h-4 w-4" />
+                    }
+                    className="min-h-12 w-full bg-blue-600 text-white hover:bg-blue-500"
+                  >
+                    {hasSecondaryPlan
+                      ? "Start Practice"
+                      : "Start Free Practice"}
+                  </Button>
+                </Link>
+
+                <p className="mt-3 text-center text-xs leading-5 text-slate-500">
+                  {hasSecondaryPlan
+                    ? "Continue with your selected subjects."
+                    : "Start practising your available free subjects."}
+                </p>
+              </div>
             </Card>
 
-
-{/* ==================================================
-    TIMED CBT
-   ================================================== */}
-
-<Card
-  hoverable
-  className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
->
-  {/* Header */}
-  <div className="flex items-start justify-between gap-4">
-    <div>
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-green-500/20 bg-green-500/10">
-        <Clock3 className="h-6 w-6 text-green-400" />
-      </div>
-
-      <h3 className="mt-5 text-xl font-bold text-white">
-        JAMB CBT Simulation
-      </h3>
-
-      <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-        Practice under real JAMB CBT conditions with
-        timed questions and instant scoring.
-      </p>
-    </div>
-  </div>
-
-  {/* Quick Info */}
-  <div className="mt-6 flex items-center justify-between border-y border-white/10 py-4">
-    <div>
-      <p className="text-xs text-slate-500">
-        Reward
-      </p>
-
-      <p className="mt-1 text-sm font-semibold text-green-400">
-        ₦2 → 1 CBT Point
-      </p>
-    </div>
-
-    <div className="text-right">
-      <p className="text-xs text-slate-500">
-        Cost per question
-      </p>
-
-      <p className="mt-1 text-sm font-semibold text-white">
-        ₦2
-      </p>
-    </div>
-  </div>
-
-  {/* Wallet */}
-  <div className="mt-5 flex items-center justify-between">
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.05]">
-        <WalletCards className="h-4 w-4 text-slate-400" />
-      </div>
-
-      <div>
-        <p className="text-xs text-slate-500">
-          Wallet Balance
-        </p>
-
-        <p
-          className={`mt-0.5 text-sm font-bold ${
-            canStartCBT
-              ? "text-green-400"
-              : "text-red-400"
-          }`}
-        >
-          ₦{walletBalance.toFixed(2)}
-        </p>
-      </div>
-    </div>
-
-    <span
-      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-        canStartCBT
-          ? "bg-green-500/10 text-green-400"
-          : "bg-red-500/10 text-red-400"
-      }`}
-    >
-      {canStartCBT ? "Ready" : "Insufficient"}
-    </span>
-  </div>
-
-  {/* Action */}
-  <div className="mt-6 min-h-[72px]">
-    {walletLoading ? (
-      <Button
-        type="button"
-        variant="outline"
-        disabled
-        className="w-full sm:w-auto"
-      >
-        Checking Wallet...
-      </Button>
-    ) : canStartCBT ? (
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleStartCBT}
-        rightIcon={
-          <ArrowRight className="h-4 w-4" />
-        }
-        className="w-full sm:w-auto"
-      >
-        Start CBT
-      </Button>
-    ) : (
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleFundWallet}
-        rightIcon={
-          <WalletCards className="h-4 w-4" />
-        }
-        className="w-full sm:w-auto"
-      >
-        Fund Wallet
-      </Button>
-    )}
-
-    {/* Temporary warning */}
-    <div className="mt-2 min-h-[28px]">
-      {showWalletWarning && (
-        <p className="animate-in fade-in text-xs leading-5 text-red-400 duration-200">
-          Your wallet balance is too low to start CBT.
-          Please fund your wallet before starting.
-        </p>
-      )}
-    </div>
-  </div>
-</Card>
-
-
             {/* ==================================================
-                PRACTICE HISTORY
+                CARD 2: CBT SIMULATION
                ================================================== */}
 
             <Card
               hoverable
-              className="relative overflow-hidden border border-white/10 bg-white/[0.04] shadow-none"
+              className="flex h-full min-w-0 flex-col overflow-hidden border border-white/10 bg-white/[0.04] p-5 shadow-none transition-colors hover:border-green-500/30 hover:bg-white/[0.06] sm:p-6"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10">
-                <BookMarked className="h-7 w-7 text-purple-400" />
+              {/* Icon and heading */}
+
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
+                  <Clock3 className="h-7 w-7 text-green-400" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-green-400">
+                    Exam Simulation
+                  </p>
+
+                  <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                    JAMB CBT
+                  </h3>
+                </div>
               </div>
 
-              <h3 className="mt-5 text-2xl font-bold text-white">
-                Practice History
-              </h3>
+              {/* Description */}
 
-              <p className="mt-3 leading-6 text-slate-400">
-                Review your previous JAMB practice sessions,
-                scores, accuracy, and improvement.
+              <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
+                Practise under timed CBT conditions with
+                examination-style questions and scoring.
+                Monitor your wallet before you begin.
               </p>
 
-              <Link
-                href="/student/practice/history?exam=jamb"
-                className="mt-6 inline-flex"
-              >
-                <Button
-                  variant="secondary"
-                  rightIcon={
-                    <ArrowRight className="h-4 w-4" />
-                  }
+              {/* CBT information */}
+
+              <div className="mt-5 rounded-xl border border-white/10 bg-slate-900/60 p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs leading-5 text-slate-500">
+                      Cost per question
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold text-white">
+                      ₦2.00
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 text-right">
+                    <p className="text-xs leading-5 text-slate-500">
+                      CBT points
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold text-green-400">
+                      1 point
+                    </p>
+
+                    <p className="text-[11px] text-slate-500">
+                      per ₦2 spent
+                    </p>
+                  </div>
+                </div>
+
+                <div className="my-4 border-t border-white/[0.07]" />
+
+                {/* Wallet balance */}
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.05]">
+                      <WalletCards className="h-5 w-5 text-slate-400" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-500">
+                        Wallet Balance
+                      </p>
+
+                      <p
+                        className={`mt-1 text-lg font-bold tabular-nums ${
+                          canStartCBT
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        ₦{walletBalance.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
+                      walletLoading
+                        ? "bg-white/5 text-slate-400"
+                        : canStartCBT
+                          ? "bg-green-500/10 text-green-400"
+                          : "bg-red-500/10 text-red-400"
+                    }`}
+                  >
+                    {walletLoading ? (
+                      <Loader2Icon />
+                    ) : canStartCBT ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <AlertCircle className="h-3.5 w-3.5" />
+                    )}
+
+                    {walletLoading
+                      ? "Checking"
+                      : canStartCBT
+                        ? "Ready"
+                        : "Low Balance"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Aligned action */}
+
+              <div className="mt-auto pt-6">
+                {walletLoading ? (
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="outline"
+                    disabled
+                    className="min-h-12 w-full border-white/10 bg-white/[0.03]"
+                  >
+                    <Loader2Icon />
+                    Checking Wallet...
+                  </Button>
+                ) : canStartCBT ? (
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="outline"
+                    onClick={handleStartCBT}
+                    rightIcon={
+                      <ArrowRight className="h-4 w-4" />
+                    }
+                    className="min-h-12 w-full border-green-500/20 bg-green-500/[0.06] text-green-300 hover:bg-green-500/10 hover:text-green-200"
+                  >
+                    Start CBT
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="outline"
+                    onClick={handleFundWallet}
+                    rightIcon={
+                      <WalletCards className="h-4 w-4" />
+                    }
+                    className="min-h-12 w-full border-green-500/20 bg-green-500/[0.06] text-green-300 hover:bg-green-500/10 hover:text-green-200"
+                  >
+                    Fund Wallet
+                  </Button>
+                )}
+
+                <div className="mt-3 min-h-[40px]">
+                  {showWalletWarning && (
+                    <p
+                      role="status"
+                      className="text-center text-xs leading-5 text-amber-400"
+                    >
+                      {canStartCBT
+                        ? "Opening your CBT practice..."
+                        : "Your wallet balance is too low. Fund your wallet to continue."}
+                    </p>
+                  )}
+
+                  {!showWalletWarning && (
+                    <p className="text-center text-xs leading-5 text-slate-500">
+                      {canStartCBT
+                        ? "Your wallet meets the minimum entry requirement."
+                        : "You need at least ₦2 to start CBT."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* ==================================================
+                CARD 3: PRACTICE HISTORY
+               ================================================== */}
+
+            <Card
+              hoverable
+              className="flex h-full min-w-0 flex-col overflow-hidden border border-white/10 bg-white/[0.04] p-5 shadow-none transition-colors hover:border-purple-500/30 hover:bg-white/[0.06] sm:p-6 md:col-span-2 xl:col-span-1"
+            >
+              {/* Icon and heading */}
+
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10">
+                  <BookMarked className="h-7 w-7 text-purple-400" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-purple-400">
+                    Your Progress
+                  </p>
+
+                  <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                    Practice History
+                  </h3>
+                </div>
+              </div>
+
+              {/* Description */}
+
+              <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
+                Review your previous JAMB practice sessions,
+                scores, accuracy, and improvement over time.
+                Use your results to identify what to revise.
+              </p>
+
+              {/* History information */}
+
+              <div className="mt-5 rounded-xl border border-white/10 bg-slate-900/60 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10">
+                    <BookMarked className="h-5 w-5 text-purple-400" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">
+                      Your past sessions
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Scores, accuracy and progress
+                    </p>
+                  </div>
+                </div>
+
+                <div className="my-4 border-t border-white/[0.07]" />
+
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-purple-400" />
+
+                  <span>Track your learning progress</span>
+                </div>
+              </div>
+
+              {/* Aligned action */}
+
+              <div className="mt-auto pt-6">
+                <Link
+                  href="/student/practice/history?exam=jamb"
+                  className="block w-full"
                 >
-                  View History
-                </Button>
-              </Link>
+                  <Button
+                    fullWidth
+                    variant="secondary"
+                    rightIcon={
+                      <ArrowRight className="h-4 w-4" />
+                    }
+                    className="min-h-12 w-full"
+                  >
+                    View History
+                  </Button>
+                </Link>
+
+                <p className="mt-3 text-center text-xs leading-5 text-slate-500">
+                  Learn from your previous attempts.
+                </p>
+              </div>
             </Card>
           </div>
-        </div>
-
-              
+        </section>
       </div>
     </main>
+  );
+}
+
+/* ============================================================
+   SMALL WALLET LOADER ICON
+   ============================================================ */
+
+function Loader2Icon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
+    />
   );
 }

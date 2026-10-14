@@ -2,6 +2,8 @@
 
 
 
+
+
 "use client";
 
 import { CheckCircle2, XCircle } from "lucide-react";
@@ -19,24 +21,22 @@ export function QuestionAnswer({
 }: QuestionAnswerProps) {
   if (!correctAnswer) {
     return (
-      <Card className="mt-5 border-amber-200 bg-amber-50 p-5">
+      <Card className="mt-5 border border-amber-500/20 bg-amber-500/[0.06] p-5 text-white shadow-none">
         <div className="flex items-start gap-3">
-
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
-            <CheckCircle2 className="h-5 w-5 text-amber-600" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10">
+            <CheckCircle2 className="h-5 w-5 text-amber-400" />
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-amber-900">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-amber-300">
               Correct Answer
             </h3>
 
-            <p className="mt-1 text-sm leading-6 text-amber-700">
+            <p className="mt-1 text-sm leading-6 text-slate-400">
               The correct answer is not available for
               this question.
             </p>
           </div>
-
         </div>
       </Card>
     );
@@ -58,117 +58,96 @@ export function QuestionAnswer({
       normalizedCorrectAnswer;
 
   return (
-    <Card className="mt-5 overflow-hidden border-slate-200">
-
-      {/* ====================================================
-          CORRECT ANSWER
-          ==================================================== */}
-
-      <div className="border-b border-green-200 bg-green-50 p-5">
-
+    <Card className="mt-5 overflow-hidden border border-white/10 bg-white/[0.03] text-white shadow-none">
+      {/* CORRECT ANSWER */}
+      <div className="border-b border-emerald-500/15 bg-emerald-500/[0.07] p-5">
         <div className="flex items-start gap-3">
-
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
           </div>
 
           <div className="min-w-0">
-
-            <h3 className="text-sm font-semibold text-green-900">
+            <h3 className="text-sm font-semibold text-emerald-300">
               Correct Answer
             </h3>
 
-            <p className="mt-1 text-lg font-bold text-green-700">
+            <p className="mt-1 break-words text-lg font-bold text-emerald-400">
               {correctAnswer}
             </p>
-
           </div>
         </div>
       </div>
 
-      {/* ====================================================
-          STUDENT ANSWER
-          ==================================================== */}
-
+      {/* STUDENT ANSWER */}
       {hasSelectedAnswer && (
         <div
           className={`p-5 ${
             isCorrect
-              ? "bg-green-50/50"
-              : "bg-red-50"
+              ? "bg-emerald-500/[0.04]"
+              : "bg-red-500/[0.05]"
           }`}
         >
-
           <div className="flex items-start gap-3">
-
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
                 isCorrect
-                  ? "bg-green-100"
-                  : "bg-red-100"
+                  ? "border-emerald-500/20 bg-emerald-500/10"
+                  : "border-red-500/20 bg-red-500/10"
               }`}
             >
               {isCorrect ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-5 w-5 text-red-400" />
               )}
             </div>
 
             <div className="min-w-0">
-
               <h3
                 className={`text-sm font-semibold ${
                   isCorrect
-                    ? "text-green-900"
-                    : "text-red-900"
+                    ? "text-emerald-300"
+                    : "text-red-300"
                 }`}
               >
                 Your Answer
               </h3>
 
               <p
-                className={`mt-1 text-lg font-bold ${
+                className={`mt-1 break-words text-lg font-bold ${
                   isCorrect
-                    ? "text-green-700"
-                    : "text-red-700"
+                    ? "text-emerald-400"
+                    : "text-red-400"
                 }`}
               >
                 {selectedAnswer}
               </p>
 
               <p
-                className={`mt-2 text-sm ${
+                className={`mt-2 text-sm leading-6 ${
                   isCorrect
-                    ? "text-green-700"
-                    : "text-red-700"
+                    ? "text-emerald-300/80"
+                    : "text-red-300/80"
                 }`}
               >
                 {isCorrect
                   ? "Correct! Your answer matches the correct answer."
                   : "Your answer is incorrect. Review the correct answer and explanation below."}
               </p>
-
             </div>
           </div>
         </div>
       )}
 
-      {/* ====================================================
-          NO ANSWER SELECTED
-          ==================================================== */}
-
+      {/* NO ANSWER SELECTED */}
       {!hasSelectedAnswer && (
-        <div className="bg-slate-50 p-5">
-
-          <p className="text-sm text-slate-600">
+        <div className="border-t border-white/5 bg-white/[0.02] p-5">
+          <p className="text-sm leading-6 text-slate-400">
             You have not selected an answer for this
             question.
           </p>
-
         </div>
       )}
-
     </Card>
   );
 }

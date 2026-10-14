@@ -677,7 +677,7 @@ export default function QuizBoardPage() {
 
                   <div>
                     <p className="text-sm font-semibold text-white">
-                      Unable to load competitions
+                      Competition Not Available 
                     </p>
                     <p className="mt-1 text-sm leading-6 text-slate-400">
                       {competitionsError}

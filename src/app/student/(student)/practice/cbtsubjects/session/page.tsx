@@ -1977,15 +1977,6 @@ export default function CbtSessionPage() {
 
 
 
-
-
-
-
-
-
-
-
-
 // "use client";
 
 // import {
@@ -2140,10 +2131,6 @@ export default function CbtSessionPage() {
 //   const options = question.options;
 
 //   if (Array.isArray(options)) {
-//     /*
-//      * Student answer is already
-//      * an option label.
-//      */
 //     for (const option of options) {
 //       const label = normalizeAnswer(
 //         option.label,
@@ -2157,10 +2144,6 @@ export default function CbtSessionPage() {
 //       }
 //     }
 
-//     /*
-//      * Student answer is the
-//      * option value.
-//      */
 //     for (const option of options) {
 //       const label = normalizeAnswer(
 //         option.label,
@@ -2514,6 +2497,20 @@ export default function CbtSessionPage() {
 //     setInitialized,
 //   ] = useState(false);
 
+//   /*
+//    * This state remembers whether the student has
+//    * selected an answer at least once during this
+//    * page session.
+//    *
+//    * It deliberately remains true after the first
+//    * answer, even if an answer is later cleared.
+//    */
+
+//   const [
+//     hasSelectedFirstAnswer,
+//     setHasSelectedFirstAnswer,
+//   ] = useState(false);
+
 //   /* ==========================================================
 //      BASIC STATE
 //   ========================================================== */
@@ -2534,9 +2531,34 @@ export default function CbtSessionPage() {
 //         (answer) =>
 //           answer !== undefined &&
 //           answer !== null &&
-//           answer !== "",
+//           String(answer).trim() !== "",
 //       ).length;
 //     }, [answers]);
+
+//   /* ==========================================================
+//      FIRST ANSWER VISIBILITY
+
+//      Reveal question numbers and Session Progress
+//      only after the student has answered at least
+//      one question.
+
+//      Existing answers are also detected in case
+//      the store already contains saved answers.
+//   ========================================================== */
+
+//   const hasAnyAnswer =
+//     useMemo(() => {
+//       return Object.values(
+//         answers ?? {},
+//       ).some(
+//         (answer) =>
+//           answer !== undefined &&
+//           answer !== null &&
+//           String(answer).trim() !== "",
+//       );
+//     }, [answers]);
+
+//  const showQuestionProgress = hasSelectedFirstAnswer;
 
 //   /* ==========================================================
 //      UNANSWERED COUNT
@@ -2590,16 +2612,12 @@ export default function CbtSessionPage() {
 //       }
 
 //       /*
-//        * IMPORTANT:
-//        *
-//        * We DO NOT create a local
-//        * session ID anymore.
-//        *
-//        * The backend practiceId was
-//        * created by:
-//        *
+//        * The backend practiceId is created by:
 //        * POST /practice/sessions
+//        *
+//        * Do not create a local session ID here.
 //        */
+
 //       startExam();
 
 //       setInitialized(true);
@@ -2725,9 +2743,9 @@ export default function CbtSessionPage() {
 //                 answers[
 //                   questionId
 //                 ] !== null &&
-//                 answers[
-//                   questionId
-//                 ] !== "",
+//                 String(
+//                   answers[questionId],
+//                 ).trim() !== "",
 //             ).length;
 
 //           return {
@@ -2815,10 +2833,23 @@ export default function CbtSessionPage() {
 //       }
 
 //       /*
+//        * Reveal the question navigator and
+//        * Session Progress after the first answer.
+//        */
+
+//       if (
+//         answer !== undefined &&
+//         answer !== null &&
+//         String(answer).trim() !== ""
+//       ) {
+//         setHasSelectedFirstAnswer(true);
+//       }
+
+//       /*
 //        * Answers remain frontend/local.
-//        *
 //        * There is NO answer endpoint.
 //        */
+
 //       selectAnswer(
 //         currentQuestion._id,
 //         answer,
@@ -3412,10 +3443,6 @@ export default function CbtSessionPage() {
 //             />
 //           </div>
 
-//           {/* ==================================================
-//               RESULT DETAILS
-//           ================================================== */}
-
 //           {result && (
 //             <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
 //               <div className="mb-5">
@@ -3544,78 +3571,70 @@ export default function CbtSessionPage() {
 
 //   return (
 //     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-//       {/* ======================================================
-//           GLOBAL BACKGROUND
-//       ====================================================== */}
-
 //       <div className="pointer-events-none fixed inset-0">
 //         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_35%)]" />
 //       </div>
 
 //       <div className="relative">
-//         {/* ====================================================
-//             HEADER
-//         ==================================================== */}
 
-//         <CbtHeader
-//           subjectName={
-//             currentSubject?.name ??
-//             "Practice Examination"
-//           }
-//           questionNumber={
-//             currentQuestionIndex + 1
-//           }
-//           totalQuestions={
-//             questions.length
-//           }
-//           durationInMinutes={
-//             durationInMinutes
-//           }
-//           timeRemainingSeconds={
-//             timeRemainingSeconds
-//           }
-//           onTimeUp={
-//             handleTimeUp
-//           }
-//           onSubmit={() =>
-//             setShowSubmitDialog(
-//               true,
-//             )
-//           }
-//           onExit={
-//             handleExit
-//           }
-//         />
 
-//         {/* ====================================================
-//             BACKEND PRACTICE STATUS
-//         ==================================================== */}
+        
+// {/* HEADER */}
+
+// <CbtHeader
+//   subjectName={
+//     currentSubject?.name ??
+//     "Practice Examination"
+//   }
+//   questionNumber={
+//     showQuestionProgress
+//       ? currentQuestionIndex + 1
+//       : 0
+//   }
+//   totalQuestions={
+//     showQuestionProgress
+//       ? questions.length
+//       : 0
+//   }
+//   durationInMinutes={
+//     durationInMinutes
+//   }
+//   timeRemainingSeconds={
+//     timeRemainingSeconds
+//   }
+//   onTimeUp={
+//     handleTimeUp
+//   }
+//   onSubmit={() =>
+//     setShowSubmitDialog(true)
+//   }
+//   onExit={
+//     handleExit
+//   }
+// />
+
+
+//         {/* BACKEND PRACTICE STATUS */}
 
 //         {isStarted && (
 //           <div className="border-b border-emerald-400/10 bg-emerald-500/[0.06]">
 //             <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 text-xs font-bold text-emerald-300">
 //               <span className="flex items-center gap-2">
 //                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-
 //                 Practice in progress
 //               </span>
 //             </div>
 //           </div>
 //         )}
 
-//         {/* ====================================================
-//             SUBJECT TABS
-//         ==================================================== */}
+//         {/* SUBJECT TABS */}
 
 //         <div className="border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
 //           <div className="mx-auto max-w-7xl px-4 py-3">
 //             <CbtSubjectTabs
-//               subjects={
-//                 subjectTabs
-//               }
+//               subjects={subjectTabs}
 //               activeSubjectId={
-//                 currentSubject?._id ??
-//                 ""
+//                 currentSubject?._id ?? ""
 //               }
 //               onSelectSubject={
 //                 handleSelectSubject
@@ -3624,256 +3643,234 @@ export default function CbtSessionPage() {
 //           </div>
 //         </div>
 
-//         {/* ====================================================
-//             MOBILE NAVIGATOR
-//         ==================================================== */}
+//         {/* MOBILE NAVIGATOR
+//             Hidden until the first answer. */}
 
-//         <div className="mx-auto max-w-7xl px-4 pt-4 lg:hidden">
-//           <button
-//             type="button"
-//             onClick={() =>
-//               setShowNavigator(
-//                 (value) =>
-//                   !value,
-//               )
-//             }
-//             className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300 shadow-lg shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06]"
-//           >
-//             <span>
-//               Question{" "}
-//               {currentQuestionIndex +
-//                 1}{" "}
-//               of {questions.length}
-//             </span>
+//         {showQuestionProgress && (
+//           <div className="mx-auto max-w-7xl px-4 pt-4 lg:hidden">
+//             <button
+//               type="button"
+//               onClick={() =>
+//                 setShowNavigator((value) => !value)
+//               }
+//               className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300 shadow-lg shadow-black/10 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06]"
+//             >
+//               <span>
+//                 Question{" "}
+//                 {currentQuestionIndex + 1}{" "}
+//                 of {questions.length}
+//               </span>
 
-//             <span className="text-blue-400">
-//               {answeredCount}/
-//               {questions.length}{" "}
-//               answered
-//             </span>
-//           </button>
-//         </div>
+//               <span className="text-blue-400">
+//                 {answeredCount}/{questions.length}{" "}
+//                 answered
+//               </span>
+//             </button>
+//           </div>
+//         )}
 
-//         {/* ====================================================
-//             MAIN CONTENT
-//         ==================================================== */}
+//         {/* MAIN CONTENT */}
 
-//         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-//           {/* ==================================================
-//               QUESTION NAVIGATOR
-//           ================================================== */}
+//         <div
+//   className={[
+//     "mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6",
+//     showQuestionProgress
+//       ? "lg:grid-cols-[280px_minmax(0,1fr)]"
+//       : "",
+//   ].join(" ")}
+// >
+//           {/* QUESTION NAVIGATOR + SESSION PROGRESS
+//               Both remain hidden until the first answer. */}
 
-//           <aside
-//             className={[
-//               "lg:block",
-//               showNavigator
-//                 ? "block"
-//                 : "hidden",
-//             ].join(" ")}
-//           >
-//             <div className="sticky top-20">
-//               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 backdrop-blur-sm">
-//                 <CbtQuestionNavigator
-//                   questionIds={questions.map(
-//                     (question) =>
-//                       question._id,
-//                   )}
-//                   currentQuestionIndex={
-//                     currentQuestionIndex
-//                   }
-//                   answers={answers}
-//                   flaggedQuestions={
-//                     flaggedQuestions
-//                   }
-//                   onSelectQuestion={
-//                     handleQuestionSelect
-//                   }
-//                 />
-//               </div>
-
-//               {/* ==============================================
-//                   PROGRESS
-//               ============================================== */}
-
-//               <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 backdrop-blur-sm">
-//                 <div className="flex items-center justify-between">
-//                   <div>
-//                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-//                       Session
-//                     </p>
-
-//                     <h3 className="mt-1 text-sm font-black text-white">
-//                       Progress
-//                     </h3>
-//                   </div>
-
-//                   <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-400">
-//                     <Clock3 className="h-4 w-4" />
-//                   </div>
+//           {showQuestionProgress && (
+//             <aside
+//               className={[
+//                 "lg:block",
+//                 showNavigator
+//                   ? "block"
+//                   : "hidden",
+//               ].join(" ")}
+//             >
+//               <div className="sticky top-20">
+//                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 backdrop-blur-sm">
+//                   <CbtQuestionNavigator
+//                     questionIds={questions.map(
+//                       (question) => question._id,
+//                     )}
+//                     currentQuestionIndex={
+//                       currentQuestionIndex
+//                     }
+//                     answers={answers}
+//                     flaggedQuestions={
+//                       flaggedQuestions
+//                     }
+//                     onSelectQuestion={
+//                       handleQuestionSelect
+//                     }
+//                   />
 //                 </div>
 
-//                 <div className="mt-5 space-y-3">
-//                   <div className="flex items-center justify-between text-sm">
-//                     <span className="text-slate-500">
-//                       Answered
-//                     </span>
+//                 {/* SESSION PROGRESS */}
 
-//                     <span className="font-bold text-emerald-400">
-//                       {answeredCount}
-//                     </span>
+//                 <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 backdrop-blur-sm">
+//                   <div className="flex items-center justify-between">
+//                     <div>
+//                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+//                         Session
+//                       </p>
+
+//                       <h3 className="mt-1 text-sm font-black text-white">
+//                         Progress
+//                       </h3>
+//                     </div>
+
+//                     <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-400">
+//                       <Clock3 className="h-4 w-4" />
+//                     </div>
 //                   </div>
 
-//                   <div className="flex items-center justify-between text-sm">
-//                     <span className="text-slate-500">
-//                       Unanswered
-//                     </span>
+//                   <div className="mt-5 space-y-3">
+//                     <div className="flex items-center justify-between text-sm">
+//                       <span className="text-slate-500">
+//                         Answered
+//                       </span>
 
-//                     <span className="font-bold text-slate-300">
-//                       {unansweredCount}
-//                     </span>
+//                       <span className="font-bold text-emerald-400">
+//                         {answeredCount}
+//                       </span>
+//                     </div>
+
+//                     <div className="flex items-center justify-between text-sm">
+//                       <span className="text-slate-500">
+//                         Unanswered
+//                       </span>
+
+//                       <span className="font-bold text-slate-300">
+//                         {unansweredCount}
+//                       </span>
+//                     </div>
+
+//                     <div className="flex items-center justify-between text-sm">
+//                       <span className="text-slate-500">
+//                         Flagged
+//                       </span>
+
+//                       <span className="font-bold text-amber-400">
+//                         {flaggedCount}
+//                       </span>
+//                     </div>
 //                   </div>
 
-//                   <div className="flex items-center justify-between text-sm">
-//                     <span className="text-slate-500">
-//                       Flagged
-//                     </span>
+//                   {/* PROGRESS BAR */}
 
-//                     <span className="font-bold text-amber-400">
-//                       {flaggedCount}
-//                     </span>
-//                   </div>
-//                 </div>
+//                   <div className="mt-5">
+//                     <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+//                       <span>Completion</span>
 
-//                 {/* ============================================
-//                     PROGRESS BAR
-//                 ============================================ */}
-
-//                 <div className="mt-5">
-//                   <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
-//                     <span>
-//                       Completion
-//                     </span>
-
-//                     <span className="text-slate-300">
-//                       {questions.length >
-//                       0
-//                         ? Math.round(
-//                             (answeredCount /
-//                               questions.length) *
-//                               100,
-//                           )
-//                         : 0}
-//                       %
-//                     </span>
-//                   </div>
-
-//                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
-//                     <div
-//                       className="h-full rounded-full bg-gradient-to-r from-blue-600 to-violet-500 transition-all"
-//                       style={{
-//                         width: `${
-//                           questions.length >
-//                           0
-//                             ? Math.min(
+//                       <span className="text-slate-300">
+//                         {questions.length > 0
+//                           ? Math.round(
+//                               (answeredCount /
+//                                 questions.length) *
 //                                 100,
-//                                 Math.round(
-//                                   (answeredCount /
-//                                     questions.length) *
-//                                     100,
-//                                 ),
-//                               )
-//                             : 0
-//                         }%`,
-//                       }}
-//                     />
+//                             )
+//                           : 0}
+//                         %
+//                       </span>
+//                     </div>
+
+//                     <div className="h-2 overflow-hidden rounded-full bg-white/10">
+//                       <div
+//                         className="h-full rounded-full bg-gradient-to-r from-blue-600 to-violet-500 transition-all"
+//                         style={{
+//                           width: `${
+//                             questions.length > 0
+//                               ? Math.min(
+//                                   100,
+//                                   Math.round(
+//                                     (answeredCount /
+//                                       questions.length) *
+//                                       100,
+//                                   ),
+//                                 )
+//                               : 0
+//                           }%`,
+//                         }}
+//                       />
+//                     </div>
 //                   </div>
 //                 </div>
 //               </div>
-//             </div>
-//           </aside>
+//             </aside>
+//           )}
 
-//           {/* ==================================================
-//               QUESTION AREA
-//           ================================================== */}
+//           {/* QUESTION AREA */}
 
 //           <section className="min-w-0">
-//             {/* ================================================
-//                 QUESTION STATUS
-//             ================================================ */}
+//             {/* QUESTION STATUS
+//                 Hidden until the first answer. */}
 
-//             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-//               <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
-//                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
-//                   <Clock3 className="h-4 w-4 text-blue-400" />
+//             {showQuestionProgress && (
+//               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+//                 <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
+//                   <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+//                     <Clock3 className="h-4 w-4 text-blue-400" />
+//                   </div>
+
+//                   <span>
+//                     Question{" "}
+//                     {currentQuestionIndex + 1}{" "}
+//                     of {questions.length}
+//                   </span>
 //                 </div>
 
-//                 <span>
-//                   Question{" "}
-//                   {currentQuestionIndex +
-//                     1}{" "}
-//                   of {questions.length}
-//                 </span>
-//               </div>
+//                 <div className="flex flex-wrap items-center gap-3">
+//                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-slate-300 backdrop-blur-sm">
+//                     <CheckCircle2 className="h-4 w-4 text-emerald-400" />
 
-//               <div className="flex flex-wrap items-center gap-3">
-//                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-slate-300 backdrop-blur-sm">
-//                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-
-//                   {answeredCount}{" "}
-//                   answered
-//                 </span>
-
-//                 {flaggedCount >
-//                   0 && (
-//                   <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300">
-//                     <Flag className="h-4 w-4" />
-
-//                     {flaggedCount}{" "}
-//                     flagged
+//                     {answeredCount} answered
 //                   </span>
-//                 )}
-//               </div>
-//             </div>
 
-//             {/* ================================================
-//                 QUESTION CARD
-//             ================================================ */}
+//                   {flaggedCount > 0 && (
+//                     <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300">
+//                       <Flag className="h-4 w-4" />
 
-//             {currentQuestion && (
-//               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-1 shadow-2xl shadow-black/20 backdrop-blur-sm">
-//                 <CbtQuestionCard
-//                   question={
-//                     currentQuestion
-//                   }
-//                   questionNumber={
-//                     currentQuestionIndex +
-//                     1
-//                   }
-//                   selectedAnswer={
-//                     currentAnswer
-//                   }
-//                   onSelectAnswer={
-//                     handleAnswer
-//                   }
-//                 />
+//                       {flaggedCount} flagged
+//                     </span>
+//                   )}
+//                 </div>
 //               </div>
 //             )}
 
-//             {/* ================================================
-//                 FLAG QUESTION
-//             ================================================ */}
+          
+// {/* QUESTION CARD */}
+
+// {currentQuestion && (
+//   <div className="w-full min-w-0 rounded-3xl border border-white/10 bg-white/[0.03] p-1 shadow-2xl shadow-black/20 backdrop-blur-sm">
+//     <CbtQuestionCard
+//       question={currentQuestion}
+//       questionNumber={
+//         showQuestionProgress
+//           ? currentQuestionIndex + 1
+//           : 0
+//       }
+//       selectedAnswer={currentAnswer}
+//       onSelectAnswer={handleAnswer}
+//       isFlagged={isCurrentQuestionFlagged}
+//       onToggleFlag={handleToggleFlag}
+//     />
+//   </div>
+// )}
+
+
+//             {/* FLAG QUESTION */}
 
 //             {currentQuestion && (
 //               <div className="mt-4">
 //                 <button
 //                   type="button"
-//                   onClick={
-//                     handleToggleFlag
-//                   }
-//                   disabled={
-//                     !isStarted ||
-//                     isSubmitted
-//                   }
+//                   onClick={handleToggleFlag}
+//                   disabled={!isStarted || isSubmitted}
 //                   className={[
 //                     "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition",
 //                     isCurrentQuestionFlagged
@@ -3891,77 +3888,50 @@ export default function CbtSessionPage() {
 //               </div>
 //             )}
 
-//             {/* ================================================
-//                 NAVIGATION
-//             ================================================ */}
+//             {/* NAVIGATION */}
 
 //             <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-4 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-5">
 //               <CbtNavigation
 //                 isFirstQuestion={
-//                   currentQuestionIndex ===
-//                   0
+//                   currentQuestionIndex === 0
 //                 }
 //                 isLastQuestion={
 //                   currentQuestionIndex ===
 //                   questions.length - 1
 //                 }
 //                 questionNumber={
-//                   currentQuestionIndex +
-//                   1
+//                   currentQuestionIndex + 1
 //                 }
-//                 totalQuestions={
-//                   questions.length
-//                 }
-//                 onPrevious={
-//                   handlePrevious
-//                 }
-//                 onNext={
-//                   handleNext
-//                 }
+//                 totalQuestions={questions.length}
+//                 onPrevious={handlePrevious}
+//                 onNext={handleNext}
 //                 onSubmit={() =>
-//                   setShowSubmitDialog(
-//                     true,
-//                   )
+//                   setShowSubmitDialog(true)
 //                 }
 //               />
 //             </div>
 //           </section>
 //         </div>
 
-//         {/* ====================================================
-//             SUBMIT DIALOG
-//         ==================================================== */}
+//         {/* SUBMIT DIALOG */}
 
 //         <CbtSubmitDialog
-//           open={
-//             showSubmitDialog
-//           }
-//           answeredQuestions={
-//             answeredCount
-//           }
-//           totalQuestions={
-//             questions.length
-//           }
+//           open={showSubmitDialog}
+//           answeredQuestions={answeredCount}
+//           totalQuestions={questions.length}
 //           onCancel={() => {
 //             /*
 //              * Time-up submission cannot
 //              * be cancelled.
 //              */
+
 //             if (!timeUp) {
-//               setShowSubmitDialog(
-//                 false,
-//               );
+//               setShowSubmitDialog(false);
 //             }
 //           }}
-//           onConfirm={
-//             handleSubmit
-//           }
-//           isSubmitting={
-//             isSubmitting
-//           }
-//           timeUp={
-//             timeUp
-//           }
+//           onConfirm={handleSubmit}
+//           isSubmitting={isSubmitting}
+//           timeUp={timeUp}
 //         />
 //       </div>
 //     </main>

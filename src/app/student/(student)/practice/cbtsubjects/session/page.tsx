@@ -3,101 +3,46 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import { useRouter } from "next/navigation";
-
 import {
+ AlertCircle, CheckCircle2, Clock3, Flag, Loader2,
+ RotateCcw,} from "lucide-react";
 
-  AlertCircle,
-
-  CheckCircle2,
-
-  Clock3,
-
-  Flag,
-
-  Loader2,
-
-  RotateCcw,
-
-} from "lucide-react";
-
-
-
-import {
-
-  useCbtStore,
-
-  selectCurrentQuestion,
-
-  selectCurrentSubject,
-
-  type CbtQuestion,
-
-} from "@/stores/cbtStore";
-
-
+import { useCbtStore, selectCurrentQuestion,selectCurrentSubject,
+type CbtQuestion,} from "@/stores/cbtStore";
 
 import { markPracticeSession } from "@/lib/api/practice";
-
-
-
 import CbtHeader from "@/components/cbt/CbtHeader";
-
 import CbtSubjectTabs from "@/components/cbt/CbtSubjectTabs";
-
 import CbtQuestionNavigator from "@/components/cbt/CbtQuestionNavigator";
-
 import CbtQuestionCard from "@/components/cbt/CbtQuestionCard";
-
 import CbtNavigation from "@/components/cbt/CbtNavigation";
-
 import CbtSubmitDialog from "@/components/cbt/CbtSubmitDialog";
-
 import CbtExamSummary from "@/components/cbt/CbtExamSummary";
-
 
 
 const ACTIVE_PRACTICE_ID_KEY = "jamb-league-active-practice-id";
 
-
-
 function clearStoredPracticeId() {
-
-  if (typeof window !== "undefined") {
-
-    localStorage.removeItem(ACTIVE_PRACTICE_ID_KEY);
-
+ if (typeof window !== "undefined") {
+  localStorage.removeItem(ACTIVE_PRACTICE_ID_KEY);
   }
-
 }
-
-
 
 function normalizeAnswer(value: unknown): string | null {
+ if (typeof value !== "string") return null;
 
-  if (typeof value !== "string") return null;
-
-
-
-  const normalized = value.trim().toLowerCase();
-
-  return normalized || null;
-
+ const normalized = value.trim().toLowerCase();
+return normalized || null;
 }
 
-
-
 function getStudentAnswerLabel(
-
-  question: CbtQuestion,
-
-  studentAnswer: unknown,
+ question: CbtQuestion,
+ studentAnswer: unknown,
 
 ): string | null {
 
-  const normalizedAnswer = normalizeAnswer(studentAnswer);
-
+const normalizedAnswer = normalizeAnswer(studentAnswer);
 
 
   if (!normalizedAnswer) return null;
@@ -109,64 +54,33 @@ function getStudentAnswerLabel(
 
 
   if (Array.isArray(options)) {
-
     const matchingLabel = options.find(
-
-      (option) =>
-
-        normalizeAnswer(option.label) === normalizedAnswer,
-
+  (option) =>
+   normalizeAnswer(option.label) === normalizedAnswer,
     );
-
-
-
-    if (matchingLabel) {
-
-      return normalizeAnswer(matchingLabel.label);
-
-    }
-
-
-
-    const matchingValue = options.find(
-
-      (option) =>
-
-        normalizeAnswer(option.value) === normalizedAnswer,
-
-    );
-
-
-
+ if (matchingLabel) {
+   return normalizeAnswer(matchingLabel.label);
+ }
+ const matchingValue = options.find(
+ (option) =>
+   normalizeAnswer(option.value) === normalizedAnswer,
+  );
     if (matchingValue) {
-
-      return normalizeAnswer(matchingValue.label);
-
+   return normalizeAnswer(matchingValue.label);
     }
-
   }
-
-
-
   return normalizedAnswer;
-
 }
-
-
 
 export default function CbtSessionPage() {
 
   const router = useRouter();
-
-
 
   // Current question and subject
 
   const currentQuestion = useCbtStore(selectCurrentQuestion);
 
   const currentSubject = useCbtStore(selectCurrentSubject);
-
-
 
   // Session state
 
@@ -264,8 +178,6 @@ export default function CbtSessionPage() {
 
   const resetSession = useCbtStore((state) => state.resetSession);
 
-
-
   // Local UI state
 
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -281,8 +193,6 @@ export default function CbtSessionPage() {
   // Bring the submit controls into view after the final question is answered.
   const submitFocusRef = useRef<HTMLDivElement | null>(null);
 
-
-
   // Basic state
 
   const hasQuestions = Array.isArray(questions) && questions.length > 0;
@@ -297,8 +207,6 @@ export default function CbtSessionPage() {
 
     : undefined;
 
-
-
   const isCurrentQuestionAnswered =
 
     currentAnswer !== undefined &&
@@ -306,8 +214,6 @@ export default function CbtSessionPage() {
     currentAnswer !== null &&
 
     String(currentAnswer).trim() !== "";
-
-
 
   /*
 
@@ -1737,79 +1643,41 @@ export default function CbtSessionPage() {
                 </div>
               )}
               <CbtNavigation
-
                 isFirstQuestion={currentQuestionIndex === 0}
-
                 isLastQuestion={
-
                   currentQuestionIndex === questions.length - 1
-
                 }
-
                 questionNumber={
-
                   showQuestionProgress
-
                     ? currentQuestionIndex + 1
-
                     : 0
-
                 }
-
                 totalQuestions={
-
                   showQuestionProgress ? questions.length : 0
-
                 }
-
                 onPrevious={handlePrevious}
-
                 onNext={handleNext}
-
                 onSubmit={() => setShowSubmitDialog(true)}
-
               />
-
             </div>
-
           </section>
-
         </div>
-
-
-
         <CbtSubmitDialog
-
           open={showSubmitDialog}
-
           answeredQuestions={answeredCount}
-
           totalQuestions={questions.length}
-
           onCancel={() => {
-
             if (!timeUp) {
-
               setShowSubmitDialog(false);
-
             }
-
           }}
-
           onConfirm={handleSubmit}
-
           isSubmitting={isSubmitting}
-
           timeUp={timeUp}
-
         />
-
       </div>
-
     </main>
-
   );
-
 }
 
 

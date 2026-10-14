@@ -4,9 +4,10 @@
 
 
 
+
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import {
   Brain,
   CheckCircle2,
@@ -117,6 +118,7 @@ function CenterCard({
   compact?: boolean;
 }) {
   const subject = card.subject;
+
   const subjectStyle =
     SUBJECT_STYLES[subject] ??
     "from-slate-700 via-slate-900 to-slate-950 border-white/20 text-slate-100";
@@ -224,7 +226,9 @@ function DrawPilePanel({
 
       <span
         className={`text-[9px] ${
-          isFocused ? "font-bold text-emerald-200" : "text-slate-500"
+          isFocused
+            ? "font-bold text-emerald-200"
+            : "text-slate-500"
         }`}
       >
         {Math.max(0, count)} cards left
@@ -270,6 +274,19 @@ function GameTable({
   compact = false,
   className = "",
 }: GameTableProps) {
+  /*
+   * Automatic scrolling references.
+   *
+   * The bot's hand is at the top of the table.
+   * The player's hand is at the bottom.
+   */
+  const botHandRef = useRef<HTMLDivElement>(null);
+  const playerHandRef = useRef<HTMLDivElement>(null);
+
+  // Remember the last turn we scrolled to, preventing repeated scrolling
+  // on unrelated renders such as score or card-count updates.
+  const lastScrolledTurnRef = useRef<WhotPlayerId | null>(null);
+
   const gameIsFinished =
     isFinished || status === "FINISHED" || winner !== null;
 
@@ -312,16 +329,12 @@ function GameTable({
     playableCount === 0 &&
     drawPileCount > 0;
 
-  
-
-const botIsFocused =
-  isPlaying &&
-  currentTurn === "bot" &&
-  !isQuestionOpen &&
-  !isShowingFeedback &&
-  !isBotAnswering;
-
-
+  const botIsFocused =
+    isPlaying &&
+    currentTurn === "bot" &&
+    !isQuestionOpen &&
+    !isShowingFeedback &&
+    !isBotAnswering;
 
   const playerIsFocused =
     playerHasTurn &&
@@ -332,6 +345,55 @@ const botIsFocused =
     !gameIsFinished;
 
   const drawIsFocused = canDraw;
+
+  /*
+   * AUTOMATIC TURN SCROLLING
+   *
+   * When the active turn changes:
+   * - Scroll to the bot's hand when it is the bot's turn.
+   * - Scroll to the player's hand when it is the player's turn.
+   *
+   * Do not scroll while a question or feedback screen is active.
+   */
+  useEffect(() => {
+    if (
+      !isPlaying ||
+      gameIsFinished ||
+      isQuestionOpen ||
+      isShowingFeedback
+    ) {
+      return;
+    }
+
+    if (lastScrolledTurnRef.current === currentTurn) {
+      return;
+    }
+
+    lastScrolledTurnRef.current = currentTurn;
+
+    const timeoutId = window.setTimeout(() => {
+      const target =
+        currentTurn === "player"
+          ? playerHandRef.current
+          : botHandRef.current;
+
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    }, 100);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    currentTurn,
+    gameIsFinished,
+    isQuestionOpen,
+    isShowingFeedback,
+    isPlaying,
+  ]);
 
   const showTimer =
     questionIsActive &&
@@ -390,7 +452,8 @@ const botIsFocused =
       <div className="space-y-3 sm:space-y-4">
         {/* Opponent's hand */}
         <div
-          className={`relative rounded-2xl border p-2.5 transition-all duration-300 sm:p-4 ${
+          ref={botHandRef}
+          className={`scroll-mt-6 scroll-mb-6 relative rounded-2xl border p-2.5 transition-all duration-300 sm:p-4 ${
             botIsFocused
               ? "scale-[1.01] border-amber-300/70 bg-gradient-to-br from-amber-400/15 via-amber-950/40 to-slate-950 shadow-lg shadow-amber-400/10 ring-2 ring-amber-300/30"
               : "border-amber-400/15 bg-amber-400/[0.03]"
@@ -506,8 +569,14 @@ const botIsFocused =
                       : "bg-slate-400"
               }`}
             />
-            <p className="text-xs font-bold sm:text-sm">{actionMessage}</p>
-            <Sparkles size={15} className="shrink-0" aria-hidden="true" />
+            <p className="text-xs font-bold sm:text-sm">
+              {actionMessage}
+            </p>
+            <Sparkles
+              size={15}
+              className="shrink-0"
+              aria-hidden="true"
+            />
           </div>
         )}
 
@@ -606,7 +675,9 @@ const botIsFocused =
               <UserRound
                 size={16}
                 className={
-                  playerIsFocused ? "text-cyan-200" : "text-cyan-300/60"
+                  playerIsFocused
+                    ? "text-cyan-200"
+                    : "text-cyan-300/60"
                 }
                 aria-hidden="true"
               />
@@ -625,7 +696,8 @@ const botIsFocused =
 
         {/* Player's hand */}
         <div
-          className={`rounded-2xl border p-2 transition-all duration-300 sm:p-3 ${
+          ref={playerHandRef}
+          className={`scroll-mt-6 scroll-mb-6 rounded-2xl border p-2 transition-all duration-300 sm:p-3 ${
             playerIsFocused
               ? "border-cyan-300/60 bg-gradient-to-br from-cyan-400/[0.10] to-slate-950 shadow-lg shadow-cyan-500/15 ring-2 ring-cyan-300/30"
               : botIsFocused
@@ -640,13 +712,17 @@ const botIsFocused =
               <UserRound
                 size={16}
                 className={
-                  playerIsFocused ? "text-cyan-200" : "text-slate-400"
+                  playerIsFocused
+                    ? "text-cyan-200"
+                    : "text-slate-400"
                 }
                 aria-hidden="true"
               />
               <span
                 className={`truncate text-xs font-black ${
-                  playerIsFocused ? "text-cyan-100" : "text-slate-300"
+                  playerIsFocused
+                    ? "text-cyan-100"
+                    : "text-slate-300"
                 }`}
               >
                 {playerName}
@@ -660,7 +736,9 @@ const botIsFocused =
                   : "bg-white/5 text-slate-400"
               }`}
             >
-              {playerIsFocused ? "YOUR TURN" : `${playerCards.length} cards`}
+              {playerIsFocused
+                ? "YOUR TURN"
+                : `${playerCards.length} cards`}
             </span>
           </div>
 

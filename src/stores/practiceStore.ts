@@ -1,6 +1,11 @@
+
 // src/stores/practiceStore.ts
 
 import { create } from "zustand";
+import {
+  persist,
+  createJSONStorage,
+} from "zustand/middleware";
 
 /* ============================================================
    OPTION
@@ -157,6 +162,23 @@ export interface PracticeQuestionCache {
 
 interface PracticeState {
   /* ==========================================================
+     PERSISTENCE HYDRATION
+     ========================================================== */
+
+  /**
+   * False while persisted browser data is being restored.
+   *
+   * The Practice Session page should wait until this becomes
+   * true before deciding that a session does not exist.
+   */
+
+  hasHydrated: boolean;
+
+  setHasHydrated: (
+    hydrated: boolean
+  ) => void;
+
+  /* ==========================================================
      CURRENT QUESTIONS
      ========================================================== */
 
@@ -202,18 +224,8 @@ interface PracticeState {
   clearQuestionCache: () => void;
 
   /* ==========================================================
-     EXAMINATION SUBJECT COMBINATIONS
+     JAMB SUBJECT COMBINATION
      ========================================================== */
-
-  /**
-   * ==========================================================
-   * JAMB
-   * ==========================================================
-   *
-   * JAMB normally uses:
-   *
-   * Use of English + 3 other subjects = 4 subjects.
-   */
 
   jambCombination: string[];
 
@@ -231,16 +243,9 @@ interface PracticeState {
 
   clearJambCombination: () => void;
 
-  /**
-   * ==========================================================
-   * WAEC
-   * ==========================================================
-   *
-   * WAEC has its own subject selection rules.
-   *
-   * The WAEC combination page controls the
-   * appropriate number and compulsory subjects.
-   */
+  /* ==========================================================
+     WAEC SUBJECT COMBINATION
+     ========================================================== */
 
   waecCombination: string[];
 
@@ -258,16 +263,9 @@ interface PracticeState {
 
   clearWaecCombination: () => void;
 
-  /**
-   * ==========================================================
-   * NECO
-   * ==========================================================
-   *
-   * NECO has its own subject selection rules.
-   *
-   * The NECO combination page controls the
-   * appropriate number and compulsory subjects.
-   */
+  /* ==========================================================
+     NECO SUBJECT COMBINATION
+     ========================================================== */
 
   necoCombination: string[];
 
@@ -360,598 +358,544 @@ function createQuestionCacheKey(
    ============================================================ */
 
 export const usePracticeStore =
-  create<PracticeState>((set, get) => ({
+  create<PracticeState>()(
+    persist(
+      (set, get) => ({
+        /* ====================================================
+           PERSISTENCE HYDRATION
+           ==================================================== */
 
-    /* ========================================================
-       CURRENT QUESTIONS
-       ======================================================== */
+        hasHydrated: false,
 
-    questions: [],
+        setHasHydrated: (hydrated) =>
+          set({
+            hasHydrated: hydrated,
+          }),
 
-    setQuestions: (questions) =>
-      set({
-        questions,
-      }),
+        /* ====================================================
+           CURRENT QUESTIONS
+           ==================================================== */
 
-    clearQuestions: () =>
-      set({
         questions: [],
-      }),
 
-    /* ========================================================
-       QUESTION CACHE
-       ======================================================== */
-
-    questionCache: {},
-
-    getCachedQuestions: (
-      subjectId,
-      year,
-      plan,
-      examType
-    ) => {
-      const key =
-        createQuestionCacheKey(
-          subjectId,
-          year,
-          plan,
-          examType
-        );
-
-      const cached =
-        get().questionCache[key];
-
-      if (!cached) {
-        return null;
-      }
-
-      return cached.questions;
-    },
-
-    cacheQuestions: (
-      subjectId,
-      year,
-      plan,
-      examType,
-      questions
-    ) => {
-      const key =
-        createQuestionCacheKey(
-          subjectId,
-          year,
-          plan,
-          examType
-        );
-
-      set((state) => ({
-        questionCache: {
-          ...state.questionCache,
-
-          [key]: {
-            key,
-
-            subjectId,
-
-            year,
-
-            plan,
-
-            examType,
-
+        setQuestions: (questions) =>
+          set({
             questions,
+          }),
 
-            cachedAt:
-              new Date().toISOString(),
-          },
-        },
-      }));
-    },
+        clearQuestions: () =>
+          set({
+            questions: [],
+          }),
 
-    hasCachedQuestions: (
-      subjectId,
-      year,
-      plan,
-      examType
-    ) => {
-      const key =
-        createQuestionCacheKey(
+        /* ====================================================
+           QUESTION CACHE
+           ==================================================== */
+
+        questionCache: {},
+
+        getCachedQuestions: (
           subjectId,
           year,
           plan,
           examType
-        );
+        ) => {
+          const key =
+            createQuestionCacheKey(
+              subjectId,
+              year,
+              plan,
+              examType
+            );
 
-      const cached =
-        get().questionCache[key];
+          const cached =
+            get().questionCache[key];
 
-      return Boolean(
-        cached?.questions?.length
-      );
-    },
+          if (!cached) {
+            return null;
+          }
 
-    clearQuestionCache: () =>
-      set({
-        questionCache: {},
-      }),
+          return cached.questions;
+        },
 
-    /* ========================================================
-       JAMB COMBINATION
-       ======================================================== */
+        cacheQuestions: (
+          subjectId,
+          year,
+          plan,
+          examType,
+          questions
+        ) => {
+          const key =
+            createQuestionCacheKey(
+              subjectId,
+              year,
+              plan,
+              examType
+            );
 
-    jambCombination: [],
+          set((state) => ({
+            questionCache: {
+              ...state.questionCache,
 
-    /* ========================================================
-       SET JAMB COMBINATION
-       ======================================================== */
+              [key]: {
+                key,
 
-    setJambCombination: (
-      subjectIds
-    ) =>
-      set({
-        jambCombination: [
-          ...new Set(subjectIds),
-        ],
-      }),
+                subjectId,
 
-    /* ========================================================
-       TOGGLE JAMB SUBJECT
-       ======================================================== */
+                year,
 
-    toggleJambSubject: (
-      subjectId
-    ) =>
-      set((state) => {
-        const alreadySelected =
-          state.jambCombination.includes(
-            subjectId
+                plan,
+
+                examType,
+
+                questions,
+
+                cachedAt:
+                  new Date().toISOString(),
+              },
+            },
+          }));
+        },
+
+        hasCachedQuestions: (
+          subjectId,
+          year,
+          plan,
+          examType
+        ) => {
+          const key =
+            createQuestionCacheKey(
+              subjectId,
+              year,
+              plan,
+              examType
+            );
+
+          const cached =
+            get().questionCache[key];
+
+          return Boolean(
+            cached?.questions?.length
           );
+        },
 
-        /* ----------------------------------------------------
-           REMOVE
-           ---------------------------------------------------- */
+        clearQuestionCache: () =>
+          set({
+            questionCache: {},
+          }),
 
-        if (alreadySelected) {
-          return {
+        /* ====================================================
+           JAMB COMBINATION
+           ==================================================== */
+
+        jambCombination: [],
+
+        setJambCombination: (
+          subjectIds
+        ) =>
+          set({
+            jambCombination: [
+              ...new Set(subjectIds),
+            ],
+          }),
+
+        toggleJambSubject: (
+          subjectId
+        ) =>
+          set((state) => {
+            const alreadySelected =
+              state.jambCombination.includes(
+                subjectId
+              );
+
+            if (alreadySelected) {
+              return {
+                jambCombination:
+                  state.jambCombination.filter(
+                    (id) =>
+                      id !== subjectId
+                  ),
+              };
+            }
+
+            // JAMB combination maximum: 4 subjects.
+            if (
+              state.jambCombination.length >= 4
+            ) {
+              return state;
+            }
+
+            return {
+              jambCombination: [
+                ...state.jambCombination,
+                subjectId,
+              ],
+            };
+          }),
+
+        removeJambSubject: (
+          subjectId
+        ) =>
+          set((state) => ({
             jambCombination:
               state.jambCombination.filter(
                 (id) =>
                   id !== subjectId
               ),
-          };
-        }
+          })),
 
-        /* ----------------------------------------------------
-           ADD
-           ---------------------------------------------------- */
+        clearJambCombination: () =>
+          set({
+            jambCombination: [],
+          }),
 
-        /*
-         * JAMB uses:
-         *
-         * Use of English + 3 other subjects
-         *
-         * Maximum = 4 subjects.
-         */
+        /* ====================================================
+           WAEC COMBINATION
+           ==================================================== */
 
-        if (
-          state.jambCombination.length >= 4
-        ) {
-          return state;
-        }
+        waecCombination: [],
 
-        return {
-          jambCombination: [
-            ...state.jambCombination,
-            subjectId,
-          ],
-        };
-      }),
+        setWaecCombination: (
+          subjectIds
+        ) =>
+          set({
+            waecCombination: [
+              ...new Set(subjectIds),
+            ],
+          }),
 
-    /* ========================================================
-       REMOVE JAMB SUBJECT
-       ======================================================== */
+        toggleWaecSubject: (
+          subjectId
+        ) =>
+          set((state) => {
+            const alreadySelected =
+              state.waecCombination.includes(
+                subjectId
+              );
 
-    removeJambSubject: (
-      subjectId
-    ) =>
-      set((state) => ({
-        jambCombination:
-          state.jambCombination.filter(
-            (id) =>
-              id !== subjectId
-          ),
-      })),
+            if (alreadySelected) {
+              return {
+                waecCombination:
+                  state.waecCombination.filter(
+                    (id) =>
+                      id !== subjectId
+                  ),
+              };
+            }
 
-    /* ========================================================
-       CLEAR JAMB COMBINATION
-       ======================================================== */
+            return {
+              waecCombination: [
+                ...state.waecCombination,
+                subjectId,
+              ],
+            };
+          }),
 
-    clearJambCombination: () =>
-      set({
-        jambCombination: [],
-      }),
-
-    /* ========================================================
-       WAEC COMBINATION
-       ======================================================== */
-
-    waecCombination: [],
-
-    /* ========================================================
-       SET WAEC COMBINATION
-       ======================================================== */
-
-    setWaecCombination: (
-      subjectIds
-    ) =>
-      set({
-        waecCombination: [
-          ...new Set(subjectIds),
-        ],
-      }),
-
-    /* ========================================================
-       TOGGLE WAEC SUBJECT
-       ======================================================== */
-
-    toggleWaecSubject: (
-      subjectId
-    ) =>
-      set((state) => {
-        const alreadySelected =
-          state.waecCombination.includes(
-            subjectId
-          );
-
-        /* ----------------------------------------------------
-           REMOVE
-           ---------------------------------------------------- */
-
-        if (alreadySelected) {
-          return {
+        removeWaecSubject: (
+          subjectId
+        ) =>
+          set((state) => ({
             waecCombination:
               state.waecCombination.filter(
                 (id) =>
                   id !== subjectId
               ),
-          };
-        }
+          })),
 
-        /* ----------------------------------------------------
-           ADD
-           ---------------------------------------------------- */
+        clearWaecCombination: () =>
+          set({
+            waecCombination: [],
+          }),
 
-        return {
-          waecCombination: [
-            ...state.waecCombination,
-            subjectId,
-          ],
-        };
-      }),
+        /* ====================================================
+           NECO COMBINATION
+           ==================================================== */
 
-    /* ========================================================
-       REMOVE WAEC SUBJECT
-       ======================================================== */
+        necoCombination: [],
 
-    removeWaecSubject: (
-      subjectId
-    ) =>
-      set((state) => ({
-        waecCombination:
-          state.waecCombination.filter(
-            (id) =>
-              id !== subjectId
-          ),
-      })),
+        setNecoCombination: (
+          subjectIds
+        ) =>
+          set({
+            necoCombination: [
+              ...new Set(subjectIds),
+            ],
+          }),
 
-    /* ========================================================
-       CLEAR WAEC COMBINATION
-       ======================================================== */
+        toggleNecoSubject: (
+          subjectId
+        ) =>
+          set((state) => {
+            const alreadySelected =
+              state.necoCombination.includes(
+                subjectId
+              );
 
-    clearWaecCombination: () =>
-      set({
-        waecCombination: [],
-      }),
+            if (alreadySelected) {
+              return {
+                necoCombination:
+                  state.necoCombination.filter(
+                    (id) =>
+                      id !== subjectId
+                  ),
+              };
+            }
 
-    /* ========================================================
-       NECO COMBINATION
-       ======================================================== */
+            return {
+              necoCombination: [
+                ...state.necoCombination,
+                subjectId,
+              ],
+            };
+          }),
 
-    necoCombination: [],
-
-    /* ========================================================
-       SET NECO COMBINATION
-       ======================================================== */
-
-    setNecoCombination: (
-      subjectIds
-    ) =>
-      set({
-        necoCombination: [
-          ...new Set(subjectIds),
-        ],
-      }),
-
-    /* ========================================================
-       TOGGLE NECO SUBJECT
-       ======================================================== */
-
-    toggleNecoSubject: (
-      subjectId
-    ) =>
-      set((state) => {
-        const alreadySelected =
-          state.necoCombination.includes(
-            subjectId
-          );
-
-        /* ----------------------------------------------------
-           REMOVE
-           ---------------------------------------------------- */
-
-        if (alreadySelected) {
-          return {
+        removeNecoSubject: (
+          subjectId
+        ) =>
+          set((state) => ({
             necoCombination:
               state.necoCombination.filter(
                 (id) =>
                   id !== subjectId
               ),
-          };
-        }
+          })),
 
-        /* ----------------------------------------------------
-           ADD
-           ---------------------------------------------------- */
+        clearNecoCombination: () =>
+          set({
+            necoCombination: [],
+          }),
 
-        return {
-          necoCombination: [
-            ...state.necoCombination,
-            subjectId,
-          ],
-        };
-      }),
+        /* ====================================================
+           SESSION
+           ==================================================== */
 
-    /* ========================================================
-       REMOVE NECO SUBJECT
-       ======================================================== */
-
-    removeNecoSubject: (
-      subjectId
-    ) =>
-      set((state) => ({
-        necoCombination:
-          state.necoCombination.filter(
-            (id) =>
-              id !== subjectId
-          ),
-      })),
-
-    /* ========================================================
-       CLEAR NECO COMBINATION
-       ======================================================== */
-
-    clearNecoCombination: () =>
-      set({
-        necoCombination: [],
-      }),
-
-    /* ========================================================
-       SESSION
-       ======================================================== */
-
-    session: null,
-
-    startSession: (session) =>
-      set({
-        session,
-      }),
-
-    endSession: () =>
-      set({
         session: null,
-      }),
 
-    /* ========================================================
-       CURRENT QUESTION
-       ======================================================== */
+        startSession: (session) =>
+          set({
+            session,
+          }),
 
-    setCurrentQuestion: (index) =>
-      set((state) => {
-        if (!state.session) {
-          return state;
-        }
+        endSession: () =>
+          set({
+            session: null,
+          }),
 
-        if (
-          index < 0 ||
-          index >= state.questions.length
-        ) {
-          return state;
-        }
+        /* ====================================================
+           CURRENT QUESTION
+           ==================================================== */
 
-        return {
-          session: {
-            ...state.session,
+        setCurrentQuestion: (index) =>
+          set((state) => {
+            if (!state.session) {
+              return state;
+            }
 
-            currentQuestionIndex:
-              index,
-          },
-        };
-      }),
+            if (
+              index < 0 ||
+              index >= state.questions.length
+            ) {
+              return state;
+            }
 
-    /* ========================================================
-       NEXT QUESTION
-       ======================================================== */
+            return {
+              session: {
+                ...state.session,
 
-    nextQuestion: () =>
-      set((state) => {
-        if (!state.session) {
-          return state;
-        }
+                currentQuestionIndex:
+                  index,
+              },
+            };
+          }),
 
-        const nextIndex =
-          state.session
-            .currentQuestionIndex + 1;
+        /* ====================================================
+           NEXT QUESTION
+           ==================================================== */
 
-        if (
-          nextIndex >=
-          state.questions.length
-        ) {
-          return state;
-        }
+        nextQuestion: () =>
+          set((state) => {
+            if (!state.session) {
+              return state;
+            }
 
-        return {
-          session: {
-            ...state.session,
+            const nextIndex =
+              state.session.currentQuestionIndex + 1;
 
-            currentQuestionIndex:
-              nextIndex,
-          },
-        };
-      }),
+            if (
+              nextIndex >=
+              state.questions.length
+            ) {
+              return state;
+            }
 
-    /* ========================================================
-       PREVIOUS QUESTION
-       ======================================================== */
+            return {
+              session: {
+                ...state.session,
 
-    previousQuestion: () =>
-      set((state) => {
-        if (!state.session) {
-          return state;
-        }
+                currentQuestionIndex:
+                  nextIndex,
+              },
+            };
+          }),
 
-        const previousIndex =
-          state.session
-            .currentQuestionIndex - 1;
+        /* ====================================================
+           PREVIOUS QUESTION
+           ==================================================== */
 
-        if (previousIndex < 0) {
-          return state;
-        }
+        previousQuestion: () =>
+          set((state) => {
+            if (!state.session) {
+              return state;
+            }
 
-        return {
-          session: {
-            ...state.session,
+            const previousIndex =
+              state.session.currentQuestionIndex - 1;
 
-            currentQuestionIndex:
-              previousIndex,
-          },
-        };
-      }),
+            if (previousIndex < 0) {
+              return state;
+            }
 
-    /* ========================================================
-       ANSWERS
-       ======================================================== */
+            return {
+              session: {
+                ...state.session,
 
-    selectAnswer: (
-      questionId,
-      answer
-    ) =>
-      set((state) => {
-        if (!state.session) {
-          return state;
-        }
+                currentQuestionIndex:
+                  previousIndex,
+              },
+            };
+          }),
 
-        return {
-          session: {
-            ...state.session,
+        /* ====================================================
+           ANSWERS
+           ==================================================== */
 
-            answers: {
+        selectAnswer: (
+          questionId,
+          answer
+        ) =>
+          set((state) => {
+            if (!state.session) {
+              return state;
+            }
+
+            return {
+              session: {
+                ...state.session,
+
+                answers: {
+                  ...state.session.answers,
+
+                  [questionId]: answer,
+                },
+              },
+            };
+          }),
+
+        clearAnswer: (questionId) =>
+          set((state) => {
+            if (!state.session) {
+              return state;
+            }
+
+            const answers = {
               ...state.session.answers,
+            };
 
-              [questionId]: answer,
-            },
-          },
-        };
+            delete answers[questionId];
+
+            return {
+              session: {
+                ...state.session,
+
+                answers,
+              },
+            };
+          }),
+
+        /* ====================================================
+           RESET SESSION ONLY
+           ==================================================== */
+
+        /**
+         * Clears:
+         * - Current questions
+         * - Current session
+         *
+         * Preserves:
+         * - Question cache
+         * - JAMB combination
+         * - WAEC combination
+         * - NECO combination
+         */
+
+        resetSession: () =>
+          set({
+            questions: [],
+
+            session: null,
+          }),
+
+        /* ====================================================
+           RESET EVERYTHING
+           ==================================================== */
+
+        /**
+         * Clears:
+         * - Current questions
+         * - Current session
+         * - Cached questions
+         *
+         * Examination combinations are preserved.
+         */
+
+        resetPractice: () =>
+          set({
+            questions: [],
+
+            session: null,
+
+            questionCache: {},
+          }),
       }),
+      {
+        name: "learnyfi-practice-session",
 
-    clearAnswer: (questionId) =>
-      set((state) => {
-        if (!state.session) {
-          return state;
-        }
+        storage: createJSONStorage(
+          () => sessionStorage
+        ),
 
-        const answers = {
-          ...state.session.answers,
-        };
+        version: 1,
 
-        delete answers[questionId];
+        /**
+         * Persist only data, not action functions or the
+         * hydration flag.
+         */
 
-        return {
-          session: {
-            ...state.session,
+        partialize: (state) => ({
+          questions: state.questions,
 
-            answers,
-          },
-        };
-      }),
+          questionCache: state.questionCache,
 
-    /* ========================================================
-       RESET SESSION ONLY
-       ======================================================== */
+          jambCombination: state.jambCombination,
 
-    /**
-     * Clears:
-     *
-     * - current questions
-     * - current session
-     *
-     * Does NOT clear:
-     *
-     * - questionCache
-     * - jambCombination
-     * - waecCombination
-     * - necoCombination
-     */
+          waecCombination: state.waecCombination,
 
-    resetSession: () =>
-      set({
-        questions: [],
+          necoCombination: state.necoCombination,
 
-        session: null,
-      }),
+          session: state.session,
+        }),
 
-    /* ========================================================
-       RESET EVERYTHING
-       ======================================================== */
+        /**
+         * Called after Zustand attempts to restore the
+         * persisted data from sessionStorage.
+         */
 
-    /**
-     * Clears:
-     *
-     * - current questions
-     * - current session
-     * - cached questions
-     *
-     * The examination combinations are intentionally
-     * preserved because they are student preferences.
-     */
-
-    resetPractice: () =>
-      set({
-        questions: [],
-
-        session: null,
-
-        questionCache: {},
-      }),
-  }));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true);
+        },
+      }
+    )
+  );
 
 
 
@@ -1109,6 +1053,9 @@ export const usePracticeStore =
 //  * Example:
 //  *
 //  * 69bd417a74676c09ac65bc56__2000__SECONDARY__jamb
+//  *
+//  * This keeps JAMB, WAEC and NECO questions
+//  * completely separated in the cache.
 //  */
 
 // export interface PracticeQuestionCache {
@@ -1177,30 +1124,18 @@ export const usePracticeStore =
 
 //   clearQuestionCache: () => void;
 
-
-
-  
-
 //   /* ==========================================================
-//      JAMB COMBINATION
+//      EXAMINATION SUBJECT COMBINATIONS
 //      ========================================================== */
 
 //   /**
-//    * Subject IDs selected by the student
-//    * for their JAMB subject combination.
+//    * ==========================================================
+//    * JAMB
+//    * ==========================================================
 //    *
-//    * Maximum recommended combination:
+//    * JAMB normally uses:
 //    *
-//    * 4 subjects
-//    *
-//    * Example:
-//    *
-//    * [
-//    *   "english-id",
-//    *   "mathematics-id",
-//    *   "physics-id",
-//    *   "chemistry-id"
-//    * ]
+//    * Use of English + 3 other subjects = 4 subjects.
 //    */
 
 //   jambCombination: string[];
@@ -1219,11 +1154,59 @@ export const usePracticeStore =
 
 //   clearJambCombination: () => void;
 
+//   /**
+//    * ==========================================================
+//    * WAEC
+//    * ==========================================================
+//    *
+//    * WAEC has its own subject selection rules.
+//    *
+//    * The WAEC combination page controls the
+//    * appropriate number and compulsory subjects.
+//    */
 
+//   waecCombination: string[];
 
+//   setWaecCombination: (
+//     subjectIds: string[]
+//   ) => void;
 
+//   toggleWaecSubject: (
+//     subjectId: string
+//   ) => void;
 
+//   removeWaecSubject: (
+//     subjectId: string
+//   ) => void;
 
+//   clearWaecCombination: () => void;
+
+//   /**
+//    * ==========================================================
+//    * NECO
+//    * ==========================================================
+//    *
+//    * NECO has its own subject selection rules.
+//    *
+//    * The NECO combination page controls the
+//    * appropriate number and compulsory subjects.
+//    */
+
+//   necoCombination: string[];
+
+//   setNecoCombination: (
+//     subjectIds: string[]
+//   ) => void;
+
+//   toggleNecoSubject: (
+//     subjectId: string
+//   ) => void;
+
+//   removeNecoSubject: (
+//     subjectId: string
+//   ) => void;
+
+//   clearNecoCombination: () => void;
 
 //   /* ==========================================================
 //      SESSION
@@ -1301,6 +1284,7 @@ export const usePracticeStore =
 
 // export const usePracticeStore =
 //   create<PracticeState>((set, get) => ({
+
 //     /* ========================================================
 //        CURRENT QUESTIONS
 //        ======================================================== */
@@ -1417,18 +1401,10 @@ export const usePracticeStore =
 //        JAMB COMBINATION
 //        ======================================================== */
 
-//     /**
-//      * Selected JAMB subjects.
-//      *
-//      * We keep only subject IDs here.
-//      * The actual Subject objects remain
-//      * in the subjects page/API response.
-//      */
-
 //     jambCombination: [],
 
 //     /* ========================================================
-//        SET COMPLETE COMBINATION
+//        SET JAMB COMBINATION
 //        ======================================================== */
 
 //     setJambCombination: (
@@ -1441,7 +1417,7 @@ export const usePracticeStore =
 //       }),
 
 //     /* ========================================================
-//        TOGGLE SUBJECT
+//        TOGGLE JAMB SUBJECT
 //        ======================================================== */
 
 //     toggleJambSubject: (
@@ -1454,7 +1430,7 @@ export const usePracticeStore =
 //           );
 
 //         /* ----------------------------------------------------
-//            REMOVE SUBJECT
+//            REMOVE
 //            ---------------------------------------------------- */
 
 //         if (alreadySelected) {
@@ -1468,16 +1444,15 @@ export const usePracticeStore =
 //         }
 
 //         /* ----------------------------------------------------
-//            ADD SUBJECT
+//            ADD
 //            ---------------------------------------------------- */
 
 //         /*
-//          * JAMB normally uses 4 subjects:
+//          * JAMB uses:
 //          *
-//          * Use of English + 3 other subjects.
+//          * Use of English + 3 other subjects
 //          *
-//          * Prevent the student from selecting
-//          * more than 4.
+//          * Maximum = 4 subjects.
 //          */
 
 //         if (
@@ -1495,7 +1470,7 @@ export const usePracticeStore =
 //       }),
 
 //     /* ========================================================
-//        REMOVE SUBJECT
+//        REMOVE JAMB SUBJECT
 //        ======================================================== */
 
 //     removeJambSubject: (
@@ -1510,12 +1485,176 @@ export const usePracticeStore =
 //       })),
 
 //     /* ========================================================
-//        CLEAR COMBINATION
+//        CLEAR JAMB COMBINATION
 //        ======================================================== */
 
 //     clearJambCombination: () =>
 //       set({
 //         jambCombination: [],
+//       }),
+
+//     /* ========================================================
+//        WAEC COMBINATION
+//        ======================================================== */
+
+//     waecCombination: [],
+
+//     /* ========================================================
+//        SET WAEC COMBINATION
+//        ======================================================== */
+
+//     setWaecCombination: (
+//       subjectIds
+//     ) =>
+//       set({
+//         waecCombination: [
+//           ...new Set(subjectIds),
+//         ],
+//       }),
+
+//     /* ========================================================
+//        TOGGLE WAEC SUBJECT
+//        ======================================================== */
+
+//     toggleWaecSubject: (
+//       subjectId
+//     ) =>
+//       set((state) => {
+//         const alreadySelected =
+//           state.waecCombination.includes(
+//             subjectId
+//           );
+
+//         /* ----------------------------------------------------
+//            REMOVE
+//            ---------------------------------------------------- */
+
+//         if (alreadySelected) {
+//           return {
+//             waecCombination:
+//               state.waecCombination.filter(
+//                 (id) =>
+//                   id !== subjectId
+//               ),
+//           };
+//         }
+
+//         /* ----------------------------------------------------
+//            ADD
+//            ---------------------------------------------------- */
+
+//         return {
+//           waecCombination: [
+//             ...state.waecCombination,
+//             subjectId,
+//           ],
+//         };
+//       }),
+
+//     /* ========================================================
+//        REMOVE WAEC SUBJECT
+//        ======================================================== */
+
+//     removeWaecSubject: (
+//       subjectId
+//     ) =>
+//       set((state) => ({
+//         waecCombination:
+//           state.waecCombination.filter(
+//             (id) =>
+//               id !== subjectId
+//           ),
+//       })),
+
+//     /* ========================================================
+//        CLEAR WAEC COMBINATION
+//        ======================================================== */
+
+//     clearWaecCombination: () =>
+//       set({
+//         waecCombination: [],
+//       }),
+
+//     /* ========================================================
+//        NECO COMBINATION
+//        ======================================================== */
+
+//     necoCombination: [],
+
+//     /* ========================================================
+//        SET NECO COMBINATION
+//        ======================================================== */
+
+//     setNecoCombination: (
+//       subjectIds
+//     ) =>
+//       set({
+//         necoCombination: [
+//           ...new Set(subjectIds),
+//         ],
+//       }),
+
+//     /* ========================================================
+//        TOGGLE NECO SUBJECT
+//        ======================================================== */
+
+//     toggleNecoSubject: (
+//       subjectId
+//     ) =>
+//       set((state) => {
+//         const alreadySelected =
+//           state.necoCombination.includes(
+//             subjectId
+//           );
+
+//         /* ----------------------------------------------------
+//            REMOVE
+//            ---------------------------------------------------- */
+
+//         if (alreadySelected) {
+//           return {
+//             necoCombination:
+//               state.necoCombination.filter(
+//                 (id) =>
+//                   id !== subjectId
+//               ),
+//           };
+//         }
+
+//         /* ----------------------------------------------------
+//            ADD
+//            ---------------------------------------------------- */
+
+//         return {
+//           necoCombination: [
+//             ...state.necoCombination,
+//             subjectId,
+//           ],
+//         };
+//       }),
+
+//     /* ========================================================
+//        REMOVE NECO SUBJECT
+//        ======================================================== */
+
+//     removeNecoSubject: (
+//       subjectId
+//     ) =>
+//       set((state) => ({
+//         necoCombination:
+//           state.necoCombination.filter(
+//             (id) =>
+//               id !== subjectId
+//           ),
+//       })),
+
+//     /* ========================================================
+//        CLEAR NECO COMBINATION
+//        ======================================================== */
+
+//     clearNecoCombination: () =>
+//       set({
+//         necoCombination: [],
 //       }),
 
 //     /* ========================================================
@@ -1561,6 +1700,10 @@ export const usePracticeStore =
 //         };
 //       }),
 
+//     /* ========================================================
+//        NEXT QUESTION
+//        ======================================================== */
+
 //     nextQuestion: () =>
 //       set((state) => {
 //         if (!state.session) {
@@ -1587,6 +1730,10 @@ export const usePracticeStore =
 //           },
 //         };
 //       }),
+
+//     /* ========================================================
+//        PREVIOUS QUESTION
+//        ======================================================== */
 
 //     previousQuestion: () =>
 //       set((state) => {
@@ -1664,15 +1811,17 @@ export const usePracticeStore =
 //        ======================================================== */
 
 //     /**
-//      * IMPORTANT:
+//      * Clears:
 //      *
-//      * This clears the currently loaded
-//      * questions and session.
+//      * - current questions
+//      * - current session
 //      *
-//      * It does NOT clear:
+//      * Does NOT clear:
 //      *
 //      * - questionCache
 //      * - jambCombination
+//      * - waecCombination
+//      * - necoCombination
 //      */
 
 //     resetSession: () =>
@@ -1687,19 +1836,14 @@ export const usePracticeStore =
 //        ======================================================== */
 
 //     /**
-//      * This clears:
+//      * Clears:
 //      *
 //      * - current questions
 //      * - current session
 //      * - cached questions
 //      *
-//      * IMPORTANT:
-//      *
-//      * The student's JAMB combination is NOT
-//      * cleared here.
-//      *
-//      * The combination is a student preference,
-//      * not temporary practice-session data.
+//      * The examination combinations are intentionally
+//      * preserved because they are student preferences.
 //      */
 
 //     resetPractice: () =>
@@ -1711,3 +1855,5 @@ export const usePracticeStore =
 //         questionCache: {},
 //       }),
 //   }));
+
+

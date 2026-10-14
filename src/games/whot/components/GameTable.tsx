@@ -1,5 +1,8 @@
 
 
+
+
+
 "use client";
 
 import { memo } from "react";
@@ -124,7 +127,7 @@ function CenterCard({
   return (
     <article
       aria-label={`Centre card: ${label}`}
-      className={`relative mx-auto flex w-full flex-col overflow-hidden rounded-2xl border bg-gradient-to-br shadow-xl ${
+      className={`relative mx-auto flex w-full flex-col overflow-hidden rounded-2xl border bg-gradient-to-br shadow-xl transition-all duration-300 ${
         compact
           ? "min-h-[155px] max-w-[155px] p-2.5 min-[400px]:min-h-[175px] min-[400px]:max-w-[165px] sm:min-h-[190px] sm:max-w-[180px] sm:p-3"
           : "min-h-[190px] max-w-[180px] p-3.5"
@@ -227,7 +230,7 @@ function GameTable({
   onSelectCard,
   onDrawCard,
   isPlayerTurn,
-  isBotTurn: _isBotTurn,
+  isBotTurn,
   isBotAnswering = false,
   isQuestionOpen = false,
   isShowingFeedback = false,
@@ -242,6 +245,16 @@ function GameTable({
 }: GameTableProps) {
   const gameIsFinished =
     isFinished || status === "FINISHED" || winner !== null;
+
+  const botHasTurn =
+    status === "PLAYING" &&
+    (isBotTurn || currentTurn === "bot") &&
+    !gameIsFinished;
+
+  const playerHasTurn =
+    status === "PLAYING" &&
+    isPlayerTurn &&
+    !gameIsFinished;
 
   const canDraw =
     status === "PLAYING" &&
@@ -267,48 +280,102 @@ function GameTable({
           ? playerName
           : botName;
 
-  // Show the blinking instruction only while the player can act.
   const showTurnIndicator =
     status === "PLAYING" &&
-    isPlayerTurn &&
     !gameIsFinished &&
     !isQuestionOpen &&
     !isShowingFeedback &&
     !isBotAnswering &&
     !isDrawing;
 
+  const botIsFocused = botHasTurn && !isQuestionOpen && !isShowingFeedback;
+  const playerIsFocused =
+    playerHasTurn && !isQuestionOpen && !isShowingFeedback;
+
   return (
     <section
       aria-label="WHOT game table"
-      className={`mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl border border-emerald-400/15 bg-gradient-to-br from-emerald-950/80 via-slate-950 to-slate-950 p-2.5 shadow-2xl sm:rounded-3xl sm:p-4 md:p-5 ${className}`}
+      className={`mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-950/80 via-slate-950 to-slate-950 p-2.5 shadow-2xl transition-all duration-300 sm:rounded-3xl sm:p-4 md:p-5 ${
+        botIsFocused
+          ? "border-amber-300/40 shadow-amber-500/10"
+          : playerIsFocused
+            ? "border-cyan-300/30 shadow-cyan-500/10"
+            : "border-emerald-400/15"
+      } ${className}`}
     >
       <div className="space-y-3 sm:space-y-4">
-        {/* Opponent identity and face-down cards */}
-        <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] px-2.5 py-2 sm:px-3 sm:py-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
+        {/* Opponent hand: becomes the visual focus during the bot's turn */}
+        <div
+          className={`relative rounded-2xl border px-2.5 py-3 transition-all duration-300 sm:px-4 sm:py-4 ${
+            botIsFocused
+              ? "scale-[1.01] border-amber-300/70 bg-gradient-to-br from-amber-400/15 via-amber-950/40 to-slate-950 shadow-lg shadow-amber-400/10 ring-2 ring-amber-300/20"
+              : "border-amber-400/15 bg-amber-400/[0.03]"
+          }`}
+        >
+          {botIsFocused && (
+            <div className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-amber-100">
+              <Sparkles className="h-4 w-4 animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider sm:text-sm">
+                Opponent&apos;s turn
+              </span>
+              <Sparkles className="h-4 w-4 animate-pulse" />
+            </div>
+          )}
+
+          <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/10 text-amber-200">
-                <Brain size={17} aria-hidden="true" />
+              <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all ${
+                  botIsFocused
+                    ? "border-amber-300/50 bg-amber-300/20 text-amber-200"
+                    : "border-amber-400/20 bg-amber-400/10 text-amber-200"
+                }`}
+              >
+                <Brain size={19} aria-hidden="true" />
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-xs font-extrabold text-amber-100">
+                <p
+                  className={`truncate text-sm font-black transition-colors ${
+                    botIsFocused ? "text-amber-100" : "text-amber-200"
+                  }`}
+                >
                   {botName}
                 </p>
-                <p className="text-[10px] text-slate-500">
-                  Opponent hand
+                <p className="text-[10px] text-slate-400 sm:text-xs">
+                  {botIsFocused
+                    ? "Playing now"
+                    : "Opponent hand · cards hidden"}
                 </p>
               </div>
             </div>
 
-            <span className="shrink-0 rounded-lg bg-amber-400/10 px-2 py-1 text-xs font-black tabular-nums text-amber-100">
+            <span
+              className={`shrink-0 rounded-xl border px-2.5 py-1.5 text-xs font-black tabular-nums transition-all ${
+                botIsFocused
+                  ? "border-amber-300/40 bg-amber-300/15 text-amber-100"
+                  : "border-amber-400/10 bg-amber-400/10 text-amber-200"
+              }`}
+            >
               {botCardCount} {botCardCount === 1 ? "card" : "cards"}
             </span>
           </div>
 
-          <div className="min-w-0 overflow-hidden">
+          <div
+            className={`min-w-0 overflow-hidden rounded-xl transition-all duration-300 ${
+              botIsFocused
+                ? "bg-amber-300/[0.04] p-1.5 ring-1 ring-amber-300/15 sm:p-2"
+                : "opacity-75"
+            }`}
+          >
             <BotHand cardCount={botCardCount} compact={compact} />
           </div>
+
+          {botIsFocused && (
+            <p className="mt-2 text-center text-[10px] font-semibold text-amber-200/80 sm:text-xs">
+              Watch the opponent&apos;s move
+            </p>
+          )}
         </div>
 
         {/* Countdown appears only while a question is active */}
@@ -331,24 +398,38 @@ function GameTable({
         )}
 
         {/* Main play area */}
-        <div className="rounded-2xl border border-white/[0.07] bg-black/20 p-2.5 sm:p-4">
+        <div
+          className={`rounded-2xl border p-2.5 transition-all duration-300 sm:p-4 ${
+            botIsFocused
+              ? "border-amber-400/20 bg-amber-400/[0.025]"
+              : playerIsFocused
+                ? "border-cyan-400/20 bg-cyan-400/[0.025]"
+                : "border-white/[0.07] bg-black/20"
+          }`}
+        >
           <div className="mb-3 flex items-center justify-center gap-2">
             <Sparkles
               size={14}
-              className="text-emerald-300"
+              className={botIsFocused ? "text-amber-300" : "text-emerald-300"}
               aria-hidden="true"
             />
-            <h2 className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-100/70">
+            <h2 className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/70">
               Play area
             </h2>
           </div>
 
           <div className="grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] items-center gap-1.5 min-[400px]:gap-3 sm:gap-5">
-            {/* Left: Bot hand count */}
-            <div className="flex min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-1.5 sm:p-2">
+            {/* Bot hand count */}
+            <div
+              className={`flex min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-1.5 transition-all duration-300 sm:p-2 ${
+                botIsFocused
+                  ? "border-amber-300/50 bg-amber-400/10 shadow-md shadow-amber-500/10"
+                  : "border-amber-400/15 bg-amber-400/[0.03]"
+              }`}
+            >
               <Brain
                 size={16}
-                className="text-amber-200"
+                className={botIsFocused ? "text-amber-200" : "text-amber-300/70"}
                 aria-hidden="true"
               />
               <span className="text-center text-[9px] font-extrabold text-amber-100 sm:text-[10px]">
@@ -357,7 +438,7 @@ function GameTable({
               <span className="text-lg font-black tabular-nums text-white sm:text-xl">
                 {botCardCount}
               </span>
-              <span className="text-center text-[8px] text-slate-500">
+              <span className="text-center text-[8px] text-slate-400">
                 {botCardCount === 1 ? "card left" : "cards left"}
               </span>
             </div>
@@ -380,25 +461,28 @@ function GameTable({
                 <CenterCard card={centerCard} compact={compact} />
               )}
 
-              {/* Draw only when the player has no playable cards */}
-              {canDraw &&
-                playableCardIds.length === 0 &&
-                drawPileCount > 0 && (
-                  <DrawPilePanel
-                    count={drawPileCount}
-                    disabled={false}
-                    isDrawing={isDrawing}
-                    onDrawCard={onDrawCard}
-                    compact={compact}
-                  />
-                )}
+              {canDraw && playableCardIds.length === 0 && drawPileCount > 0 && (
+                <DrawPilePanel
+                  count={drawPileCount}
+                  disabled={false}
+                  isDrawing={isDrawing}
+                  onDrawCard={onDrawCard}
+                  compact={compact}
+                />
+              )}
             </div>
 
-            {/* Right: Player hand count */}
-            <div className="flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-1.5 sm:p-2">
+            {/* Player hand count */}
+            <div
+              className={`flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-1.5 transition-all duration-300 sm:p-2 ${
+                playerIsFocused
+                  ? "border-cyan-300/50 bg-cyan-400/10 shadow-md shadow-cyan-500/10"
+                  : "border-cyan-400/10 bg-cyan-400/[0.02]"
+              }`}
+            >
               <UserRound
                 size={16}
-                className="text-cyan-200"
+                className={playerIsFocused ? "text-cyan-200" : "text-cyan-300/60"}
                 aria-hidden="true"
               />
               <span className="text-center text-[9px] font-extrabold text-cyan-100 sm:text-[10px]">
@@ -407,33 +491,77 @@ function GameTable({
               <span className="text-lg font-black tabular-nums text-cyan-100 sm:text-xl">
                 {playerCards.length}
               </span>
-              <span className="text-center text-[8px] text-slate-500">
+              <span className="text-center text-[8px] text-slate-400">
                 {playerCards.length === 1 ? "card left" : "cards left"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Blinking instruction appears only when the player can act */}
+        {/* Prominent current-turn message */}
         {showTurnIndicator && (
           <div
             role="status"
             aria-live="polite"
-            className="flex animate-pulse items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2.5 text-center text-cyan-100"
+            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-center transition-all duration-300 ${
+              botIsFocused
+                ? "border-amber-300/40 bg-amber-400/10 text-amber-100"
+                : "border-cyan-300/40 bg-cyan-400/10 text-cyan-100"
+            }`}
           >
-            <Sparkles
-              size={15}
-              className="shrink-0"
-              aria-hidden="true"
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                botIsFocused
+                  ? "animate-pulse bg-amber-300"
+                  : "bg-cyan-300"
+              }`}
             />
             <p className="text-xs font-bold sm:text-sm">
-              Your turn — play a card
+              {botIsFocused
+                ? `${botName} is choosing a card…`
+                : "Your turn — play a card"}
             </p>
+            <Sparkles size={15} className="shrink-0" aria-hidden="true" />
           </div>
         )}
 
         {/* Player's actual cards */}
-        <div className="rounded-2xl border border-cyan-400/10 bg-slate-950/50 p-2 sm:p-3">
+        <div
+          className={`rounded-2xl border p-2 transition-all duration-300 sm:p-3 ${
+            playerIsFocused
+              ? "border-cyan-300/50 bg-gradient-to-br from-cyan-400/[0.08] to-slate-950 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-300/20"
+              : botIsFocused
+                ? "border-white/5 bg-slate-950/30 opacity-60"
+                : "border-cyan-400/10 bg-slate-950/50"
+          }`}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <UserRound
+                size={16}
+                className={playerIsFocused ? "text-cyan-200" : "text-slate-400"}
+                aria-hidden="true"
+              />
+              <span
+                className={`truncate text-xs font-black ${
+                  playerIsFocused ? "text-cyan-100" : "text-slate-300"
+                }`}
+              >
+                {playerName}
+              </span>
+            </div>
+
+            <span
+              className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${
+                playerIsFocused
+                  ? "bg-cyan-300/15 text-cyan-100"
+                  : "bg-white/5 text-slate-400"
+              }`}
+            >
+              {playerIsFocused ? "YOUR TURN" : `${playerCards.length} cards`}
+            </span>
+          </div>
+
           <PlayerHand
             cards={playerCards}
             playableCardIds={playableCardIds}

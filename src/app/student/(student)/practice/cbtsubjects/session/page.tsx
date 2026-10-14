@@ -584,8 +584,7 @@ export default function CbtSessionPage() {
       );
     }, [answers]);
 
- const showQuestionProgress =
-  hasSelectedFirstAnswer || hasAnyAnswer;
+ const showQuestionProgress = hasSelectedFirstAnswer;
 
   /* ==========================================================
      UNANSWERED COUNT
@@ -1698,7 +1697,14 @@ export default function CbtSessionPage() {
 
         {/* MAIN CONTENT */}
 
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div
+  className={[
+    "mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6",
+    showQuestionProgress
+      ? "lg:grid-cols-[280px_minmax(0,1fr)]"
+      : "",
+  ].join(" ")}
+>
           {/* QUESTION NAVIGATOR + SESSION PROGRESS
               Both remain hidden until the first answer. */}
 

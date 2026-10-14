@@ -1,12 +1,7 @@
 
-
-
-
-
-
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -77,6 +72,9 @@ function PlayerHand({
     null,
   );
 
+  // Scroll target for the complete question preview.
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
   const canInteract = isPlayerTurn && !disabled;
   const playableIds = new Set(playableCardIds);
 
@@ -90,9 +88,35 @@ function PlayerHand({
     cards.find((card) => card.instanceId === selectedCardInstanceId) ??
     null;
 
+  const previewCardIdForScroll = previewCard?.instanceId ?? null;
+
   const previewIsPlayable = previewCard
     ? playableIds.has(previewCard.instanceId)
     : false;
+
+  /*
+   * Automatically bring the full question and its action buttons into view
+   * whenever the preview opens or the previewed card changes.
+   *
+   * requestAnimationFrame lets React render the preview before scrolling.
+   */
+  useEffect(() => {
+    if (!previewCardIdForScroll) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      previewRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [previewCardIdForScroll]);
 
   const closePreview = () => {
     setPreviewCardId(null);
@@ -100,8 +124,7 @@ function PlayerHand({
   };
 
   const handleCardClick = (instanceId: string) => {
-    // First tap on a touch device opens the preview.
-    // A second tap on the same card selects it.
+    // First tap previews the card. A second tap selects it.
     if (touchPreviewCardId !== instanceId) {
       setTouchPreviewCardId(instanceId);
       setPreviewCardId(null);
@@ -144,6 +167,7 @@ function PlayerHand({
               <h3 className="max-w-full truncate text-sm font-extrabold text-white">
                 {playerName}
               </h3>
+
               <span className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-cyan-200">
                 Player
               </span>
@@ -181,21 +205,24 @@ function PlayerHand({
             className="shrink-0 text-cyan-300"
             aria-hidden="true"
           />
+
           <span>
             {playableCount > 0
               ? `${playableCount} playable ${
                   playableCount === 1 ? "card" : "cards"
-                }. Hover to preview, then play.`
+                }. Preview a card, then play it.`
               : "No matching card available. Draw a card to continue."}
           </span>
         </div>
       )}
 
-      {/* Large question preview */}
+      {/* Full question preview: automatically scrolled into view. */}
       {previewCard && (
         <div
-          className="mb-4 overflow-hidden rounded-2xl border border-cyan-300/40 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 shadow-[0_0_25px_rgba(34,211,238,0.08)]"
+          ref={previewRef}
+          className="mb-4 scroll-mt-4 scroll-mb-4 overflow-hidden rounded-2xl border border-cyan-300/40 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 shadow-[0_0_25px_rgba(34,211,238,0.08)]"
           aria-live="polite"
+          aria-label="Selected card question preview"
         >
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
             <div className="flex min-w-0 items-center gap-2">
@@ -217,7 +244,7 @@ function PlayerHand({
               type="button"
               onClick={closePreview}
               aria-label="Close question preview"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -281,6 +308,7 @@ function PlayerHand({
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-[11px] font-extrabold text-cyan-200">
                       {String.fromCharCode(65 + index)}
                     </span>
+
                     <span className="min-w-0 break-words text-sm leading-6 text-slate-200">
                       {option}
                     </span>
@@ -303,7 +331,7 @@ function PlayerHand({
                       closePreview();
                     }
                   }}
-                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+                  className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
                 >
                   <CheckCircle2 size={17} aria-hidden="true" />
                   {previewIsPlayable
@@ -314,7 +342,7 @@ function PlayerHand({
                 <button
                   type="button"
                   onClick={closePreview}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                 >
                   Back to hand
                 </button>
@@ -331,9 +359,11 @@ function PlayerHand({
             className="mb-2 text-emerald-300"
             aria-hidden="true"
           />
+
           <p className="text-sm font-extrabold text-emerald-200">
             No cards remaining!
           </p>
+
           <p className="mt-1 text-xs text-slate-400">
             You have played every card in your hand.
           </p>
@@ -374,14 +404,8 @@ function PlayerHand({
                   setPreviewCardId(card.instanceId);
                   setTouchPreviewCardId(null);
                 }}
-                onMouseLeave={() => {
-                  setPreviewCardId(null);
-                }}
                 onFocus={() => {
                   setPreviewCardId(card.instanceId);
-                }}
-                onBlur={() => {
-                  setPreviewCardId(null);
                 }}
                 onClick={() => handleCardClick(card.instanceId)}
                 aria-pressed={isSelected}

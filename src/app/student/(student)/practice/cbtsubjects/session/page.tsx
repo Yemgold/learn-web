@@ -584,9 +584,8 @@ export default function CbtSessionPage() {
       );
     }, [answers]);
 
-  const showQuestionProgress =
-    hasSelectedFirstAnswer ||
-    hasAnyAnswer;
+ const showQuestionProgress =
+  hasSelectedFirstAnswer;
 
   /* ==========================================================
      UNANSWERED COUNT
@@ -1604,35 +1603,43 @@ export default function CbtSessionPage() {
       </div>
 
       <div className="relative">
-        {/* HEADER */}
 
-        <CbtHeader
-          subjectName={
-            currentSubject?.name ??
-            "Practice Examination"
-          }
-          questionNumber={
-            currentQuestionIndex + 1
-          }
-          totalQuestions={
-            questions.length
-          }
-          durationInMinutes={
-            durationInMinutes
-          }
-          timeRemainingSeconds={
-            timeRemainingSeconds
-          }
-          onTimeUp={
-            handleTimeUp
-          }
-          onSubmit={() =>
-            setShowSubmitDialog(true)
-          }
-          onExit={
-            handleExit
-          }
-        />
+
+        
+{/* HEADER */}
+
+<CbtHeader
+  subjectName={
+    currentSubject?.name ??
+    "Practice Examination"
+  }
+  questionNumber={
+    showQuestionProgress
+      ? currentQuestionIndex + 1
+      : 0
+  }
+  totalQuestions={
+    showQuestionProgress
+      ? questions.length
+      : 0
+  }
+  durationInMinutes={
+    durationInMinutes
+  }
+  timeRemainingSeconds={
+    timeRemainingSeconds
+  }
+  onTimeUp={
+    handleTimeUp
+  }
+  onSubmit={() =>
+    setShowSubmitDialog(true)
+  }
+  onExit={
+    handleExit
+  }
+/>
+
 
         {/* BACKEND PRACTICE STATUS */}
 

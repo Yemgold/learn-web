@@ -520,7 +520,7 @@ if (!isCardPlayable(card, state.centerCard)) {
     questionSource: "player",
     questionDeadline: now + state.config.questionTimeLimit * 1000,
     answerFeedback: null,
-    message: `You played ${card.subject}. Learnyfi Bot is answering your question...`,
+    message: `You played ${card.subject}. 🤖 Learnyfi Bot is thinking...`,
   };
 }
 

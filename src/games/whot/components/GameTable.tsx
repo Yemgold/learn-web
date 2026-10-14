@@ -2,9 +2,11 @@
 
 
 
+
+
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   Brain,
   CheckCircle2,
@@ -29,33 +31,25 @@ export interface GameTableProps {
   currentTurn: WhotPlayerId;
   winner?: WhotPlayerId | null;
   message?: string;
-
   playerCards: WhotCard[];
   botCardCount: number;
   drawPileCount: number;
   centerCard: WhotCard;
-
   playableCardIds?: string[];
   selectedCardInstanceId?: string | null;
-
   onSelectCard: (instanceId: string) => void;
   onDrawCard: () => void;
-
   isPlayerTurn: boolean;
   isBotTurn: boolean;
   isBotAnswering?: boolean;
-
   isQuestionOpen?: boolean;
   isShowingFeedback?: boolean;
   isFinished?: boolean;
   isDrawing?: boolean;
-
   timeRemaining?: number | null;
   questionSource?: "player" | "bot" | null;
-
   playerName?: string;
   botName?: string;
-
   compact?: boolean;
   className?: string;
 }
@@ -106,6 +100,57 @@ const SUBJECT_SYMBOLS: Record<string, string> = {
   HISTORY: "⌛",
   GENERAL: "★",
 };
+
+function BotAvatar({
+  size = "normal",
+}: {
+  size?: "normal" | "large";
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const dimension =
+    size === "large" ? "h-16 w-16 sm:h-20 sm:w-20" : "h-10 w-10";
+
+  return (
+    <div
+      className={`relative shrink-0 overflow-hidden rounded-full border-2 border-amber-300/80 bg-slate-900 shadow-lg shadow-amber-400/20 ${dimension}`}
+    >
+      {!imageFailed ? (
+        <img
+          src="/images/learnyfi-bot.png"
+          alt="Learnyfi Bot"
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-400/25 to-slate-950 text-amber-200">
+          <Brain
+            size={size === "large" ? 34 : 22}
+            aria-hidden="true"
+          />
+        </div>
+      )}
+
+      <span
+        className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-slate-950 bg-emerald-400"
+        aria-label="Bot online"
+      />
+    </div>
+  );
+}
+
+function ThinkingDots() {
+  return (
+    <div
+      className="mt-2 flex items-center justify-center gap-1.5"
+      aria-hidden="true"
+    >
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300 [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300 [animation-delay:300ms]" />
+    </div>
+  );
+}
 
 function CenterCard({
   card,
@@ -274,10 +319,6 @@ function GameTable({
   const botHandRef = useRef<HTMLDivElement>(null);
   const playerHandRef = useRef<HTMLDivElement>(null);
   const drawPileRef = useRef<HTMLDivElement>(null);
-
-  // Track the action target rather than just the turn.
-  // This allows scrolling from the player's hand to the draw pile
-  // even though it is still the player's turn.
   const lastScrolledActionRef = useRef<string | null>(null);
 
   const gameIsFinished =
@@ -338,17 +379,6 @@ function GameTable({
 
   const drawIsFocused = canDraw;
 
-  /*
-   * AUTOMATIC ACTION SCROLLING
-   *
-   * 1. Bot's turn: scroll to the bot's hand.
-   * 2. Player has playable cards: scroll to the player's hand.
-   * 3. Player has no playable cards: scroll to the draw pile.
-   * 4. After a draw finishes: scroll back to the player's hand.
-   *
-   * Questions and feedback take priority, so the table does not
-   * pull the player away from an active question.
-   */
   useEffect(() => {
     if (
       !isPlaying ||
@@ -363,7 +393,6 @@ function GameTable({
     let targetRef: { current: HTMLDivElement | null };
 
     if (currentTurn === "player" && isDrawing) {
-      // Avoid competing with an in-progress draw animation.
       return;
     }
 
@@ -387,11 +416,7 @@ function GameTable({
     const timeoutId = window.setTimeout(() => {
       const target = targetRef.current;
 
-      if (!target) {
-        // Do not mark this action as scrolled if its target
-        // is not mounted yet.
-        return;
-      }
+      if (!target) return;
 
       target.scrollIntoView({
         behavior: "smooth",
@@ -402,9 +427,7 @@ function GameTable({
       lastScrolledActionRef.current = actionKey;
     }, 120);
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    return () => window.clearTimeout(timeoutId);
   }, [
     currentTurn,
     canDraw,
@@ -493,16 +516,7 @@ function GameTable({
 
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
-                  botIsFocused
-                    ? "border-amber-300/60 bg-amber-300/20 text-amber-100"
-                    : "border-amber-400/20 bg-amber-400/10 text-amber-200"
-                }`}
-              >
-                <Brain size={19} aria-hidden="true" />
-              </div>
-
+              <BotAvatar />
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-amber-100">
                   {botName}
@@ -571,7 +585,7 @@ function GameTable({
                 ? "border-violet-300/30 bg-violet-400/10 text-violet-100"
                 : isShowingFeedback
                   ? "border-amber-300/40 bg-amber-400/10 text-amber-100"
-                  : botIsFocused
+                  : botMustAnswer || botIsFocused
                     ? "border-amber-300/50 bg-amber-400/10 text-amber-100"
                     : drawIsFocused
                       ? "border-emerald-300/50 bg-emerald-400/10 text-emerald-100"
@@ -580,25 +594,35 @@ function GameTable({
                         : "border-white/10 bg-white/[0.03] text-slate-300"
             }`}
           >
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                botIsFocused
-                  ? "animate-pulse bg-amber-300"
-                  : drawIsFocused
-                    ? "animate-pulse bg-emerald-300"
-                    : playerIsFocused
-                      ? "animate-pulse bg-cyan-300"
-                      : "bg-slate-400"
-              }`}
-            />
+            {botMustAnswer ? (
+              <BotAvatar />
+            ) : (
+              <span
+                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                  botIsFocused
+                    ? "animate-pulse bg-amber-300"
+                    : drawIsFocused
+                      ? "animate-pulse bg-emerald-300"
+                      : playerIsFocused
+                        ? "animate-pulse bg-cyan-300"
+                        : "bg-slate-400"
+                }`}
+              />
+            )}
+
             <p className="text-xs font-bold sm:text-sm">
               {actionMessage}
             </p>
-            <Sparkles
-              size={15}
-              className="shrink-0"
-              aria-hidden="true"
-            />
+
+            {botMustAnswer ? (
+              <ThinkingDots />
+            ) : (
+              <Sparkles
+                size={15}
+                className="shrink-0"
+                aria-hidden="true"
+              />
+            )}
           </div>
         )}
 
@@ -658,16 +682,18 @@ function GameTable({
 
             {/* Centre card and draw pile */}
             <div className="flex min-w-0 flex-col items-center gap-3">
-              {isBotAnswering && questionIsActive ? (
-                <div className="flex min-h-[155px] w-full max-w-[165px] flex-col items-center justify-center rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] px-2 text-center ring-2 ring-amber-300/20 sm:min-h-[190px] sm:max-w-[180px]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-                    <Brain size={22} aria-hidden="true" />
-                  </div>
-                  <p className="mt-2 text-xs font-extrabold text-amber-100">
-                    Bot is thinking
+              {botMustAnswer ? (
+                <div className="flex min-h-[155px] w-full max-w-[165px] flex-col items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/15 to-slate-950 px-2 py-3 text-center shadow-lg shadow-amber-400/10 ring-2 ring-amber-300/20 sm:min-h-[190px] sm:max-w-[180px]">
+                  <BotAvatar size="large" />
+
+                  <p className="mt-2 text-xs font-extrabold text-amber-100 sm:text-sm">
+                    {botName} is thinking...
                   </p>
+
+                  <ThinkingDots />
+
                   <p className="mt-1 text-[10px] text-slate-400">
-                    Checking its answer…
+                    Preparing an answer
                   </p>
                 </div>
               ) : (
@@ -803,8 +829,6 @@ function GameTable({
 }
 
 export default memo(GameTable);
-
-
 
 
 
@@ -1061,7 +1085,7 @@ export default memo(GameTable);
 //           role="status"
 //           className="flex items-center gap-1 text-center text-[10px] font-black uppercase text-emerald-200"
 //         >
-//           <CheckCircle2 size={13} />
+//           <CheckCircle2 size={13} aria-hidden="true" />
 //           Draw a card
 //         </span>
 //       )}
@@ -1096,18 +1120,14 @@ export default memo(GameTable);
 //   compact = false,
 //   className = "",
 // }: GameTableProps) {
-//   /*
-//    * Automatic scrolling references.
-//    *
-//    * The bot's hand is at the top of the table.
-//    * The player's hand is at the bottom.
-//    */
 //   const botHandRef = useRef<HTMLDivElement>(null);
 //   const playerHandRef = useRef<HTMLDivElement>(null);
+//   const drawPileRef = useRef<HTMLDivElement>(null);
 
-//   // Remember the last turn we scrolled to, preventing repeated scrolling
-//   // on unrelated renders such as score or card-count updates.
-//   const lastScrolledTurnRef = useRef<WhotPlayerId | null>(null);
+//   // Track the action target rather than just the turn.
+//   // This allows scrolling from the player's hand to the draw pile
+//   // even though it is still the player's turn.
+//   const lastScrolledActionRef = useRef<string | null>(null);
 
 //   const gameIsFinished =
 //     isFinished || status === "FINISHED" || winner !== null;
@@ -1126,12 +1146,10 @@ export default memo(GameTable);
 //     questionSource === "bot" &&
 //     !isBotAnswering;
 
-//   // Keep the bot focused during its automatic thinking delay.
 //   const botHasTurn =
 //     isPlaying &&
 //     (currentTurn === "bot" || isBotTurn);
 
-//   // Focus only the player actions that are currently available.
 //   const playerHasTurn =
 //     isPlaying &&
 //     currentTurn === "player" &&
@@ -1164,18 +1182,21 @@ export default memo(GameTable);
 //     !isShowingFeedback &&
 //     !isBotAnswering &&
 //     !isDrawing &&
-//     !gameIsFinished;
+//     !gameIsFinished &&
+//     playableCount > 0;
 
 //   const drawIsFocused = canDraw;
 
 //   /*
-//    * AUTOMATIC TURN SCROLLING
+//    * AUTOMATIC ACTION SCROLLING
 //    *
-//    * When the active turn changes:
-//    * - Scroll to the bot's hand when it is the bot's turn.
-//    * - Scroll to the player's hand when it is the player's turn.
+//    * 1. Bot's turn: scroll to the bot's hand.
+//    * 2. Player has playable cards: scroll to the player's hand.
+//    * 3. Player has no playable cards: scroll to the draw pile.
+//    * 4. After a draw finishes: scroll back to the player's hand.
 //    *
-//    * Do not scroll while a question or feedback screen is active.
+//    * Questions and feedback take priority, so the table does not
+//    * pull the player away from an active question.
 //    */
 //   useEffect(() => {
 //     if (
@@ -1187,33 +1208,61 @@ export default memo(GameTable);
 //       return;
 //     }
 
-//     if (lastScrolledTurnRef.current === currentTurn) {
+//     let actionKey: string;
+//     let targetRef: { current: HTMLDivElement | null };
+
+//     if (currentTurn === "player" && isDrawing) {
+//       // Avoid competing with an in-progress draw animation.
 //       return;
 //     }
 
-//     lastScrolledTurnRef.current = currentTurn;
+//     if (canDraw) {
+//       actionKey = "player-draw-pile";
+//       targetRef = drawPileRef;
+//     } else if (currentTurn === "player" && playerHasTurn) {
+//       actionKey = "player-hand";
+//       targetRef = playerHandRef;
+//     } else if (currentTurn === "bot" || botHasTurn) {
+//       actionKey = "bot-hand";
+//       targetRef = botHandRef;
+//     } else {
+//       return;
+//     }
+
+//     if (lastScrolledActionRef.current === actionKey) {
+//       return;
+//     }
 
 //     const timeoutId = window.setTimeout(() => {
-//       const target =
-//         currentTurn === "player"
-//           ? playerHandRef.current
-//           : botHandRef.current;
+//       const target = targetRef.current;
 
-//       target?.scrollIntoView({
+//       if (!target) {
+//         // Do not mark this action as scrolled if its target
+//         // is not mounted yet.
+//         return;
+//       }
+
+//       target.scrollIntoView({
 //         behavior: "smooth",
 //         block: "center",
 //         inline: "nearest",
 //       });
-//     }, 100);
+
+//       lastScrolledActionRef.current = actionKey;
+//     }, 120);
 
 //     return () => {
 //       window.clearTimeout(timeoutId);
 //     };
 //   }, [
 //     currentTurn,
-//     gameIsFinished,
+//     canDraw,
+//     playerHasTurn,
+//     botHasTurn,
+//     isDrawing,
 //     isQuestionOpen,
 //     isShowingFeedback,
+//     gameIsFinished,
 //     isPlaying,
 //   ]);
 
@@ -1275,7 +1324,7 @@ export default memo(GameTable);
 //         {/* Opponent's hand */}
 //         <div
 //           ref={botHandRef}
-//           className={`scroll-mt-6 scroll-mb-6 relative rounded-2xl border p-2.5 transition-all duration-300 sm:p-4 ${
+//           className={`relative scroll-mt-6 scroll-mb-6 rounded-2xl border p-2.5 transition-all duration-300 sm:p-4 ${
 //             botIsFocused
 //               ? "scale-[1.01] border-amber-300/70 bg-gradient-to-br from-amber-400/15 via-amber-950/40 to-slate-950 shadow-lg shadow-amber-400/10 ring-2 ring-amber-300/30"
 //               : "border-amber-400/15 bg-amber-400/[0.03]"
@@ -1283,11 +1332,11 @@ export default memo(GameTable);
 //         >
 //           {botIsFocused && (
 //             <div className="mb-3 flex animate-pulse items-center justify-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-amber-100">
-//               <Sparkles size={16} />
+//               <Sparkles size={16} aria-hidden="true" />
 //               <span className="text-xs font-black uppercase tracking-wider sm:text-sm">
 //                 Opponent&apos;s turn
 //               </span>
-//               <Sparkles size={16} />
+//               <Sparkles size={16} aria-hidden="true" />
 //             </div>
 //           )}
 
@@ -1475,14 +1524,19 @@ export default memo(GameTable);
 //               )}
 
 //               {canDraw && (
-//                 <DrawPilePanel
-//                   count={drawPileCount}
-//                   disabled={!canDraw}
-//                   isDrawing={isDrawing}
-//                   onDrawCard={onDrawCard}
-//                   compact={compact}
-//                   isFocused={drawIsFocused}
-//                 />
+//                 <div
+//                   ref={drawPileRef}
+//                   className="w-full scroll-mt-6 scroll-mb-6 rounded-2xl transition-all duration-300"
+//                 >
+//                   <DrawPilePanel
+//                     count={drawPileCount}
+//                     disabled={!canDraw}
+//                     isDrawing={isDrawing}
+//                     onDrawCard={onDrawCard}
+//                     compact={compact}
+//                     isFocused={drawIsFocused}
+//                   />
+//                 </div>
 //               )}
 //             </div>
 
@@ -1598,3 +1652,13 @@ export default memo(GameTable);
 // }
 
 // export default memo(GameTable);
+
+
+
+
+
+
+
+
+
+

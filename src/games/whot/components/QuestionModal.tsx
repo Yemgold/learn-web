@@ -42,25 +42,96 @@ export interface QuestionModalProps {
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"] as const;
 
+
 const SUBJECT_STYLES: Record<WhotSubject, string> = {
-  MATHS: "border-blue-400/30 bg-blue-400/10 text-blue-200",
-  ENGLISH: "border-fuchsia-400/30 bg-fuchsia-400/10 text-fuchsia-200",
-  BIOLOGY: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
-  CHEMISTRY: "border-orange-400/30 bg-orange-400/10 text-orange-200",
-  PHYSICS: "border-cyan-400/30 bg-cyan-400/10 text-cyan-200",
-  HISTORY: "border-amber-400/30 bg-amber-400/10 text-amber-200",
-  GENERAL: "border-violet-400/30 bg-violet-400/10 text-violet-200",
+  MATHS:
+    "border-blue-400/30 bg-blue-400/10 text-blue-200",
+
+  FURTHER_MATHS:
+    "border-indigo-400/30 bg-indigo-400/10 text-indigo-200",
+
+  ENGLISH:
+    "border-fuchsia-400/30 bg-fuchsia-400/10 text-fuchsia-200",
+
+  BIOLOGY:
+    "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+
+  CHEMISTRY:
+    "border-orange-400/30 bg-orange-400/10 text-orange-200",
+
+  PHYSICS:
+    "border-cyan-400/30 bg-cyan-400/10 text-cyan-200",
+
+  AGRICULTURAL_SCIENCE:
+    "border-lime-400/30 bg-lime-400/10 text-lime-200",
+
+  COMPUTER_STUDIES:
+    "border-sky-400/30 bg-sky-400/10 text-sky-200",
+
+  COMMERCE:
+    "border-teal-400/30 bg-teal-400/10 text-teal-200",
+
+  ACCOUNTING:
+    "border-green-400/30 bg-green-400/10 text-green-200",
+
+  ECONOMICS:
+    "border-yellow-400/30 bg-yellow-400/10 text-yellow-200",
+
+  GOVERNMENT:
+    "border-red-400/30 bg-red-400/10 text-red-200",
+
+  OFFICE_PRACTICE:
+    "border-stone-400/30 bg-stone-400/10 text-stone-200",
+
+  BUSINESS_STUDIES:
+    "border-rose-400/30 bg-rose-400/10 text-rose-200",
+
+  LITERATURE:
+    "border-pink-400/30 bg-pink-400/10 text-pink-200",
+
+  HISTORY:
+    "border-amber-400/30 bg-amber-400/10 text-amber-200",
+
+  CRS:
+    "border-purple-400/30 bg-purple-400/10 text-purple-200",
+
+  IRS:
+    "border-violet-400/30 bg-violet-400/10 text-violet-200",
+
+  FRENCH:
+    "border-red-300/30 bg-red-300/10 text-red-200",
+
+  YORUBA:
+    "border-orange-300/30 bg-orange-300/10 text-orange-200",
+
+  GENERAL:
+    "border-violet-400/30 bg-violet-400/10 text-violet-200",
 };
 
 const SUBJECT_LABELS: Record<WhotSubject, string> = {
   MATHS: "Mathematics",
-  ENGLISH: "English",
+  FURTHER_MATHS: "Further Mathematics",
+  ENGLISH: "English Language",
   BIOLOGY: "Biology",
   CHEMISTRY: "Chemistry",
   PHYSICS: "Physics",
+  AGRICULTURAL_SCIENCE: "Agricultural Science",
+  COMPUTER_STUDIES: "Computer Studies",
+  COMMERCE: "Commerce",
+  ACCOUNTING: "Financial Accounting",
+  ECONOMICS: "Economics",
+  GOVERNMENT: "Government",
+  OFFICE_PRACTICE: "Office Practice",
+  BUSINESS_STUDIES: "Business Studies",
+  LITERATURE: "Literature in English",
   HISTORY: "History",
+  CRS: "Christian Religious Studies",
+  IRS: "Islamic Religious Studies",
+  FRENCH: "French",
+  YORUBA: "Yoruba",
   GENERAL: "General Knowledge",
 };
+
 
 function formatTime(seconds: number): string {
   return `00:${String(Math.max(0, Math.ceil(seconds))).padStart(2, "0")}`;

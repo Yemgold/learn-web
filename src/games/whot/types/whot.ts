@@ -298,36 +298,88 @@
 
 
 
+
+
+
+
+
+
+
+
 /* ============================================================
    LEARNYFI WHOT — GAME TYPES
    ============================================================ */
 
+/* ------------------------------------------------------------
+   SUBJECTS
+   ------------------------------------------------------------ */
+
 export const WHOT_SUBJECTS = [
   "MATHS",
+  "FURTHER_MATHS",
   "ENGLISH",
   "BIOLOGY",
   "CHEMISTRY",
   "PHYSICS",
+  "AGRICULTURAL_SCIENCE",
+  "COMPUTER_STUDIES",
+  "COMMERCE",
+  "ACCOUNTING",
+  "ECONOMICS",
+  "GOVERNMENT",
+  "OFFICE_PRACTICE",
+  "BUSINESS_STUDIES",
+  "LITERATURE",
   "HISTORY",
+  "CRS",
+  "IRS",
+  "FRENCH",
+  "YORUBA",
   "GENERAL",
 ] as const;
 
 export type WhotSubject = (typeof WHOT_SUBJECTS)[number];
 
-export const WHOT_DIFFICULTIES = ["EASY", "MEDIUM", "HARD"] as const;
+/* ------------------------------------------------------------
+   DIFFICULTY
+   ------------------------------------------------------------ */
+
+export const WHOT_DIFFICULTIES = [
+  "EASY",
+  "MEDIUM",
+  "HARD",
+] as const;
+
 export type WhotDifficulty = (typeof WHOT_DIFFICULTIES)[number];
 
+/* ------------------------------------------------------------
+   PLAYERS
+   ------------------------------------------------------------ */
+
 export const WHOT_PLAYER_IDS = ["player", "bot"] as const;
+
 export type WhotPlayerId = (typeof WHOT_PLAYER_IDS)[number];
 
-export const WHOT_GAME_STATUSES = ["READY", "PLAYING", "FINISHED"] as const;
+/* ------------------------------------------------------------
+   GAME STATUS
+   ------------------------------------------------------------ */
+
+export const WHOT_GAME_STATUSES = [
+  "READY",
+  "PLAYING",
+  "FINISHED",
+] as const;
+
 export type WhotGameStatus = (typeof WHOT_GAME_STATUSES)[number];
 
 /* ------------------------------------------------------------
    SETUP SELECTION
    ------------------------------------------------------------ */
 
-export type WhotClassGroup = "SCIENCES" | "COMMERCIAL" | "ARTS";
+export type WhotClassGroup =
+  | "SCIENCES"
+  | "COMMERCIAL"
+  | "ARTS";
 
 export interface WhotSelectedSubject {
   id: string;
@@ -354,6 +406,10 @@ export interface WhotQuestion {
   explanation?: string;
 }
 
+/* ------------------------------------------------------------
+   CARD
+   ------------------------------------------------------------ */
+
 export interface WhotCard extends WhotQuestion {
   instanceId: string;
 }
@@ -374,15 +430,21 @@ export interface WhotPlayer {
 
 export interface WhotGameState {
   status: WhotGameStatus;
+
   player: WhotPlayer;
   bot: WhotPlayer;
+
   drawPile: WhotCard[];
   centerCard: WhotCard;
+
   currentTurn: WhotPlayerId;
   selectedCardInstanceId: string | null;
+
   questionDeadline: number | null;
+
   winner: WhotPlayerId | null;
   message: string;
+
   correctAnswers: number;
   incorrectAnswers: number;
   turnsPlayed: number;
@@ -425,7 +487,7 @@ export type WhotMoveResult =
     };
 
 /* ------------------------------------------------------------
-   ACTIONS
+   GAME ACTIONS
    ------------------------------------------------------------ */
 
 export type WhotGameAction =
@@ -439,7 +501,7 @@ export type WhotGameAction =
   | { type: "CONTINUE_AFTER_FEEDBACK" };
 
 /* ------------------------------------------------------------
-   CONFIGURATION
+   GAME CONFIGURATION
    ------------------------------------------------------------ */
 
 export interface WhotGameConfig {
@@ -450,10 +512,14 @@ export interface WhotGameConfig {
   copiesPerQuestion: number;
 
   /**
-   * Setup subject IDs or names, e.g.
-   * ["biology", "chemistry", "physics", "mathematics"].
+   * Subject IDs or names from the setup page.
    *
-   * Omit this property to use the entire question bank.
+   * Examples:
+   * ["biology", "chemistry", "physics", "mathematics"]
+   * ["commerce", "accounting", "economics", "government"]
+   *
+   * When omitted or empty, the deck implementation may use
+   * the full question bank, depending on its filtering logic.
    */
   selectedSubjects?: string[];
 }
@@ -466,27 +532,145 @@ export const DEFAULT_WHOT_CONFIG: Readonly<WhotGameConfig> = {
   copiesPerQuestion: 2,
 };
 
+/* ------------------------------------------------------------
+   SUBJECT LABELS
+   ------------------------------------------------------------ */
+
 export const WHOT_SUBJECT_LABELS: Record<WhotSubject, string> = {
   MATHS: "Mathematics",
-  ENGLISH: "English",
+  FURTHER_MATHS: "Further Mathematics",
+  ENGLISH: "English Language",
   BIOLOGY: "Biology",
   CHEMISTRY: "Chemistry",
   PHYSICS: "Physics",
+  AGRICULTURAL_SCIENCE: "Agricultural Science",
+  COMPUTER_STUDIES: "Computer Studies",
+  COMMERCE: "Commerce",
+  ACCOUNTING: "Financial Accounting",
+  ECONOMICS: "Economics",
+  GOVERNMENT: "Government",
+  OFFICE_PRACTICE: "Office Practice",
+  BUSINESS_STUDIES: "Business Studies",
+  LITERATURE: "Literature in English",
   HISTORY: "History",
+  CRS: "Christian Religious Studies",
+  IRS: "Islamic Religious Studies",
+  FRENCH: "French",
+  YORUBA: "Yoruba",
   GENERAL: "General Knowledge",
 };
+
+/* ------------------------------------------------------------
+   SUBJECT STYLES
+   Keep these class names aligned with the game's card styling.
+   ------------------------------------------------------------ */
 
 export const WHOT_SUBJECT_STYLES: Record<
   WhotSubject,
   { label: string; className: string }
 > = {
-  MATHS: { label: "Mathematics", className: "maths" },
-  ENGLISH: { label: "English", className: "english" },
-  BIOLOGY: { label: "Biology", className: "biology" },
-  CHEMISTRY: { label: "Chemistry", className: "chemistry" },
-  PHYSICS: { label: "Physics", className: "physics" },
-  HISTORY: { label: "History", className: "history" },
-  GENERAL: { label: "General Knowledge", className: "general" },
+  MATHS: {
+    label: "Mathematics",
+    className: "maths",
+  },
+
+  FURTHER_MATHS: {
+    label: "Further Mathematics",
+    className: "further-maths",
+  },
+
+  ENGLISH: {
+    label: "English Language",
+    className: "english",
+  },
+
+  BIOLOGY: {
+    label: "Biology",
+    className: "biology",
+  },
+
+  CHEMISTRY: {
+    label: "Chemistry",
+    className: "chemistry",
+  },
+
+  PHYSICS: {
+    label: "Physics",
+    className: "physics",
+  },
+
+  AGRICULTURAL_SCIENCE: {
+    label: "Agricultural Science",
+    className: "agricultural-science",
+  },
+
+  COMPUTER_STUDIES: {
+    label: "Computer Studies",
+    className: "computer-studies",
+  },
+
+  COMMERCE: {
+    label: "Commerce",
+    className: "commerce",
+  },
+
+  ACCOUNTING: {
+    label: "Financial Accounting",
+    className: "accounting",
+  },
+
+  ECONOMICS: {
+    label: "Economics",
+    className: "economics",
+  },
+
+  GOVERNMENT: {
+    label: "Government",
+    className: "government",
+  },
+
+  OFFICE_PRACTICE: {
+    label: "Office Practice",
+    className: "office-practice",
+  },
+
+  BUSINESS_STUDIES: {
+    label: "Business Studies",
+    className: "business-studies",
+  },
+
+  LITERATURE: {
+    label: "Literature in English",
+    className: "literature",
+  },
+
+  HISTORY: {
+    label: "History",
+    className: "history",
+  },
+
+  CRS: {
+    label: "Christian Religious Studies",
+    className: "crs",
+  },
+
+  IRS: {
+    label: "Islamic Religious Studies",
+    className: "irs",
+  },
+
+  FRENCH: {
+    label: "French",
+    className: "french",
+  },
+
+  YORUBA: {
+    label: "Yoruba",
+    className: "yoruba",
+  },
+
+  GENERAL: {
+    label: "General Knowledge",
+    className: "general",
+  },
 };
-
-

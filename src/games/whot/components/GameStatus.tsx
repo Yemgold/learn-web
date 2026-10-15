@@ -1,8 +1,4 @@
 
-
-
-
-
 "use client";
 
 import { memo } from "react";
@@ -36,14 +32,26 @@ export interface GameStatusProps {
   className?: string;
 }
 
-const SUBJECT_STYLES: Record<
-  WhotSubject,
-  { border: string; background: string; text: string }
-> = {
+interface SubjectStyle {
+  border: string;
+  background: string;
+  text: string;
+}
+
+/* ============================================================
+   SUBJECT STYLES — ALL 21 SUBJECTS
+   ============================================================ */
+
+const SUBJECT_STYLES: Record<WhotSubject, SubjectStyle> = {
   MATHS: {
     border: "border-blue-400/25",
     background: "bg-blue-400/10",
     text: "text-blue-200",
+  },
+  FURTHER_MATHS: {
+    border: "border-indigo-400/25",
+    background: "bg-indigo-400/10",
+    text: "text-indigo-200",
   },
   ENGLISH: {
     border: "border-fuchsia-400/25",
@@ -65,10 +73,75 @@ const SUBJECT_STYLES: Record<
     background: "bg-cyan-400/10",
     text: "text-cyan-200",
   },
+  AGRICULTURAL_SCIENCE: {
+    border: "border-lime-400/25",
+    background: "bg-lime-400/10",
+    text: "text-lime-200",
+  },
+  COMPUTER_STUDIES: {
+    border: "border-sky-400/25",
+    background: "bg-sky-400/10",
+    text: "text-sky-200",
+  },
+  COMMERCE: {
+    border: "border-teal-400/25",
+    background: "bg-teal-400/10",
+    text: "text-teal-200",
+  },
+  ACCOUNTING: {
+    border: "border-green-400/25",
+    background: "bg-green-400/10",
+    text: "text-green-200",
+  },
+  ECONOMICS: {
+    border: "border-yellow-400/25",
+    background: "bg-yellow-400/10",
+    text: "text-yellow-200",
+  },
+  GOVERNMENT: {
+    border: "border-red-400/25",
+    background: "bg-red-400/10",
+    text: "text-red-200",
+  },
+  OFFICE_PRACTICE: {
+    border: "border-stone-400/25",
+    background: "bg-stone-400/10",
+    text: "text-stone-200",
+  },
+  BUSINESS_STUDIES: {
+    border: "border-rose-400/25",
+    background: "bg-rose-400/10",
+    text: "text-rose-200",
+  },
+  LITERATURE: {
+    border: "border-pink-400/25",
+    background: "bg-pink-400/10",
+    text: "text-pink-200",
+  },
   HISTORY: {
     border: "border-amber-400/25",
     background: "bg-amber-400/10",
     text: "text-amber-200",
+  },
+  CRS: {
+    border: "border-purple-400/25",
+    background: "bg-purple-400/10",
+    text: "text-purple-200",
+  },
+  IRS: {
+    border: "border-violet-400/25",
+    background: "bg-violet-400/10",
+    text: "text-violet-200",
+  },
+  FRENCH: {
+    border: "border-red-300/25",
+    background: "bg-red-300/10",
+    text: "text-red-200",
+  },
+  YORUBA: {
+    border: "border-orange-300/25",
+    background: "bg-orange-300/10",
+    text: "text-orange-200",
   },
   GENERAL: {
     border: "border-violet-400/25",
@@ -77,13 +150,31 @@ const SUBJECT_STYLES: Record<
   },
 };
 
+/* ============================================================
+   SUBJECT LABELS — ALL 21 SUBJECTS
+   ============================================================ */
+
 const SUBJECT_LABELS: Record<WhotSubject, string> = {
   MATHS: "Mathematics",
-  ENGLISH: "English",
+  FURTHER_MATHS: "Further Mathematics",
+  ENGLISH: "English Language",
   BIOLOGY: "Biology",
   CHEMISTRY: "Chemistry",
   PHYSICS: "Physics",
+  AGRICULTURAL_SCIENCE: "Agricultural Science",
+  COMPUTER_STUDIES: "Computer Studies",
+  COMMERCE: "Commerce",
+  ACCOUNTING: "Financial Accounting",
+  ECONOMICS: "Economics",
+  GOVERNMENT: "Government",
+  OFFICE_PRACTICE: "Office Practice",
+  BUSINESS_STUDIES: "Business Studies",
+  LITERATURE: "Literature in English",
   HISTORY: "History",
+  CRS: "Christian Religious Studies",
+  IRS: "Islamic Religious Studies",
+  FRENCH: "French",
+  YORUBA: "Yoruba",
   GENERAL: "General Knowledge",
 };
 
@@ -100,8 +191,12 @@ function GameStatus({
 }: GameStatusProps) {
   const isPlaying = status === "PLAYING";
   const isFinished = status === "FINISHED";
-  const isPlayerTurn = isPlaying && currentTurn === "player";
-  const isBotTurn = isPlaying && currentTurn === "bot";
+
+  const isPlayerTurn =
+    isPlaying && currentTurn === "player";
+
+  const isBotTurn =
+    isPlaying && currentTurn === "bot";
 
   const safeTime =
     typeof timeRemaining === "number" &&
@@ -144,17 +239,21 @@ function GameStatus({
       safeTime <= 5
         ? `Hurry! ${safeTime}s remaining`
         : `Answer the question · ${safeTime}s`;
+
     statusTone =
       safeTime <= 5
         ? "border-rose-400/30 bg-rose-400/10 text-rose-200"
         : "border-cyan-400/25 bg-cyan-400/10 text-cyan-200";
+
     StatusIcon = Clock3;
   } else if (isQuestionOpen) {
     statusText = "Choose your answer";
     statusTone =
       "border-cyan-400/25 bg-cyan-400/10 text-cyan-200";
   } else if (isPlayerTurn) {
-    statusText = "Your turn — play a matching card or draw.";
+    statusText =
+      "Your turn — play a matching card or draw.";
+
     statusTone =
       "border-cyan-400/25 bg-cyan-400/10 text-cyan-200";
   } else if (isBotTurn) {
@@ -196,13 +295,21 @@ function GameStatus({
           {visibleMessage}
         </p>
 
-        {centerSubject && !isFinished && !isQuestionOpen && (
-          <span
-            className={`hidden shrink-0 rounded-lg border px-2 py-1 text-[10px] font-extrabold sm:inline-flex ${subjectStyle?.border} ${subjectStyle?.background} ${subjectStyle?.text}`}
-          >
-            {SUBJECT_LABELS[centerSubject]}
-          </span>
-        )}
+        {centerSubject &&
+          !isFinished &&
+          !isQuestionOpen && (
+            <span
+              className={`hidden shrink-0 rounded-lg border px-2 py-1 text-[10px] font-extrabold sm:inline-flex ${
+                subjectStyle?.border ?? ""
+              } ${
+                subjectStyle?.background ?? ""
+              } ${
+                subjectStyle?.text ?? ""
+              }`}
+            >
+              {SUBJECT_LABELS[centerSubject]}
+            </span>
+          )}
       </div>
     </section>
   );

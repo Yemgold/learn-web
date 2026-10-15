@@ -796,15 +796,17 @@ export default function SolveAndWinCbtPlayPage() {
               />
             )}
 
-            {gameState === "TIME_UP" && (
-              <TimeUpScreen
-                question={currentQuestion}
-                correctAnswer={lastCorrectAnswer}
-                totalWinnings={totalWinnings}
-                onTryAgain={handleTryAgain}
-                onCashOut={handleCashOut}
-              />
-            )}
+  {gameState === "TIME_UP" && (
+  <div className="flex w-full min-w-0 justify-center">
+    <TimeUpScreen
+      question={currentQuestion}
+      correctAnswer={lastCorrectAnswer}
+      totalWinnings={totalWinnings}
+      onTryAgain={handleTryAgain}
+      onCashOut={handleCashOut}
+    />
+  </div>
+)}
 
             {gameState === "CASHED_OUT" && (
               <CashOutScreen
@@ -1373,31 +1375,49 @@ function TimeUpScreen({
     "-";
 
   return (
-    <div className="rounded-3xl border border-red-400/20 bg-[#160d14] p-5 shadow-2xl sm:p-9">
-      <ResultHeading
-        icon={<Timer className="h-9 w-9 text-red-300 sm:h-10 sm:w-10" />}
-        label="Countdown finished"
-        title="Time is up!"
-        description="This round has ended. Review the answer and try again."
-      />
+    <div className="mx-auto w-full max-w-2xl rounded-2xl border border-red-400/20 bg-[#160d14] p-3 shadow-2xl sm:rounded-3xl sm:p-7">
+      <div className="text-center">
+        <div className="mb-2 flex justify-center sm:mb-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-400/20 bg-red-400/[0.08] sm:h-16 sm:w-16 sm:rounded-2xl">
+            <Timer className="h-6 w-6 text-red-300 sm:h-9 sm:w-9" />
+          </div>
+        </div>
 
-      <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 sm:mt-7">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">
+        <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-red-300 sm:text-[11px]">
+          Countdown finished
+        </p>
+
+        <h2 className="mt-1 text-2xl font-black text-white sm:mt-2 sm:text-4xl">
+          Time is up!
+        </h2>
+
+        <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-400 sm:mt-2 sm:text-base sm:leading-7">
+          This round has ended. Review the answer and try again.
+        </p>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3 sm:mt-5 sm:rounded-2xl sm:p-4">
+        <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-300/70 sm:text-[10px]">
           Correct answer
         </p>
-        <p className="mt-2 text-sm font-bold leading-6 text-emerald-200">
+        <p className="mt-1 text-sm font-bold leading-5 text-emerald-200 sm:mt-2 sm:text-base sm:leading-6">
           {correctText}
         </p>
       </div>
 
-      <ExplanationCard explanation={question.explanation} />
-      <DemoTotal totalWinnings={totalWinnings} />
+      <div className="mt-3 sm:mt-4">
+        <ExplanationCard explanation={question.explanation} />
+      </div>
 
-      <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2">
+      <div className="mt-3 sm:mt-4">
+        <DemoTotal totalWinnings={totalWinnings} />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:mt-5 sm:grid-cols-2 sm:gap-3">
         <button
           type="button"
           onClick={onTryAgain}
-          className={primaryButton}
+          className={`${primaryButton} min-h-11 py-2.5 text-sm sm:min-h-12 sm:text-base`}
         >
           <RotateCcw className="h-4 w-4" />
           Try Again
@@ -1406,7 +1426,7 @@ function TimeUpScreen({
         <button
           type="button"
           onClick={onCashOut}
-          className={secondaryButton}
+          className={`${secondaryButton} min-h-11 py-2.5 text-sm sm:min-h-12 sm:text-base`}
         >
           <ArrowRight className="h-4 w-4" />
           Finish Session
@@ -1415,7 +1435,6 @@ function TimeUpScreen({
     </div>
   );
 }
-
 /* =========================================================
    EXPLANATION
 ========================================================= */

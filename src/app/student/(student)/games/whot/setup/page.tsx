@@ -1,8 +1,6 @@
 
 
 
-
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -31,6 +29,15 @@ interface Subject {
   description: string;
   color: string;
   selectedColor: string;
+}
+
+interface WhotSelection {
+  classGroup: ClassGroup;
+  subjects: Array<{
+    id: string;
+    name: string;
+  }>;
+  selectedAt: string;
 }
 
 /* ============================================================
@@ -223,26 +230,45 @@ const SUBJECT_GROUPS: Record<ClassGroup, Subject[]> = {
   ],
 };
 
+/* ============================================================
+   GROUP INFORMATION
+   ============================================================ */
+
 const GROUP_INFO: Record<
   ClassGroup,
-  { label: string; description: string; accent: string }
+  {
+    label: string;
+    description: string;
+    accent: string;
+    border: string;
+    background: string;
+  }
 > = {
   SCIENCES: {
     label: "Sciences",
     description: "Explore science, technology and mathematics.",
-    accent: "cyan",
+    accent: "text-cyan-300",
+    border: "border-cyan-400",
+    background: "bg-cyan-400/10",
   },
   COMMERCIAL: {
     label: "Commercial",
     description: "Focus on commerce, finance and business.",
-    accent: "amber",
+    accent: "text-amber-300",
+    border: "border-amber-400",
+    background: "bg-amber-400/10",
   },
   ARTS: {
     label: "Arts",
     description: "Discover languages, literature and humanities.",
-    accent: "fuchsia",
+    accent: "text-fuchsia-300",
+    border: "border-fuchsia-400",
+    background: "bg-fuchsia-400/10",
   },
 };
+
+const STORAGE_KEY = "learnyfi-whot-selection";
+const MINIMUM_SUBJECTS = 4;
 
 /* ============================================================
    PAGE
@@ -254,22 +280,36 @@ export default function WhotSetupPage() {
   const [classGroup, setClassGroup] =
     useState<ClassGroup>("SCIENCES");
 
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedSubjects, setSelectedSubjects] =
+    useState<string[]>([]);
 
   const [error, setError] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
 
   const subjects = useMemo(
     () => SUBJECT_GROUPS[classGroup],
     [classGroup],
   );
 
-  const selectedSubjectDetails = subjects.filter((subject) =>
-    selectedSubjects.includes(subject.id),
+  const selectedSubjectDetails = useMemo(
+    () =>
+      subjects.filter((subject) =>
+        selectedSubjects.includes(subject.id),
+      ),
+    [subjects, selectedSubjects],
   );
 
-  const canStart = selectedSubjects.length >= 4;
+  const canStart =
+    selectedSubjects.length >= MINIMUM_SUBJECTS;
+
+  const remainingSubjects = Math.max(
+    0,
+    MINIMUM_SUBJECTS - selectedSubjects.length,
+  );
 
   function handleGroupChange(group: ClassGroup) {
+    if (group === classGroup) return;
+
     setClassGroup(group);
     setSelectedSubjects([]);
     setError("");
@@ -288,15 +328,21 @@ export default function WhotSetupPage() {
   }
 
   function handleStartGame() {
-    if (selectedSubjects.length < 4) {
-      setError("Please select at least four subjects to continue.");
+    if (isStarting) return;
+
+    if (selectedSubjects.length < MINIMUM_SUBJECTS) {
+      setError(
+        `Please select at least ${MINIMUM_SUBJECTS} subjects to continue.`,
+      );
       return;
     }
 
-    const selection = {
+    const selection: WhotSelection = {
       classGroup,
       subjects: selectedSubjects.map((id) => {
-        const subject = subjects.find((item) => item.id === id);
+        const subject = subjects.find(
+          (item) => item.id === id,
+        );
 
         return {
           id,
@@ -308,12 +354,14 @@ export default function WhotSetupPage() {
 
     try {
       sessionStorage.setItem(
-        "learnyfi-whot-selection",
+        STORAGE_KEY,
         JSON.stringify(selection),
       );
 
+      setIsStarting(true);
       router.push("/student/games/whot/play");
     } catch {
+      setIsStarting(false);
       setError(
         "We couldn't save your selection. Please check your browser settings and try again.",
       );
@@ -321,9 +369,9 @@ export default function WhotSetupPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 px-4 py-6 text-white sm:px-6 sm:py-8 lg:px-8">
+    <main className="min-h-screen overflow-x-clip bg-slate-950 px-4 py-5 text-white sm:px-6 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        {/* Header */}
+        {/* HEADER */}
 
         <header className="flex items-center justify-between gap-3">
           <Link
@@ -335,9 +383,10 @@ export default function WhotSetupPage() {
               <Layers3 className="h-6 w-6 text-cyan-300" />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <p className="text-lg font-black tracking-tight">
-                Learnyfi <span className="text-cyan-300">WHOT</span>
+                Learnyfi{" "}
+                <span className="text-cyan-300">WHOT</span>
               </p>
               <p className="text-xs text-slate-500">
                 Prepare your game
@@ -355,9 +404,9 @@ export default function WhotSetupPage() {
           </Link>
         </header>
 
-        {/* Hero */}
+        {/* HERO */}
 
-        <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-950 via-slate-900 to-indigo-950 p-6 sm:p-10 lg:p-12">
+        <section className="relative mt-7 overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-950 via-slate-900 to-indigo-950 p-6 sm:mt-8 sm:p-10 lg:p-12">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl"
@@ -377,9 +426,9 @@ export default function WhotSetupPage() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              Select your class group and the subjects you want to
-              practise. Your choices will be saved for your upcoming
-              WHOT game.
+              Choose your class group and the subjects you
+              want to practise. Your selections will be used
+              to prepare your WHOT game.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3 text-xs font-semibold text-slate-300">
@@ -396,7 +445,7 @@ export default function WhotSetupPage() {
           </div>
         </section>
 
-        {/* Class group selection */}
+        {/* STEP 1: CLASS GROUP */}
 
         <section className="mt-8">
           <div className="mb-4">
@@ -418,26 +467,12 @@ export default function WhotSetupPage() {
               ["SCIENCES", "COMMERCIAL", "ARTS"] as ClassGroup[]
             ).map((group) => {
               const active = classGroup === group;
+              const info = GROUP_INFO[group];
 
-              const groupStyle = {
-                SCIENCES: {
-                  icon: "🔬",
-                  border: "border-cyan-400",
-                  background: "bg-cyan-400/10",
-                  text: "text-cyan-300",
-                },
-                COMMERCIAL: {
-                  icon: "📊",
-                  border: "border-amber-400",
-                  background: "bg-amber-400/10",
-                  text: "text-amber-300",
-                },
-                ARTS: {
-                  icon: "🎨",
-                  border: "border-fuchsia-400",
-                  background: "bg-fuchsia-400/10",
-                  text: "text-fuchsia-300",
-                },
+              const groupIcon = {
+                SCIENCES: "🔬",
+                COMMERCIAL: "📊",
+                ARTS: "🎨",
               }[group];
 
               return (
@@ -446,38 +481,43 @@ export default function WhotSetupPage() {
                   type="button"
                   onClick={() => handleGroupChange(group)}
                   aria-pressed={active}
-                  className={`relative flex min-h-36 items-start gap-4 rounded-2xl border p-5 text-left transition duration-200 ${
+                  className={`relative flex min-h-36 items-start gap-4 rounded-2xl border p-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                     active
-                      ? `${groupStyle.border} ${groupStyle.background} shadow-lg`
+                      ? `${info.border} ${info.background} shadow-lg`
                       : "border-white/10 bg-slate-900/70 hover:border-white/20 hover:bg-slate-900"
                   }`}
                 >
-                  <span className="text-3xl" aria-hidden="true">
-                    {groupStyle.icon}
+                  <span
+                    className="text-3xl"
+                    aria-hidden="true"
+                  >
+                    {groupIcon}
                   </span>
 
                   <div className="min-w-0 flex-1">
                     <h3
                       className={`font-black ${
-                        active ? groupStyle.text : "text-white"
+                        active ? info.accent : "text-white"
                       }`}
                     >
-                      {GROUP_INFO[group].label}
+                      {info.label}
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-slate-400">
-                      {GROUP_INFO[group].description}
+                      {info.description}
                     </p>
                   </div>
 
                   <span
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                       active
-                        ? `${groupStyle.border} ${groupStyle.text}`
+                        ? `${info.border} ${info.accent}`
                         : "border-white/20 text-transparent"
                     }`}
                   >
-                    {active && <Check className="h-4 w-4" />}
+                    {active && (
+                      <Check className="h-4 w-4" />
+                    )}
                   </span>
                 </button>
               );
@@ -485,7 +525,7 @@ export default function WhotSetupPage() {
           </div>
         </section>
 
-        {/* Subject selection */}
+        {/* STEP 2: SUBJECTS */}
 
         <section className="mt-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -524,7 +564,9 @@ export default function WhotSetupPage() {
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {subjects.map((subject) => {
-              const active = selectedSubjects.includes(subject.id);
+              const active = selectedSubjects.includes(
+                subject.id,
+              );
 
               return (
                 <button
@@ -532,7 +574,7 @@ export default function WhotSetupPage() {
                   type="button"
                   onClick={() => toggleSubject(subject.id)}
                   aria-pressed={active}
-                  className={`relative flex min-h-32 items-start gap-3 rounded-2xl border p-4 text-left transition duration-200 ${
+                  className={`relative flex min-h-32 items-start gap-3 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                     active
                       ? subject.selectedColor
                       : `${subject.color} hover:border-white/20`
@@ -545,7 +587,9 @@ export default function WhotSetupPage() {
                         : "border-white/20 bg-slate-950/40 text-transparent"
                     }`}
                   >
-                    {active && <Check className="h-4 w-4" />}
+                    {active && (
+                      <Check className="h-4 w-4" />
+                    )}
                   </span>
 
                   <span className="min-w-0 flex-1">
@@ -572,7 +616,7 @@ export default function WhotSetupPage() {
           )}
         </section>
 
-        {/* Selected subjects summary */}
+        {/* SELECTED SUBJECTS SUMMARY */}
 
         {selectedSubjects.length > 0 && (
           <section className="mt-8 rounded-2xl border border-white/10 bg-slate-900/60 p-5">
@@ -594,7 +638,7 @@ export default function WhotSetupPage() {
           </section>
         )}
 
-        {/* Start game */}
+        {/* START GAME */}
 
         <section className="mt-8 rounded-3xl border border-cyan-400/20 bg-gradient-to-r from-cyan-950/60 to-slate-900 p-5 sm:p-7">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -609,8 +653,8 @@ export default function WhotSetupPage() {
               <h2 className="mt-3 text-xl font-black sm:text-2xl">
                 {canStart
                   ? "Your WHOT game is ready!"
-                  : `Choose ${4 - selectedSubjects.length} more ${
-                      4 - selectedSubjects.length === 1
+                  : `Choose ${remainingSubjects} more ${
+                      remainingSubjects === 1
                         ? "subject"
                         : "subjects"
                     }`}
@@ -626,17 +670,19 @@ export default function WhotSetupPage() {
             <button
               type="button"
               onClick={handleStartGame}
-              disabled={!canStart}
-              className="inline-flex min-h-14 shrink-0 items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+              disabled={!canStart || isStarting}
+              className="inline-flex min-h-14 w-full shrink-0 items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:w-auto"
             >
               <Sparkles className="h-5 w-5" />
-              Start WHOT Game
-              <ArrowRight className="h-5 w-5" />
+              {isStarting ? "Opening game..." : "Start WHOT Game"}
+              {!isStarting && (
+                <ArrowRight className="h-5 w-5" />
+              )}
             </button>
           </div>
         </section>
 
-        {/* Footer */}
+        {/* FOOTER */}
 
         <footer className="mt-10 border-t border-white/5 py-6 text-center">
           <p className="text-xs text-slate-600">

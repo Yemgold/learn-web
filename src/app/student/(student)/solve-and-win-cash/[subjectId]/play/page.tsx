@@ -887,7 +887,9 @@ function QuestionScreen({
   const answerDisabled = isSubmitting || remainingMs <= 0;
 
   return (
-    <section className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 sm:gap-3">
+  
+<section className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 pt-4 sm:gap-3 sm:pt-0">
+
       {/* QUESTION IDENTIFICATION */}
 
       <div className="flex shrink-0 items-center justify-between gap-2">

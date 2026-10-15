@@ -273,7 +273,7 @@ export default function StudentDashboardPage() {
           response?.data?.quizzesObj ?? [];
 
         console.log(
-          "Total quizzes returned:",
+          "All quizzes returned:",
           quizzes.length,
         );
 

@@ -735,14 +735,30 @@ export default function SolveAndWinCbtPlayPage() {
 
         {/* GAME CONTENT */}
 
+
         <div
           className={
             isPlaying
               ? "min-h-0 flex-1"
-              : "grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-start lg:gap-6"
+              : gameState === "REWARD"
+                ? "grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-start lg:gap-6"
+                : "grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-start lg:gap-6"
           }
         >
-          <section className={isPlaying ? "h-full min-h-0 min-w-0" : "min-w-0"}>
+         // <section className={isPlaying ? "h-full min-h-0 min-w-0" : "min-w-0"}>//
+
+
+             <section
+  className={
+    gameState === "REWARD"
+      ? "flex min-w-0 items-center justify-center px-1 py-4 sm:py-6"
+      : isPlaying
+        ? "h-full min-h-0 min-w-0"
+        : "min-w-0"
+  }
+>
+
+          </section>
             {gameState === "QUESTION" && (
               <QuestionScreen
                 subject={subject}
@@ -1142,7 +1158,7 @@ function RewardScreen({
   const hasMore = questionNumber < totalQuestions;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-emerald-400/25 bg-[#0b1715] p-5 shadow-2xl sm:p-9">
+   <div className="relative mx-auto w-full max-w-2xl shrink-0 overflow-hidden rounded-3xl border border-emerald-400/25 bg-[#0b1715] p-4 shadow-2xl sm:p-9">
       <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
 
       <div className="relative text-center">

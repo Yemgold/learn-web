@@ -122,7 +122,7 @@ export const studentRewards: StudentReward[] = [
     category: "GADGETS",
     points: 20000,
     icon: "Headphones",
-    image: "/rewards/student-headphones.jpg",
+    image: "/rewards/wireless-headphones.jpg",
     badge: "STUDENT_FAVOURITE",
     status: "AVAILABLE",
     featured: true,

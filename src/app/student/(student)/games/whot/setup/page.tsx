@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -15,6 +12,7 @@ import {
   GraduationCap,
   Layers3,
   Sparkles,
+  LockKeyhole,
 } from "lucide-react";
 
 /* ============================================================
@@ -41,7 +39,7 @@ interface WhotSelection {
 }
 
 /* ============================================================
-   SUBJECTS
+   SUBJECTS BY CLASS GROUP
    ============================================================ */
 
 const SUBJECT_GROUPS: Record<ClassGroup, Subject[]> = {
@@ -231,7 +229,7 @@ const SUBJECT_GROUPS: Record<ClassGroup, Subject[]> = {
 };
 
 /* ============================================================
-   GROUP INFORMATION
+   CLASS GROUP INFORMATION
    ============================================================ */
 
 const GROUP_INFO: Record<
@@ -242,6 +240,7 @@ const GROUP_INFO: Record<
     accent: string;
     border: string;
     background: string;
+    icon: string;
   }
 > = {
   SCIENCES: {
@@ -250,6 +249,7 @@ const GROUP_INFO: Record<
     accent: "text-cyan-300",
     border: "border-cyan-400",
     background: "bg-cyan-400/10",
+    icon: "🔬",
   },
   COMMERCIAL: {
     label: "Commercial",
@@ -257,6 +257,7 @@ const GROUP_INFO: Record<
     accent: "text-amber-300",
     border: "border-amber-400",
     background: "bg-amber-400/10",
+    icon: "📊",
   },
   ARTS: {
     label: "Arts",
@@ -264,8 +265,15 @@ const GROUP_INFO: Record<
     accent: "text-fuchsia-300",
     border: "border-fuchsia-400",
     background: "bg-fuchsia-400/10",
+    icon: "🎨",
   },
 };
+
+const CLASS_GROUPS: ClassGroup[] = [
+  "SCIENCES",
+  "COMMERCIAL",
+  "ARTS",
+];
 
 const STORAGE_KEY = "learnyfi-whot-selection";
 const MINIMUM_SUBJECTS = 4;
@@ -277,8 +285,10 @@ const MINIMUM_SUBJECTS = 4;
 export default function WhotSetupPage() {
   const router = useRouter();
 
+  // No class is selected initially.
+  // Subjects remain hidden until the user chooses a class.
   const [classGroup, setClassGroup] =
-    useState<ClassGroup>("SCIENCES");
+    useState<ClassGroup | null>(null);
 
   const [selectedSubjects, setSelectedSubjects] =
     useState<string[]>([]);
@@ -287,7 +297,7 @@ export default function WhotSetupPage() {
   const [isStarting, setIsStarting] = useState(false);
 
   const subjects = useMemo(
-    () => SUBJECT_GROUPS[classGroup],
+    () => (classGroup ? SUBJECT_GROUPS[classGroup] : []),
     [classGroup],
   );
 
@@ -300,6 +310,7 @@ export default function WhotSetupPage() {
   );
 
   const canStart =
+    classGroup !== null &&
     selectedSubjects.length >= MINIMUM_SUBJECTS;
 
   const remainingSubjects = Math.max(
@@ -310,12 +321,16 @@ export default function WhotSetupPage() {
   function handleGroupChange(group: ClassGroup) {
     if (group === classGroup) return;
 
+    // Prevent subjects from one class being carried
+    // into a different class group.
     setClassGroup(group);
     setSelectedSubjects([]);
     setError("");
   }
 
   function toggleSubject(subjectId: string) {
+    if (!classGroup) return;
+
     setError("");
 
     setSelectedSubjects((current) => {
@@ -330,6 +345,11 @@ export default function WhotSetupPage() {
   function handleStartGame() {
     if (isStarting) return;
 
+    if (!classGroup) {
+      setError("Please choose a class group first.");
+      return;
+    }
+
     if (selectedSubjects.length < MINIMUM_SUBJECTS) {
       setError(
         `Please select at least ${MINIMUM_SUBJECTS} subjects to continue.`,
@@ -340,7 +360,7 @@ export default function WhotSetupPage() {
     const selection: WhotSelection = {
       classGroup,
       subjects: selectedSubjects.map((id) => {
-        const subject = subjects.find(
+        const subject = SUBJECT_GROUPS[classGroup].find(
           (item) => item.id === id,
         );
 
@@ -419,16 +439,16 @@ export default function WhotSetupPage() {
             </div>
 
             <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-              Choose your subjects.
+              Choose your class.
               <span className="block text-cyan-300">
                 Own the WHOT arena.
               </span>
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              Choose your class group and the subjects you
-              want to practise. Your selections will be used
-              to prepare your WHOT game.
+              First, select your class group. We will then
+              display only the subjects available for that
+              group, so you can customise your game.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3 text-xs font-semibold text-slate-300">
@@ -445,35 +465,30 @@ export default function WhotSetupPage() {
           </div>
         </section>
 
-        {/* STEP 1: CLASS GROUP */}
+        {/* STEP 1: CHOOSE CLASS */}
 
-        <section className="mt-8">
+        <section className="mt-8" aria-labelledby="class-heading">
           <div className="mb-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
               Step 1
             </p>
 
-            <h2 className="mt-2 text-xl font-black sm:text-2xl">
+            <h2
+              id="class-heading"
+              className="mt-2 text-xl font-black sm:text-2xl"
+            >
               Choose your class group
             </h2>
 
             <p className="mt-2 text-sm text-slate-400">
-              Select the academic area you want to play with.
+              Your subject list will depend on this selection.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {(
-              ["SCIENCES", "COMMERCIAL", "ARTS"] as ClassGroup[]
-            ).map((group) => {
+            {CLASS_GROUPS.map((group) => {
               const active = classGroup === group;
               const info = GROUP_INFO[group];
-
-              const groupIcon = {
-                SCIENCES: "🔬",
-                COMMERCIAL: "📊",
-                ARTS: "🎨",
-              }[group];
 
               return (
                 <button
@@ -491,7 +506,7 @@ export default function WhotSetupPage() {
                     className="text-3xl"
                     aria-hidden="true"
                   >
-                    {groupIcon}
+                    {info.icon}
                   </span>
 
                   <div className="min-w-0 flex-1">
@@ -506,6 +521,13 @@ export default function WhotSetupPage() {
                     <p className="mt-2 text-sm leading-6 text-slate-400">
                       {info.description}
                     </p>
+
+                    {active && (
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Class selected
+                      </span>
+                    )}
                   </div>
 
                   <span
@@ -515,9 +537,7 @@ export default function WhotSetupPage() {
                         : "border-white/20 text-transparent"
                     }`}
                   >
-                    {active && (
-                      <Check className="h-4 w-4" />
-                    )}
+                    {active && <Check className="h-4 w-4" />}
                   </span>
                 </button>
               );
@@ -525,104 +545,147 @@ export default function WhotSetupPage() {
           </div>
         </section>
 
-        {/* STEP 2: SUBJECTS */}
+        {/* STEP 2: SUBJECTS — HIDDEN UNTIL CLASS IS CHOSEN */}
 
-        <section className="mt-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
-                Step 2
-              </p>
-
-              <h2 className="mt-2 text-xl font-black sm:text-2xl">
-                Select your subjects
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-400">
-                Choose at least four subjects from{" "}
-                {GROUP_INFO[classGroup].label}.
-              </p>
+        {!classGroup ? (
+          <section
+            className="mt-8 rounded-3xl border border-dashed border-white/15 bg-slate-900/40 px-5 py-10 text-center sm:py-14"
+            aria-live="polite"
+          >
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
+              <LockKeyhole className="h-7 w-7 text-cyan-300" />
             </div>
 
-            <div
-              className={`inline-flex w-fit items-center gap-2 rounded-xl border px-4 py-3 ${
-                canStart
-                  ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                  : "border-cyan-400/20 bg-cyan-400/5 text-cyan-200"
-              }`}
-              aria-live="polite"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span className="text-sm font-extrabold tabular-nums">
-                {selectedSubjects.length} selected
-              </span>
-              <span className="text-xs opacity-80">
-                / {subjects.length}
-              </span>
+            <h2 className="mt-5 text-xl font-black sm:text-2xl">
+              Your subjects are waiting
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-400">
+              Choose Sciences, Commercial, or Arts above.
+              The subjects for your selected class will appear
+              here automatically.
+            </p>
+
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-bold text-slate-400">
+              <LockKeyhole className="h-3.5 w-3.5" />
+              Select a class to unlock subjects
             </div>
-          </div>
+          </section>
+        ) : (
+          <section
+            className="mt-10"
+            aria-labelledby="subjects-heading"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+                  Step 2
+                </p>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {subjects.map((subject) => {
-              const active = selectedSubjects.includes(
-                subject.id,
-              );
-
-              return (
-                <button
-                  key={subject.id}
-                  type="button"
-                  onClick={() => toggleSubject(subject.id)}
-                  aria-pressed={active}
-                  className={`relative flex min-h-32 items-start gap-3 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
-                    active
-                      ? subject.selectedColor
-                      : `${subject.color} hover:border-white/20`
-                  }`}
+                <h2
+                  id="subjects-heading"
+                  className="mt-2 text-xl font-black sm:text-2xl"
                 >
-                  <span
-                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border ${
+                  Select your {GROUP_INFO[classGroup].label} subjects
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-400">
+                  These subjects belong to the{" "}
+                  <span className={GROUP_INFO[classGroup].accent}>
+                    {GROUP_INFO[classGroup].label}
+                  </span>{" "}
+                  group. Choose at least four to continue.
+                </p>
+              </div>
+
+              <div
+                className={`inline-flex w-fit items-center gap-2 rounded-xl border px-4 py-3 ${
+                  canStart
+                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                    : "border-cyan-400/20 bg-cyan-400/5 text-cyan-200"
+                }`}
+                aria-live="polite"
+              >
+                <BookOpen className="h-4 w-4" />
+
+                <span className="text-sm font-extrabold tabular-nums">
+                  {selectedSubjects.length} selected
+                </span>
+
+                <span className="text-xs opacity-80">
+                  / {subjects.length}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {subjects.map((subject) => {
+                const active = selectedSubjects.includes(
+                  subject.id,
+                );
+
+                return (
+                  <button
+                    key={subject.id}
+                    type="button"
+                    onClick={() => toggleSubject(subject.id)}
+                    aria-pressed={active}
+                    className={`relative flex min-h-32 items-start gap-3 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                       active
-                        ? "border-cyan-300 bg-cyan-300 text-slate-950"
-                        : "border-white/20 bg-slate-950/40 text-transparent"
+                        ? subject.selectedColor
+                        : `${subject.color} hover:border-white/20`
                     }`}
                   >
-                    {active && (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </span>
-
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-extrabold text-white">
-                      {subject.name}
+                    <span
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border ${
+                        active
+                          ? "border-cyan-300 bg-cyan-300 text-slate-950"
+                          : "border-white/20 bg-slate-950/40 text-transparent"
+                      }`}
+                    >
+                      {active && <Check className="h-4 w-4" />}
                     </span>
 
-                    <span className="mt-2 block text-xs leading-5 text-slate-400">
-                      {subject.description}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-extrabold text-white">
+                        {subject.name}
+                      </span>
 
-          {error && (
-            <p
-              role="alert"
-              className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-200"
-            >
-              {error}
-            </p>
-          )}
-        </section>
+                      <span className="mt-2 block text-xs leading-5 text-slate-400">
+                        {subject.description}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {error && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-200"
+              >
+                {error}
+              </p>
+            )}
+          </section>
+        )}
 
         {/* SELECTED SUBJECTS SUMMARY */}
 
-        {selectedSubjects.length > 0 && (
+        {classGroup && selectedSubjects.length > 0 && (
           <section className="mt-8 rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-            <h3 className="font-bold text-white">
-              Your selected subjects
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-bold text-white">
+                Your selected subjects
+              </h3>
+
+              <span
+                className={`text-xs font-bold ${GROUP_INFO[classGroup].accent}`}
+              >
+                {GROUP_INFO[classGroup].label}
+              </span>
+            </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {selectedSubjectDetails.map((subject) => (
@@ -645,25 +708,30 @@ export default function WhotSetupPage() {
             <div>
               <div className="flex items-center gap-2 text-cyan-300">
                 <GraduationCap className="h-5 w-5" />
+
                 <span className="text-xs font-bold uppercase tracking-widest">
                   Almost ready
                 </span>
               </div>
 
               <h2 className="mt-3 text-xl font-black sm:text-2xl">
-                {canStart
-                  ? "Your WHOT game is ready!"
-                  : `Choose ${remainingSubjects} more ${
-                      remainingSubjects === 1
-                        ? "subject"
-                        : "subjects"
-                    }`}
+                {!classGroup
+                  ? "Choose your class to begin"
+                  : canStart
+                    ? "Your WHOT game is ready!"
+                    : `Choose ${remainingSubjects} more ${
+                        remainingSubjects === 1
+                          ? "subject"
+                          : "subjects"
+                      }`}
               </h2>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
-                {canStart
-                  ? `You've selected ${selectedSubjects.length} subjects. Start playing when you're ready.`
-                  : "Select at least four subjects to unlock the game."}
+                {!classGroup
+                  ? "Select a class group first. Your available subjects will then appear."
+                  : canStart
+                    ? `You've selected ${selectedSubjects.length} subjects from ${GROUP_INFO[classGroup].label}. Start playing when you're ready.`
+                    : "Select at least four subjects from your chosen class to unlock the game."}
               </p>
             </div>
 
@@ -674,10 +742,10 @@ export default function WhotSetupPage() {
               className="inline-flex min-h-14 w-full shrink-0 items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:w-auto"
             >
               <Sparkles className="h-5 w-5" />
+
               {isStarting ? "Opening game..." : "Start WHOT Game"}
-              {!isStarting && (
-                <ArrowRight className="h-5 w-5" />
-              )}
+
+              {!isStarting && <ArrowRight className="h-5 w-5" />}
             </button>
           </div>
         </section>

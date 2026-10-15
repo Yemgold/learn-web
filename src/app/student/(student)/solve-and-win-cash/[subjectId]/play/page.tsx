@@ -745,10 +745,9 @@ export default function SolveAndWinCbtPlayPage() {
                 : "grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-start lg:gap-6"
           }
         >
-         // <section className={isPlaying ? "h-full min-h-0 min-w-0" : "min-w-0"}>//
+         
 
-
-             <section
+            <section
   className={
     gameState === "REWARD"
       ? "flex min-w-0 items-center justify-center px-1 py-4 sm:py-6"
@@ -757,8 +756,8 @@ export default function SolveAndWinCbtPlayPage() {
         : "min-w-0"
   }
 >
-
-          </section>
+       
+ 
             {gameState === "QUESTION" && (
               <QuestionScreen
                 subject={subject}

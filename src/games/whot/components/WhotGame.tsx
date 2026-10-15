@@ -484,7 +484,7 @@ function WhotGameComponent({
                   >
                     {answerFeedback.correct
                       ? "Correct!"
-                      : "Not quite"}
+                      : "Not Correct"}
                   </h2>
                 </div>
               </div>

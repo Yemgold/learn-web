@@ -1180,6 +1180,66 @@ export function useQuizGame(
       [],
     );
 
+ /* ---------------------------------------------------------------------- */
+  /* Participant ConnectionStatus                                                      */
+  /* ---------------------------------------------------------------------- */
+
+
+const handleParticipantConnectionStatus = useCallback(
+  (payload: unknown) => {
+    const root = asRecord(payload);
+    const nestedData = asRecord(root.data);
+
+    const participant =
+      Object.keys(nestedData).length > 0
+        ? nestedData
+        : root;
+
+    const rawUserId =
+      participant.userId ??
+      participant.user_id ??
+      participant.participantId ??
+      participant.participant_id ??
+      participant.id ??
+      participant._id;
+
+    const userId =
+      rawUserId == null ? "" : String(rawUserId);
+
+    const rawConnected: unknown = participant.connected;
+
+    if (
+      !userId ||
+      typeof rawConnected !== "boolean"
+    ) {
+      return;
+    }
+
+    // After the check, this is guaranteed to be a boolean.
+    const connected: boolean = rawConnected;
+
+    setParticipants((previous): QuizGameParticipant[] =>
+      previous.map((item): QuizGameParticipant => {
+        const matches =
+          String(item.id) === userId ||
+          String(item.userId ?? "") === userId;
+
+        if (!matches) {
+          return item;
+        }
+
+        return {
+          ...item,
+          connected,
+        };
+      }),
+    );
+  },
+  [],
+);
+
+
+
   /* ---------------------------------------------------------------------- */
   /* Leaderboard                                                            */
   /* ---------------------------------------------------------------------- */
@@ -1711,6 +1771,12 @@ export function useQuizGame(
       QUIZ_GAME_EVENTS.PARTICIPANT_JOINED_ROOM,
       handleParticipantJoined,
     );
+  
+    activeSocket.on(
+  QUIZ_GAME_EVENTS.PARTICIPANT_CONNECTION_STATUS,
+  handleParticipantConnectionStatus,
+);
+
 
     activeSocket.on(
       QUIZ_GAME_EVENTS.PARTICIPANT_LEFT_ROOM,
@@ -1762,6 +1828,8 @@ export function useQuizGame(
       handleParticipantsEliminated,
     );
 
+
+
     activeSocket.on(
       QUIZ_GAME_EVENTS.SOCKET_ERROR,
       handleSocketError,
@@ -1798,6 +1866,11 @@ export function useQuizGame(
         QUIZ_GAME_EVENTS.JOINED_ROOM_ACK,
         handleJoinedRoom,
       );
+
+      activeSocket.off(
+  QUIZ_GAME_EVENTS.PARTICIPANT_CONNECTION_STATUS,
+  handleParticipantConnectionStatus,
+);
 
       activeSocket.off(
         QUIZ_GAME_EVENTS.ROOM_ACTIVATED,

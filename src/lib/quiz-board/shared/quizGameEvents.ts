@@ -35,6 +35,9 @@ export const QUIZ_GAME_EVENTS = {
 
   PARTICIPANT_JOINED_ROOM:
     "participant_joined_room",
+  
+  PARTICIPANT_CONNECTION_STATUS:
+   "participant_connection_status",
 
   PARTICIPANT_LEFT_ROOM:
     "participant_left_room",

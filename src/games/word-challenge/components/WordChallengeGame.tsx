@@ -496,7 +496,7 @@ export default function WordChallengeGame({
             );
 
             setAnswerMessage(
-              `Not quite. The answer was ${correctAnswer}.`,
+              `Not Correct. The answer was ${correctAnswer}.`,
             );
           }
         }

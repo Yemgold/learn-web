@@ -82,7 +82,7 @@ export const studentRewards: StudentReward[] = [
     description:
       "A smartphone to support learning, communication, educational apps and online study.",
     category: "GADGETS",
-    points: 120000,
+    points: 3500000,        //500,000 promotional point added.....Cost of 300,000 naira
     icon: "Smartphone",
     image: "/rewards/student-smartphone.jpg",
     badge: "POPULAR",
@@ -101,14 +101,14 @@ export const studentRewards: StudentReward[] = [
     description:
       "A laptop to help you learn, research, code, attend online classes and build your future.",
     category: "GADGETS",
-    points: 350000,
+    points: 2000000,    // 500,000 promotional point added.....Cost of 250,000 naira
     icon: "Laptop",
     image: "/rewards/student-laptop.jpg",
     badge: "BIG_GOAL",
     status: "AVAILABLE",
     featured: true,
     allowSaving: true,
-    stock: 2,
+    stock: 1000,
     stockLabel: "Big goal",
     deliveryAvailable: true,
     deliveryTime: "7–14 business days",
@@ -120,14 +120,14 @@ export const studentRewards: StudentReward[] = [
     description:
       "Wireless headphones for focused learning, lectures, educational videos and revision.",
     category: "GADGETS",
-    points: 20000,
+    points: 800000,     //500,000 promotional point added.....Cost of 50,000 naira
     icon: "Headphones",
     image: "/rewards/wireless-headphones.jpg",
     badge: "STUDENT_FAVOURITE",
     status: "AVAILABLE",
     featured: true,
     allowSaving: true,
-    stock: 15,
+    stock: 1000,
     deliveryAvailable: true,
     deliveryTime: "3–7 business days",
   },
@@ -138,7 +138,7 @@ export const studentRewards: StudentReward[] = [
     description:
       "A smart watch to help you stay organized and keep track of your daily activities.",
     category: "GADGETS",
-    points: 25000,
+    points: 1100000,  // //500,000 promotion point added ...Cost of 100,000 naira
     icon: "Watch",
     image: "/rewards/smart-watch.jpg",
     badge: "NEW",

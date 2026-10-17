@@ -1,4 +1,7 @@
 
+
+
+
 "use client";
 
 import {
@@ -15,6 +18,7 @@ import {
 } from "lucide-react";
 
 import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface WaitingRoomHeaderProps {
   quizId?: string;
@@ -50,25 +54,80 @@ export default function WaitingRoomHeader({
   const normalizedStatus =
     typeof status === "string" ? status.toUpperCase() : "";
 
-
   const isLive =
     ["LIVE", "IN_PROGRESS", "STARTED"].includes(normalizedStatus) ||
     currentRound > 0;
 
-  const isActive =
-    ["ACTIVE", "OPEN", "FULL", "IN_PROGRESS", "LIVE", "STARTED"].includes(
-      normalizedStatus,
-    );
+  const isActive = [
+    "ACTIVE",
+    "OPEN",
+    "FULL",
+    "IN_PROGRESS",
+    "LIVE",
+    "STARTED",
+  ].includes(normalizedStatus);
 
   const canEnterQuiz =
     isLive && typeof onEnterQuiz === "function" && !navigating;
 
+  const enterButtonRef = useRef<HTMLButtonElement>(null);
+  const previousLiveRef = useRef(false);
+  const [highlightButton, setHighlightButton] = useState(false);
+
+  const focusEnterButton = useCallback((smooth = true) => {
+    const button = enterButtonRef.current;
+
+    if (!button) return;
+
+    // Scroll the button into view without moving the page unnecessarily.
+    button.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+      block: "center",
+      inline: "nearest",
+    });
+
+    // Wait briefly for smooth scrolling before applying keyboard focus.
+    window.setTimeout(() => {
+      const currentButton = enterButtonRef.current;
+
+      if (!currentButton || currentButton.disabled) return;
+
+      currentButton.focus({ preventScroll: true });
+      setHighlightButton(true);
+
+      window.setTimeout(() => {
+        setHighlightButton(false);
+      }, 2500);
+    }, smooth ? 350 : 0);
+  }, []);
+
+  useEffect(() => {
+    const hasJustBecomeLive = isLive && !previousLiveRef.current;
+
+    if (hasJustBecomeLive) {
+      // Give the live-state UI a moment to render before focusing the button.
+      const timer = window.setTimeout(() => {
+        focusEnterButton(true);
+      }, 150);
+
+      previousLiveRef.current = isLive;
+
+      return () => window.clearTimeout(timer);
+    }
+
+    previousLiveRef.current = isLive;
+  }, [isLive, focusEnterButton]);
+
+  const handleEnterQuiz = () => {
+    if (!canEnterQuiz || !onEnterQuiz) return;
+
+    onEnterQuiz();
+  };
 
   return (
     <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-violet-950/30 shadow-2xl shadow-black/20">
       {/* Background effects */}
       <div className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl" />
-
       <div className="pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
 
       <div className="relative p-5 sm:p-6 lg:p-7">
@@ -79,11 +138,7 @@ export default function WaitingRoomHeader({
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-slate-400 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-
-            <span className="hidden sm:inline">
-              Back to Quiz Board
-            </span>
-
+            <span className="hidden sm:inline">Back to Quiz Board</span>
             <span className="sm:hidden">Back</span>
           </Link>
 
@@ -174,13 +229,7 @@ export default function WaitingRoomHeader({
           <HeaderStat
             icon={<Radio className="h-4 w-4" />}
             label="Room"
-            value={
-              isLive
-                ? "Live"
-                : isActive
-                  ? "Active"
-                  : "Waiting"
-            }
+            value={isLive ? "Live" : isActive ? "Active" : "Waiting"}
           />
 
           <HeaderStat
@@ -215,31 +264,41 @@ export default function WaitingRoomHeader({
         </div>
 
         {/* Enter Live Quiz */}
-        <div className="mt-5">
-          
-  <button
-    type="button"
-    onClick={() => {
-      if (!canEnterQuiz || !onEnterQuiz) return;
-      onEnterQuiz();
-    }}
-    disabled={!canEnterQuiz}
-    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-  >
-    {navigating ? (
-      <>
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Opening Quiz...
-      </>
-    ) : (
-      <>
-        <Flame className="h-4 w-4" />
-        Enter Live Quiz
-        <ArrowRight className="h-4 w-4" />
-      </>
-    )}
-  </button>
-
+        <div className="mt-5" id="enter-live-quiz">
+          <button
+            ref={enterButtonRef}
+            type="button"
+            onClick={handleEnterQuiz}
+            disabled={!canEnterQuiz}
+            aria-label={
+              navigating
+                ? "Opening live quiz"
+                : "Enter live quiz"
+            }
+            className={[
+              "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-4 text-sm font-bold transition-all duration-300",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+              canEnterQuiz
+                ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+                : "cursor-not-allowed bg-emerald-500/40 text-slate-950/70 opacity-70",
+              highlightButton && canEnterQuiz
+                ? "ring-4 ring-emerald-300/60 shadow-xl shadow-emerald-500/20"
+                : "",
+            ].join(" ")}
+          >
+            {navigating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Opening Quiz...
+              </>
+            ) : (
+              <>
+                <Flame className="h-4 w-4" />
+                Enter Live Quiz
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
 
           {!isLive && (
             <p className="mt-2 text-center text-xs text-slate-500">
@@ -278,7 +337,6 @@ function HeaderStat({
     <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3.5">
       <div className="flex items-center gap-2 text-slate-600">
         <span className="text-violet-300">{icon}</span>
-
         <span className="text-[9px] font-bold uppercase tracking-wider">
           {label}
         </span>
@@ -369,15 +427,15 @@ function getHeaderMessage({
     return "The host has started the competition.";
   }
 
-  if (isActive) {
-    return "The quiz room is active and waiting for the host to start.";
-  }
-
   if (
     maxContestants > 0 &&
     contestantCount >= maxContestants
   ) {
     return "The competition is full. Waiting for the host to activate the room.";
+  }
+
+  if (isActive) {
+    return "The quiz room is active and waiting for the host to start.";
   }
 
   return "Waiting for the competition room to become active.";

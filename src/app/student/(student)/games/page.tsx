@@ -84,9 +84,17 @@ export default function WhotPage() {
                   className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-base font-extrabold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
                 >
                   <Gamepad2 className="h-5 w-5" />
-                  Play WHOT
+                  Play WHOT With Bot
                   <ArrowRight className="h-5 w-5" />
                 </Link>
+                 <Link
+    href="/student/games/whot/friend"
+    className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-violet-400/30 bg-violet-400/10 px-7 py-4 text-base font-extrabold text-violet-200 transition hover:bg-violet-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+  >
+    <Gamepad2 className="h-5 w-5" />
+    Play With a Friend
+    <ArrowRight className="h-5 w-5" />
+  </Link>
 
                 <a
                   href="#how-to-play"

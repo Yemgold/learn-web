@@ -84,7 +84,7 @@ export default function WhotPage() {
                   className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-base font-extrabold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
                 >
                   <Gamepad2 className="h-5 w-5" />
-                  Play WHOT With Bot
+                  Play With Bot
                   <ArrowRight className="h-5 w-5" />
                 </Link>
                  <Link

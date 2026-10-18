@@ -2,7 +2,6 @@
 
 
 
-
 "use client";
 
 import { useMemo } from "react";
@@ -33,13 +32,12 @@ interface LudoBoardProps {
   selectedTokenId?: number | null;
   diceValue?: number | null;
   disabled?: boolean;
-  onTokenClick?: (
-    player: EduLudoPlayer,
-    tokenId: number,
-  ) => void;
+  onTokenClick?: (player: EduLudoPlayer, tokenId: number) => void;
   onDiceClick?: () => void;
   showDice?: boolean;
   className?: string;
+  movementCount?: number;
+  isMoving?: boolean;
 }
 
 interface BoardToken {
@@ -58,20 +56,11 @@ const GRID_CELLS = Array.from(
   }),
 );
 
-function sameCoordinate(
-  first: EduLudoCoordinate,
-  second: EduLudoCoordinate,
-) {
-  return first.row === second.row && first.col === second.col;
-}
-
 function getGlobalPosition(
   color: EduLudoColor,
   localPosition: number,
 ) {
-  return (
-    (localPosition + START_POSITIONS[color]) % TRACK_LENGTH
-  );
+  return (localPosition + START_POSITIONS[color]) % TRACK_LENGTH;
 }
 
 function getTokenCoordinate(
@@ -82,7 +71,7 @@ function getTokenCoordinate(
 
   if (!token) return null;
 
-  if (token.status === "home" || token.position === 57) {
+  if (token.status === "home" || token.position >= 57) {
     return HOME_LANES[player.color][5] ?? null;
   }
 
@@ -91,40 +80,26 @@ function getTokenCoordinate(
   }
 
   if (token.position >= TRACK_LENGTH) {
-    const homeLaneIndex = Math.min(
+    const index = Math.min(
       token.position - TRACK_LENGTH,
       HOME_LANES[player.color].length - 1,
     );
 
-    return HOME_LANES[player.color][homeLaneIndex] ?? null;
+    return HOME_LANES[player.color][index] ?? null;
   }
 
-  const globalPosition = getGlobalPosition(
-    player.color,
-    token.position,
+  return (
+    TRACK_COORDINATES[
+      getGlobalPosition(player.color, token.position)
+    ] ?? null
   );
-
-  return TRACK_COORDINATES[globalPosition] ?? null;
 }
 
 function getCellType(row: number, col: number) {
-  const inRedBase =
-    row >= 0 && row <= 5 && col >= 0 && col <= 5;
-
-  const inGreenBase =
-    row >= 0 && row <= 5 && col >= 9 && col <= 14;
-
-  const inBlueBase =
-    row >= 9 && row <= 14 && col >= 0 && col <= 5;
-
-  const inYellowBase =
-    row >= 9 && row <= 14 && col >= 9 && col <= 14;
-
-  if (inRedBase) return "red-base";
-  if (inGreenBase) return "green-base";
-  if (inBlueBase) return "blue-base";
-  if (inYellowBase) return "yellow-base";
-
+  if (row <= 5 && col <= 5) return "red-base";
+  if (row <= 5 && col >= 9) return "green-base";
+  if (row >= 9 && col <= 5) return "blue-base";
+  if (row >= 9 && col >= 9) return "yellow-base";
   return "track";
 }
 
@@ -134,8 +109,7 @@ function isHomeLaneCell(
   color: EduLudoColor,
 ) {
   return HOME_LANES[color].some(
-    (coordinate) =>
-      coordinate.row === row && coordinate.col === col,
+    (coordinate) => coordinate.row === row && coordinate.col === col,
   );
 }
 
@@ -161,24 +135,15 @@ function getCellBackground(
   }
 
   if (trackIndex >= 0) {
-    if (SAFE_POSITIONS.has(trackIndex)) {
-      return "bg-amber-100 border-amber-300";
-    }
-
-    return "bg-white border-slate-200";
+    return SAFE_POSITIONS.has(trackIndex)
+      ? "bg-amber-100 border-amber-300"
+      : "bg-white border-slate-200";
   }
 
   return "bg-slate-50 border-slate-100";
 }
 
-function getTokenLabel(
-  player: EduLudoPlayer,
-  tokenId: number,
-) {
-  const token = player.tokens?.find((item) => item.id === tokenId);
-
-  if (!token) return "Token";
-
+function getTokenLabel(player: EduLudoPlayer, tokenId: number) {
   return `${player.name}, token ${tokenId + 1}`;
 }
 
@@ -193,23 +158,20 @@ export default function LudoBoard({
   onDiceClick,
   showDice = true,
   className = "",
+  movementCount,
+  isMoving = false,
 }: LudoBoardProps) {
   const tokenCoordinates = useMemo(() => {
     const result: BoardToken[] = [];
 
     for (const player of players) {
       for (const token of player.tokens ?? []) {
-        const coordinate = getTokenCoordinate(
-          player,
-          token.id,
-        );
-
+        const coordinate = getTokenCoordinate(player, token.id);
         if (!coordinate) continue;
 
         const isLegal = legalMoves.some(
           (move) =>
-            move.playerId === player.id &&
-            move.tokenId === token.id,
+            move.playerId === player.id && move.tokenId === token.id,
         );
 
         result.push({
@@ -219,42 +181,28 @@ export default function LudoBoard({
           isSelected:
             player.id === currentPlayerId &&
             selectedTokenId === token.id,
-          isLegal:
-            isLegal && player.id === currentPlayerId,
+          isLegal: isLegal && player.id === currentPlayerId,
         });
       }
     }
 
     return result;
-  }, [
-    players,
-    legalMoves,
-    currentPlayerId,
-    selectedTokenId,
-  ]);
-
-  const tokensAtCoordinate = (
-    row: number,
-    col: number,
-  ) =>
-    tokenCoordinates.filter(
-      (token) =>
-        token.coordinate.row === row &&
-        token.coordinate.col === col,
-    );
-
-  const trackPositionAt = (
-    row: number,
-    col: number,
-  ) =>
-    TRACK_COORDINATES.findIndex(
-      (coordinate) =>
-        coordinate.row === row && coordinate.col === col,
-    );
+  }, [players, legalMoves, currentPlayerId, selectedTokenId]);
 
   const currentPlayer = players.find(
     (player) => player.id === currentPlayerId,
   );
+
+  const tokensAtCoordinate = (row: number, col: number) =>
+    tokenCoordinates.filter(
+      (token) =>
+        token.coordinate.row === row && token.coordinate.col === col,
+    );
+
+  const trackPositionAt = (row: number, col: number) =>
+    TRACK_COORDINATES.findIndex(
+      (coordinate) => coordinate.row === row && coordinate.col === col,
+    );
 
   return (
     <section
@@ -273,7 +221,7 @@ export default function LudoBoard({
                 Ludo Board
               </h2>
               <p className="text-xs text-slate-500">
-                Move your tokens by answering questions
+                Count each square as your token moves
               </p>
             </div>
           </div>
@@ -286,7 +234,7 @@ export default function LudoBoard({
                 }`}
               />
               <span className="text-xs font-bold text-slate-700">
-                {currentPlayer.name}'s turn
+                {currentPlayer.name}&apos;s turn
               </span>
             </div>
           )}
@@ -304,7 +252,6 @@ export default function LudoBoard({
               const trackIndex = trackPositionAt(row, col);
               const cellType = getCellType(row, col);
               const isSafe = SAFE_POSITIONS.has(trackIndex);
-
               const cellTokens = tokensAtCoordinate(row, col);
 
               const isCenter =
@@ -318,9 +265,7 @@ export default function LudoBoard({
                     key={`${row}-${col}`}
                     className={[
                       "relative flex items-center justify-center border border-slate-200",
-                      isCenterMiddle
-                        ? "bg-indigo-600"
-                        : "bg-slate-100",
+                      isCenterMiddle ? "bg-indigo-600" : "bg-slate-100",
                     ].join(" ")}
                   >
                     {isCenterMiddle && (
@@ -348,9 +293,11 @@ export default function LudoBoard({
 
               const isBaseCenter =
                 baseColor !== null &&
-                ((row === 2 || row === 3) &&
-                  (col === 2 || col === 3 ||
-                    col === 11 || col === 12));
+                (row === 2 || row === 3) &&
+                (col === 2 ||
+                  col === 3 ||
+                  col === 11 ||
+                  col === 12);
 
               return (
                 <div
@@ -377,20 +324,8 @@ export default function LudoBoard({
                     />
                   )}
 
-                  {trackIndex >= 0 &&
-                    trackIndex === START_POSITIONS.red && (
-                      <span className="absolute left-0 top-0 z-0 h-1.5 w-1.5 rounded-full bg-red-500 sm:h-2 sm:w-2" />
-                    )}
-
                   {cellTokens.length > 0 && (
-                    <div
-                      className={[
-                        "relative z-10 flex h-full w-full flex-wrap items-center justify-center gap-[1px] p-[1px]",
-                        cellTokens.length > 1
-                          ? "content-center"
-                          : "",
-                      ].join(" ")}
-                    >
+                    <div className="relative z-10 flex h-full w-full flex-wrap items-center justify-center gap-[1px] p-[1px]">
                       {cellTokens.map((token) => {
                         const clickable =
                           !disabled &&
@@ -402,23 +337,14 @@ export default function LudoBoard({
                           <button
                             key={`${token.player.id}-${token.tokenId}`}
                             type="button"
-                            title={getTokenLabel(
-                              token.player,
-                              token.tokenId,
-                            )}
-                            aria-label={getTokenLabel(
-                              token.player,
-                              token.tokenId,
-                            )}
+                            title={getTokenLabel(token.player, token.tokenId)}
+                            aria-label={getTokenLabel(token.player, token.tokenId)}
                             disabled={!clickable}
                             onClick={() =>
-                              onTokenClick?.(
-                                token.player,
-                                token.tokenId,
-                              )
+                              onTokenClick?.(token.player, token.tokenId)
                             }
                             className={[
-                              "relative flex aspect-square max-h-full max-w-full items-center justify-center rounded-full border border-white/90 shadow-sm transition-all",
+                              "relative flex aspect-square max-h-full max-w-full items-center justify-center rounded-full border border-white/90 shadow-sm transition-all duration-150",
                               COLOR_STYLES[token.player.color].bg,
                               token.player.color === "yellow"
                                 ? "text-slate-900"
@@ -429,9 +355,7 @@ export default function LudoBoard({
                               token.isSelected
                                 ? "z-20 scale-125 ring-2 ring-indigo-600 ring-offset-2"
                                 : "",
-                              cellTokens.length > 1
-                                ? "w-[43%]"
-                                : "w-[82%]",
+                              cellTokens.length > 1 ? "w-[43%]" : "w-[82%]",
                             ].join(" ")}
                           >
                             <span className="text-[6px] font-black leading-none sm:text-[9px]">
@@ -448,53 +372,71 @@ export default function LudoBoard({
           </div>
 
           {showDice && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="flex min-w-0 items-center gap-3">
+            <div className="mt-3 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-3 sm:p-4">
+              <div className="flex items-center gap-3">
                 <div
                   className={[
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 bg-white shadow-sm",
+                    "flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-2xl border-2 bg-white shadow-md sm:h-20 sm:w-20",
                     currentPlayer
                       ? COLOR_STYLES[currentPlayer.color].border
-                      : "border-slate-300",
+                      : "border-indigo-200",
+                    isMoving ? "animate-pulse" : "",
                   ].join(" ")}
+                  aria-label={
+                    diceValue == null
+                      ? "Dice has not been rolled"
+                      : `Dice result ${diceValue}`
+                  }
                 >
                   {diceValue != null ? (
-                    <span className="text-2xl font-black text-slate-900">
+                    <span className="text-4xl font-black tabular-nums text-indigo-700 sm:text-5xl">
                       {diceValue}
                     </span>
                   ) : (
-                    <Dice5
-                      size={27}
-                      className="text-slate-500"
-                    />
+                    <Dice5 size={35} className="text-indigo-500" />
                   )}
                 </div>
 
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800">
-                    {diceValue != null
-                      ? `Dice: ${diceValue}`
-                      : "Ready to play?"}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                    {isMoving ? "Movement in progress" : "Dice result"}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    {diceValue != null
-                      ? "Select a highlighted token to move"
-                      : "Roll the dice to begin your turn"}
+
+                  <p className="mt-1 text-lg font-black text-slate-900 sm:text-xl">
+                    {diceValue == null
+                      ? "Ready to roll"
+                      : isMoving
+                        ? `Counting ${movementCount ?? 0} of ${diceValue}`
+                        : `You rolled ${diceValue}`}
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {isMoving
+                      ? "Watch your token move one square at a time."
+                      : diceValue != null
+                        ? "The number stays visible throughout your turn."
+                        : "Roll the dice to receive your question."}
                   </p>
                 </div>
-              </div>
 
-              {onDiceClick && (
-                <button
-                  type="button"
-                  onClick={onDiceClick}
-                  disabled={disabled}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Dice5 size={17} />
-                  {diceValue != null ? "Play Dice" : "Roll Dice"}
-                </button>
-              )}
+                {isMoving && (
+                  <div className="hidden shrink-0 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-black text-white sm:block">
+                    {movementCount ?? 0}/{diceValue}
+                  </div>
+                )}
+
+                {diceValue == null && onDiceClick && (
+                  <button
+                    type="button"
+                    onClick={onDiceClick}
+                    disabled={disabled}
+                    className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
+                  >
+                    <Dice5 size={17} />
+                    Roll
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

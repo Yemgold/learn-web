@@ -1,1485 +1,383 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  Coins,
-  Crown,
-  Dice5,
-  RotateCcw,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-  Wallet,
-  X,
-  Zap,
+  ArrowLeft, Award, BookOpen, CheckCircle2, ChevronRight, CircleHelp,
+  Coins, Crown, Dice5, Flag, History, Info, Loader2, LockKeyhole,
+  RotateCcw, ShieldCheck, Sparkles, Trophy, Wallet, X, Zap,
 } from "lucide-react";
 
-type Color = "red" | "green" | "yellow" | "blue";
+export type EduLudoMode = "solo" | "friends" | "classroom" | "tournament";
+export type EduLudoColor = "red" | "green" | "yellow" | "blue";
+type Level = "JSS" | "SSS" | "JAMB" | "WAEC" | "Custom";
+type Subject = "All Subjects" | "Mathematics" | "English" | "Science" | "Biology" | "Chemistry" | "Physics";
 type Difficulty = "Easy" | "Medium" | "Hard";
-type Phase =
-  | "lobby"
-  | "countdown"
-  | "rolling"
-  | "diceResult"
-  | "question"
-  | "feedback"
-  | "move"
-  | "finished";
+type Token = { id: string; position: number; finished: boolean };
+type Player = { id: string; name: string; color: EduLudoColor; human: boolean; tokens: Token[]; points: number; difficulty?: Difficulty };
+type Question = { id: string; subject: Exclude<Subject, "All Subjects">; level: Level[]; difficulty: Difficulty; question: string; options: string[]; correctAnswer: number; explanation: string };
+type Move = { tokenId: string; steps: number; die?: number; dieIndex?: number; entersFromBase?: boolean; description: string };
+type Tx = { id: string; description: string; amount: number; at: string };
+type Props = { initialBalance?: number; initialCbtPoints?: number; onBack?: () => void; onFundWallet?: () => void };
 
-type Token = {
-  position: number;
+const COLORS: Record<EduLudoColor, { label: string; main: string; light: string; text: string }> = {
+  red: { label: "Red", main: "#dc2626", light: "#fee2e2", text: "text-red-700" },
+  green: { label: "Green", main: "#16a34a", light: "#dcfce7", text: "text-green-700" },
+  yellow: { label: "Yellow", main: "#eab308", light: "#fef9c3", text: "text-yellow-800" },
+  blue: { label: "Blue", main: "#2563eb", light: "#dbeafe", text: "text-blue-700" },
 };
-
-type Player = {
-  id: string;
-  name: string;
-  color: Color;
-  human: boolean;
-  tokens: Token[];
-  score: number;
-};
-
-type Question = {
-  id: string;
-  subject: string;
-  difficulty: Difficulty;
-  text: string;
-  options: string[];
-  answer: number;
-  explanation: string;
-};
-
-type Move = {
-  tokenIndex: number;
-  steps: number;
-  diceIndices: number[];
-  label: string;
-};
-
-const COLORS: Record<Color, { main: string; light: string; border: string }> = {
-  red: {
-    main: "#dc2626",
-    light: "#fee2e2",
-    border: "#991b1b",
-  },
-  green: {
-    main: "#16a34a",
-    light: "#dcfce7",
-    border: "#166534",
-  },
-  yellow: {
-    main: "#eab308",
-    light: "#fef9c3",
-    border: "#854d0e",
-  },
-  blue: {
-    main: "#2563eb",
-    light: "#dbeafe",
-    border: "#1e40af",
-  },
-};
-
-const SUBJECTS = [
-  "Mixed",
-  "Mathematics",
-  "English",
-  "Biology",
-  "Chemistry",
-  "Physics",
+const TRACK: [number, number][] = [
+  [6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]
 ];
-
+const START: Record<EduLudoColor, number> = { red: 0, green: 13, yellow: 26, blue: 39 };
+const HOME_LANE: Record<EduLudoColor, [number, number][]> = {
+  red: [[7,1],[7,2],[7,3],[7,4],[7,5]], green: [[1,7],[2,7],[3,7],[4,7],[5,7]],
+  yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]], blue: [[13,7],[12,7],[11,7],[10,7],[9,7]],
+};
+const BASES: Record<EduLudoColor, { r: number; c: number }> = { red: { r: 9, c: 9 }, green: { r: 0, c: 9 }, yellow: { r: 0, c: 0 }, blue: { r: 9, c: 0 } };
+// Four-option sample questions are intentionally local placeholders; connect the production question bank later.
 const QUESTIONS: Question[] = [
-  {
-    id: "math-1",
-    subject: "Mathematics",
-    difficulty: "Easy",
-    text: "What is 12 × 8?",
-    options: ["86", "96", "88", "108"],
-    answer: 1,
-    explanation: "12 multiplied by 8 equals 96.",
-  },
-  {
-    id: "math-2",
-    subject: "Mathematics",
-    difficulty: "Medium",
-    text: "Solve: 3x + 5 = 20.",
-    options: ["3", "4", "5", "6"],
-    answer: 2,
-    explanation: "Subtract 5 to get 3x = 15, then divide by 3.",
-  },
-  {
-    id: "math-3",
-    subject: "Mathematics",
-    difficulty: "Hard",
-    text: "If 2x² = 50 and x is positive, find x.",
-    options: ["4", "5", "10", "25"],
-    answer: 1,
-    explanation: "x² = 25, so the positive value of x is 5.",
-  },
-  {
-    id: "eng-1",
-    subject: "English",
-    difficulty: "Easy",
-    text: "Choose the correct plural of 'criterion'.",
-    options: ["Criterions", "Criteria", "Criterias", "Criterion"],
-    answer: 1,
-    explanation: "Criteria is the plural form of criterion.",
-  },
-  {
-    id: "eng-2",
-    subject: "English",
-    difficulty: "Medium",
-    text: "Which word is closest in meaning to 'diligent'?",
-    options: ["Careless", "Hardworking", "Impatient", "Timid"],
-    answer: 1,
-    explanation: "A diligent person is careful and hardworking.",
-  },
-  {
-    id: "eng-3",
-    subject: "English",
-    difficulty: "Hard",
-    text: "Identify the figure of speech: 'The wind whispered.'",
-    options: ["Hyperbole", "Irony", "Personification", "Oxymoron"],
-    answer: 2,
-    explanation: "Personification gives a human action to the wind.",
-  },
-  {
-    id: "bio-1",
-    subject: "Biology",
-    difficulty: "Easy",
-    text: "Which organ pumps blood around the human body?",
-    options: ["Liver", "Kidney", "Heart", "Lung"],
-    answer: 2,
-    explanation: "The heart pumps blood through the circulatory system.",
-  },
-  {
-    id: "bio-2",
-    subject: "Biology",
-    difficulty: "Medium",
-    text: "Which organelle is primarily responsible for photosynthesis?",
-    options: ["Mitochondrion", "Chloroplast", "Ribosome", "Nucleus"],
-    answer: 1,
-    explanation: "Chloroplasts contain chlorophyll and carry out photosynthesis.",
-  },
-  {
-    id: "bio-3",
-    subject: "Biology",
-    difficulty: "Hard",
-    text: "Which molecule carries genetic information?",
-    options: ["Starch", "DNA", "Glycogen", "Cellulose"],
-    answer: 1,
-    explanation: "DNA stores hereditary information in living organisms.",
-  },
-  {
-    id: "chem-1",
-    subject: "Chemistry",
-    difficulty: "Easy",
-    text: "What is the chemical symbol for oxygen?",
-    options: ["Ox", "O", "Oy", "Og"],
-    answer: 1,
-    explanation: "The chemical symbol for oxygen is O.",
-  },
-  {
-    id: "chem-2",
-    subject: "Chemistry",
-    difficulty: "Medium",
-    text: "A solution with a pH of 3 is best described as:",
-    options: ["Acidic", "Neutral", "Alkaline", "Metallic"],
-    answer: 0,
-    explanation: "Solutions with pH values below 7 are acidic.",
-  },
-  {
-    id: "chem-3",
-    subject: "Chemistry",
-    difficulty: "Hard",
-    text: "What is the oxidation number of sulfur in H₂SO₄?",
-    options: ["+2", "+4", "+6", "-2"],
-    answer: 2,
-    explanation: "Two hydrogen atoms contribute +2 and four oxygens contribute -8, so sulfur is +6.",
-  },
-  {
-    id: "phy-1",
-    subject: "Physics",
-    difficulty: "Easy",
-    text: "What is the SI unit of force?",
-    options: ["Joule", "Watt", "Newton", "Pascal"],
-    answer: 2,
-    explanation: "Force is measured in newtons.",
-  },
-  {
-    id: "phy-2",
-    subject: "Physics",
-    difficulty: "Medium",
-    text: "What is the approximate acceleration due to gravity near Earth's surface?",
-    options: ["4.9 m/s²", "9.8 m/s²", "15 m/s²", "20 m/s²"],
-    answer: 1,
-    explanation: "The standard approximate value is 9.8 m/s².",
-  },
-  {
-    id: "phy-3",
-    subject: "Physics",
-    difficulty: "Hard",
-    text: "Which quantity is equal to the rate of change of momentum?",
-    options: ["Power", "Force", "Work", "Energy"],
-    answer: 1,
-    explanation: "By Newton's second law, force equals the rate of change of momentum.",
-  },
+  { id: "m1", subject: "Mathematics", level: ["JSS","SSS","JAMB","WAEC"], difficulty: "Easy", question: "What is 15% of 200?", options: ["15", "20", "30", "45"], correctAnswer: 2, explanation: "15% of 200 = 0.15 × 200 = 30." },
+  { id: "m2", subject: "Mathematics", level: ["SSS","JAMB","WAEC"], difficulty: "Medium", question: "Solve: 3x − 7 = 14.", options: ["5", "7", "9", "21"], correctAnswer: 1, explanation: "Add 7 to both sides, then divide by 3: x = 7." },
+  { id: "m3", subject: "Mathematics", level: ["SSS","JAMB","WAEC"], difficulty: "Hard", question: "If f(x) = x² − 4x, what is f′(3)?", options: ["2", "3", "6", "10"], correctAnswer: 0, explanation: "f′(x) = 2x − 4, so f′(3) = 2." },
+  { id: "e1", subject: "English", level: ["JSS","SSS","JAMB","WAEC"], difficulty: "Easy", question: "Choose the word closest in meaning to ‘rapid’. ", options: ["Slow", "Swift", "Quiet", "Weak"], correctAnswer: 1, explanation: "Rapid means fast or swift." },
+  { id: "e2", subject: "English", level: ["SSS","JAMB","WAEC"], difficulty: "Medium", question: "Which sentence uses the semicolon correctly?", options: ["I came; and I saw.", "It rained; we stayed indoors.", "Because; it rained.", "She; is ready."], correctAnswer: 1, explanation: "A semicolon can join two closely related independent clauses." },
+  { id: "e3", subject: "English", level: ["SSS","JAMB","WAEC"], difficulty: "Hard", question: "A statement that seems contradictory but may reveal truth is a…", options: ["Metaphor", "Paradox", "Euphemism", "Hyperbole"], correctAnswer: 1, explanation: "A paradox appears contradictory but may express a truth." },
+  { id: "s1", subject: "Science", level: ["JSS","SSS","Custom"], difficulty: "Easy", question: "Which gas do plants absorb during photosynthesis?", options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], correctAnswer: 2, explanation: "Plants use carbon dioxide, water and light to make sugars." },
+  { id: "b1", subject: "Biology", level: ["SSS","JAMB","WAEC"], difficulty: "Medium", question: "Which organelle is the main site of aerobic respiration?", options: ["Ribosome", "Mitochondrion", "Golgi body", "Vacuole"], correctAnswer: 1, explanation: "Most aerobic ATP production occurs in mitochondria." },
+  { id: "c1", subject: "Chemistry", level: ["SSS","JAMB","WAEC"], difficulty: "Hard", question: "What is the oxidation number of sulfur in H₂SO₄?", options: ["+2", "+4", "+6", "−2"], correctAnswer: 2, explanation: "2(+1) + S + 4(−2) = 0, so S = +6." },
+  { id: "p1", subject: "Physics", level: ["SSS","JAMB","WAEC"], difficulty: "Medium", question: "A 2 kg object accelerates at 3 m/s². What is the net force?", options: ["1.5 N", "5 N", "6 N", "9 N"], correctAnswer: 2, explanation: "Newton’s second law: F = ma = 2 × 3 = 6 N." },
 ];
-
-const TRACK: [number, number][] = (() => {
-  const cells: [number, number][] = [];
-
-  // A 14 × 14 perimeter contains 52 track squares.
-  for (let c = 0; c < 14; c++) cells.push([0, c]);
-  for (let r = 1; r < 14; r++) cells.push([r, 13]);
-  for (let c = 12; c >= 0; c--) cells.push([13, c]);
-  for (let r = 12; r >= 1; r--) cells.push([r, 0]);
-
-  return cells;
-})();
-
-const SAFE_SQUARES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
-const START_OFFSETS: Record<Color, number> = {
-  red: 0,
-  green: 13,
-  yellow: 26,
-  blue: 39,
+const safeTrack = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+const POINTS_BY_DIFFICULTY: Record<Difficulty, number> = { Easy: 20, Medium: 30, Hard: 40 };
+const money = (n: number) => `₦${Math.max(0, n).toLocaleString("en-NG")}`;
+const makePlayers = (color: EduLudoColor, difficulty: Difficulty): Player[] => {
+  const others = (["red", "green", "yellow", "blue"] as EduLudoColor[]).filter(c => c !== color);
+  const names = ["Ada", "Tunde", "Zara"];
+  return [
+    { id: "human", name: "You", color, human: true, points: 0, tokens: Array.from({ length: 4 }, (_, i) => ({ id: `human-${i}`, position: -1, finished: false })) },
+    ...others.map((c, i) => ({ id: `bot-${i}`, name: names[i], color: c, human: false, difficulty, points: 0, tokens: Array.from({ length: 4 }, (_, j) => ({ id: `bot-${i}-${j}`, position: -1, finished: false })) })),
+  ];
 };
 
-function makePlayers(humanColor: Color): Player[] {
-  const colors: Color[] = ["red", "green", "yellow", "blue"];
-  const names: Record<Color, string> = {
-    red: "You",
-    green: "Ada",
-    yellow: "Tunde",
-    blue: "Zara",
-  };
-
-  return colors.map((color) => ({
-    id: color,
-    name: names[color],
-    color,
-    human: color === humanColor,
-    tokens: Array.from({ length: 4 }, () => ({ position: -1 })),
-    score: 0,
-  }));
-}
-
-function difficultyPoints(difficulty: Difficulty) {
-  if (difficulty === "Hard") return 40;
-  if (difficulty === "Medium") return 30;
-  return 20;
-}
-
-function randomDie() {
-  return Math.floor(Math.random() * 6) + 1;
-}
-
-function shuffle<T>(items: T[]): T[] {
-  const result = [...items];
-
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-
-  return result;
-}
-
-export default function EduLudoGame() {
-  const [phase, setPhase] = useState<Phase>("lobby");
-  const [subject, setSubject] = useState("Mixed");
-  const [level, setLevel] = useState("Secondary");
-  const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
+export default function EduLudoGame({ initialBalance = 500, initialCbtPoints = 0, onBack, onFundWallet }: Props) {
+  const [mode, setMode] = useState<EduLudoMode>("solo");
+  const [subject, setSubject] = useState<Subject>("All Subjects");
+  const [level, setLevel] = useState<Level>("JAMB");
+  const [playerColor, setPlayerColor] = useState<EduLudoColor>("red");
   const [botDifficulty, setBotDifficulty] = useState<Difficulty>("Medium");
-  const [humanColor, setHumanColor] = useState<Color>("red");
-
-  const [players, setPlayers] = useState<Player[]>(() => makePlayers("red"));
+  const [balance, setBalance] = useState(initialBalance);
+  const [cbtPoints, setCbtPoints] = useState(initialCbtPoints);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [turn, setTurn] = useState(0);
+  const [phase, setPhase] = useState<"lobby" | "preview" | "countdown" | "rolling" | "question" | "feedback" | "move" | "finished">("lobby");
   const [dice, setDice] = useState<[number, number]>([1, 1]);
   const [usedDice, setUsedDice] = useState<number[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answerCorrect, setAnswerCorrect] = useState<boolean | null>(null);
+  const [answerStatus, setAnswerStatus] = useState<"correct" | "wrong" | "timeout" | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
   const [questionCount, setQuestionCount] = useState(0);
   const [seenQuestions, setSeenQuestions] = useState<string[]>([]);
-  const [moves, setMoves] = useState<Move[]>([]);
-  const [message, setMessage] = useState("");
-  const [balance, setBalance] = useState(1000);
-  const [cbtPoints, setCbtPoints] = useState(0);
-  const [winner, setWinner] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(3);
+  const [legalMoves, setLegalMoves] = useState<Move[]>([]);
+  const [moveMessage, setMoveMessage] = useState("");
+  const [txs, setTxs] = useState<Tx[]>([]);
+  const [drawer, setDrawer] = useState<"rules" | "wallet" | "rewards" | "move" | null>(null);
+  const [confirmExit, setConfirmExit] = useState(false);
+  const [rollAnim, setRollAnim] = useState(false);
+  const [winnerId, setWinnerId] = useState<string | null>(null);
+  const [matchReward, setMatchReward] = useState(0);
   const [toast, setToast] = useState("");
-
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const answerLockedRef = useRef(false);
-  const botActionRef = useRef(false);
-  const rollLockRef = useRef(false);
-
+  const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const current = players[turn];
-  const human = players.find((player) => player.human);
-  const isHumanTurn = Boolean(current?.human);
+  const human = players.find(p => p.human);
+  const eligibleQuestions = useMemo(() => QUESTIONS.filter(q => (subject === "All Subjects" || q.subject === subject) && q.level.includes(level)), [subject, level]);
 
-  const clearTimers = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
-    timerRef.current = null;
-    phaseTimerRef.current = null;
-  }, []);
+  const notify = useCallback((message: string) => { setToast(message); const id = setTimeout(() => setToast(""), 2600); return () => clearTimeout(id); }, []);
+  const stopTimer = useCallback(() => { if (timerRef.current) clearInterval(timerRef.current); timerRef.current = null; }, []);
+  useEffect(() => () => { stopTimer(); if (botTimerRef.current) clearTimeout(botTimerRef.current); }, [stopTimer]);
 
-  useEffect(() => {
-    return () => clearTimers();
-  }, [clearTimers]);
-
-  const eligibleQuestions = useMemo(() => {
-    const pool =
-      subject === "Mixed"
-        ? QUESTIONS
-        : QUESTIONS.filter((item) => item.subject === subject);
-
-    return pool.length ? pool : QUESTIONS;
-  }, [subject]);
-
-  const chooseQuestion = useCallback(() => {
-    let available = eligibleQuestions.filter(
-      (item) => !seenQuestions.includes(item.id),
-    );
-
-    // When the eligible pool has been exhausted, begin a new cycle.
-    if (!available.length) {
-      setSeenQuestions([]);
-      available = eligibleQuestions;
+  const updatePlayer = useCallback((playerId: string, fn: (p: Player) => Player) => setPlayers(prev => prev.map(p => p.id === playerId ? fn(p) : p)), []);
+  const addPoints = useCallback((playerId: string, amount: number, description: string) => {
+    updatePlayer(playerId, p => ({ ...p, points: p.points + amount }));
+    if (playerId === "human") {
+      setCbtPoints(v => v + amount); setMatchReward(v => v + amount);
+      setTxs(v => [{ id: `${Date.now()}-${Math.random()}`, description, amount, at: new Date().toISOString() }, ...v]);
+      notify(`+${amount} CBT Points`);
     }
-
-    const selectedPool = available.length ? available : eligibleQuestions;
-    const selected =
-      selectedPool[Math.floor(Math.random() * selectedPool.length)];
-
-    setQuestion(selected);
-    setSeenQuestions((previous) =>
-      previous.includes(selected.id)
-        ? [selected.id]
-        : [...previous, selected.id],
-    );
-    setSelectedAnswer(null);
-    setAnswerCorrect(null);
-    setTimeLeft(15);
-    answerLockedRef.current = false;
-    setQuestionCount((count) => count + 1);
-  }, [eligibleQuestions, seenQuestions]);
-
-  const getMoves = useCallback(
-    (player: Player, diceValues: [number, number], alreadyUsed: number[]) => {
-      const result: Move[] = [];
-      const remaining = [0, 1].filter((index) => !alreadyUsed.includes(index));
-
-      for (let tokenIndex = 0; tokenIndex < player.tokens.length; tokenIndex++) {
-        const token = player.tokens[tokenIndex];
-
-        for (const dieIndex of remaining) {
-          const value = diceValues[dieIndex];
-
-          if (token.position === -1) {
-            if (value === 6) {
-              result.push({
-                tokenIndex,
-                steps: 1,
-                diceIndices: [dieIndex],
-                label: `Bring token ${tokenIndex + 1} out using die ${dieIndex + 1} (${value})`,
-              });
-            }
-          } else if (token.position + value <= 57) {
-            result.push({
-              tokenIndex,
-              steps: value,
-              diceIndices: [dieIndex],
-              label: `Move token ${tokenIndex + 1} by ${value} using die ${dieIndex + 1}`,
-            });
-          }
-        }
-      }
-
-      if (remaining.length === 2) {
-        const total = diceValues[0] + diceValues[1];
-
-        for (let tokenIndex = 0; tokenIndex < player.tokens.length; tokenIndex++) {
-          const token = player.tokens[tokenIndex];
-
-          if (
-            token.position >= 0 &&
-            token.position + total <= 57
-          ) {
-            result.push({
-              tokenIndex,
-              steps: total,
-              diceIndices: [0, 1],
-              label: `Move token ${tokenIndex + 1} by the total ${total}`,
-            });
-          }
-        }
-      }
-
-      return result;
-    },
-    [],
-  );
-
-  const finishMatch = useCallback(
-    (winnerId: string) => {
-      clearTimers();
-      setWinner(winnerId);
-      setPhase("finished");
-
-      if (winnerId === human?.id) {
-        setCbtPoints((points) => points + 500);
-        setToast("You won! 500 bonus CBT Points added to the demo score.");
-      }
-    },
-    [clearTimers, human?.id],
-  );
-
-  const advanceTurn = useCallback(
-    (reason?: string) => {
-      clearTimers();
-      rollLockRef.current = false;
-      botActionRef.current = false;
-      answerLockedRef.current = false;
-
-      if (reason) setMessage(reason);
-
-      setUsedDice([]);
-      setMoves([]);
-      setQuestion(null);
-      setSelectedAnswer(null);
-      setAnswerCorrect(null);
-
-      setTurn((previous) => (previous + 1) % players.length);
-      setPhase("rolling");
-    },
-    [clearTimers, players.length],
-  );
-
-  const applyMove = useCallback(
-    (move: Move) => {
-      if (!current) return;
-
-      const movingPlayer = current;
-      const oldToken = movingPlayer.tokens[move.tokenIndex];
-
-      let newPosition =
-        oldToken.position === -1 ? 0 : oldToken.position + move.steps;
-
-      if (oldToken.position === -1) {
-        newPosition = 0;
-      }
-
-      const updatedPlayers = players.map((player) => ({
-        ...player,
-        tokens: player.tokens.map((token) => ({ ...token })),
-      }));
-
-      const actor = updatedPlayers.find(
-        (player) => player.id === movingPlayer.id,
-      );
-
-      if (!actor) return;
-
-      actor.tokens[move.tokenIndex].position = newPosition;
-
-      let captured = false;
-
-      if (newPosition < 52) {
-        const globalSquare =
-          (START_OFFSETS[actor.color] + newPosition) % 52;
-
-        if (!SAFE_SQUARES.has(globalSquare)) {
-          for (const opponent of updatedPlayers) {
-            if (opponent.id === actor.id) continue;
-
-            opponent.tokens = opponent.tokens.map((token) => {
-              if (token.position < 0 || token.position >= 52) return token;
-
-              const opponentSquare =
-                (START_OFFSETS[opponent.color] + token.position) % 52;
-
-              if (opponentSquare === globalSquare) {
-                captured = true;
-                return { position: -1 };
-              }
-
-              return token;
-            });
-          }
-        }
-      }
-
-      if (captured) {
-        actor.score += 100;
-        if (actor.human) setCbtPoints((points) => points + 100);
-      }
-
-      const hasWon = actor.tokens.every((token) => token.position === 57);
-
-      setPlayers(updatedPlayers);
-      setUsedDice((previous) => [...previous, ...move.diceIndices]);
-
-      if (hasWon) {
-        finishMatch(actor.id);
-        return;
-      }
-
-      const nextUsed = [...usedDice, ...move.diceIndices];
-      const remainingMoves = getMoves(actor, dice, nextUsed);
-
-      if (remainingMoves.length > 0 && nextUsed.length < 2) {
-        setMoves(remainingMoves);
-        setMessage(
-          captured
-            ? "Capture! You earned 100 CBT Points. Use the remaining die."
-            : "Move completed. You may use the remaining die.",
-        );
-        setPhase("move");
-      } else {
-        advanceTurn(
-          captured
-            ? "Capture! 100 CBT Points awarded to the capturing player."
-            : "Turn completed.",
-        );
-      }
-    },
-    [
-      advanceTurn,
-      current,
-      dice,
-      finishMatch,
-      getMoves,
-      players,
-      usedDice,
-    ],
-  );
-
-  const answerQuestion = useCallback(
-    (answerIndex: number | null) => {
-      if (!question || answerLockedRef.current) return;
-
-      answerLockedRef.current = true;
-
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-
-      const correct = answerIndex === question.answer;
-
-      setSelectedAnswer(answerIndex);
-      setAnswerCorrect(correct);
-      setPhase("feedback");
-
-      if (current?.human) {
-        if (correct) {
-          const points = difficultyPoints(question.difficulty);
-          setCbtPoints((previous) => previous + points);
-          setToast(`Correct answer! +${points} CBT Points.`);
-        } else {
-          setToast(
-            answerIndex === null
-              ? "Time is up. The turn passes."
-              : "Incorrect answer. The turn passes.",
-          );
-        }
-      }
-
-      phaseTimerRef.current = setTimeout(() => {
-        if (!correct) {
-          advanceTurn("Incorrect answer or timeout. Turn passed.");
-          return;
-        }
-
-        const legalMoves = getMoves(current, dice, []);
-
-        if (!legalMoves.length) {
-          advanceTurn("No legal moves are available. Turn passed.");
-          return;
-        }
-
-        setMoves(legalMoves);
-        setMessage("Correct! Choose a token move.");
-        setPhase("move");
-      }, current?.human ? 1100 : 500);
-    },
-    [advanceTurn, current, dice, getMoves, question],
-  );
-
-  // Question countdown applies to human questions only.
-  useEffect(() => {
-    if (phase !== "question" || !current?.human) return;
-
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          timerRef.current = null;
-
-          // Schedule outside the state updater to avoid updating state inside it.
-          phaseTimerRef.current = setTimeout(() => {
-            answerQuestion(null);
-          }, 0);
-
-          return 0;
-        }
-
-        return previous - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-    };
-  }, [answerQuestion, current?.human, phase]);
-
-  const rollHumanDice = useCallback(() => {
-    if (phase !== "rolling" || !current?.human || rollLockRef.current) {
-      return;
-    }
-
-    rollLockRef.current = true;
-    setPhase("diceResult");
-
-    const first = randomDie();
-    const second = randomDie();
-
-    setDice([first, second]);
-
-    phaseTimerRef.current = setTimeout(() => {
-      if (balance < 2) {
-        setToast("Demo wallet is too low. Reset the demo wallet to continue.");
-        advanceTurn("Insufficient demo balance. Turn passed.");
-        return;
-      }
-
-      setBalance((amount) => amount - 2);
-      chooseQuestion();
-      setPhase("question");
-      rollLockRef.current = false;
-    }, 1200);
-  }, [advanceTurn, balance, chooseQuestion, current?.human, phase]);
-
-  // Critical fix: automatically roll for every bot turn.
-  // This prevents the game from remaining on "Bot is preparing its roll…".
-  useEffect(() => {
-    if (
-      phase !== "rolling" ||
-      !current ||
-      current.human
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    let rollTimer: ReturnType<typeof setTimeout> | undefined;
-    let questionTimer: ReturnType<typeof setTimeout> | undefined;
-
-    rollLockRef.current = true;
-
-    rollTimer = setTimeout(() => {
-      if (cancelled) return;
-
-      const first = randomDie();
-      const second = randomDie();
-
-      setDice([first, second]);
-      setPhase("diceResult");
-
-      questionTimer = setTimeout(() => {
-        if (cancelled) return;
-
-        const pool =
-          subject === "Mixed"
-            ? QUESTIONS
-            : QUESTIONS.filter((item) => item.subject === subject);
-
-        const questionPool = pool.length ? pool : QUESTIONS;
-        const available = questionPool.filter(
-          (item) => !seenQuestions.includes(item.id),
-        );
-
-        const candidates = available.length ? available : questionPool;
-        const chosen =
-          candidates[Math.floor(Math.random() * candidates.length)];
-
-        setQuestion(chosen);
-        setSeenQuestions((previous) =>
-          previous.includes(chosen.id)
-            ? [chosen.id]
-            : [...previous, chosen.id],
-        );
-        setQuestionCount((count) => count + 1);
-
-        const botIsCorrect =
-          botDifficulty === "Easy"
-            ? Math.random() < 0.55
-            : botDifficulty === "Hard"
-              ? Math.random() < 0.9
-              : Math.random() < 0.75;
-
-        phaseTimerRef.current = setTimeout(() => {
-          if (cancelled) return;
-
-          if (!botIsCorrect) {
-            setMessage(`${current.name} answered incorrectly. Turn passed.`);
-            advanceTurn();
-            return;
-          }
-
-          const legalMoves = getMoves(current, [first, second], []);
-
-          if (!legalMoves.length) {
-            setMessage(`${current.name} has no legal move. Turn passed.`);
-            advanceTurn();
-            return;
-          }
-
-          // Bots prefer bringing a token out, then capturing, then progressing.
-          const selectedMove =
-            legalMoves.find(
-              (move) => current.tokens[move.tokenIndex].position === -1,
-            ) ??
-            legalMoves.find((move) => move.steps > 1) ??
-            legalMoves[0];
-
-          setPlayers((previous) =>
-            previous.map((player) =>
-              player.id === current.id
-                ? {
-                    ...player,
-                    score:
-                      player.score +
-                      difficultyPoints(chosen.difficulty),
-                  }
-                : player,
-            ),
-          );
-
-          setPhase("move");
-          setMoves(legalMoves);
-          setMessage(`${current.name} answered correctly.`);
-
-          phaseTimerRef.current = setTimeout(() => {
-            if (cancelled) return;
-            applyMove(selectedMove);
-          }, 650);
-        }, 700);
-      }, 1000);
-    }, 900);
-
-    return () => {
-      cancelled = true;
-
-      if (rollTimer) clearTimeout(rollTimer);
-      if (questionTimer) clearTimeout(questionTimer);
-    };
-  }, [
-    advanceTurn,
-    applyMove,
-    botDifficulty,
-    current,
-    getMoves,
-    phase,
-    seenQuestions,
-    subject,
-  ]);
-
-  const startGame = useCallback(() => {
-    clearTimers();
-    setPlayers(makePlayers(humanColor));
-    setTurn(0);
-    setDice([1, 1]);
-    setUsedDice([]);
-    setQuestion(null);
-    setSelectedAnswer(null);
-    setAnswerCorrect(null);
-    setQuestionCount(0);
-    setSeenQuestions([]);
-    setWinner(null);
-    setMoves([]);
-    setMessage("Match starting…");
-    setCountdown(3);
-    setPhase("countdown");
-    rollLockRef.current = false;
-    answerLockedRef.current = false;
-    botActionRef.current = false;
-  }, [clearTimers, humanColor]);
-
-  useEffect(() => {
-    if (phase !== "countdown") return;
-
-    const timer = setInterval(() => {
-      setCountdown((value) => {
-        if (value <= 1) {
-          clearInterval(timer);
-          setPhase("rolling");
-          return 0;
-        }
-
-        return value - 1;
-      });
-    }, 800);
-
-    return () => clearInterval(timer);
-  }, [phase]);
-
-  const boardTokens = useMemo(() => {
-    const mapped: {
-      player: Player;
-      tokenIndex: number;
-      row: number;
-      col: number;
-      position: number;
-    }[] = [];
-
-    players.forEach((player) => {
-      player.tokens.forEach((token, tokenIndex) => {
-        if (token.position < 0 || token.position >= 52) return;
-
-        const square =
-          (START_OFFSETS[player.color] + token.position) % 52;
-        const [row, col] = TRACK[square];
-
-        mapped.push({
-          player,
-          tokenIndex,
-          row,
-          col,
-          position: token.position,
-        });
-      });
-    });
-
-    return mapped;
-  }, [players]);
-
-  const winningPlayer = players.find((player) => player.id === winner);
-
-  function renderBoard() {
-    const cells = [];
-
-    for (let row = 0; row < 15; row++) {
-      for (let col = 0; col < 15; col++) {
-        const trackIndex = TRACK.findIndex(
-          ([trackRow, trackCol]) => trackRow === row && trackCol === col,
-        );
-
-        const tokensHere = boardTokens.filter(
-          (token) => token.row === row && token.col === col,
-        );
-
-        let background = "#f8fafc";
-        let borderColor = "#e2e8f0";
-
-        if (trackIndex !== -1) {
-          const safe = SAFE_SQUARES.has(trackIndex);
-          background = safe ? "#fef3c7" : "#ffffff";
-          borderColor = safe ? "#d97706" : "#cbd5e1";
-        }
-
-        if (row < 6 && col < 6) background = COLORS.red.light;
-        if (row < 6 && col > 8) background = COLORS.green.light;
-        if (row > 8 && col < 6) background = COLORS.blue.light;
-        if (row > 8 && col > 8) background = COLORS.yellow.light;
-
-        if (row >= 6 && row <= 8 && col >= 6 && col <= 8) {
-          background = "#f1f5f9";
-        }
-
-        const startColor = (Object.keys(START_OFFSETS) as Color[]).find(
-          (color) => START_OFFSETS[color] === trackIndex,
-        );
-
-        if (startColor) background = COLORS[startColor].light;
-
-        cells.push(
-          <div
-            key={`${row}-${col}`}
-            className="relative flex aspect-square items-center justify-center border text-[8px] sm:text-[10px]"
-            style={{ backgroundColor: background, borderColor }}
-          >
-            {row === 7 && col === 7 ? (
-              <Trophy className="h-4 w-4 text-amber-500 sm:h-5 sm:w-5" />
-            ) : trackIndex !== -1 && SAFE_SQUARES.has(trackIndex) ? (
-              <ShieldCheck className="h-2.5 w-2.5 text-amber-600 sm:h-3 sm:w-3" />
-            ) : null}
-
-            {tokensHere.length > 0 && (
-              <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5">
-                {tokensHere.map((token) => (
-                  <span
-                    key={`${token.player.id}-${token.tokenIndex}`}
-                    title={`${token.player.name}, token ${token.tokenIndex + 1}`}
-                    className="flex h-3 w-3 items-center justify-center rounded-full border border-white text-[7px] font-black text-white shadow sm:h-4 sm:w-4 sm:text-[9px]"
-                    style={{
-                      backgroundColor: COLORS[token.player.color].main,
-                      borderColor: COLORS[token.player.color].border,
-                    }}
-                  >
-                    {token.tokenIndex + 1}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>,
-        );
-      }
-    }
-
-    return cells;
-  }
-
-  const resetDemoWallet = () => {
-    setBalance(1000);
-    setToast("Demo wallet reset to ₦1,000.");
+  }, [notify, updatePlayer]);
+
+  const startPreview = () => {
+    if (mode !== "solo") { notify("Multiplayer is coming soon. Solo mode is playable now."); return; }
+    setPlayers(makePlayers(playerColor, botDifficulty)); setTurn(0); setDice([1, 1]); setUsedDice([]); setQuestion(null); setSelectedAnswer(null); setAnswerStatus(null); setSeenQuestions([]); setQuestionCount(0); setTxs([]); setMatchReward(0); setWinnerId(null); setLegalMoves([]); setMoveMessage(""); setPhase("preview");
+  };
+  const beginCountdown = () => {
+    if (balance < 2) { setDrawer("wallet"); notify("You need at least ₦2 before the first question."); return; }
+    setPhase("countdown"); let n = 3; setToast("3");
+    const run = () => { n -= 1; if (n > 0) setToast(String(n)); else { setToast("GO!"); setTimeout(() => { setToast(""); setPhase("rolling"); }, 450); } };
+    setTimeout(run, 700); setTimeout(run, 1400); setTimeout(run, 2100);
   };
 
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 lg:px-8">
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <a
-              href="/student/games"
-              className="rounded-xl border border-slate-200 bg-white p-2.5 hover:bg-slate-100"
-              aria-label="Back to games"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </a>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">
-                Learnyfi Games
-              </p>
-              <h1 className="text-xl font-black sm:text-2xl">
-                Educational Ludo
-              </h1>
-            </div>
-          </div>
+  const getTokenMoves = useCallback((p: Player, die: number, dieIndex: number): Move[] => {
+    const moves: Move[] = [];
+    for (const t of p.tokens) {
+      if (t.finished || t.position === 57) continue;
+      if (t.position === -1) {
+        if (die === 6) moves.push({ tokenId: t.id, steps: 0, die, dieIndex, entersFromBase: true, description: `Bring ${COLORS[p.color].label.toLowerCase()} token out using the 6` });
+        continue;
+      }
+      const next = t.position + die;
+      if (next <= 57) moves.push({ tokenId: t.id, steps: die, die, dieIndex, description: next === 57 ? "Move token HOME" : `Move token ${die} spaces` });
+    }
+    return moves;
+  }, []);
+  const getTurnMoves = useCallback((p: Player, roll: [number, number]): Move[] => {
+    const combined = roll[0] + roll[1];
+    const options: Move[] = [];
+    // Combined total is one choice; separate moves each consume exactly one die.
+    if (usedDice.length) return getTokenMoves(p, roll[usedDice.includes(0) ? 1 : 0], usedDice.includes(0) ? 1 : 0);
+    for (const t of p.tokens) {
+      if (t.position >= 0 && !t.finished && t.position + combined <= 57) options.push({ tokenId: t.id, steps: combined, description: `Move ${combined} spaces (both dice)` });
+    }
+    options.push(...getTokenMoves(p, roll[0], 0), ...getTokenMoves(p, roll[1], 1));
+    // Remove duplicate options for equal dice while retaining separate and combined moves.
+    return options.filter((m, i, arr) => arr.findIndex(n => n.tokenId === m.tokenId && n.steps === m.steps && n.entersFromBase === m.entersFromBase && m.description === n.description) === i);
+  }, [getTokenMoves, usedDice]);
 
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-3 py-2">
-            <Wallet className="h-4 w-4 text-emerald-600" />
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-slate-500">
-                Demo wallet
-              </p>
-              <p className="text-sm font-black">
-                ₦{balance.toLocaleString("en-NG")}
-              </p>
-            </div>
-          </div>
-        </header>
+  const rollDice = () => {
+    if (phase !== "rolling" || !current?.human) return;
+    if (balance < 2) { setDrawer("wallet"); notify("Fund your wallet to continue; your turn is paused."); return; }
+    setRollAnim(true); setPhase("rolling");
+    const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
+    setTimeout(() => {
+      setDice([a, b]); setRollAnim(false);
+      const pool = eligibleQuestions;
+      if (!pool.length) {
+        setRollAnim(false);
+        setPhase("lobby");
+        setPlayers([]);
+        notify("There are no sample questions for that subject and academic level yet. Choose another level or subject.");
+        return;
+      }
+      let unused = pool.filter(q => !seenQuestions.includes(q.id));
+      if (!unused.length) { setSeenQuestions([]); unused = pool; }
+      const q = unused[Math.floor(Math.random() * unused.length)] ?? QUESTIONS[0];
+      // Demo-only local deduction. Production must charge server-side with an idempotency key.
+      setBalance(v => v - 2); setTxs(v => [{ id: `fee-${Date.now()}`, description: `Educational Ludo question fee (${q.subject})`, amount: -2, at: new Date().toISOString() }, ...v]);
+      setQuestion(q); setQuestionCount(v => v + 1); setSeenQuestions(v => [...v, q.id]); setSelectedAnswer(null); setAnswerStatus(null); setTimeLeft(15); setPhase("question");
+    }, 650);
+  };
 
-        {toast && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
-            <span>{toast}</span>
-            <button
-              onClick={() => setToast("")}
-              className="rounded-lg p-1 hover:bg-indigo-100"
-              aria-label="Dismiss message"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+  const finishAnswer = useCallback((answer: number | null, timedOut: boolean) => {
+    if (!question || phase !== "question") return;
+    stopTimer(); setSelectedAnswer(answer);
+    const correct = answer === question.correctAnswer && !timedOut;
+    setAnswerStatus(timedOut ? "timeout" : correct ? "correct" : "wrong"); setPhase("feedback");
+    if (correct && current) addPoints(current.id, POINTS_BY_DIFFICULTY[question.difficulty], `${question.difficulty} question answered correctly`);
+    if (!correct) setMoveMessage(timedOut ? "Time is up. Your turn will pass." : "Not quite. Your turn will pass.");
+  }, [question, phase, stopTimer, current, addPoints]);
+  useEffect(() => {
+    if (phase !== "question") { stopTimer(); return; }
+    timerRef.current = setInterval(() => setTimeLeft(t => { if (t <= 1) { stopTimer(); setTimeout(() => finishAnswer(null, true), 0); return 0; } return t - 1; }), 1000);
+    return stopTimer;
+  }, [phase, stopTimer, finishAnswer]);
 
-        {phase === "lobby" ? (
-          <section className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="rounded-3xl bg-gradient-to-br from-indigo-700 via-violet-700 to-fuchsia-700 p-6 text-white shadow-lg sm:p-9">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-                <Dice5 className="h-8 w-8" />
-              </div>
-              <h2 className="max-w-xl text-3xl font-black leading-tight sm:text-4xl">
-                Roll the dice. Answer questions. Race to victory.
-              </h2>
-              <p className="mt-4 max-w-xl text-sm leading-6 text-indigo-100 sm:text-base">
-                Play a solo match against three computer opponents. Answer
-                educational questions correctly to unlock your moves and earn
-                CBT Points.
-              </p>
+  const nextTurn = useCallback(() => { setQuestion(null); setLegalMoves([]); setUsedDice([]); setMoveMessage(""); setTurn(t => (t + 1) % players.length); setPhase("rolling"); }, [players.length]);
+  const afterFeedback = () => {
+    if (answerStatus !== "correct" || !current || !question) { nextTurn(); return; }
+    const moves = getTurnMoves(current, dice);
+    if (!moves.length) { setMoveMessage("Correct answer, but no legal move is available. Turn passes."); setTimeout(nextTurn, 1100); return; }
+    setLegalMoves(moves); setPhase("move"); setDrawer("move");
+  };
+  const applyMove = useCallback((move: Move) => {
+    if (!current) return;
+    const actor = current;
+    const targetToken = actor.tokens.find(t => t.id === move.tokenId);
+    if (!targetToken) return;
+    const newPosition = move.entersFromBase ? 0 : targetToken.position + move.steps;
+    const trackIndex = newPosition >= 0 && newPosition <= 51 ? (START[actor.color] + newPosition) % 52 : -1;
+    const isSafe = trackIndex >= 0 && safeTrack.has(trackIndex);
+    let captureCount = 0;
+    const updatedPlayers = players.map(p => {
+      if (p.id === actor.id) return { ...p, tokens: p.tokens.map(t => t.id === move.tokenId ? { ...t, position: newPosition, finished: newPosition === 57 } : t) };
+      if (isSafe || trackIndex < 0) return p;
+      let captured = 0;
+      const tokens = p.tokens.map(t => {
+        if (t.position < 0 || t.position > 51) return t;
+        const enemyIndex = (START[p.color] + t.position) % 52;
+        if (enemyIndex === trackIndex) { captured++; return { ...t, position: -1, finished: false }; }
+        return t;
+      });
+      captureCount += captured;
+      return { ...p, tokens };
+    });
+    setPlayers(updatedPlayers);
+    if (captureCount) addPoints(actor.id, captureCount * 100, `Captured ${captureCount} token${captureCount > 1 ? "s" : ""}`);
+    if (newPosition === 57) addPoints(actor.id, 0, "Token reached HOME");
+    setDrawer(null);
+    setMoveMessage("");
 
-              <div className="mt-7 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <BookOpen className="mb-2 h-5 w-5" />
-                  <p className="text-lg font-black">15 sec</p>
-                  <p className="text-xs text-indigo-100">Per question</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <Zap className="mb-2 h-5 w-5" />
-                  <p className="text-lg font-black">20–40</p>
-                  <p className="text-xs text-indigo-100">CBT Points</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <Trophy className="mb-2 h-5 w-5" />
-                  <p className="text-lg font-black">+500</p>
-                  <p className="text-xs text-indigo-100">Winner bonus</p>
-                </div>
-              </div>
-            </div>
+    const updatedActor = updatedPlayers.find(p => p.id === actor.id)!;
+    const winner = updatedActor.tokens.every(t => t.finished || t.position === 57);
+    if (winner) {
+      setWinnerId(updatedActor.id);
+      if (updatedActor.human) addPoints(updatedActor.id, 500, "Educational Ludo winner bonus");
+      setLegalMoves([]);
+      setPhase("finished");
+      return;
+    }
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-              <h2 className="text-lg font-black">Set up your match</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Choose your subject and game preferences.
-              </p>
+    // A separate-die move consumes only that die, then offers legal moves using the other die.
+    if (move.dieIndex !== undefined) {
+      const nowUsed = [...usedDice, move.dieIndex];
+      setUsedDice(nowUsed);
+      const remainingIndex = nowUsed.includes(0) ? 1 : 0;
+      if (nowUsed.length < 2) {
+        const remainingMoves = getTokenMoves(updatedActor, dice[remainingIndex], remainingIndex);
+        if (remainingMoves.length) {
+          setLegalMoves(remainingMoves);
+          setPhase("move");
+          return;
+        }
+      }
+    }
+    setLegalMoves([]);
+    nextTurn();
+  }, [current, players, addPoints, nextTurn, usedDice, dice, getTokenMoves]);
 
-              <label className="mt-5 block text-sm font-bold">Subject</label>
-              <select
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500"
-              >
-                {SUBJECTS.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
+  // Bots share the same question gate and movement rules, but never spend the human's wallet.
+  useEffect(() => {
+    if (phase !== "rolling" || !current || current.human || mode !== "solo") return;
+    let cancelled = false;
+    botTimerRef.current = setTimeout(() => {
+      if (cancelled) return;
+      const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6); setDice([a,b]); setRollAnim(true);
+      setTimeout(() => {
+        if (cancelled) return;
+        setRollAnim(false);
+        const botCorrectChance = current.difficulty === "Easy" ? 0.58 : current.difficulty === "Hard" ? 0.91 : 0.76;
+        setTimeout(() => {
+          if (cancelled) return;
+          if (Math.random() > botCorrectChance) { nextTurn(); return; }
+          const moves = getTurnMoves(current, [a,b]);
+          if (!moves.length) { nextTurn(); return; }
+          const scored = moves.map(m => {
+            const t = current.tokens.find(x => x.id === m.tokenId)!; const pos = m.entersFromBase ? 0 : t.position + m.steps;
+            const progress = pos === 57 ? 100 : pos < 0 ? 0 : pos;
+            const captureBonus = pos >= 0 && pos <= 51 && players.some(p => p.id !== current.id && p.tokens.some(e => e.position >= 0 && e.position <= 51 && (START[p.color] + e.position) % 52 === (START[current.color] + pos) % 52)) ? 25 : 0;
+            const safeBonus = pos >= 0 && pos <= 51 && safeTrack.has((START[current.color] + pos) % 52) ? 8 : 0;
+            return { m, score: progress + captureBonus + safeBonus + Math.random() * (current.difficulty === "Easy" ? 20 : 5) };
+          }).sort((x,y) => y.score - x.score);
+          applyMove(scored[0].m);
+        }, current.difficulty === "Hard" ? 1700 : 1050);
+      }, 550);
+    }, 1200 + Math.random() * 900);
+    return () => { cancelled = true; if (botTimerRef.current) clearTimeout(botTimerRef.current); };
+  }, [phase, current, mode, getTurnMoves, nextTurn, applyMove, players]);
 
-              <label className="mt-4 block text-sm font-bold">
-                Education level
-              </label>
-              <select
-                value={level}
-                onChange={(event) => setLevel(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500"
-              >
-                <option>Primary</option>
-                <option>Secondary</option>
-                <option>JAMB / UTME</option>
-              </select>
+  useEffect(() => {
+    if (phase !== "move" || !current || current.human || mode !== "solo" || !legalMoves.length) return;
+    const timer = setTimeout(() => {
+      const scored = legalMoves.map(m => {
+        const token = current.tokens.find(t => t.id === m.tokenId)!;
+        const pos = m.entersFromBase ? 0 : token.position + m.steps;
+        const capture = pos >= 0 && pos <= 51 && players.some(p => p.id !== current.id && p.tokens.some(t => t.position >= 0 && t.position <= 51 && (START[p.color] + t.position) % 52 === (START[current.color] + pos) % 52));
+        const safe = pos >= 0 && pos <= 51 && safeTrack.has((START[current.color] + pos) % 52);
+        return { m, score: (pos === 57 ? 100 : pos) + (capture ? 30 : 0) + (safe ? 8 : 0) + Math.random() * (current.difficulty === "Easy" ? 20 : 5) };
+      }).sort((a,b) => b.score-a.score);
+      applyMove(scored[0].m);
+    }, current.difficulty === "Hard" ? 1400 : 900);
+    return () => clearTimeout(timer);
+  }, [phase, current, mode, legalMoves, players, applyMove]);
 
-              <label className="mt-4 block text-sm font-bold">
-                Question difficulty
-              </label>
-              <select
-                value={difficulty}
-                onChange={(event) =>
-                  setDifficulty(event.target.value as Difficulty)
-                }
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500"
-              >
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-              </select>
+  const activeMoves = useMemo(() => legalMoves, [legalMoves]);
+  const renderToken = (p: Player, t: Token, compact = false) => {
+    let coord: [number, number] | null = null;
+    if (t.position === -1) {
+      const b = BASES[p.color]; const idx = Number(t.id.split("-").pop()) || 0;
+      const offsets = [[1,1],[1,3],[3,1],[3,3]]; coord = [b.r + offsets[idx][0], b.c + offsets[idx][1]];
+    } else if (t.position <= 51) coord = TRACK[(START[p.color] + t.position) % 52];
+    else if (t.position <= 56) coord = HOME_LANE[p.color][t.position - 52];
+    if (t.position === 57 || t.finished) return null;
+    const isLegal = activeMoves.some(m => m.tokenId === t.id);
+    if (!coord) return null;
+    return <button key={t.id} type="button" aria-label={`${p.name} ${COLORS[p.color].label} token`} disabled={!(phase === "move" && current?.human && p.human && isLegal)} onClick={() => { const choices = activeMoves.filter(m => m.tokenId === t.id); if (choices.length === 1) applyMove(choices[0]); else { setDrawer("move"); setMoveMessage("Choose how to use the dice for this token."); } }} className={`absolute z-20 rounded-full border-2 border-white shadow-md transition-transform ${compact ? "h-3 w-3" : "h-[clamp(11px,1.5vw,20px)] w-[clamp(11px,1.5vw,20px)]"} ${isLegal && phase === "move" ? "ring-4 ring-amber-300 animate-pulse scale-125 cursor-pointer" : ""}`} style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)", backgroundColor: COLORS[p.color].main }} />;
+  };
+  const tokenAt = (r: number, c: number) => players.flatMap(p => p.tokens.map(t => ({ p, t }))).filter(({p,t}) => {
+    if (t.position === -1) { const b = BASES[p.color]; const idx = Number(t.id.split("-").pop()) || 0; const o = [[1,1],[1,3],[3,1],[3,3]][idx]; return b.r + o[0] === r && b.c + o[1] === c; }
+    if (t.position <= 51 && t.position >= 0) { const x = TRACK[(START[p.color] + t.position) % 52]; return x[0] === r && x[1] === c; }
+    if (t.position >= 52 && t.position <= 56) { const x = HOME_LANE[p.color][t.position - 52]; return x[0] === r && x[1] === c; }
+    return false;
+  });
+  const boardCell = (r: number, c: number) => {
+    const trackIdx = TRACK.findIndex(([rr,cc]) => rr === r && cc === c);
+    const laneColor = (Object.keys(HOME_LANE) as EduLudoColor[]).find(color => HOME_LANE[color].some(([rr,cc]) => rr === r && cc === c));
+    const base = (Object.keys(BASES) as EduLudoColor[]).find(color => { const b = BASES[color]; return r >= b.r && r < b.r + 6 && c >= b.c && c < b.c + 6; });
+    const startColor = trackIdx >= 0 ? (Object.keys(START) as EduLudoColor[]).find(color => START[color] === trackIdx) : undefined;
+    const safe = trackIdx >= 0 && safeTrack.has(trackIdx);
+    let bg = "bg-white";
+    if (base) bg = "";
+    else if (laneColor) bg = `bg-${laneColor}-100`;
+    else if (trackIdx >= 0 && startColor) bg = "";
+    else if (safe) bg = "bg-amber-50";
+    else if (trackIdx >= 0) bg = "bg-slate-50";
+    const style: CSSProperties = {};
+    if (base) style.backgroundColor = COLORS[base].light;
+    if (laneColor) style.backgroundColor = COLORS[laneColor].light;
+    if (trackIdx >= 0 && startColor) style.backgroundColor = COLORS[startColor].main;
+    const occupants = tokenAt(r,c);
+    const star = safe;
+    return <div key={`${r}-${c}`} className={`relative min-w-0 border-[0.5px] border-slate-200 ${bg}`} style={style}>{star && <span className={`absolute inset-0 grid place-items-center text-amber-500 ${trackIdx >= 0 && startColor ? "text-white" : ""}`} style={{ fontSize: "clamp(7px, 1.1vw, 14px)" }}>★</span>}{occupants.map(({p,t}) => renderToken(p,t,true))}</div>;
+  };
 
-              <label className="mt-4 block text-sm font-bold">
-                Bot difficulty
-              </label>
-              <select
-                value={botDifficulty}
-                onChange={(event) =>
-                  setBotDifficulty(event.target.value as Difficulty)
-                }
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500"
-              >
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-              </select>
+  const drawBoard = () => <div className="mx-auto w-full max-w-[690px] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl sm:p-3"><div className="relative grid aspect-square grid-cols-[repeat(15,minmax(0,1fr))] grid-rows-[repeat(15,minmax(0,1fr))] overflow-hidden rounded-lg border border-slate-300">{Array.from({length:225},(_,i)=>boardCell(Math.floor(i/15),i%15))}<div className="pointer-events-none absolute left-[40%] top-[40%] z-10 grid h-[20%] w-[20%] place-items-center overflow-hidden rounded-lg border-2 border-white bg-white shadow-md"><div className="grid h-full w-full grid-cols-2 grid-rows-2"><div style={{background:COLORS.red.main}}/><div style={{background:COLORS.green.main}}/><div style={{background:COLORS.blue.main}}/><div style={{background:COLORS.yellow.main}}/></div><span className="absolute rounded-full bg-slate-900 px-2 py-1 text-[8px] font-black tracking-widest text-white sm:text-[10px]">HOME</span></div><div className="pointer-events-none absolute left-[2%] top-[2%] rounded bg-slate-900/75 px-1.5 py-0.5 text-[8px] font-bold text-white sm:text-[10px]">START</div><div className="pointer-events-none absolute right-[2%] top-[2%] rounded bg-slate-900/75 px-1.5 py-0.5 text-[8px] font-bold text-white sm:text-[10px]">START</div></div><div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-slate-500 sm:text-xs"><span>★ Safe square</span><span>● Token</span><span>Colored start squares</span></div></div>;
 
-              <label className="mt-4 block text-sm font-bold">
-                Your token colour
-              </label>
-              <div className="mt-2 grid grid-cols-4 gap-2">
-                {(["red", "green", "yellow", "blue"] as Color[]).map(
-                  (color) => (
-                    <button
-                      key={color}
-                      onClick={() => setHumanColor(color)}
-                      className={`rounded-xl border-2 p-3 text-xs font-bold capitalize ${
-                        humanColor === color
-                          ? "border-indigo-600 ring-2 ring-indigo-100"
-                          : "border-slate-200"
-                      }`}
-                    >
-                      <span
-                        className="mx-auto mb-1 block h-5 w-5 rounded-full"
-                        style={{ backgroundColor: COLORS[color].main }}
-                      />
-                      {color}
-                    </button>
-                  ),
-                )}
-              </div>
+  const currentLegal = activeMoves;
+  const doSelectedMove = (move: Move) => applyMove(move);
+  const allRanked = [...players].sort((a,b) => b.tokens.filter(t => t.finished || t.position === 57).length - a.tokens.filter(t => t.finished || t.position === 57).length || Math.max(...b.tokens.map(t => t.position)) - Math.max(...a.tokens.map(t => t.position)));
+  const exitGame = () => { setConfirmExit(false); setDrawer(null); setPhase("lobby"); setPlayers([]); setQuestion(null); setLegalMoves([]); setWinnerId(null); onBack?.(); };
 
-              <div className="mt-5 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                This is a local demo. The ₦2 question charge and CBT Points
-                are simulated in this browser and are not real payments or
-                server-saved balances.
-              </div>
+  return <div className="min-h-screen bg-slate-50 text-slate-900">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3 px-3 py-3 sm:px-6"><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => phase === "lobby" ? onBack?.() : setConfirmExit(true)} className="rounded-xl border border-slate-200 p-2 hover:bg-slate-50" aria-label="Back"><ArrowLeft size={18}/></button><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white"><Dice5 size={22}/></div><div className="min-w-0"><h1 className="truncate text-base font-extrabold sm:text-lg">Educational Ludo</h1><p className="hidden text-xs text-slate-500 sm:block">Roll. Learn. Race HOME.</p></div></div><div className="flex items-center gap-2"><div className="hidden rounded-xl bg-amber-50 px-3 py-2 text-right sm:block"><div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">CBT Points</div><div className="font-extrabold text-amber-900">{cbtPoints.toLocaleString()}</div></div><button type="button" onClick={() => setDrawer("wallet")} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50"><Wallet size={16}/><span>{money(balance)}</span></button><button type="button" onClick={() => setDrawer("rules")} className="rounded-xl border border-slate-200 p-2 hover:bg-slate-50" aria-label="Rules"><CircleHelp size={18}/></button></div></div></header>
 
-              <button
-                onClick={startGame}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 font-bold text-white hover:bg-indigo-700"
-              >
-                Start solo match
-                <Sparkles className="h-4 w-4" />
-              </button>
-            </div>
-          </section>
-        ) : (
-          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
-            <section className="min-w-0">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {level} · {subject}
-                  </p>
-                  <h2 className="text-lg font-black">
-                    {phase === "finished"
-                      ? "Match completed"
-                      : current
-                        ? `${current.name}'s turn`
-                        : "Preparing match"}
-                  </h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={resetDemoWallet}
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold hover:bg-slate-50"
-                  >
-                    Reset demo wallet
-                  </button>
-                  <button
-                    onClick={() => {
-                      clearTimers();
-                      setPhase("lobby");
-                    }}
-                    className="rounded-xl border border-slate-200 p-2 hover:bg-slate-50"
-                    aria-label="Exit match"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+    {phase === "lobby" && <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1.2fr_.8fr] lg:py-12"><section className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-700 via-indigo-600 to-blue-500 p-6 text-white shadow-xl sm:p-10"><div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold"><Sparkles size={14}/> LEARN AS YOU PLAY</div><h2 className="max-w-xl text-3xl font-black leading-tight sm:text-5xl">Every correct answer moves you closer to HOME.</h2><p className="mt-4 max-w-lg text-sm leading-6 text-indigo-100 sm:text-base">Roll two dice, solve a timed question, and use your dice to move your tokens. Outsmart the bots and bring all four tokens HOME.</p><div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">{[{n:"2 dice",d:"Choose combined or split moves"},{n:"15 sec",d:"Per question"},{n:"₦2",d:"Per displayed question"}].map(x=><div key={x.n} className="rounded-2xl border border-white/15 bg-white/10 p-3"><div className="text-lg font-black sm:text-2xl">{x.n}</div><div className="mt-1 text-[11px] leading-4 text-indigo-100 sm:text-xs">{x.d}</div></div>)}</div><div className="mt-8 flex items-center gap-2 text-xs text-indigo-100"><ShieldCheck size={16}/> Local Solo demo. Wallet charging and online multiplayer need backend integration.</div></section>
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h2 className="text-xl font-extrabold">Set up your match</h2><p className="mt-1 text-sm text-slate-500">Choose your learning level and player settings.</p><div className="mt-5"><label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Game mode</label><div className="grid grid-cols-2 gap-2">{([{id:"solo",name:"Solo vs Bots",desc:"Playable now"},{id:"friends",name:"Play with Friends",desc:"Coming soon"},{id:"classroom",name:"Classroom",desc:"Coming soon"},{id:"tournament",name:"Tournament",desc:"Coming soon"}] as {id:EduLudoMode;name:string;desc:string}[]).map(x=><button key={x.id} onClick={()=>setMode(x.id)} className={`rounded-xl border p-3 text-left transition ${mode===x.id?"border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100":"border-slate-200 hover:border-slate-300"}`}><div className="flex items-center justify-between gap-2 text-sm font-bold">{x.name}{x.id!=="solo"&&<LockKeyhole size={14} className="text-slate-400"/>}</div><div className="mt-1 text-xs text-slate-500">{x.desc}</div></button>)}</div></div>
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><div><label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Subject</label><select value={subject} onChange={e=>setSubject(e.target.value as Subject)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500"><option>All Subjects</option><option>Mathematics</option><option>English</option><option>Science</option><option>Biology</option><option>Chemistry</option><option>Physics</option></select></div><div><label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Academic level</label><select value={level} onChange={e=>setLevel(e.target.value as Level)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-indigo-500">{["JSS","SSS","JAMB","WAEC","Custom"].map(v=><option key={v}>{v}</option>)}</select></div></div>
+    <div className="mt-5"><label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Your token colour</label><div className="grid grid-cols-4 gap-2">{(Object.keys(COLORS) as EduLudoColor[]).map(c=><button key={c} onClick={()=>setPlayerColor(c)} className={`flex flex-col items-center gap-2 rounded-xl border p-3 ${playerColor===c?"border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100":"border-slate-200"}`}><span className="h-6 w-6 rounded-full border-2 border-white shadow" style={{backgroundColor:COLORS[c].main}}/><span className="text-xs font-semibold">{COLORS[c].label}</span></button>)}</div></div>
+    <div className="mt-5"><label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Bot strategy</label><div className="grid grid-cols-3 gap-2">{(["Easy","Medium","Hard"] as Difficulty[]).map(d=><button key={d} onClick={()=>setBotDifficulty(d)} className={`rounded-xl border px-2 py-2.5 text-sm font-bold ${botDifficulty===d?"border-indigo-500 bg-indigo-50 text-indigo-700":"border-slate-200 text-slate-600"}`}>{d}</button>)}</div><p className="mt-2 text-xs text-slate-500">This changes bot strategy only. Your questions still mix Easy, Medium and Hard.</p></div>
+    <div className="mt-6 rounded-2xl bg-slate-50 p-4"><div className="flex items-center justify-between text-sm"><span className="text-slate-600">Current wallet balance</span><b>{money(balance)}</b></div><div className="mt-2 flex items-center justify-between text-sm"><span className="text-slate-600">Question fee</span><b>₦2 each</b></div><div className="mt-2 flex items-center justify-between text-sm"><span className="text-slate-600">Correct answer reward</span><b className="text-amber-700">20–40 CBT Points</b></div></div>
+    <button onClick={startPreview} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">Review match <ChevronRight size={18}/></button><p className="mt-3 text-center text-[11px] leading-4 text-slate-400">Demo wallet balance is local only and is not a real account balance.</p></section></main>}
 
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-4">
-                <div className="mx-auto grid max-w-3xl grid-cols-15 gap-0">
-                  {renderBoard()}
-                </div>
-                <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-slate-600">
-                  {(["red", "green", "yellow", "blue"] as Color[]).map(
-                    (color) => {
-                      const player = players.find((item) => item.color === color);
-                      return (
-                        <div key={color} className="flex items-center gap-1.5">
-                          <span
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: COLORS[color].main }}
-                          />
-                          <span className="font-semibold">
-                            {player?.name ?? color}
-                          </span>
-                        </div>
-                      );
-                    },
-                  )}
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="h-3 w-3 text-amber-600" />
-                    Safe square
-                  </span>
-                </div>
-              </div>
+    {phase === "preview" && <main className="mx-auto max-w-2xl px-4 py-8 sm:py-12"><div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8"><div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700"><Flag size={26}/></div><h2 className="text-2xl font-black">Match preview</h2><p className="mt-2 text-sm text-slate-500">Check the match details before the countdown begins.</p><div className="mt-6 grid grid-cols-2 gap-3">{[{label:"Your colour",value:COLORS[playerColor].label},{label:"Bot strategy",value:botDifficulty},{label:"Subject",value:subject},{label:"Academic level",value:level},{label:"Question fee",value:"₦2 per question"},{label:"Wallet balance",value:money(balance)}].map(x=><div key={x.label} className="rounded-xl bg-slate-50 p-4"><div className="text-xs text-slate-500">{x.label}</div><div className="mt-1 font-extrabold">{x.value}</div></div>)}</div><div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-900"><b>Objective:</b> be the first player to bring all four tokens HOME. Correct answers earn 20/30/40 CBT Points by question difficulty; captures earn +100, and winning earns +500.</div>{balance<2&&<div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Your wallet needs at least ₦2 to display the first question. Fund it before starting.</div>}<div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row"><button onClick={()=>setPhase("lobby")} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold hover:bg-slate-50">Back to setup</button><button onClick={beginCountdown} className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700">Start match <ChevronRight className="ml-1 inline" size={17}/></button></div></div></main>}
 
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {players.map((player) => (
-                  <div
-                    key={player.id}
-                    className={`rounded-2xl border bg-white p-3 ${
-                      current?.id === player.id
-                        ? "border-indigo-500 ring-2 ring-indigo-100"
-                        : "border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-3 w-3 rounded-full"
-                        style={{
-                          backgroundColor: COLORS[player.color].main,
-                        }}
-                      />
-                      <p className="truncate text-sm font-bold">
-                        {player.name}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Home tokens:{" "}
-                      {
-                        player.tokens.filter((token) => token.position === 57)
-                          .length
-                      }
-                      /4
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Score: {player.score}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
+    {!["lobby","preview"].includes(phase) && <main className="mx-auto max-w-[1500px] px-3 py-4 sm:px-6 sm:py-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600"><span className="h-2 w-2 rounded-full bg-indigo-500"/> Solo match · {subject} · {level}</div><h2 className="mt-1 text-xl font-black sm:text-2xl">Race to HOME</h2></div><div className="flex gap-2"><button onClick={()=>setDrawer("rewards")} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"><Award size={16}/> Rewards</button><button onClick={()=>setDrawer("wallet")} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"><Wallet size={16}/> Wallet</button><button onClick={()=>setDrawer("rules")} className="rounded-xl border border-slate-200 bg-white p-2" aria-label="Rules"><BookOpen size={17}/></button></div></div>
+    {phase === "countdown" && <div className="mb-4 rounded-2xl bg-indigo-600 p-5 text-center text-white"><div className="text-xs font-bold uppercase tracking-widest text-indigo-100">Get ready</div><div className="mt-1 text-4xl font-black">{toast || "3"}</div></div>}
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]"><section className="min-w-0"><div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl text-white" style={{backgroundColor:current?COLORS[current.color].main:"#64748b"}}>{current?.human?<Crown size={22}/>:<Loader2 className="animate-spin" size={22}/>}</div><div><div className="text-xs text-slate-500">Current turn</div><div className="font-extrabold">{current?.name ?? "Preparing…"}{current?.human?" (You)":""}</div><div className="text-xs text-slate-500">{current?.human?"Roll the dice to receive a question":"Bot is thinking…"}</div></div></div><div className="flex items-center gap-2"><div className={`grid h-12 w-12 place-items-center rounded-xl border-2 bg-white text-xl font-black shadow-sm ${rollAnim?"animate-bounce":""}`}>{dice[0]}</div><div className={`grid h-12 w-12 place-items-center rounded-xl border-2 bg-white text-xl font-black shadow-sm ${rollAnim?"animate-bounce":""}`}>{dice[1]}</div><div className="ml-1 text-center"><div className="text-[10px] font-bold uppercase text-slate-400">Total</div><div className="text-xl font-black">{dice[0]+dice[1]}</div></div></div></div>
+    {drawBoard()}
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">{phase==="rolling"&&current?.human&&<button onClick={rollDice} disabled={rollAnim} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white shadow hover:bg-indigo-700 disabled:opacity-60"><Dice5 size={18}/>{rollAnim?"Rolling…":"Roll Dice"}</button>}{phase==="question"&&<div className="text-sm font-semibold text-indigo-700">Answer the question to unlock your moves.</div>}{phase==="move"&&<div className="text-sm font-semibold text-emerald-700">Choose a highlighted token or select a move below.</div>}{current&&!current.human&&<div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="animate-spin" size={16}/> {current.name} is playing…</div>}{phase==="finished"&&<div className="font-bold text-emerald-700">Match complete!</div>}<button onClick={()=>setConfirmExit(true)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50">Exit match</button></div>
+    {phase === "move" && current?.human && <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-extrabold text-emerald-900">Your legal moves</h3><p className="mt-1 text-xs text-emerald-800">Choose one combined move or use a single die. Each die can only be used once.</p></div><button onClick={()=>setDrawer("move")} className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold">Move panel</button></div><div className="mt-3 grid gap-2 sm:grid-cols-2">{currentLegal.map((m,i)=><button key={`${m.tokenId}-${m.steps}-${m.description}-${i}`} onClick={()=>doSelectedMove(m)} className="rounded-xl border border-emerald-200 bg-white p-3 text-left text-sm font-semibold text-emerald-900 hover:border-emerald-400">{m.description}<span className="mt-1 block text-xs font-normal text-slate-500">Token {Number(m.tokenId.split("-").pop())+1}</span></button>)}</div></div>}
+    </section><aside className="space-y-4"><div className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-center justify-between"><h3 className="font-extrabold">Players</h3><span className="text-xs text-slate-400">4 players</span></div><div className="mt-3 space-y-3">{players.map(p=><div key={p.id} className={`flex items-center gap-3 rounded-xl p-2 ${current?.id===p.id?"bg-indigo-50 ring-1 ring-indigo-100":""}`}><div className="h-9 w-9 shrink-0 rounded-full border-2 border-white shadow" style={{backgroundColor:COLORS[p.color].main}}/><div className="min-w-0 flex-1"><div className="flex items-center gap-1 text-sm font-bold">{p.name}{p.human&&<span className="text-xs text-slate-400">(You)</span>}{current?.id===p.id&&<span className="ml-auto rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700">TURN</span>}</div><div className="text-xs text-slate-500">{p.tokens.filter(t=>t.finished||t.position===57).length}/4 HOME · {p.points} pts</div><div className="mt-1 flex gap-1">{p.tokens.map(t=><span key={t.id} className={`h-2 flex-1 rounded-full ${t.finished||t.position===57?"bg-emerald-500":t.position>=0?"bg-slate-300":"bg-slate-100"}`}/>)}</div></div></div>)}</div></div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-extrabold">Match status</h3><div className="mt-3 space-y-3 text-sm"><div className="flex items-center justify-between"><span className="text-slate-500">Questions shown</span><b>{questionCount}</b></div><div className="flex items-center justify-between"><span className="text-slate-500">Question fee</span><b>₦2 each</b></div><div className="flex items-center justify-between"><span className="text-slate-500">CBT Points</span><b className="text-amber-700">{cbtPoints.toLocaleString()}</b></div><div className="flex items-center justify-between"><span className="text-slate-500">Tokens HOME</span><b>{human?.tokens.filter(t=>t.finished||t.position===57).length ?? 0}/4</b></div></div><button onClick={()=>setDrawer("wallet")} className="mt-4 flex w-full items-center justify-between rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold"><span>Wallet balance</span><span>{money(balance)} <ChevronRight className="ml-1 inline" size={15}/></span></button></div>
+    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4"><div className="flex items-center gap-2 font-extrabold text-amber-900"><Zap size={17}/> Quick reminder</div><p className="mt-2 text-xs leading-5 text-amber-900">Answer correctly to move. A six brings a token out of base. Safe stars protect tokens from capture. You need an exact roll to reach HOME.</p></div></aside></div></main>}
 
-            <aside className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-black">Dice roll</h3>
-                  <Dice5 className="h-5 w-5 text-indigo-600" />
-                </div>
+    {phase === "question" && question && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/65 p-3 backdrop-blur-sm sm:p-6"><section role="dialog" aria-modal="true" aria-labelledby="question-title" className="my-auto w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-7"><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-bold uppercase tracking-wider text-indigo-600">{question.subject} · {question.difficulty}</div><h2 id="question-title" className="mt-1 text-xl font-black">Question {questionCount}</h2></div><div className={`grid h-14 w-14 place-items-center rounded-full border-4 text-xl font-black ${timeLeft<=5?"border-red-300 bg-red-50 text-red-600":"border-indigo-100 bg-indigo-50 text-indigo-700"}`}>{timeLeft}</div></div><div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full transition-all ${timeLeft<=5?"bg-red-500":"bg-indigo-500"}`} style={{width:`${timeLeft/15*100}%`}}/></div><p className="mt-6 text-lg font-bold leading-relaxed">{question.question}</p><div className="mt-5 grid gap-3">{question.options.map((opt,i)=><button key={opt} onClick={()=>finishAnswer(i,false)} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-400 hover:bg-indigo-50"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-extrabold">{String.fromCharCode(65+i)}</span><span className="text-sm font-medium">{opt}</span></button>)}</div><p className="mt-4 text-center text-xs text-slate-400">One question per turn · ₦2 fee · No penalty beyond losing this turn</p></section></div>}
 
-                <div className="mt-4 flex items-center justify-center gap-4">
-                  {dice.map((value, index) => (
-                    <div
-                      key={index}
-                      className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-indigo-200 bg-indigo-50 text-3xl font-black text-indigo-700"
-                    >
-                      {value}
-                    </div>
-                  ))}
-                </div>
+    {phase === "feedback" && question && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/65 p-4"><section role="dialog" aria-modal="true" className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl"><div className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl ${answerStatus==="correct"?"bg-emerald-100 text-emerald-700":"bg-rose-100 text-rose-700"}`}>{answerStatus==="correct"?<CheckCircle2 size={32}/>:<X size={32}/>}</div><h2 className="mt-4 text-2xl font-black">{answerStatus==="correct"?"Correct answer!":answerStatus==="timeout"?"Time is up!":"Not quite"}</h2><p className="mt-2 text-sm text-slate-500">{answerStatus==="correct"?`You earned ${POINTS_BY_DIFFICULTY[question.difficulty]} CBT Points.`:moveMessage}</p>{answerStatus!=="correct"&&<div className="mt-4 rounded-xl bg-emerald-50 p-3 text-left text-sm"><div className="font-bold text-emerald-900">Correct answer: {question.options[question.correctAnswer]}</div><p className="mt-1 text-emerald-800">{question.explanation}</p></div>}{answerStatus==="correct"&&<p className="mt-3 text-sm text-slate-600">{question.explanation}</p>}<button onClick={afterFeedback} className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700">{answerStatus==="correct"?"Choose your move":"Continue"}</button></section></div>}
 
-                <p className="mt-3 text-center text-sm text-slate-500">
-                  Total: <strong>{dice[0] + dice[1]}</strong>
-                </p>
+    {phase === "finished" && <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-slate-950/70 p-4"><section className="my-auto w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8"><div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-amber-700"><Trophy size={34}/></div><h2 className="mt-4 text-center text-3xl font-black">{players.find(p=>p.id===winnerId)?.name ?? "Match"} wins!</h2><p className="mt-2 text-center text-sm text-slate-500">Match results and final rankings</p><div className="mt-6 space-y-2">{allRanked.map((p,i)=><div key={p.id} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3"><div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 font-black">{i+1}</div><div className="h-7 w-7 rounded-full" style={{backgroundColor:COLORS[p.color].main}}/><div className="flex-1 font-bold">{p.name}{p.human?" (You)":""}<div className="text-xs font-normal text-slate-500">{p.tokens.filter(t=>t.finished||t.position===57).length}/4 tokens HOME</div></div><div className="text-right font-extrabold">{p.points}<div className="text-[10px] font-medium text-slate-400">CBT Points</div></div></div>)}</div><div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-xl bg-amber-50 p-4"><div className="text-xs text-amber-700">Points earned this match</div><div className="mt-1 text-2xl font-black text-amber-900">+{matchReward}</div></div><div className="rounded-xl bg-slate-50 p-4"><div className="text-xs text-slate-500">Questions shown</div><div className="mt-1 text-2xl font-black">{questionCount}</div></div></div><div className="mt-6 flex flex-col gap-3 sm:flex-row"><button onClick={()=>{setPhase("lobby");setPlayers([]);setWinnerId(null);}} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold">Exit to setup</button><button onClick={startPreview} className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white">Play again <RotateCcw className="ml-1 inline" size={16}/></button></div></section></div>}
 
-                {phase === "rolling" && isHumanTurn && (
-                  <button
-                    onClick={rollHumanDice}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Roll both dice
-                  </button>
-                )}
+    {drawer && <div className="fixed inset-0 z-[60] flex justify-end bg-slate-950/40" onClick={()=>setDrawer(null)}><aside onClick={e=>e.stopPropagation()} className="h-full w-full max-w-md overflow-y-auto bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black">{drawer==="rules"?"How to play":drawer==="wallet"?"Wallet":"Rewards & moves"}</h2><button onClick={()=>setDrawer(null)} className="rounded-xl border border-slate-200 p-2" aria-label="Close drawer"><X size={18}/></button></div>
+    {drawer==="rules"&&<div className="mt-5 space-y-4">{[{t:"1. Roll two dice",d:"Use the combined total for one token, or use each die for a separate move. Each die is used once; there is no bonus roll for a six."},{t:"2. Answer a question",d:"Each turn shows one 15-second question and costs ₦2. Correct answers unlock legal moves and award 20/30/40 CBT Points by difficulty."},{t:"3. Leave base",d:"A token can leave base only when one of your dice shows 6. If you use that six to enter a token, do not reuse it."},{t:"4. Capture and safe squares",d:"Landing on an opponent on a non-safe square sends their token back to base and earns +100 CBT Points. Star squares protect tokens."},{t:"5. Reach HOME",d:"Move along your coloured home lane. You must roll the exact number to reach HOME; an overshoot is not legal."},{t:"6. Win",d:"The first player to get all four tokens HOME wins and receives +500 CBT Points. CBT Points are separate from your Naira wallet."}].map(x=><div key={x.t} className="border-b border-slate-100 pb-4"><h3 className="font-extrabold">{x.t}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{x.d}</p></div>)}<p className="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">This first release uses local demo state. Backend integration is required for secure wallet charges, persistence and online multiplayer.</p></div>}
+    {drawer==="wallet"&&<div className="mt-5"><div className="rounded-2xl bg-gradient-to-br from-indigo-700 to-blue-500 p-5 text-white"><div className="text-sm text-indigo-100">Demo wallet balance</div><div className="mt-1 text-3xl font-black">{money(balance)}</div><div className="mt-4 flex items-center justify-between border-t border-white/20 pt-3 text-sm"><span>Question fee</span><b>₦2</b></div></div><p className="mt-3 text-xs leading-5 text-slate-500">This displayed balance is local demo state. It is not synced with your actual account wallet.</p><button onClick={()=>{setDrawer(null);onFundWallet?.();}} className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700">Fund platform wallet</button><div className="mt-6 flex items-center justify-between"><h3 className="font-extrabold">Recent transactions</h3><History size={17} className="text-slate-400"/></div><div className="mt-3 space-y-2">{txs.length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No transactions in this demo session yet.</p>:txs.slice(0,12).map(t=><div key={t.id} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3"><div className={`grid h-9 w-9 place-items-center rounded-xl ${t.amount<0?"bg-rose-50 text-rose-600":"bg-emerald-50 text-emerald-600"}`}><Coins size={17}/></div><div className="min-w-0 flex-1"><div className="text-sm font-semibold">{t.description}</div><div className="text-xs text-slate-400">{new Date(t.at).toLocaleTimeString()}</div></div><b className={t.amount<0?"text-rose-600":"text-emerald-600"}>{t.amount<0?"−":"+"}{Math.abs(t.amount).toLocaleString()} {t.description.includes("fee")?"₦":"pts"}</b></div>)}</div></div>}
+    {drawer==="rewards"&&<div className="mt-5"><div className="rounded-2xl bg-amber-50 p-5"><div className="text-sm font-semibold text-amber-800">Current CBT Points</div><div className="mt-1 text-3xl font-black text-amber-950">{cbtPoints.toLocaleString()}</div><p className="mt-1 text-xs text-amber-800">Separate from your Naira wallet</p></div><h3 className="mt-6 font-extrabold">How to earn</h3><div className="mt-3 space-y-2">{[{a:"Easy correct answer",b:"+20 points"},{a:"Medium correct answer",b:"+30 points"},{a:"Hard correct answer",b:"+40 points"},{a:"Capture an opponent token",b:"+100 points"},{a:"Win the match",b:"+500 points"}].map(x=><div key={x.a} className="flex items-center justify-between rounded-xl border border-slate-100 p-3 text-sm"><span>{x.a}</span><b className="text-amber-700">{x.b}</b></div>)}</div><h3 className="mt-6 font-extrabold">This session's rewards</h3><div className="mt-3 space-y-2">{txs.filter(t=>t.amount>0).length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Earn points by answering correctly and capturing tokens.</p>:txs.filter(t=>t.amount>0).map(t=><div key={t.id} className="flex justify-between rounded-xl border border-slate-100 p-3 text-sm"><span>{t.description}</span><b className="text-emerald-700">+{t.amount}</b></div>)}</div></div>}
+    {drawer==="move"&&<div className="mt-5"><p className="text-sm leading-6 text-slate-600">Choose a legal move. A combined move uses both dice together. An individual move consumes one die and then offers legal moves for the remaining die, if any.</p><div className="mt-4 space-y-2">{currentLegal.map((m,i)=><button key={`${m.tokenId}-${m.steps}-${m.description}-${i}`} onClick={()=>doSelectedMove(m)} className="w-full rounded-xl border border-slate-200 p-4 text-left hover:border-indigo-400 hover:bg-indigo-50"><div className="font-bold">{m.description}</div><div className="mt-1 text-xs text-slate-500">{m.entersFromBase?"Enter from base":`Token ${Number(m.tokenId.split("-").pop())+1}`} · Dice {m.die??`${dice[0]} + ${dice[1]}`}</div></button>)}</div>{currentLegal.length===0&&<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No legal moves available.</p>}</div>}
+    </aside></div>}
 
-                {phase === "rolling" && !isHumanTurn && (
-                  <div className="mt-4 rounded-xl bg-indigo-50 px-3 py-3 text-center text-sm font-semibold text-indigo-800">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-600" />
-                      {current?.name} is rolling automatically…
-                    </span>
-                  </div>
-                )}
-
-                {phase === "diceResult" && (
-                  <div className="mt-4 rounded-xl bg-indigo-50 px-3 py-3 text-center text-sm font-semibold text-indigo-800">
-                    Dice result: {dice[0]} + {dice[1]} = {dice[0] + dice[1]}
-                    <p className="mt-1 text-xs font-normal">
-                      Preparing the question…
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {phase === "countdown" && (
-                <div className="rounded-2xl bg-indigo-700 p-6 text-center text-white">
-                  <p className="text-sm font-semibold">Get ready!</p>
-                  <p className="mt-2 text-5xl font-black">{countdown || 1}</p>
-                </div>
-              )}
-
-              {phase === "question" && question && (
-                <div className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-                      {question.subject}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm font-black text-rose-600">
-                      <Clock3 className="h-4 w-4" />
-                      {isHumanTurn ? `${timeLeft}s` : "Bot answering"}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-4 text-base font-black leading-6">
-                    {question.text}
-                  </h3>
-
-                  <div className="mt-4 space-y-2">
-                    {question.options.map((option, index) => {
-                      const chosen = selectedAnswer === index;
-
-                      return (
-                        <button
-                          key={option}
-                          disabled={!isHumanTurn}
-                          onClick={() => answerQuestion(index)}
-                          className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm transition ${
-                            chosen
-                              ? "border-indigo-500 bg-indigo-50"
-                              : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50"
-                          } disabled:cursor-not-allowed`}
-                        >
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-black">
-                            {String.fromCharCode(65 + index)}
-                          </span>
-                          <span className="font-medium">{option}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {!isHumanTurn && (
-                    <p className="mt-3 text-xs text-slate-500">
-                      The computer opponent is answering automatically.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {phase === "feedback" && question && (
-                <div
-                  className={`rounded-2xl border p-5 ${
-                    answerCorrect
-                      ? "border-emerald-200 bg-emerald-50"
-                      : "border-rose-200 bg-rose-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 font-black">
-                    {answerCorrect ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    ) : (
-                      <X className="h-5 w-5 text-rose-600" />
-                    )}
-                    {answerCorrect ? "Correct answer!" : "Turn passed"}
-                  </div>
-                  <p className="mt-3 text-sm leading-6">
-                    {question.explanation}
-                  </p>
-                </div>
-              )}
-
-              {phase === "move" && (
-                <div className="rounded-2xl border border-emerald-200 bg-white p-5">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-black">
-                      {isHumanTurn ? "Choose your move" : "Bot is moving"}
-                    </h3>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {message || "Select one of the legal moves."}
-                  </p>
-
-                  {isHumanTurn && (
-                    <div className="mt-4 space-y-2">
-                      {moves.map((move, index) => (
-                        <button
-                          key={`${move.tokenIndex}-${move.steps}-${index}`}
-                          onClick={() => applyMove(move)}
-                          className="w-full rounded-xl border border-slate-200 p-3 text-left text-sm font-semibold hover:border-indigo-400 hover:bg-indigo-50"
-                        >
-                          {move.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {!isHumanTurn && (
-                    <p className="mt-3 text-sm text-indigo-700">
-                      The bot will complete its move automatically.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {phase === "finished" && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
-                    <Crown className="h-7 w-7 text-amber-600" />
-                  </div>
-                  <h3 className="mt-3 text-xl font-black">
-                    {winningPlayer?.human
-                      ? "You won the match!"
-                      : `${winningPlayer?.name ?? "Player"} won!`}
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {winningPlayer?.human
-                      ? "You earned the 500 CBT Points winner bonus in this demo."
-                      : "Good game! Start another match to try again."}
-                  </p>
-                  <button
-                    onClick={() => setPhase("lobby")}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Play again
-                  </button>
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h3 className="flex items-center gap-2 font-black">
-                  <Wallet className="h-4 w-4 text-emerald-600" />
-                  Match rewards
-                </h3>
-                <div className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Easy answer</span>
-                    <strong>+20 CBT Points</strong>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Medium answer</span>
-                    <strong>+30 CBT Points</strong>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Hard answer</span>
-                    <strong>+40 CBT Points</strong>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Capture</span>
-                    <strong>+100 CBT Points</strong>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Winner</span>
-                    <strong>+500 CBT Points</strong>
-                  </div>
-                </div>
-                <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Your demo CBT Points</p>
-                  <p className="mt-1 text-2xl font-black">
-                    {cbtPoints.toLocaleString("en-NG")}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h3 className="flex items-center gap-2 font-black">
-                  <BookOpen className="h-4 w-4 text-indigo-600" />
-                  Match summary
-                </h3>
-                <div className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Questions displayed</span>
-                    <strong>{questionCount}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Dice total</span>
-                    <strong>{dice[0] + dice[1]}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Question fee</span>
-                    <strong>₦2 demo</strong>
-                  </div>
-                </div>
-              </div>
-            </aside>
-          </div>
-        )}
-      </div>
-    </main>
-  );
+    {confirmExit&&<div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4"><section role="dialog" aria-modal="true" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="grid h-12 w-12 place-items-center rounded-xl bg-rose-50 text-rose-600"><Info size={23}/></div><h2 className="mt-4 text-xl font-black">Exit this match?</h2><p className="mt-2 text-sm leading-6 text-slate-600">Your current match progress will be abandoned. Completed demo wallet transactions remain in this session. In the backend-connected version, confirmed charges will not be duplicated or reversed just because you exit.</p><div className="mt-6 flex gap-3"><button onClick={()=>setConfirmExit(false)} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold">Continue playing</button><button onClick={exitGame} className="flex-1 rounded-xl bg-rose-600 px-4 py-3 font-bold text-white">Exit match</button></div></section></div>}
+    {toast&&phase!=="countdown"&&<div role="status" className="fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-xl">{toast}</div>}
+  </div>;
 }
-
 
 
 

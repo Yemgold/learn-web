@@ -1,13 +1,18 @@
-
-
-
 "use client";
 
+import { useRouter } from "next/navigation";
 import EduLudoGame from "@/games/edu-ludo/EduLudoGame";
 
 export default function EducationalLudoPage() {
-  return <EduLudoGame />;
+  const router = useRouter();
+  return (
+    <EduLudoGame
+      onBack={() => router.back()}
+      onFundWallet={() => router.push("/student/wallet")}
+    />
+  );
 }
+
 
 
 

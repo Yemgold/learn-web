@@ -7,398 +7,389 @@
 
 import { useEffect, useState } from "react";
 import {
-  AlertCircle,
-  BookOpen,
   CheckCircle2,
   Clock3,
-  Coins,
+  HelpCircle,
+  Lightbulb,
   Loader2,
+  X,
   XCircle,
   Zap,
 } from "lucide-react";
 
-export type EduLudoQuestionSubject =
-  | "Mathematics"
-  | "English"
-  | "Science"
-  | "Biology"
-  | "Chemistry"
-  | "Physics";
+import type {
+  EduLudoAnswerResult,
+  EduLudoQuestion,
+} from "./eduLudoTypes";
 
-export interface EduLudoQuestion {
-  id: string;
-  subject: EduLudoQuestionSubject;
-  level?: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation?: string;
-}
-
-export type QuestionAnswerResult = {
-  questionId: string;
-  selectedAnswer: number | null;
-  correct: boolean;
-  timedOut: boolean;
-  responseTimeMs: number;
-};
+import { QUESTION_COST, QUESTION_TIME_LIMIT } from "./eduLudoConstants";
 
 export interface QuestionModalProps {
-  question: EduLudoQuestion;
-  questionNumber?: number;
-  totalQuestions?: number;
+  question: EduLudoQuestion | null;
+
+  open?: boolean;
   timeLimit?: number;
   questionCost?: number;
-  onAnswer: (result: QuestionAnswerResult) => void;
-  onClose?: () => void;
+
+  disabled?: boolean;
   submitting?: boolean;
-  showExplanation?: boolean;
+
+  selectedAnswer?: number | null;
+  result?: EduLudoAnswerResult | null;
+
+  onAnswer: (answerIndex: number) => void;
+  onTimeUp?: () => void;
+  onClose?: () => void;
+  onContinue?: () => void;
+
+  showTimer?: boolean;
+  showCost?: boolean;
+  allowClose?: boolean;
 }
 
 function formatTime(seconds: number) {
-  const safeSeconds = Math.max(0, seconds);
-  return `00:${String(safeSeconds).padStart(2, "0")}`;
-}
+  const safeSeconds = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
 
-function formatNaira(amount: number) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 export default function QuestionModal({
   question,
-  questionNumber = 1,
-  totalQuestions = 20,
-  timeLimit = 15,
-  questionCost = 2,
-  onAnswer,
-  onClose,
+  open = true,
+  timeLimit = QUESTION_TIME_LIMIT,
+  questionCost = QUESTION_COST,
+  disabled = false,
   submitting = false,
-  showExplanation = true,
+  selectedAnswer = null,
+  result = null,
+  onAnswer,
+  onTimeUp,
+  onClose,
+  onContinue,
+  showTimer = true,
+  showCost = true,
+  allowClose = false,
 }: QuestionModalProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(timeLimit);
-  const [submitted, setSubmitted] = useState(false);
-  const [startedAt] = useState(() => Date.now());
-  const [responseTimeMs, setResponseTimeMs] = useState(0);
+  const [localSelection, setLocalSelection] = useState<number | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
 
-  const isCorrect =
-    submitted &&
-    selectedAnswer !== null &&
-    selectedAnswer === question.correctAnswer;
+  const effectiveSelection =
+    selectedAnswer !== null ? selectedAnswer : localSelection;
+
+  const answered = result !== null;
 
   useEffect(() => {
-    setSelectedAnswer(null);
+    if (!open || !question) return;
+
     setTimeLeft(timeLimit);
-    setSubmitted(false);
-    setResponseTimeMs(0);
-  }, [question.id, timeLimit]);
+    setLocalSelection(null);
+    setHasTimedOut(false);
+  }, [question?.id, open, timeLimit]);
 
   useEffect(() => {
-    if (submitted || submitting) return;
+    if (
+      !open ||
+      !question ||
+      !showTimer ||
+      answered ||
+      disabled ||
+      submitting ||
+      hasTimedOut
+    ) {
+      return;
+    }
 
-    const timer = window.setInterval(() => {
-      setTimeLeft((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          return 0;
-        }
+    if (timeLeft <= 0) {
+      setHasTimedOut(true);
+      onTimeUp?.();
+      return;
+    }
 
-        return current - 1;
-      });
+    const timer = window.setTimeout(() => {
+      setTimeLeft((previous) => Math.max(0, previous - 1));
     }, 1000);
 
-    return () => window.clearInterval(timer);
-  }, [question.id, submitted, submitting]);
-
-  useEffect(() => {
-    if (timeLeft !== 0 || submitted || submitting) return;
-
-    setSubmitted(true);
-
-    const elapsed = Math.max(0, Date.now() - startedAt);
-    setResponseTimeMs(elapsed);
-
-    onAnswer({
-      questionId: question.id,
-      selectedAnswer: null,
-      correct: false,
-      timedOut: true,
-      responseTimeMs: elapsed,
-    });
+    return () => window.clearTimeout(timer);
   }, [
-    timeLeft,
-    submitted,
+    open,
+    question,
+    showTimer,
+    answered,
+    disabled,
     submitting,
-    question.id,
-    startedAt,
-    onAnswer,
+    hasTimedOut,
+    timeLeft,
+    onTimeUp,
   ]);
 
-  function handleSubmit() {
-    if (submitted || submitting || selectedAnswer === null) return;
+  if (!open || !question) return null;
 
-    const elapsed = Math.max(0, Date.now() - startedAt);
-    const correct = selectedAnswer === question.correctAnswer;
+  const handleAnswer = (answerIndex: number) => {
+    if (
+      disabled ||
+      submitting ||
+      answered ||
+      hasTimedOut ||
+      effectiveSelection !== null
+    ) {
+      return;
+    }
 
-    setResponseTimeMs(elapsed);
-    setSubmitted(true);
+    setLocalSelection(answerIndex);
+    onAnswer(answerIndex);
+  };
 
-    onAnswer({
-      questionId: question.id,
-      selectedAnswer,
-      correct,
-      timedOut: false,
-      responseTimeMs: elapsed,
-    });
-  }
+  const isCorrectChoice = (answerIndex: number) =>
+    result?.correctAnswer === answerIndex;
 
-  const progress = Math.max(
-    0,
-    Math.min(100, (timeLeft / Math.max(1, timeLimit)) * 100),
-  );
+  const isWrongSelection = (answerIndex: number) =>
+    answered &&
+    !result?.isCorrect &&
+    result?.selectedAnswer === answerIndex;
 
-  const optionsAreValid =
-    Array.isArray(question.options) &&
-    question.options.length === 4 &&
-    question.options.every(
-      (option) => typeof option === "string" && option.trim().length > 0,
-    );
+  const timerPercentage =
+    timeLimit > 0
+      ? Math.max(0, Math.min(100, (timeLeft / timeLimit) * 100))
+      : 0;
 
-  if (!optionsAreValid) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-        <div
-          role="alert"
-          className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-        >
-          <AlertCircle className="mb-3 text-red-500" size={32} />
-          <h2 className="text-lg font-black text-slate-900">
-            Question unavailable
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            This question does not contain four valid answer options. Please
-            load another question before continuing.
-          </p>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white"
-            >
-              Close
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const timerColor =
+    timeLeft <= 5
+      ? "text-red-600"
+      : timeLeft <= 10
+        ? "text-amber-600"
+        : "text-emerald-600";
+
+  const difficultyLabel =
+    question.difficulty
+      ? question.difficulty.charAt(0).toUpperCase() +
+        question.difficulty.slice(1)
+      : null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:p-5"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edu-ludo-question-title"
+      className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-3 backdrop-blur-sm sm:p-5"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (
+          allowClose &&
+          event.target === event.currentTarget &&
+          !submitting
+        ) {
+          onClose?.();
+        }
+      }}
     >
-      <div className="my-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-700 px-5 py-5 text-white sm:px-7">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                <BookOpen size={23} />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edu-ludo-question-title"
+        className="my-auto max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-3xl border border-white/50 bg-white shadow-2xl"
+      >
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-700 px-5 pb-5 pt-5 text-white sm:px-6">
+          <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div className="absolute -bottom-16 right-24 h-32 w-32 rounded-full bg-white/5" />
+
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15">
+                <HelpCircle size={23} />
               </div>
 
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-200">
-                  Learnyfi Educational Ludo
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-100">
+                  Edu Ludo Challenge
                 </p>
+
                 <h2
                   id="edu-ludo-question-title"
                   className="mt-1 text-xl font-black sm:text-2xl"
                 >
-                  Answer to play!
+                  Answer to move
                 </h2>
               </div>
             </div>
 
-            {onClose && (
+            {allowClose && onClose && (
               <button
                 type="button"
                 onClick={onClose}
                 disabled={submitting}
                 aria-label="Close question"
-                className="rounded-xl px-3 py-2 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white disabled:opacity-40"
               >
-                Close
+                <X size={19} />
               </button>
             )}
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <div className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold">
+          <div className="relative mt-4 flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-semibold">
               {question.subject}
-              {question.level ? ` · ${question.level}` : ""}
-            </div>
+            </span>
 
-            <p className="text-sm font-semibold text-violet-100">
-              Question {questionNumber} of {totalQuestions}
-            </p>
-          </div>
+            <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-semibold">
+              {question.level}
+            </span>
 
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/20">
-            <div
-              className="h-full rounded-full bg-white transition-all duration-300"
-              style={{
-                width: `${Math.min(
-                  100,
-                  (questionNumber / Math.max(1, totalQuestions)) * 100,
-                )}%`,
-              }}
-            />
+            {difficultyLabel && (
+              <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-semibold">
+                {difficultyLabel}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="p-5 sm:p-7">
-          {/* Timer and fee */}
-          <div className="mb-6 grid grid-cols-2 gap-3">
-            <div
-              className={`rounded-2xl border p-3 sm:p-4 ${
-                timeLeft <= 5 && !submitted
-                  ? "border-red-200 bg-red-50"
-                  : "border-slate-200 bg-slate-50"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Clock3
-                  size={18}
-                  className={
-                    timeLeft <= 5 && !submitted
-                      ? "text-red-600"
-                      : "text-violet-600"
-                  }
-                />
-                <span className="text-xs font-bold text-slate-500">
-                  TIME LEFT
-                </span>
-              </div>
+        <div className="space-y-5 p-5 sm:p-6">
+          {(showTimer || showCost) && (
+            <div className="grid grid-cols-2 gap-3">
+              {showTimer && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                      <Clock3 size={14} />
+                      Time remaining
+                    </span>
 
-              <p
-                aria-live="polite"
-                className={`mt-1 text-2xl font-black tabular-nums ${
-                  timeLeft <= 5 && !submitted
-                    ? "text-red-600"
-                    : "text-slate-900"
-                }`}
-              >
-                {formatTime(timeLeft)}
-              </p>
+                    <span
+                      className={`text-sm font-extrabold tabular-nums ${timerColor}`}
+                    >
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
 
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${
-                    timeLeft <= 5 ? "bg-red-500" : "bg-violet-600"
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+                  <div
+                    className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"
+                    role="progressbar"
+                    aria-label="Question time remaining"
+                    aria-valuemin={0}
+                    aria-valuemax={timeLimit}
+                    aria-valuenow={Math.min(timeLeft, timeLimit)}
+                  >
+                    <div
+                      className={[
+                        "h-full rounded-full transition-all duration-300",
+                        timeLeft <= 5
+                          ? "bg-red-500"
+                          : timeLeft <= 10
+                            ? "bg-amber-500"
+                            : "bg-emerald-500",
+                      ].join(" ")}
+                      style={{ width: `${timerPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showCost && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+                    <Zap size={14} />
+                    Question charge
+                  </div>
+
+                  <p className="mt-1.5 text-lg font-black text-amber-900">
+                    ₦{questionCost.toLocaleString("en-NG")}
+                  </p>
+
+                  <p className="mt-0.5 text-[10px] leading-4 text-amber-800">
+                    Per presented question
+                  </p>
+                </div>
+              )}
             </div>
+          )}
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:p-4">
-              <div className="flex items-center gap-2">
-                <Coins size={18} className="text-amber-700" />
-                <span className="text-xs font-bold text-amber-800">
-                  QUESTION FEE
-                </span>
-              </div>
-
-              <p className="mt-1 text-2xl font-black text-amber-900">
-                {formatNaira(questionCost)}
-              </p>
-              <p className="mt-1 text-[11px] leading-4 text-amber-800">
-                Fee for a presented question
-              </p>
-            </div>
-          </div>
-
-          {/* Question */}
-          <div className="mb-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-              Choose one answer
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">
+              Your question
             </p>
 
-            <h3 className="text-lg font-extrabold leading-relaxed text-slate-900 sm:text-xl">
-              {question.question}
+            <h3 className="text-lg font-extrabold leading-7 text-slate-900 sm:text-xl">
+              {question.content}
             </h3>
           </div>
 
-          {/* Options */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {question.options.map((option, index) => {
-              const isSelected = selectedAnswer === index;
-              const isAnswer = index === question.correctAnswer;
-              let optionStyle =
-                "border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50";
+              const isSelected = effectiveSelection === index;
+              const isCorrect = isCorrectChoice(index);
+              const isWrong = isWrongSelection(index);
 
-              if (!submitted && isSelected) {
-                optionStyle = "border-violet-500 bg-violet-50 ring-2 ring-violet-100";
+              let optionStyle =
+                "border-slate-200 bg-white text-slate-800 hover:border-indigo-300 hover:bg-indigo-50";
+
+              if (isSelected && !answered) {
+                optionStyle =
+                  "border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-100";
               }
 
-              if (submitted && isAnswer) {
-                optionStyle = "border-green-400 bg-green-50";
-              } else if (submitted && isSelected && !isAnswer) {
-                optionStyle = "border-red-300 bg-red-50";
+              if (answered && isCorrect) {
+                optionStyle =
+                  "border-emerald-500 bg-emerald-50 text-emerald-900";
+              }
+
+              if (isWrong) {
+                optionStyle =
+                  "border-red-400 bg-red-50 text-red-900";
               }
 
               return (
                 <button
-                  key={`${question.id}-${index}`}
+                  key={`${question.id}-option-${index}`}
                   type="button"
-                  disabled={submitted || submitting}
-                  onClick={() => setSelectedAnswer(index)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left transition sm:p-4 ${optionStyle} ${
-                    submitted || submitting
-                      ? "cursor-default"
-                      : "cursor-pointer"
-                  }`}
+                  onClick={() => handleAnswer(index)}
+                  disabled={
+                    disabled ||
+                    submitting ||
+                    answered ||
+                    hasTimedOut ||
+                    effectiveSelection !== null
+                  }
+                  className={[
+                    "flex min-h-[56px] w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition-all",
+                    optionStyle,
+                    "disabled:cursor-default",
+                    !disabled &&
+                    !answered &&
+                    effectiveSelection === null &&
+                    !hasTimedOut
+                      ? "cursor-pointer"
+                      : "",
+                  ].join(" ")}
                 >
                   <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
-                      submitted && isAnswer
-                        ? "bg-green-600 text-white"
-                        : submitted && isSelected
-                          ? "bg-red-500 text-white"
+                    className={[
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-extrabold",
+                      isCorrect
+                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        : isWrong
+                          ? "border-red-500 bg-red-500 text-white"
                           : isSelected
-                            ? "bg-violet-600 text-white"
-                            : "bg-slate-100 text-slate-600"
-                    }`}
+                            ? "border-indigo-600 bg-indigo-600 text-white"
+                            : "border-slate-200 bg-slate-50 text-slate-600",
+                    ].join(" ")}
                   >
-                    {["A", "B", "C", "D"][index]}
+                    {String.fromCharCode(65 + index)}
                   </span>
 
-                  <span className="flex-1 text-sm font-semibold leading-6 text-slate-800 sm:text-base">
+                  <span className="min-w-0 flex-1 text-sm font-semibold leading-6">
                     {option}
                   </span>
 
-                  {submitted && isAnswer && (
+                  {isCorrect && (
                     <CheckCircle2
-                      className="shrink-0 text-green-600"
-                      size={21}
+                      size={19}
+                      className="shrink-0 text-emerald-600"
                     />
                   )}
 
-                  {submitted && isSelected && !isAnswer && (
-                    <XCircle className="shrink-0 text-red-500" size={21} />
-                  )}
-
-                  {!submitted && isSelected && (
-                    <CheckCircle2
-                      className="shrink-0 text-violet-600"
-                      size={21}
+                  {isWrong && (
+                    <XCircle
+                      size={19}
+                      className="shrink-0 text-red-600"
                     />
                   )}
                 </button>
@@ -406,102 +397,123 @@ export default function QuestionModal({
             })}
           </div>
 
-          {/* Result feedback */}
-          {submitted && (
+          {submitting && (
+            <div className="flex items-center gap-2 rounded-xl bg-indigo-50 p-3 text-sm font-semibold text-indigo-700">
+              <Loader2 size={17} className="animate-spin" />
+              Checking your answer...
+            </div>
+          )}
+
+          {hasTimedOut && !answered && (
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <Clock3
+                size={20}
+                className="mt-0.5 shrink-0 text-amber-700"
+              />
+
+              <div>
+                <p className="text-sm font-bold text-amber-900">
+                  Time is up
+                </p>
+
+                <p className="mt-1 text-sm leading-5 text-amber-800">
+                  Your game logic will decide how the turn is handled.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {answered && result && (
             <div
+              className={[
+                "rounded-2xl border p-4",
+                result.isCorrect
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-red-200 bg-red-50",
+              ].join(" ")}
+              role="status"
               aria-live="polite"
-              className={`mt-5 rounded-2xl border p-4 ${
-                isCorrect
-                  ? "border-green-200 bg-green-50"
-                  : "border-red-200 bg-red-50"
-              }`}
             >
               <div className="flex items-start gap-3">
-                {isCorrect ? (
+                {result.isCorrect ? (
                   <CheckCircle2
-                    className="mt-0.5 shrink-0 text-green-600"
-                    size={23}
+                    size={22}
+                    className="mt-0.5 shrink-0 text-emerald-600"
                   />
                 ) : (
                   <XCircle
+                    size={22}
                     className="mt-0.5 shrink-0 text-red-600"
-                    size={23}
                   />
                 )}
 
-                <div>
+                <div className="min-w-0">
                   <p
-                    className={`font-extrabold ${
-                      isCorrect ? "text-green-800" : "text-red-800"
-                    }`}
+                    className={[
+                      "font-extrabold",
+                      result.isCorrect
+                        ? "text-emerald-900"
+                        : "text-red-900",
+                    ].join(" ")}
                   >
-                    {isCorrect
+                    {result.isCorrect
                       ? "Correct answer!"
-                      : selectedAnswer === null
-                        ? "Time is up!"
-                        : "Not quite right"}
+                      : "Not quite right"}
                   </p>
 
-                  {!isCorrect && (
-                    <p className="mt-1 text-sm text-slate-700">
+                  {!result.isCorrect && (
+                    <p className="mt-1 text-sm leading-5 text-red-800">
                       Correct answer:{" "}
                       <strong>
-                        {["A", "B", "C", "D"][question.correctAnswer]}.{" "}
-                        {question.options[question.correctAnswer]}
+                        {question.options[result.correctAnswer] ??
+                          "Not available"}
                       </strong>
                     </p>
                   )}
 
-                  {showExplanation && question.explanation && (
-                    <p className="mt-2 text-sm leading-6 text-slate-700">
-                      {question.explanation}
-                    </p>
+                  {result.explanation && (
+                    <div className="mt-3 flex items-start gap-2">
+                      <Lightbulb
+                        size={17}
+                        className="mt-0.5 shrink-0"
+                      />
+
+                      <p className="text-sm leading-6">
+                        {result.explanation}
+                      </p>
+                    </div>
                   )}
 
-                  <p className="mt-2 text-xs text-slate-500">
-                    Response time: {(responseTimeMs / 1000).toFixed(1)} seconds
+                  <p className="mt-3 text-sm font-bold">
+                    {result.pointsAwarded > 0
+                      ? `+${result.pointsAwarded} CBT points`
+                      : "No CBT points awarded for this answer"}
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="mt-6">
-            {!submitted ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-slate-500">
+              {answered
+                ? "Review the result before continuing."
+                : "Choose one answer to submit."}
+            </p>
+
+            {answered && onContinue && (
               <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={selectedAnswer === null || submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 px-5 py-4 font-extrabold text-white shadow-lg shadow-violet-700/20 transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                onClick={onContinue}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 size={19} className="animate-spin" />
-                    Submitting answer...
-                  </>
-                ) : (
-                  <>
-                    <Zap size={19} />
-                    Submit Answer
-                  </>
-                )}
+                Continue
+                <CheckCircle2 size={17} />
               </button>
-            ) : (
-              <div className="rounded-2xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600">
-                {isCorrect
-                  ? "Your game controller can now process your move."
-                  : "Your game controller can now process the missed turn."}
-              </div>
             )}
-
-            <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-              Answer before the timer expires. The game controller determines
-              movement, turn changes, and rewards.
-            </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -109,8 +109,8 @@ type Props = {
 
 const TRACK_LENGTH = 52;
 const FINISH_POSITION = 57;
-const MOVEMENT_STEP_MS = 650;
-const BOT_FEEDBACK_MS = 5000;
+const MOVEMENT_STEP_MS = 1000;
+const BOT_FEEDBACK_MS = 8000;
 const CORRECT_ANSWERS_FOR_BONUS = 6;
 
 const START_POSITIONS: Record<EduLudoColor, number> = {

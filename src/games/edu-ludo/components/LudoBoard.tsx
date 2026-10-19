@@ -425,17 +425,23 @@ export default function LudoBoard({
                   </div>
                 )}
 
-                {diceValue == null && onDiceClick && (
-                  <button
-                    type="button"
-                    onClick={onDiceClick}
-                    disabled={disabled}
-                    className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
-                  >
-                    <Dice5 size={17} />
-                    Roll
-                  </button>
-                )}
+                
+                
+{showDice && diceValue == null && onDiceClick && (
+  <button
+    type="button"
+    onClick={onDiceClick}
+    disabled={disabled || isMoving}
+    aria-label="Roll dice"
+    className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
+  >
+    <Dice5 size={19} />
+    Roll Dice
+  </button>
+)}
+
+
+
               </div>
             </div>
           )}

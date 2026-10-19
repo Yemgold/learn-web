@@ -1139,12 +1139,15 @@ const legalBoardMoves = useMemo(
                   legalMoves={legalBoardMoves}
                   selectedTokenId={selectedTokenId}
                   diceValue={diceValue}
+                  
                   disabled={
-                    !isHumanTurn ||
-                    phaseValue !== "playing" ||
-                    diceRolling ||
-                    isAnimatingMove
-                  }
+  !isHumanTurn ||
+  phaseValue !== "playing" ||
+  diceValue != null ||
+  diceRolling ||
+  isAnimatingMove
+}
+
                   onTokenClick={handleTokenClick}
                   onDiceClick={() => {
                     if (currentPlayer && !currentPlayer.isBot) {
@@ -1157,20 +1160,52 @@ const legalBoardMoves = useMemo(
                 />
               )}
 
-              {phaseValue === "playing" &&
-                currentPlayer &&
-                !currentPlayer.isBot &&
-                diceValue == null && (
-                  <div className="mt-4 rounded-2xl border border-indigo-100 bg-white p-4">
-                    <p className="text-sm font-bold text-slate-900">
-                      Your turn
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Roll the dice on the board. A question will appear
-                      before you can move a token.
-                    </p>
-                  </div>
-                )}
+              
+{phaseValue === "playing" &&
+  currentPlayer &&
+  !currentPlayer.isBot &&
+  diceValue == null && (
+    <div className="mt-4 rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-base font-extrabold text-slate-900">
+            Your turn to roll!
+          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Roll the dice to receive your question. Answer correctly
+            to unlock your token movement.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (
+              currentPlayer &&
+              !currentPlayer.isBot &&
+              phaseValue === "playing" &&
+              diceValue == null &&
+              !diceRolling &&
+              !isAnimatingMove
+            ) {
+              void rollDice(currentPlayer.id);
+            }
+          }}
+          disabled={
+            diceRolling ||
+            isAnimatingMove ||
+            phaseValue !== "playing"
+          }
+          className="inline-flex min-h-14 shrink-0 items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-7 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Zap size={21} />
+          {diceRolling ? "Rolling..." : "Roll Dice"}
+        </button>
+      </div>
+    </div>
+  )}
+
+
 
               {phaseValue === "playing" &&
                 currentPlayer &&
@@ -2784,6 +2819,8 @@ const legalBoardMoves = useMemo(
 //                 </div>
 //               )}
 //             </section>
+
+
 
 //             <aside className="min-w-0 space-y-4">
 //               <LudoPlayersPanel

@@ -191,19 +191,15 @@ export const TRACK_COORDINATES: EduLudoCoordinate[] = [
 export const START_POSITIONS: Record<EduLudoColor, number> = {
   red: 0,
   green: 13,
-  yellow: 39,
-  blue: 26,
+  yellow: 26,
+  blue: 39,
 };
 
-/**
- * Offsets used to convert a player's local track position
- * into a shared board track position.
- */
 export const PLAYER_TRACK_OFFSETS: Record<EduLudoColor, number> = {
   red: 0,
   green: 13,
-  yellow: 39,
-  blue: 26,
+  yellow: 26,
+  blue: 39,
 };
 
 /* =========================================================

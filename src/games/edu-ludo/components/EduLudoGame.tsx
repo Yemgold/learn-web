@@ -541,6 +541,16 @@ export default function EduLudoGame({
       if (player.isBot && isHumanTurn) return;
 
       const stringTokenId = getTokenStringId(player.id, tokenId);
+
+
+      console.log("Clicked token:", {
+  playerId: player.id,
+  tokenId,
+  expectedTokenId: stringTokenId,
+  actualTokenIds: player.tokens.map((token) => token.id),
+  legalTokenIds: legalMovementMoves.map((move) => move.tokenId),
+});
+
       const movement = legalMovementMoves.find(
         (move) => move.tokenId === stringTokenId,
       );

@@ -1107,7 +1107,7 @@ useEffect(() => {
         const roll = Math.floor(Math.random() * 6) + 1;
         askQuestion(currentPlayer, roll);
       }
-    }, 1200);
+    }, 4000);
 
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);

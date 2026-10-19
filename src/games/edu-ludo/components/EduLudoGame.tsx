@@ -3,9 +3,6 @@
 
 
 
-
-
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -367,7 +364,6 @@ export default function EduLudoGame({
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
   const [movementCount, setMovementCount] = useState(0);
 
-  // Learning streaks and earned bonuses are stored separately per player ID.
   const [learningStreaks, setLearningStreaks] = useState<
     Record<string, number>
   >({});
@@ -629,7 +625,6 @@ export default function EduLudoGame({
     askQuestion,
   ]);
 
-  // Spend one stored bonus to guarantee a 6 on this future turn.
   const useGuaranteedSix = useCallback(() => {
     if (
       phase !== "playing" ||
@@ -721,8 +716,6 @@ export default function EduLudoGame({
           (learningStreaks[currentPlayer.id] ?? 0) + 1;
 
         if (nextStreak >= CORRECT_ANSWERS_FOR_BONUS) {
-          // Reset the streak after awarding a bonus, so another bonus
-          // requires six new consecutive correct answers.
           setLearningStreaks((previous) => ({
             ...previous,
             [currentPlayer.id]: 0,
@@ -749,7 +742,6 @@ export default function EduLudoGame({
 
         setLegalMoves(getLegalMoves(currentPlayer, diceValue ?? 1));
       } else {
-        // Wrong answers and timeouts both break the streak.
         setLearningStreaks((previous) => ({
           ...previous,
           [currentPlayer.id]: 0,
@@ -777,10 +769,6 @@ export default function EduLudoGame({
     ],
   );
 
-  /**
-   * Resolves captures and rewards after the token has visibly completed
-   * its step-by-step journey.
-   */
   const resolveCompletedMove = useCallback(
     (move: EduLudoMove) => {
       const actor = players.find((player) => player.id === move.playerId);
@@ -865,9 +853,8 @@ export default function EduLudoGame({
           token.position >= FINISH_POSITION,
       );
 
-      // Set final token positions before reward updates to avoid overwriting
-      // score changes made by awardCbt.
       previousTurnPlayerIdRef.current = null;
+
       setPlayers(
         updatedPlayers.map((player) =>
           player.id === actor.id && hasWon
@@ -912,10 +899,6 @@ export default function EduLudoGame({
     [players, awardCbt],
   );
 
-  /**
-   * Moves the token through each intermediate position. During this time,
-   * phase="moving" prevents another action from starting.
-   */
   const applyMove = useCallback(
     async (move: EduLudoMove) => {
       if (movementLockRef.current) return;
@@ -972,13 +955,10 @@ export default function EduLudoGame({
             ),
           );
 
-         setMovementCount(index + 1);
-await wait(MOVEMENT_STEP_MS);
+          setMovementCount(index + 1);
+          await wait(MOVEMENT_STEP_MS);
 
-if (!mountedRef.current) return;
-
-
-
+          if (!mountedRef.current) return;
         }
 
         if (!mountedRef.current) return;
@@ -998,36 +978,32 @@ if (!mountedRef.current) return;
     [players, resolveCompletedMove],
   );
 
-useEffect(() => {
-  if (phase === "lobby" || !currentPlayer) {
-    previousTurnPlayerIdRef.current = null;
-    return;
-  }
+  useEffect(() => {
+    if (phase === "lobby" || !currentPlayer) {
+      previousTurnPlayerIdRef.current = null;
+      return;
+    }
 
-  const previousPlayerId = previousTurnPlayerIdRef.current;
-  const currentPlayerId = currentPlayer.id;
+    const previousPlayerId = previousTurnPlayerIdRef.current;
+    const currentPlayerId = currentPlayer.id;
 
-  // Save the current player so we can detect the next turn.
-  previousTurnPlayerIdRef.current = currentPlayerId;
+    previousTurnPlayerIdRef.current = currentPlayerId;
 
-  // Don't scroll when a match first starts.
-  if (!previousPlayerId || previousPlayerId === currentPlayerId) {
-    return;
-  }
+    if (!previousPlayerId || previousPlayerId === currentPlayerId) {
+      return;
+    }
 
-  const timeout = window.setTimeout(() => {
-    if (!mountedRef.current) return;
+    const timeout = window.setTimeout(() => {
+      if (!mountedRef.current) return;
 
-    currentTurnRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-  }, 150);
+      currentTurnRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 150);
 
-  return () => window.clearTimeout(timeout);
-}, [currentPlayer?.id, phase, currentPlayer]);
-
-
+    return () => window.clearTimeout(timeout);
+  }, [currentPlayer?.id, phase, currentPlayer]);
 
   const continueAfterFeedback = useCallback(() => {
     if (!answerResult || !currentPlayer || phase !== "feedback") return;
@@ -1040,7 +1016,6 @@ useEffect(() => {
       return;
     }
 
-    // Keep the dice result and legal moves visible for token selection.
     setPhase("playing");
   }, [
     answerResult,
@@ -1072,21 +1047,9 @@ useEffect(() => {
       setSelectedTokenId(tokenId);
       void applyMove(move);
     },
-    [
-      phase,
-      isAnimatingMove,
-      currentPlayer,
-      legalMoves,
-      applyMove,
-    ],
+    [phase, isAnimatingMove, currentPlayer, legalMoves, applyMove],
   );
 
-
-
-
-  // Bots use a stored bonus automatically on a future turn.
-  // Human players decide whether to use their bonus.
-  
   useEffect(() => {
     if (phase !== "playing" || !currentPlayer?.isBot) return;
 
@@ -1115,7 +1078,6 @@ useEffect(() => {
     };
   }, [phase, currentPlayer, askQuestion, guaranteedSixBonuses]);
 
-  // Give bots time to read the question before answering.
   useEffect(() => {
     if (phase !== "question" || !currentPlayer?.isBot || !question) return;
 
@@ -1139,7 +1101,6 @@ useEffect(() => {
     };
   }, [phase, currentPlayer, question, difficulty, finishAnswer]);
 
-  // Keep bot feedback visible before the bot moves or ends its turn.
   useEffect(() => {
     if (phase !== "feedback" || !currentPlayer?.isBot || !answerResult) {
       return;
@@ -1230,7 +1191,7 @@ useEffect(() => {
 
   if (phase === "lobby") {
     return (
-      <div className="min-h-screen bg-slate-50 px-3 py-5 sm:px-6">
+      <div className="min-h-screen bg-slate-950 px-3 py-5 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
           <EduLudoLobby
             mode={mode}
@@ -1265,27 +1226,26 @@ useEffect(() => {
     );
   }
 
-
   return (
-    <main className="min-h-screen bg-slate-50 px-2 py-3 sm:px-5 sm:py-5">
+    <main className="min-h-screen bg-slate-950 px-2 py-3 text-white sm:px-5 sm:py-5">
       <div className="mx-auto max-w-5xl space-y-3">
         {/* Compact game header */}
-        <header className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <header className="flex items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3 shadow-sm">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setShowExitConfirmation(true)}
               aria-label="Exit game"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-200 transition hover:bg-slate-700"
             >
               <ArrowLeft size={19} />
             </button>
 
             <div className="min-w-0">
-              <h1 className="truncate text-base font-black text-slate-900 sm:text-lg">
+              <h1 className="truncate text-base font-black text-white sm:text-lg">
                 Educational Ludo
               </h1>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Roll, answer, and move
               </p>
             </div>
@@ -1295,7 +1255,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setDialog("wallet")}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-extrabold text-emerald-800 sm:text-sm"
+              className="rounded-xl border border-emerald-800 bg-emerald-950 px-3 py-2 text-xs font-extrabold text-emerald-300 transition hover:bg-emerald-900 sm:text-sm"
             >
               <Wallet size={14} className="mr-1 inline" />
               {money(balance)}
@@ -1304,7 +1264,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setDialog("rewards")}
-              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-800 sm:text-sm"
+              className="rounded-xl border border-amber-800 bg-amber-950 px-3 py-2 text-xs font-extrabold text-amber-300 transition hover:bg-amber-900 sm:text-sm"
             >
               <Coins size={14} className="mr-1 inline" />
               {cbtPoints.toLocaleString()}
@@ -1314,10 +1274,10 @@ useEffect(() => {
 
         {phase !== "finished" && (
           <>
-            {/* Current turn: the only prominent information panel */}
+            {/* Current turn */}
             <section
               ref={currentTurnRef}
-              className="scroll-mt-4 rounded-2xl border border-indigo-200 bg-white p-3 shadow-sm sm:p-4"
+              className="scroll-mt-4 rounded-2xl border border-indigo-500/40 bg-slate-900 p-3 shadow-sm sm:p-4"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -1330,10 +1290,10 @@ useEffect(() => {
                   )}
 
                   <div className="min-w-0">
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                       Current turn
                     </p>
-                    <h2 className="break-words text-lg font-black text-slate-900 sm:text-xl">
+                    <h2 className="break-words text-lg font-black text-white sm:text-xl">
                       {currentPlayer?.name ?? "Waiting"}
                       {currentPlayer?.isBot ? " is playing" : ""}
                     </h2>
@@ -1341,13 +1301,13 @@ useEffect(() => {
                 </div>
 
                 {diceValue !== null && (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-indigo-200 bg-indigo-50 text-2xl font-black text-indigo-700">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-indigo-400/50 bg-indigo-950 text-2xl font-black text-indigo-200">
                     {diceValue}
                   </div>
                 )}
               </div>
 
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-slate-300">
                 {phase === "moving"
                   ? "Your token is moving across the board."
                   : phase === "question"
@@ -1363,7 +1323,6 @@ useEffect(() => {
                           : "Roll the dice to begin your turn."}
               </p>
 
-              {/* Main action: roll only when the player can roll */}
               {phase === "playing" &&
                 currentPlayer &&
                 !currentPlayer.isBot &&
@@ -1372,7 +1331,7 @@ useEffect(() => {
                     type="button"
                     onClick={rollDice}
                     disabled={isRolling || isAnimatingMove}
-                    className="mt-3 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-3 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Dices size={23} />
                     {isRolling ? "Rolling dice…" : "ROLL DICE"}
@@ -1383,23 +1342,23 @@ useEffect(() => {
                 currentPlayer &&
                 !currentPlayer.isBot &&
                 legalMoves.length > 0 && (
-                  <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+                  <div className="mt-3 rounded-xl border border-emerald-700/50 bg-emerald-950 p-3 text-sm font-bold text-emerald-300">
                     <CheckCircle2 size={17} className="mr-2 inline" />
                     Choose a highlighted token on the board.
                   </div>
                 )}
 
               {phase === "moving" && (
-                <div className="mt-3 rounded-xl bg-indigo-50 p-3">
-                  <div className="flex items-center justify-between gap-3 text-xs font-bold text-indigo-800">
+                <div className="mt-3 rounded-xl border border-indigo-700/50 bg-indigo-950 p-3">
+                  <div className="flex items-center justify-between gap-3 text-xs font-bold text-indigo-200">
                     <span>Moving token</span>
                     <span>
                       {movementCount}/{diceValue ?? 0}
                     </span>
                   </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-indigo-200">
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-indigo-900">
                     <div
-                      className="h-full rounded-full bg-indigo-600 transition-all"
+                      className="h-full rounded-full bg-indigo-400 transition-all"
                       style={{
                         width: `${
                           diceValue
@@ -1421,7 +1380,7 @@ useEffect(() => {
                     type="button"
                     onClick={useGuaranteedSix}
                     disabled={isRolling || isAnimatingMove}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-extrabold text-amber-800 disabled:opacity-50"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-700 bg-amber-950 px-4 py-3 text-sm font-extrabold text-amber-300 transition hover:bg-amber-900 disabled:opacity-50"
                   >
                     <Zap size={17} />
                     Use guaranteed 6 ({currentBonuses})
@@ -1429,8 +1388,8 @@ useEffect(() => {
                 )}
             </section>
 
-            {/* The board is the main content */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-4">
+            {/* Board */}
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-2 shadow-sm sm:p-4">
               <LudoBoard
                 players={sharedPlayers}
                 currentPlayerId={currentPlayer?.id ?? null}
@@ -1452,9 +1411,9 @@ useEffect(() => {
               />
             </section>
 
-            {/* Secondary controls are hidden until requested */}
-            <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-700">
+            {/* Secondary controls */}
+            <details className="rounded-2xl border border-slate-800 bg-slate-900 shadow-sm">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-200">
                 <span className="flex items-center justify-between gap-3">
                   <span>
                     <Users size={17} className="mr-2 inline" />
@@ -1466,7 +1425,7 @@ useEffect(() => {
                 </span>
               </summary>
 
-              <div className="space-y-4 border-t border-slate-100 p-3 sm:p-4">
+              <div className="space-y-4 border-t border-slate-800 p-3 sm:p-4">
                 <LudoPlayersPanel
                   players={sharedPlayers}
                   currentPlayerId={currentPlayer?.id ?? null}
@@ -1476,27 +1435,27 @@ useEffect(() => {
                 />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Questions</p>
-                    <p className="mt-1 text-xl font-black text-slate-900">
+                  <div className="rounded-xl border border-slate-700 bg-slate-800 p-3">
+                    <p className="text-xs text-slate-400">Questions</p>
+                    <p className="mt-1 text-xl font-black text-white">
                       {questionCount}
                     </p>
                   </div>
 
-                  <div className="rounded-xl bg-emerald-50 p-3">
-                    <p className="text-xs text-emerald-700">Rewards earned</p>
-                    <p className="mt-1 text-xl font-black text-emerald-800">
+                  <div className="rounded-xl border border-emerald-800 bg-emerald-950 p-3">
+                    <p className="text-xs text-emerald-300">Rewards earned</p>
+                    <p className="mt-1 text-xl font-black text-emerald-200">
                       +{matchReward} CBT
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-indigo-100 p-3">
-                  <p className="font-bold text-slate-900">
+                <div className="rounded-xl border border-indigo-800 bg-slate-800/70 p-3">
+                  <p className="font-bold text-white">
                     <BookOpen size={16} className="mr-2 inline" />
                     Learning streak
                   </p>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-sm text-slate-300">
                     {currentStreak}/{CORRECT_ANSWERS_FOR_BONUS} consecutive
                     correct answers
                   </p>
@@ -1508,59 +1467,67 @@ useEffect(() => {
                           key={index}
                           className={`h-2 rounded-full ${
                             index < currentStreak
-                              ? "bg-indigo-600"
-                              : "bg-indigo-100"
+                              ? "bg-indigo-400"
+                              : "bg-slate-700"
                           }`}
                         />
                       ),
                     )}
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                  <p className="mt-2 text-xs leading-5 text-slate-400">
                     Six consecutive correct answers earn a guaranteed 6.
                     Incorrect answers and timeouts reset the streak.
                   </p>
-                  <p className="mt-2 text-sm font-bold text-amber-700">
+                  <p className="mt-2 text-sm font-bold text-amber-300">
                     <Zap size={15} className="mr-1 inline" />
                     Saved guaranteed sixes: {currentBonuses}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-100 p-3">
-                  <p className="mb-3 font-bold text-slate-900">
+                <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3">
+                  <p className="mb-3 font-bold text-white">
                     Match rewards
                   </p>
-                  <div className="space-y-2 text-xs text-slate-600">
+                  <div className="space-y-2 text-xs text-slate-300">
                     <p className="flex justify-between gap-2">
                       <span>Question fee</span>
-                      <strong>{money(QUESTION_COST)}</strong>
+                      <strong className="text-white">
+                        {money(QUESTION_COST)}
+                      </strong>
                     </p>
                     <p className="flex justify-between gap-2">
                       <span>Correct answer</span>
-                      <strong>20–40 CBT</strong>
+                      <strong className="text-white">20–40 CBT</strong>
                     </p>
                     <p className="flex justify-between gap-2">
                       <span>Capture reward</span>
-                      <strong>{CAPTURE_REWARD} CBT</strong>
+                      <strong className="text-white">
+                        {CAPTURE_REWARD} CBT
+                      </strong>
                     </p>
                     <p className="flex justify-between gap-2">
                       <span>Token home reward</span>
-                      <strong>{TOKEN_HOME_REWARD} CBT</strong>
+                      <strong className="text-white">
+                        {TOKEN_HOME_REWARD} CBT
+                      </strong>
                     </p>
                     <p className="flex justify-between gap-2">
                       <span>Winner reward</span>
-                      <strong>{WINNER_REWARD} CBT</strong>
+                      <strong className="text-white">
+                        {WINNER_REWARD} CBT
+                      </strong>
                     </p>
                   </div>
                 </div>
               </div>
             </details>
 
-            {/* Compact on-demand utility buttons */}
+            {/* Utility buttons */}
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setDialog("rules")}
-                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-2 py-3 text-xs font-bold text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
               >
                 <Info size={16} className="mx-auto mb-1" />
                 Rules
@@ -1569,7 +1536,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setDialog("history")}
-                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-2 py-3 text-xs font-bold text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
               >
                 <History size={16} className="mx-auto mb-1" />
                 History
@@ -1578,7 +1545,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowExitConfirmation(true)}
-                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-2 py-3 text-xs font-bold text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
               >
                 <ArrowLeft size={16} className="mx-auto mb-1" />
                 Exit game
@@ -1589,13 +1556,13 @@ useEffect(() => {
 
         {/* Finished-game screen */}
         {phase === "finished" && (
-          <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-amber-700/50 bg-slate-900 p-5 shadow-sm sm:p-8">
             <div className="text-center">
-              <Trophy size={40} className="mx-auto text-amber-500" />
-              <h2 className="mt-3 text-2xl font-black text-slate-900">
+              <Trophy size={40} className="mx-auto text-amber-400" />
+              <h2 className="mt-3 text-2xl font-black text-white">
                 Game completed!
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-slate-400">
                 Here is the final ranking.
               </p>
             </div>
@@ -1604,9 +1571,9 @@ useEffect(() => {
               {rankedPlayers.map((player, index) => (
                 <div
                   key={player.id}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 p-3"
+                  className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 font-black">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-700 font-black text-white">
                     {index + 1}
                   </span>
                   <span
@@ -1614,11 +1581,11 @@ useEffect(() => {
                       COLOR_STYLES[player.color].bg
                     }`}
                   />
-                  <span className="min-w-0 flex-1 font-bold text-slate-900">
+                  <span className="min-w-0 flex-1 font-bold text-white">
                     {player.name}
                     {player.hasWon ? " — Winner" : ""}
                   </span>
-                  <span className="shrink-0 text-sm font-extrabold">
+                  <span className="shrink-0 text-sm font-extrabold text-amber-300">
                     {player.score} CBT
                   </span>
                 </div>
@@ -1629,7 +1596,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={playAgain}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-500"
               >
                 <RotateCcw size={16} />
                 Play again
@@ -1637,7 +1604,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={exitGame}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                className="rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-slate-700"
               >
                 Return to lobby
               </button>
@@ -1645,7 +1612,7 @@ useEffect(() => {
           </section>
         )}
 
-        {/* Question UI appears only when the game requests a question */}
+        {/* Question UI */}
         <QuestionModal
           question={selectedQuestion}
           open={
@@ -1673,7 +1640,7 @@ useEffect(() => {
           allowClose={false}
         />
 
-        {/* Existing wallet, rules, history, rewards and exit dialogs */}
+        {/* Existing dialogs */}
         <LudoGameDialogs
           activeDialog={dialog}
           onCloseDialog={() => setDialog(null)}
@@ -1695,7 +1662,7 @@ useEffect(() => {
         {toast && (
           <div
             role="status"
-            className="fixed bottom-4 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl"
+            className="fixed bottom-4 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl"
           >
             {toast}
           </div>

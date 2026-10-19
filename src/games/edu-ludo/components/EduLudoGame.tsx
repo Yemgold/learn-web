@@ -107,7 +107,7 @@ type Props = {
 
 const TRACK_LENGTH = 52;
 const FINISH_POSITION = 57;
-const MOVEMENT_STEP_MS = 300;
+const MOVEMENT_STEP_MS = 650;
 const BOT_FEEDBACK_MS = 5000;
 const CORRECT_ANSWERS_FOR_BONUS = 6;
 
@@ -377,6 +377,9 @@ export default function EduLudoGame({
   const answerGuardRef = useRef(false);
   const movementLockRef = useRef(false);
   const mountedRef = useRef(true);
+
+  const currentTurnRef = useRef<HTMLDivElement>(null);
+  const previousTurnPlayerIdRef = useRef<string | null>(null);
 
   const currentPlayer = players[turn] ?? null;
   const currentStreak = currentPlayer
@@ -861,6 +864,7 @@ export default function EduLudoGame({
 
       // Set final token positions before reward updates to avoid overwriting
       // score changes made by awardCbt.
+      previousTurnPlayerIdRef.current = null;
       setPlayers(
         updatedPlayers.map((player) =>
           player.id === actor.id && hasWon
@@ -965,11 +969,13 @@ export default function EduLudoGame({
             ),
           );
 
-          setMovementCount(index + 1);
+         setMovementCount(index + 1);
+await wait(MOVEMENT_STEP_MS);
 
-          if (index < stepPositions.length - 1) {
-            await wait(MOVEMENT_STEP_MS);
-          }
+if (!mountedRef.current) return;
+
+
+
         }
 
         if (!mountedRef.current) return;
@@ -988,6 +994,37 @@ export default function EduLudoGame({
     },
     [players, resolveCompletedMove],
   );
+
+useEffect(() => {
+  if (phase === "lobby" || !currentPlayer) {
+    previousTurnPlayerIdRef.current = null;
+    return;
+  }
+
+  const previousPlayerId = previousTurnPlayerIdRef.current;
+  const currentPlayerId = currentPlayer.id;
+
+  // Save the current player so we can detect the next turn.
+  previousTurnPlayerIdRef.current = currentPlayerId;
+
+  // Don't scroll when a match first starts.
+  if (!previousPlayerId || previousPlayerId === currentPlayerId) {
+    return;
+  }
+
+  const timeout = window.setTimeout(() => {
+    if (!mountedRef.current) return;
+
+    currentTurnRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, 150);
+
+  return () => window.clearTimeout(timeout);
+}, [currentPlayer?.id, phase, currentPlayer]);
+
+
 
   const continueAfterFeedback = useCallback(() => {
     if (!answerResult || !currentPlayer || phase !== "feedback") return;
@@ -1041,8 +1078,12 @@ export default function EduLudoGame({
     ],
   );
 
+
+
+
   // Bots use a stored bonus automatically on a future turn.
   // Human players decide whether to use their bonus.
+  
   useEffect(() => {
     if (phase !== "playing" || !currentPlayer?.isBot) return;
 
@@ -1287,7 +1328,10 @@ export default function EduLudoGame({
         {phase !== "finished" && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
             <section className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+<div
+  ref={currentTurnRef}
+  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm"
+>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     Current turn
@@ -1417,16 +1461,46 @@ export default function EduLudoGame({
               />
 
               {phase === "moving" && (
-                <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-                  <p className="font-extrabold text-indigo-900">
-                    Moving your token...
-                  </p>
-                  <p className="mt-1 text-sm text-indigo-800">
-                    Count each square. The token will stop when it reaches
-                    the number shown on the dice.
-                  </p>
-                </div>
-              )}
+  <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+    <div className="flex items-center justify-between gap-3">
+      <p className="font-extrabold text-indigo-900">
+        {currentPlayer?.isBot
+          ? `${currentPlayer.name} is moving a token...`
+          : "Moving your token..."}
+      </p>
+
+      {diceValue !== null && (
+        <span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-sm font-black text-indigo-700">
+          Dice: {diceValue}
+        </span>
+      )}
+    </div>
+
+    <p className="mt-2 text-sm text-indigo-800">
+      Watch the token move square by square.
+    </p>
+
+    <div className="mt-3 flex items-center justify-between text-sm font-bold text-indigo-900">
+      <span>Movement progress</span>
+      <span>
+        {movementCount}/{diceValue ?? 0}
+      </span>
+    </div>
+
+    <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-indigo-200">
+      <div
+        className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+        style={{
+          width: `${
+            diceValue
+              ? Math.min(100, (movementCount / diceValue) * 100)
+              : 0
+          }%`,
+        }}
+      />
+    </div>
+  </div>
+)}
 
               {phase === "playing" && !currentPlayer?.isBot && (
                 <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">

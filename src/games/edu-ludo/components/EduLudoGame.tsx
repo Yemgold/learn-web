@@ -14,6 +14,7 @@ import {
   BookOpen,
   CheckCircle2,
   Dices,
+  Users,
   Coins,
   History,
   Info,
@@ -1264,186 +1265,172 @@ useEffect(() => {
     );
   }
 
+
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-6 sm:py-6">
-      <div className="mx-auto max-w-7xl space-y-4">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
+    <main className="min-h-screen bg-slate-50 px-2 py-3 sm:px-5 sm:py-5">
+      <div className="mx-auto max-w-5xl space-y-3">
+        {/* Compact game header */}
+        <header className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setShowExitConfirmation(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
-              aria-label="Back to lobby"
+              aria-label="Exit game"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
             >
               <ArrowLeft size={19} />
             </button>
 
-            <div>
-              <h1 className="text-lg font-black text-slate-900 sm:text-xl">
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-black text-slate-900 sm:text-lg">
                 Educational Ludo
               </h1>
               <p className="text-xs text-slate-500">
-                Answer questions, count moves, earn CBT Points
+                Roll, answer, and move
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setDialog("wallet")}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800"
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-extrabold text-emerald-800 sm:text-sm"
             >
-              <Wallet size={16} />
+              <Wallet size={14} className="mr-1 inline" />
               {money(balance)}
             </button>
 
             <button
               type="button"
               onClick={() => setDialog("rewards")}
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800"
+              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-800 sm:text-sm"
             >
-              <Coins size={16} />
-              {cbtPoints.toLocaleString()} CBT
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDialog("history")}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
-              aria-label="Transaction history"
-            >
-              <History size={18} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDialog("rules")}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
-              aria-label="Game rules"
-            >
-              <Info size={18} />
+              <Coins size={14} className="mr-1 inline" />
+              {cbtPoints.toLocaleString()}
             </button>
           </div>
         </header>
 
         {phase !== "finished" && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
-            <section className="min-w-0 space-y-4">
-<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Current turn
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    {currentPlayer && (
-                      <span
-                        className={`h-3 w-3 rounded-full ${COLOR_STYLES[currentPlayer.color].bg}`}
-                      />
-                    )}
-                    
-                    <h2
-  ref={currentTurnRef}
-  className="max-w-full break-words [overflow-wrap:anywhere] scroll-mt-24 text-lg font-black text-slate-900"
->
-  {currentPlayer?.name ?? "Waiting"}
-</h2>
+          <>
+            {/* Current turn: the only prominent information panel */}
+            <section
+              ref={currentTurnRef}
+              className="scroll-mt-4 rounded-2xl border border-indigo-200 bg-white p-3 shadow-sm sm:p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {currentPlayer && (
+                    <span
+                      className={`h-4 w-4 shrink-0 rounded-full ${
+                        COLOR_STYLES[currentPlayer.color].bg
+                      }`}
+                    />
+                  )}
 
-                    {currentPlayer?.isBot && (
-                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
-                        COMPUTER
-                      </span>
-                    )}
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                      Current turn
+                    </p>
+                    <h2 className="break-words text-lg font-black text-slate-900 sm:text-xl">
+                      {currentPlayer?.name ?? "Waiting"}
+                      {currentPlayer?.isBot ? " is playing" : ""}
+                    </h2>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded-lg bg-indigo-50 px-3 py-2 font-bold text-indigo-700">
-                    Question {questionCount}
-                  </span>
-                  <span className="rounded-lg bg-amber-50 px-3 py-2 font-bold text-amber-800">
-                    Fee: {money(QUESTION_COST)} per human question
-                  </span>
-                </div>
+                {diceValue !== null && (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-indigo-200 bg-indigo-50 text-2xl font-black text-indigo-700">
+                    {diceValue}
+                  </div>
+                )}
               </div>
 
-              {/* Current player's learning streak and stored bonus. */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-                  <div className="flex items-center gap-2 text-indigo-800">
-                    <BookOpen size={18} />
-                    <p className="text-sm font-extrabold">Learning streak</p>
-                  </div>
+              <p className="mt-2 text-sm text-slate-600">
+                {phase === "moving"
+                  ? "Your token is moving across the board."
+                  : phase === "question"
+                    ? "Answer the question to continue your move."
+                    : phase === "feedback"
+                      ? answerResult?.isCorrect
+                        ? "Correct answer! Continue to your move."
+                        : "Incorrect answer. Your turn will pass."
+                      : currentPlayer?.isBot
+                        ? "The computer is taking its turn."
+                        : legalMoves.length > 0
+                          ? "Select one of your highlighted tokens."
+                          : "Roll the dice to begin your turn."}
+              </p>
 
-                  <div className="mt-3 flex items-end justify-between gap-3">
-                    <p className="text-2xl font-black text-indigo-950">
-                      {currentStreak}/{CORRECT_ANSWERS_FOR_BONUS}
-                    </p>
-                    <p className="text-xs font-semibold text-indigo-700">
-                      Consecutive correct
-                    </p>
-                  </div>
+              {/* Main action: roll only when the player can roll */}
+              {phase === "playing" &&
+                currentPlayer &&
+                !currentPlayer.isBot &&
+                legalMoves.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={rollDice}
+                    disabled={isRolling || isAnimatingMove}
+                    className="mt-3 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Dices size={23} />
+                    {isRolling ? "Rolling dice…" : "ROLL DICE"}
+                  </button>
+                )}
 
-                  <div className="mt-3 grid grid-cols-6 gap-1.5">
-                    {Array.from(
-                      { length: CORRECT_ANSWERS_FOR_BONUS },
-                      (_, index) => (
-                        <div
-                          key={index}
-                          className={`h-2.5 rounded-full ${
-                            index < currentStreak
-                              ? "bg-indigo-600"
-                              : "bg-indigo-200"
-                          }`}
-                        />
-                      ),
-                    )}
+              {phase === "playing" &&
+                currentPlayer &&
+                !currentPlayer.isBot &&
+                legalMoves.length > 0 && (
+                  <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+                    <CheckCircle2 size={17} className="mr-2 inline" />
+                    Choose a highlighted token on the board.
                   </div>
+                )}
 
-                  <p className="mt-2 text-xs leading-5 text-indigo-800">
-                    Answer six questions correctly in a row to earn a
-                    guaranteed 6. A wrong answer or timeout resets the streak.
-                  </p>
+              {phase === "moving" && (
+                <div className="mt-3 rounded-xl bg-indigo-50 p-3">
+                  <div className="flex items-center justify-between gap-3 text-xs font-bold text-indigo-800">
+                    <span>Moving token</span>
+                    <span>
+                      {movementCount}/{diceValue ?? 0}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-indigo-200">
+                    <div
+                      className="h-full rounded-full bg-indigo-600 transition-all"
+                      style={{
+                        width: `${
+                          diceValue
+                            ? Math.min(100, (movementCount / diceValue) * 100)
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
                 </div>
+              )}
 
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="flex items-center gap-2 text-amber-800">
-                    <Zap size={18} />
-                    <p className="text-sm font-extrabold">Guaranteed 6</p>
-                  </div>
+              {currentPlayer &&
+                !currentPlayer.isBot &&
+                phase === "playing" &&
+                legalMoves.length === 0 &&
+                currentBonuses > 0 && (
+                  <button
+                    type="button"
+                    onClick={useGuaranteedSix}
+                    disabled={isRolling || isAnimatingMove}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-extrabold text-amber-800 disabled:opacity-50"
+                  >
+                    <Zap size={17} />
+                    Use guaranteed 6 ({currentBonuses})
+                  </button>
+                )}
+            </section>
 
-                  <div className="mt-3 flex items-end justify-between gap-3">
-                    <p className="text-2xl font-black text-amber-950">
-                      {currentBonuses}
-                    </p>
-                    <p className="text-xs font-semibold text-amber-800">
-                      Bonus{currentBonuses === 1 ? "" : "es"} saved
-                    </p>
-                  </div>
-
-                  <p className="mt-2 text-xs leading-5 text-amber-900">
-                    Save your bonus and choose a future turn to use it.
-                    Using one guarantees a dice result of 6.
-                  </p>
-
-                  {currentPlayer &&
-                    !currentPlayer.isBot &&
-                    phase === "playing" &&
-                    legalMoves.length === 0 &&
-                    currentBonuses > 0 && (
-                      <button
-                        type="button"
-                        onClick={useGuaranteedSix}
-                        disabled={isRolling || isAnimatingMove}
-                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-3 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Zap size={16} />
-                        {isRolling ? "Preparing guaranteed 6…" : "Use guaranteed 6"}
-                      </button>
-                    )}
-                </div>
-              </div>
-
+            {/* The board is the main content */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-4">
               <LudoBoard
                 players={sharedPlayers}
                 currentPlayerId={currentPlayer?.id ?? null}
@@ -1463,124 +1450,32 @@ useEffect(() => {
                 movementCount={movementCount}
                 isMoving={isAnimatingMove}
               />
-
-              {phase === "moving" && (
-  <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-    <div className="flex items-center justify-between gap-3">
-      <p className="font-extrabold text-indigo-900">
-        {currentPlayer?.isBot
-          ? `${currentPlayer.name} is moving a token...`
-          : "Moving your token..."}
-      </p>
-
-      {diceValue !== null && (
-        <span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-sm font-black text-indigo-700">
-          Dice: {diceValue}
-        </span>
-      )}
-    </div>
-
-    <p className="mt-2 text-sm text-indigo-800">
-      Watch the token move square by square.
-    </p>
-
-    <div className="mt-3 flex items-center justify-between text-sm font-bold text-indigo-900">
-      <span>Movement progress</span>
-      <span>
-        {movementCount}/{diceValue ?? 0}
-      </span>
-    </div>
-
-    <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-indigo-200">
-      <div
-        className="h-full rounded-full bg-indigo-600 transition-all duration-300"
-        style={{
-          width: `${
-            diceValue
-              ? Math.min(100, (movementCount / diceValue) * 100)
-              : 0
-          }%`,
-        }}
-      />
-    </div>
-  </div>
-)}
-
-              {phase === "playing" && !currentPlayer?.isBot && (
-                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
-                      <BookOpen size={18} />
-                    </div>
-
-<div className="min-w-0 flex-1 rounded-xl border border-indigo-200 bg-white p-3 shadow-md transition-all duration-300">
-  <div className="flex items-start gap-3">
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
-      {legalMoves.length > 0 ? (
-        <CheckCircle2 className="h-5 w-5" />
-      ) : (
-        <Dices className="h-5 w-5" />
-      )}
-    </div>
-
-    <div className="min-w-0 flex-1">
-      <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-500">
-        {currentPlayer?.name ?? "Player"} — YOUR TURN
-      </p>
-
-      <p className="mt-1 text-sm font-bold text-indigo-950">
-        {legalMoves.length > 0
-          ? "Choose a highlighted token"
-          : "Your turn to play"}
-      </p>
-
-      <p className="mt-1 text-xs leading-5 text-indigo-800">
-        {legalMoves.length > 0
-          ? `Your dice shows ${diceValue}. Select one of the highlighted tokens to count out the move.`
-          : currentBonuses > 0
-            ? `Roll normally or use one of your ${currentBonuses} saved guaranteed-6 bonus${currentBonuses === 1 ? "" : "es"}. You will receive a question either way.`
-            : `Roll the dice to receive a question. Answer correctly to move a legal token. Each question costs ${money(QUESTION_COST)}.`}
-      </p>
-    </div>
-
-    {legalMoves.length > 0 && (
-      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
-        MOVE
-      </span>
-    )}
-  </div>
-</div>
-
-                    {legalMoves.length === 0 && (
-                      <button
-                        type="button"
-                        onClick={rollDice}
-                        disabled={isRolling || isAnimatingMove}
-                        className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
-                      >
-                        {isRolling ? "Rolling…" : "Roll Dice"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </section>
 
+            {/* Secondary controls are hidden until requested */}
+            <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-700">
+                <span className="flex items-center justify-between gap-3">
+                  <span>
+                    <Users size={17} className="mr-2 inline" />
+                    Players and progress
+                  </span>
+                  <span className="text-xs font-medium text-slate-400">
+                    View
+                  </span>
+                </span>
+              </summary>
 
+              <div className="space-y-4 border-t border-slate-100 p-3 sm:p-4">
+                <LudoPlayersPanel
+                  players={sharedPlayers}
+                  currentPlayerId={currentPlayer?.id ?? null}
+                  currentTurn={turn}
+                  cbtPoints={cbtPoints}
+                  showTokenProgress
+                />
 
-            <aside className="min-w-0 space-y-4">
-              <LudoPlayersPanel
-                players={sharedPlayers}
-                currentPlayerId={currentPlayer?.id ?? null}
-                currentTurn={turn}
-                cbtPoints={cbtPoints}
-                showTokenProgress
-              />
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <h3 className="font-bold text-slate-900">Match summary</h3>
-
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-slate-50 p-3">
                     <p className="text-xs text-slate-500">Questions</p>
                     <p className="mt-1 text-xl font-black text-slate-900">
@@ -1588,116 +1483,169 @@ useEffect(() => {
                     </p>
                   </div>
 
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Match rewards</p>
-                    <p className="mt-1 text-xl font-black text-emerald-700">
-                      +{matchReward}
+                  <div className="rounded-xl bg-emerald-50 p-3">
+                    <p className="text-xs text-emerald-700">Rewards earned</p>
+                    <p className="mt-1 text-xl font-black text-emerald-800">
+                      +{matchReward} CBT
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-3 space-y-2 text-xs text-slate-600">
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Question fee</span>
-                    <strong>{money(QUESTION_COST)}</strong>
+                <div className="rounded-xl border border-indigo-100 p-3">
+                  <p className="font-bold text-slate-900">
+                    <BookOpen size={16} className="mr-2 inline" />
+                    Learning streak
                   </p>
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Correct answer</span>
-                    <strong>20–40 CBT</strong>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {currentStreak}/{CORRECT_ANSWERS_FOR_BONUS} consecutive
+                    correct answers
                   </p>
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Capture reward</span>
-                    <strong>{CAPTURE_REWARD} CBT</strong>
+                  <div className="mt-2 grid grid-cols-6 gap-1.5">
+                    {Array.from(
+                      { length: CORRECT_ANSWERS_FOR_BONUS },
+                      (_, index) => (
+                        <div
+                          key={index}
+                          className={`h-2 rounded-full ${
+                            index < currentStreak
+                              ? "bg-indigo-600"
+                              : "bg-indigo-100"
+                          }`}
+                        />
+                      ),
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Six consecutive correct answers earn a guaranteed 6.
+                    Incorrect answers and timeouts reset the streak.
                   </p>
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Token home reward</span>
-                    <strong>{TOKEN_HOME_REWARD} CBT</strong>
-                  </p>
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Winner reward</span>
-                    <strong>{WINNER_REWARD} CBT</strong>
-                  </p>
-                  <p className="flex items-center justify-between gap-3">
-                    <span>Correct streak bonus</span>
-                    <strong>6 in a row = 1 guaranteed 6</strong>
+                  <p className="mt-2 text-sm font-bold text-amber-700">
+                    <Zap size={15} className="mr-1 inline" />
+                    Saved guaranteed sixes: {currentBonuses}
                   </p>
                 </div>
+
+                <div className="rounded-xl border border-slate-100 p-3">
+                  <p className="mb-3 font-bold text-slate-900">
+                    Match rewards
+                  </p>
+                  <div className="space-y-2 text-xs text-slate-600">
+                    <p className="flex justify-between gap-2">
+                      <span>Question fee</span>
+                      <strong>{money(QUESTION_COST)}</strong>
+                    </p>
+                    <p className="flex justify-between gap-2">
+                      <span>Correct answer</span>
+                      <strong>20–40 CBT</strong>
+                    </p>
+                    <p className="flex justify-between gap-2">
+                      <span>Capture reward</span>
+                      <strong>{CAPTURE_REWARD} CBT</strong>
+                    </p>
+                    <p className="flex justify-between gap-2">
+                      <span>Token home reward</span>
+                      <strong>{TOKEN_HOME_REWARD} CBT</strong>
+                    </p>
+                    <p className="flex justify-between gap-2">
+                      <span>Winner reward</span>
+                      <strong>{WINNER_REWARD} CBT</strong>
+                    </p>
+                  </div>
+                </div>
               </div>
+            </details>
+
+            {/* Compact on-demand utility buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setDialog("rules")}
+                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                <Info size={16} className="mx-auto mb-1" />
+                Rules
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDialog("history")}
+                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                <History size={16} className="mx-auto mb-1" />
+                History
+              </button>
 
               <button
                 type="button"
                 onClick={() => setShowExitConfirmation(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
               >
-                <ArrowLeft size={16} />
-                Exit match
+                <ArrowLeft size={16} className="mx-auto mb-1" />
+                Exit game
               </button>
-            </aside>
-          </div>
+            </div>
+          </>
         )}
 
+        {/* Finished-game screen */}
         {phase === "finished" && (
-          <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm sm:p-10">
-            <div className="mx-auto max-w-2xl text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-                <Trophy size={32} />
-              </div>
-
-              <h2 className="mt-4 text-2xl font-black text-slate-900">
+          <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
+            <div className="text-center">
+              <Trophy size={40} className="mx-auto text-amber-500" />
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
                 Game completed!
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Great effort. Here is the final ranking for this match.
+                Here is the final ranking.
               </p>
+            </div>
 
-              <div className="mt-6 space-y-2 text-left">
-                {rankedPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm font-black text-slate-700">
-                      {index + 1}
-                    </span>
-
-                    <span
-                      className={`h-3 w-3 rounded-full ${COLOR_STYLES[player.color].bg}`}
-                    />
-
-                    <span className="flex-1 font-bold text-slate-900">
-                      {player.name}
-                      {player.hasWon ? " — Winner" : ""}
-                    </span>
-
-                    <span className="font-extrabold tabular-nums text-slate-900">
-                      {player.score} CBT
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={playAgain}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700"
+            <div className="mt-5 space-y-2">
+              {rankedPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 p-3"
                 >
-                  <RotateCcw size={16} />
-                  Play again
-                </button>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 font-black">
+                    {index + 1}
+                  </span>
+                  <span
+                    className={`h-3 w-3 rounded-full ${
+                      COLOR_STYLES[player.color].bg
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 font-bold text-slate-900">
+                    {player.name}
+                    {player.hasWon ? " — Winner" : ""}
+                  </span>
+                  <span className="shrink-0 text-sm font-extrabold">
+                    {player.score} CBT
+                  </span>
+                </div>
+              ))}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={exitGame}
-                  className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  Return to lobby
-                </button>
-              </div>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={playAgain}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700"
+              >
+                <RotateCcw size={16} />
+                Play again
+              </button>
+              <button
+                type="button"
+                onClick={exitGame}
+                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Return to lobby
+              </button>
             </div>
           </section>
         )}
 
+        {/* Question UI appears only when the game requests a question */}
         <QuestionModal
           question={selectedQuestion}
           open={
@@ -1725,6 +1673,7 @@ useEffect(() => {
           allowClose={false}
         />
 
+        {/* Existing wallet, rules, history, rewards and exit dialogs */}
         <LudoGameDialogs
           activeDialog={dialog}
           onCloseDialog={() => setDialog(null)}
@@ -1755,31 +1704,3 @@ useEffect(() => {
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

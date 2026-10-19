@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import EduLudoGame from "@/games/edu-ludo/EduLudoGame";
+import EduLudoGame from "@/games/edu-ludo/components/EduLudoGame";
 
 export default function EducationalLudoPage() {
   const router = useRouter();

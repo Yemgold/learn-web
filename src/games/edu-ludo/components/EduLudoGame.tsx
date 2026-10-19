@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,22 +34,13 @@ import {
   TRACK_LENGTH,
 } from "./eduLudoConstants";
 
-import {
-  useEduLudoGame,
-} from "../hook/useEduLudoGame";
-
-import {
-  useEduLudoQuestions,
-} from "../hook/useEduLudoQuestions";
-
+import { useEduLudoGame } from "../hook/useEduLudoGame";
+import { useEduLudoQuestions } from "../hook/useEduLudoQuestions";
 import {
   useEduLudoMovement,
   getPlayerLegalMoves,
 } from "../hook/useEduLudoMovement";
-
-import {
-  useEduLudoBots,
-} from "../hook/useEduLudoBots";
+import { useEduLudoBots } from "../hook/useEduLudoBots";
 
 import type {
   LudoDifficulty,
@@ -75,12 +67,7 @@ type UiPhase =
 
 type UiMode = "solo" | "friends" | "classroom" | "tournament";
 
-const COLORS: EduLudoColor[] = [
-  "red",
-  "green",
-  "yellow",
-  "blue",
-];
+const COLORS: EduLudoColor[] = ["red", "green", "yellow", "blue"];
 
 const SUBJECTS: LudoSubjectFilter[] = [
   "All Subjects",
@@ -92,12 +79,7 @@ const SUBJECTS: LudoSubjectFilter[] = [
   "Physics",
 ];
 
-const DIFFICULTIES: LudoDifficulty[] = [
-  "easy",
-  "medium",
-  "hard",
-];
-
+const DIFFICULTIES: LudoDifficulty[] = ["easy", "medium", "hard"];
 const LEVELS = ["JSS", "SSS", "JAMB", "WAEC"] as const;
 
 function randomDiceValue() {
@@ -132,14 +114,10 @@ function normalizeQuestion(
 
   return {
     id: raw.id,
-    subject:
-      typeof raw.subject === "string" ? raw.subject : "General",
-    level:
-      typeof raw.level === "string" ? raw.level : level,
+    subject: typeof raw.subject === "string" ? raw.subject : "General",
+    level: typeof raw.level === "string" ? raw.level : level,
     difficulty:
-      typeof raw.difficulty === "string"
-        ? raw.difficulty
-        : "medium",
+      typeof raw.difficulty === "string" ? raw.difficulty : "medium",
     content:
       typeof raw.content === "string"
         ? raw.content
@@ -149,9 +127,7 @@ function normalizeQuestion(
     options: options.map(String),
     correctAnswer: raw.correctAnswer,
     explanation:
-      typeof raw.explanation === "string"
-        ? raw.explanation
-        : "",
+      typeof raw.explanation === "string" ? raw.explanation : "",
   } as EduLudoQuestion;
 }
 
@@ -161,29 +137,21 @@ export default function EduLudoGame({
   onBack,
   onFundWallet,
 }: Props) {
-  const [modeSelection, setModeSelection] =
-    useState<UiMode>("solo");
-
+  const [modeSelection, setModeSelection] = useState<UiMode>("solo");
   const [subject, setSubject] =
     useState<LudoSubjectFilter>("All Subjects");
-
   const [difficulty, setDifficulty] =
     useState<LudoDifficulty>("medium");
-
-  const [level, setLevel] =
-    useState<string>("JAMB");
-
-  const [humanColor, setHumanColor] =
-    useState<EduLudoColor>("red");
+  const [level, setLevel] = useState<string>("JAMB");
+  const [humanColor, setHumanColor] = useState<EduLudoColor>("red");
 
   const [diceRolling, setDiceRolling] = useState(false);
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
-  const [selectedTokenId, setSelectedTokenId] =
-    useState<number | null>(null);
-
+  const [selectedTokenId, setSelectedTokenId] = useState<number | null>(
+    null,
+  );
   const [questionResult, setQuestionResult] =
     useState<EduLudoAnswerResult | null>(null);
-
   const [answerSubmitting, setAnswerSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [history, setHistory] = useState<string[]>([]);
@@ -201,14 +169,13 @@ export default function EduLudoGame({
     initialCbtPoints,
     subject,
     difficulty,
-    onCbtReward: (_playerId, _points) => {},
+    onCbtReward: () => {},
   });
 
   const {
     walletBalance: questionWalletBalance,
     cbtPoints: questionCbtPoints,
     currentQuestion,
-    lastResult,
     presentQuestion,
     submitAnswer,
     clearQuestion,
@@ -221,9 +188,7 @@ export default function EduLudoGame({
     phase,
     setPhase,
     players,
-    setPlayers,
     turnIndex,
-    setTurnIndex,
     diceValue,
     setDiceValue,
     currentPlayer,
@@ -241,13 +206,15 @@ export default function EduLudoGame({
   const phaseValue = phase as UiPhase;
 
   const addHistory = useCallback((message: string) => {
-    setHistory((previous) => [
-      `${new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })} — ${message}`,
-      ...previous,
-    ].slice(0, 30));
+    setHistory((previous) =>
+      [
+        `${new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })} — ${message}`,
+        ...previous,
+      ].slice(0, 30),
+    );
   }, []);
 
   const notify = useCallback((message: string) => {
@@ -260,27 +227,17 @@ export default function EduLudoGame({
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
-  // The question hook owns question charges and question rewards.
-  // Keep the displayed game wallet and points synchronized with it.
   useEffect(() => {
     if (game.walletBalance !== questionWalletBalance) {
       setWalletBalance(questionWalletBalance);
     }
-  }, [
-    game.walletBalance,
-    questionWalletBalance,
-    setWalletBalance,
-  ]);
+  }, [game.walletBalance, questionWalletBalance, setWalletBalance]);
 
   useEffect(() => {
     if (game.cbtPoints !== questionCbtPoints) {
       setCbtPoints(questionCbtPoints);
     }
-  }, [
-    game.cbtPoints,
-    questionCbtPoints,
-    setCbtPoints,
-  ]);
+  }, [game.cbtPoints, questionCbtPoints, setCbtPoints]);
 
   const currentQuestionForModal = useMemo(
     () => normalizeQuestion(currentQuestion, level),
@@ -310,31 +267,27 @@ export default function EduLudoGame({
       return [];
     }
 
-    return getPlayerLegalMoves(
-      movementPlayers.find(
-        (player) => player.id === currentPlayer.id,
-      )!,
-      diceValue,
+    const movementPlayer = movementPlayers.find(
+      (player) => player.id === currentPlayer.id,
     );
-  }, [
-    phaseValue,
-    diceValue,
-    currentPlayer,
-    movementPlayers,
-  ]);
 
-const legalBoardMoves = useMemo(
-  () =>
-    legalMovementMoves.map((move) => ({
-      playerId: move.playerId,
-      tokenId: getTokenIndex(move.tokenId),
-      from: move.from,
-      to: move.to,
-      diceRoll: move.diceRoll,
-      diceValue: move.diceRoll,
-    })) as EduLudoMove[],
-  [legalMovementMoves],
-);
+    if (!movementPlayer) return [];
+
+    return getPlayerLegalMoves(movementPlayer, diceValue);
+  }, [phaseValue, diceValue, currentPlayer, movementPlayers]);
+
+  const legalBoardMoves = useMemo(
+    () =>
+      legalMovementMoves.map((move) => ({
+        playerId: move.playerId,
+        tokenId: getTokenIndex(move.tokenId),
+        from: move.from,
+        to: move.to,
+        diceRoll: move.diceRoll,
+        diceValue: move.diceRoll,
+      })) as EduLudoMove[],
+    [legalMovementMoves],
+  );
 
   const boardPlayers = useMemo(
     () =>
@@ -357,17 +310,12 @@ const legalBoardMoves = useMemo(
     [players],
   );
 
-  const isHumanTurn =
-    Boolean(currentPlayer) && !currentPlayer?.isBot;
-
+  const isHumanTurn = Boolean(currentPlayer && !currentPlayer.isBot);
+  const isBotTurn = Boolean(currentPlayer?.isBot);
   const isQuestionOpen =
-    phaseValue === "question" ||
-    phaseValue === "feedback";
+    phaseValue === "question" || phaseValue === "feedback";
 
-  const {
-    animateMove,
-    cancelAnimation,
-  } = useEduLudoMovement({
+  const { animateMove, cancelAnimation } = useEduLudoMovement({
     stepDurationMs: 300,
     onStep: (playerId, tokenId, position) => {
       updateTokenPosition(playerId, tokenId, position);
@@ -392,18 +340,15 @@ const legalBoardMoves = useMemo(
     [
       notify,
       addHistory,
-      setSelectedTokenId,
       setDiceValue,
       clearQuestion,
-      setQuestionResult,
-      setAnswerSubmitting,
       advanceTurn,
       setPhase,
     ],
   );
 
   const rollDice = useCallback(
-    async (playerId: string, forcedRoll?: number) => {
+    (playerId: string, forcedRoll?: number) => {
       if (
         phaseValue !== "playing" ||
         diceRolling ||
@@ -426,15 +371,20 @@ const legalBoardMoves = useMemo(
       }
 
       setDiceValue(roll);
-      setDiceRolling(false);
 
       const questionPresented = presentQuestion({
         playerId,
         isHuman: !currentPlayer.isBot,
       });
 
+      setDiceRolling(false);
+
       if (!questionPresented) {
-        notify("Unable to present a question. Check your wallet balance.");
+        notify(
+          currentPlayer.isBot
+            ? "The bot could not receive a question."
+            : "Unable to present a question. Check your wallet balance.",
+        );
         setDiceValue(null);
         return;
       }
@@ -442,10 +392,14 @@ const legalBoardMoves = useMemo(
       recordQuestionPresented();
       setRoundQuestion((previous) => previous + 1);
       setQuestionResult(null);
+      setAnswerSubmitting(false);
       setPhase("question");
 
-      addHistory(
-        `${currentPlayer.name} rolled ${roll}. A question was presented.`,
+      addHistory(`${currentPlayer.name} rolled ${roll}.`);
+      notify(
+        currentPlayer.isBot
+          ? `${currentPlayer.name} rolled ${roll} and is answering a question.`
+          : `You rolled ${roll}. Answer the question to unlock your move.`,
       );
     },
     [
@@ -500,15 +454,17 @@ const legalBoardMoves = useMemo(
       setAnswerSubmitting(false);
       setPhase("feedback");
 
-      if (result.isCorrect) {
-        addHistory(
-          `${currentPlayer.name} answered correctly.`,
-        );
-      } else {
-        addHistory(
-          `${currentPlayer.name} answered incorrectly.`,
-        );
-      }
+      addHistory(
+        `${currentPlayer.name} answered ${
+          result.isCorrect ? "correctly" : "incorrectly"
+        }.`,
+      );
+
+      notify(
+        result.isCorrect
+          ? `${currentPlayer.name} answered correctly!`
+          : `${currentPlayer.name} answered incorrectly.`,
+      );
     },
     [
       currentPlayer,
@@ -516,10 +472,9 @@ const legalBoardMoves = useMemo(
       questionResult,
       currentQuestion,
       submitAnswer,
-      setQuestionResult,
-      setAnswerSubmitting,
       setPhase,
       addHistory,
+      notify,
     ],
   );
 
@@ -533,33 +488,30 @@ const legalBoardMoves = useMemo(
       return;
     }
 
+    const activePlayerId = currentPlayer.id;
+
     clearQuestion();
     setQuestionResult(null);
     setPhase("playing");
 
-    const freshPlayer = players.find(
-      (player) => player.id === currentPlayer.id,
-    );
-
     const freshMovementPlayer = movementPlayers.find(
-      (player) => player.id === currentPlayer.id,
+      (player) => player.id === activePlayerId,
     );
 
-    if (!freshPlayer || !freshMovementPlayer) {
+    if (!freshMovementPlayer) {
       endTurn();
       return;
     }
 
-    const moves = getPlayerLegalMoves(
-      freshMovementPlayer,
-      diceValue,
-    );
+    const moves = getPlayerLegalMoves(freshMovementPlayer, diceValue);
 
     if (moves.length === 0) {
       endTurn("No legal token move. The turn passes.");
     } else {
       notify(
-        `${currentPlayer.name}: select one of the highlighted tokens.`,
+        currentPlayer.isBot
+          ? `${currentPlayer.name} is choosing a token...`
+          : "Select one of the highlighted tokens.",
       );
     }
   }, [
@@ -569,7 +521,6 @@ const legalBoardMoves = useMemo(
     endTurn,
     clearQuestion,
     setPhase,
-    players,
     movementPlayers,
     notify,
   ]);
@@ -586,11 +537,10 @@ const legalBoardMoves = useMemo(
         return;
       }
 
-      const stringTokenId = getTokenStringId(
-        player.id,
-        tokenId,
-      );
+      // A bot's move must only be triggered by the bot controller.
+      if (player.isBot && isHumanTurn) return;
 
+      const stringTokenId = getTokenStringId(player.id, tokenId);
       const movement = legalMovementMoves.find(
         (move) => move.tokenId === stringTokenId,
       );
@@ -606,7 +556,6 @@ const legalBoardMoves = useMemo(
 
       const from = movement.from;
       const to = movement.to;
-
       const succeeded = await animateMove(movement);
 
       setIsAnimatingMove(false);
@@ -617,23 +566,15 @@ const legalBoardMoves = useMemo(
         return;
       }
 
-      // Resolve a capture when the token lands on a shared,
-      // non-safe track square.
-      const movedPlayer = players.find(
-        (item) => item.id === player.id,
-      );
+      const movedPlayer = players.find((item) => item.id === player.id);
 
       if (movedPlayer && to >= 0 && to < TRACK_LENGTH) {
         const globalPosition =
-          (to + START_POSITIONS[movedPlayer.color]) %
-          TRACK_LENGTH;
+          (to + START_POSITIONS[movedPlayer.color]) % TRACK_LENGTH;
 
         if (!SAFE_POSITIONS.has(globalPosition)) {
           for (const opponent of players) {
-            if (
-              opponent.id === movedPlayer.id ||
-              opponent.hasWon
-            ) {
+            if (opponent.id === movedPlayer.id || opponent.hasWon) {
               continue;
             }
 
@@ -647,22 +588,17 @@ const legalBoardMoves = useMemo(
                     START_POSITIONS[opponent.color]) %
                   TRACK_LENGTH;
 
-                if (
-                  opponentGlobalPosition === globalPosition
-                ) {
+                if (opponentGlobalPosition === globalPosition) {
                   updateTokenPosition(
                     opponent.id,
                     opponentToken.id,
                     -1,
                   );
 
-                  const reward = 200;
-                  addCbtPoints(reward);
-
+                  addCbtPoints(200);
                   notify(
-                    `Token captured! +${reward} CBT points.`,
+                    `${movedPlayer.name} captured a token! +200 CBT points.`,
                   );
-
                   addHistory(
                     `${movedPlayer.name} captured an opponent token.`,
                   );
@@ -676,18 +612,15 @@ const legalBoardMoves = useMemo(
       if (to >= 57) {
         addCbtPoints(TOKEN_HOME_REWARD);
         notify(
-          `Token reached home! +${TOKEN_HOME_REWARD} CBT points.`,
+          `${movedPlayer?.name ?? player.name} reached home! +${TOKEN_HOME_REWARD} CBT points.`,
         );
       }
 
-      const latestPlayer = players.find(
-        (item) => item.id === player.id,
-      );
-
-      const tokenPositions = latestPlayer?.tokens.map(
-        (token) =>
+      const latestPlayer = players.find((item) => item.id === player.id);
+      const tokenPositions =
+        latestPlayer?.tokens.map((token) =>
           token.id === stringTokenId ? to : token.position,
-      ) ?? [];
+        ) ?? [];
 
       const playerHasWon =
         tokenPositions.length > 0 &&
@@ -696,6 +629,7 @@ const legalBoardMoves = useMemo(
       if (playerHasWon) {
         markPlayerWon(player.id);
         addCbtPoints(WINNER_REWARD);
+        setDiceValue(null);
         setPhase("finished");
         notify(
           `${player.name} wins! +${WINNER_REWARD} CBT points.`,
@@ -708,7 +642,9 @@ const legalBoardMoves = useMemo(
 
       if (diceValue === 6) {
         setPhase("playing");
-        notify("You rolled a six. Roll again!");
+        notify(
+          `${player.name} rolled a six and gets another turn.`,
+        );
       } else {
         advanceTurn();
         setPhase("playing");
@@ -721,6 +657,7 @@ const legalBoardMoves = useMemo(
     [
       phaseValue,
       currentPlayer,
+      isHumanTurn,
       diceValue,
       isAnimatingMove,
       legalMovementMoves,
@@ -761,7 +698,6 @@ const legalBoardMoves = useMemo(
   ]);
 
   const beginGame = useCallback(() => {
-    setModeSelection(modeSelection);
     startGame();
     setPhase("playing");
     setDiceValue(null);
@@ -770,37 +706,40 @@ const legalBoardMoves = useMemo(
     setHistory([]);
     setRoundQuestion(0);
     addHistory("A new Educational Ludo match started.");
-  }, [
-    modeSelection,
-    startGame,
-    setPhase,
-    setDiceValue,
-    addHistory,
-  ]);
+  }, [startGame, setPhase, setDiceValue, addHistory]);
 
-  // The bot hook handles automated rolls, answers and token selection.
   useEduLudoBots({
     phase: phaseValue,
     currentPlayer,
     difficulty,
     guaranteedSixBonuses: {},
     onRollDice: (playerId, forcedRoll) => {
-      void rollDice(playerId, forcedRoll);
+      rollDice(playerId, forcedRoll);
     },
-    onAnswerQuestion: (_playerId, answerIndex) => {
-      if (!currentQuestion) return;
+
+    // The bot hook uses index 0 to mean "answer correctly".
+    // Indices 1–3 mean "choose a wrong answer". Convert that
+    // intention into a real option index for this question.
+    onAnswerQuestion: (playerId, answerIntentIndex) => {
+      if (
+        !currentPlayer ||
+        currentPlayer.id !== playerId ||
+        !currentQuestion
+      ) {
+        return;
+      }
 
       const correctIndex = currentQuestion.correctAnswer;
       const selectedIndex =
-        answerIndex === 0
+        answerIntentIndex === 0
           ? correctIndex
-          : (correctIndex + 1) % 4;
+          : (correctIndex + answerIntentIndex) % 4;
 
       processAnswer(selectedIndex);
     },
-    onContinueAfterFeedback: () => {
-      continueAfterAnswer();
-    },
+
+    onContinueAfterFeedback: continueAfterAnswer,
+
     onSelectToken: (playerId) => {
       const legalMove = legalMovementMoves.find(
         (move) => move.playerId === playerId,
@@ -820,6 +759,7 @@ const legalBoardMoves = useMemo(
         void handleTokenClick(player, tokenIndex);
       }
     },
+
     hasLegalMoves: legalMovementMoves.length > 0,
     isAnimatingMove,
     isRolling: diceRolling,
@@ -837,12 +777,11 @@ const legalBoardMoves = useMemo(
             <button
               type="button"
               onClick={onBack ?? resetGame}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-100"
               aria-label="Go back"
             >
               <ArrowLeft size={19} />
             </button>
-
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">
                 Learnyfi Games
@@ -865,7 +804,6 @@ const legalBoardMoves = useMemo(
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2">
               <Coins size={17} className="text-amber-600" />
               <div>
@@ -877,12 +815,11 @@ const legalBoardMoves = useMemo(
                 </p>
               </div>
             </div>
-
             {onFundWallet && (
               <button
                 type="button"
                 onClick={onFundWallet}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
               >
                 Fund wallet
               </button>
@@ -911,8 +848,7 @@ const legalBoardMoves = useMemo(
                     Set up your game
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Choose your learning subject and difficulty, then
-                    start playing.
+                    Choose your learning subject and difficulty, then start playing.
                   </p>
                 </div>
               </div>
@@ -948,51 +884,36 @@ const legalBoardMoves = useMemo(
                   </div>
                   {modeSelection !== "solo" && (
                     <p className="mt-2 text-xs leading-5 text-amber-700">
-                      This local game screen does not connect remote
-                      players. The selected mode is a setup preference.
+                      This local game screen does not connect remote players. The selected mode is a setup preference.
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="edu-ludo-subject"
-                    className="mb-2 block text-sm font-bold text-slate-700"
-                  >
+                  <label htmlFor="edu-ludo-subject" className="mb-2 block text-sm font-bold text-slate-700">
                     Subject
                   </label>
                   <select
                     id="edu-ludo-subject"
                     value={subject}
-                    onChange={(event) =>
-                      setSubject(event.target.value as LudoSubjectFilter)
-                    }
+                    onChange={(event) => setSubject(event.target.value as LudoSubjectFilter)}
                     className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   >
                     {SUBJECTS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
+                      <option key={item} value={item}>{item}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="edu-ludo-difficulty"
-                      className="mb-2 block text-sm font-bold text-slate-700"
-                    >
+                    <label htmlFor="edu-ludo-difficulty" className="mb-2 block text-sm font-bold text-slate-700">
                       Difficulty
                     </label>
                     <select
                       id="edu-ludo-difficulty"
                       value={difficulty}
-                      onChange={(event) =>
-                        setDifficulty(
-                          event.target.value as LudoDifficulty,
-                        )
-                      }
+                      onChange={(event) => setDifficulty(event.target.value as LudoDifficulty)}
                       className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                     >
                       {DIFFICULTIES.map((item) => (
@@ -1002,12 +923,8 @@ const legalBoardMoves = useMemo(
                       ))}
                     </select>
                   </div>
-
                   <div>
-                    <label
-                      htmlFor="edu-ludo-level"
-                      className="mb-2 block text-sm font-bold text-slate-700"
-                    >
+                    <label htmlFor="edu-ludo-level" className="mb-2 block text-sm font-bold text-slate-700">
                       Education level
                     </label>
                     <select
@@ -1017,9 +934,7 @@ const legalBoardMoves = useMemo(
                       className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                     >
                       {LEVELS.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
+                        <option key={item} value={item}>{item}</option>
                       ))}
                     </select>
                   </div>
@@ -1043,9 +958,7 @@ const legalBoardMoves = useMemo(
                             : "border-slate-200 bg-white",
                         ].join(" ")}
                       >
-                        <span
-                          className={`h-4 w-4 rounded-full ${COLOR_STYLES[color].bg}`}
-                        />
+                        <span className={`h-4 w-4 rounded-full ${COLOR_STYLES[color].bg}`} />
                         {color}
                       </button>
                     ))}
@@ -1055,7 +968,7 @@ const legalBoardMoves = useMemo(
                 <button
                   type="button"
                   onClick={beginGame}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-indigo-700"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-indigo-700"
                 >
                   <Zap size={18} />
                   Start Educational Ludo
@@ -1064,26 +977,23 @@ const legalBoardMoves = useMemo(
             </section>
 
             <aside className="space-y-4">
-              <section className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-700 to-violet-700 p-5 text-white shadow-sm">
+              <section className="rounded-3xl bg-gradient-to-br from-indigo-700 to-violet-700 p-5 text-white shadow-sm">
                 <h3 className="text-lg font-black">How to play</h3>
                 <ol className="mt-4 space-y-3 text-sm leading-6 text-indigo-50">
                   <li>1. Roll the dice to receive a question.</li>
-                  <li>2. Each presented question costs ₦{QUESTION_COST}.</li>
+                  <li>2. Each presented human question costs ₦{QUESTION_COST}.</li>
                   <li>3. Answer correctly to unlock a token move.</li>
                   <li>4. Select a highlighted token to move it.</li>
                   <li>5. Reach home with all four tokens to win.</li>
                 </ol>
               </section>
-
               <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
                 <div className="flex items-center gap-2 text-amber-900">
                   <Coins size={19} />
                   <h3 className="font-extrabold">Rewards</h3>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-amber-900">
-                  Earn CBT points through correct answers, captures,
-                  reaching home and winning. The question charge is
-                  taken when a question is successfully presented.
+                  Earn CBT points through correct answers, captures, reaching home and winning. Bot questions do not deduct money from your wallet.
                 </p>
               </section>
             </aside>
@@ -1094,19 +1004,16 @@ const legalBoardMoves = useMemo(
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-900">
-                    {phaseValue === "finished"
-                      ? "Game complete"
-                      : "Your game board"}
+                    {phaseValue === "finished" ? "Game complete" : "Your game board"}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     Question {roundQuestion} · {subject} · {difficulty}
                   </p>
                 </div>
-
                 <button
                   type="button"
                   onClick={resetGame}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
                 >
                   <RotateCcw size={16} />
                   Restart
@@ -1121,9 +1028,7 @@ const legalBoardMoves = useMemo(
                   <h3 className="mt-4 text-2xl font-black text-slate-900">
                     Congratulations!
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    The match has ended.
-                  </p>
+                  <p className="mt-2 text-sm text-slate-600">The match has ended.</p>
                   <button
                     type="button"
                     onClick={resetGame}
@@ -1139,19 +1044,17 @@ const legalBoardMoves = useMemo(
                   legalMoves={legalBoardMoves}
                   selectedTokenId={selectedTokenId}
                   diceValue={diceValue}
-                  
                   disabled={
-  !isHumanTurn ||
-  phaseValue !== "playing" ||
-  diceValue != null ||
-  diceRolling ||
-  isAnimatingMove
-}
-
+                    !isHumanTurn ||
+                    phaseValue !== "playing" ||
+                    diceValue != null ||
+                    diceRolling ||
+                    isAnimatingMove
+                  }
                   onTokenClick={handleTokenClick}
                   onDiceClick={() => {
                     if (currentPlayer && !currentPlayer.isBot) {
-                      void rollDice(currentPlayer.id);
+                      rollDice(currentPlayer.id);
                     }
                   }}
                   showDice
@@ -1160,55 +1063,59 @@ const legalBoardMoves = useMemo(
                 />
               )}
 
-              
-{phaseValue === "playing" &&
-  currentPlayer &&
-  !currentPlayer.isBot &&
-  diceValue == null && (
-    <div className="mt-4 rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-base font-extrabold text-slate-900">
-            Your turn to roll!
-          </p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            Roll the dice to receive your question. Answer correctly
-            to unlock your token movement.
-          </p>
-        </div>
+              {phaseValue === "playing" && currentPlayer && (
+                <div className={`mt-4 rounded-2xl border p-5 shadow-sm ${
+                  isBotTurn
+                    ? "border-violet-200 bg-violet-50"
+                    : "border-indigo-200 bg-white"
+                }`}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-extrabold text-slate-900">
+                        {isBotTurn
+                          ? `${currentPlayer.name}'s turn`
+                          : diceValue == null
+                            ? "Your turn to roll!"
+                            : "Choose your token"}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        {isBotTurn
+                          ? "Watch the bot roll, answer its question, and move its token automatically."
+                          : diceValue == null
+                            ? "Roll the dice to receive your question. Answer correctly to unlock your token movement."
+                            : "Select one of the highlighted tokens to move."}
+                      </p>
+                    </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (
-              currentPlayer &&
-              !currentPlayer.isBot &&
-              phaseValue === "playing" &&
-              diceValue == null &&
-              !diceRolling &&
-              !isAnimatingMove
-            ) {
-              void rollDice(currentPlayer.id);
-            }
-          }}
-          disabled={
-            diceRolling ||
-            isAnimatingMove ||
-            phaseValue !== "playing"
-          }
-          className="inline-flex min-h-14 shrink-0 items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-7 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Zap size={21} />
-          {diceRolling ? "Rolling..." : "Roll Dice"}
-        </button>
-      </div>
-    </div>
-  )}
-
-
+                    {!isBotTurn && diceValue == null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            currentPlayer &&
+                            !currentPlayer.isBot &&
+                            phaseValue === "playing" &&
+                            diceValue == null &&
+                            !diceRolling &&
+                            !isAnimatingMove
+                          ) {
+                            rollDice(currentPlayer.id);
+                          }
+                        }}
+                        disabled={diceRolling || isAnimatingMove}
+                        className="inline-flex min-h-14 shrink-0 items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-7 py-4 text-base font-extrabold text-white shadow-md hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Zap size={21} />
+                        {diceRolling ? "Rolling..." : "Roll Dice"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {phaseValue === "playing" &&
                 currentPlayer &&
+                !currentPlayer.isBot &&
                 diceValue != null &&
                 legalMovementMoves.length > 0 && (
                   <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
@@ -1216,8 +1123,7 @@ const legalBoardMoves = useMemo(
                       Select a highlighted token
                     </p>
                     <p className="mt-1 text-sm leading-6 text-emerald-800">
-                      You answered correctly. Choose a legal token to
-                      move {diceValue} square{diceValue === 1 ? "" : "s"}.
+                      You answered correctly. Choose a legal token to move {diceValue} square{diceValue === 1 ? "" : "s"}.
                     </p>
                   </div>
                 )}
@@ -1225,9 +1131,7 @@ const legalBoardMoves = useMemo(
 
             <aside className="space-y-4">
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-extrabold text-slate-900">
-                  Players
-                </h3>
+                <h3 className="font-extrabold text-slate-900">Players</h3>
                 <div className="mt-3 space-y-3">
                   {players.map((player) => (
                     <div
@@ -1240,23 +1144,17 @@ const legalBoardMoves = useMemo(
                       ].join(" ")}
                     >
                       <div className="flex min-w-0 items-center gap-2">
-                        <span
-                          className={`h-3.5 w-3.5 shrink-0 rounded-full ${COLOR_STYLES[player.color].bg}`}
-                        />
+                        <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${COLOR_STYLES[player.color].bg}`} />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-800">
-                            {player.name}
-                          </p>
+                          <p className="truncate text-sm font-bold text-slate-800">{player.name}</p>
                           <p className="text-xs text-slate-500">
-                            {player.isBot ? "Bot" : "You"}
+                            {player.isBot ? "Bot opponent" : "You"}
+                            {player.id === currentPlayer?.id ? " · Playing now" : ""}
                           </p>
                         </div>
                       </div>
                       <span className="text-xs font-bold text-slate-500">
-                        {player.tokens.filter(
-                          (token) => token.position >= 57,
-                        ).length}
-                        /{TOKENS_PER_PLAYER}
+                        {player.tokens.filter((token) => token.position >= 57).length}/{TOKENS_PER_PLAYER}
                       </span>
                     </div>
                   ))}
@@ -1264,33 +1162,23 @@ const legalBoardMoves = useMemo(
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-extrabold text-slate-900">
-                  Match details
-                </h3>
+                <h3 className="font-extrabold text-slate-900">Match details</h3>
                 <dl className="mt-3 space-y-3 text-sm">
                   <div className="flex justify-between gap-3">
                     <dt className="text-slate-500">Mode</dt>
-                    <dd className="font-bold capitalize text-slate-800">
-                      {modeSelection}
-                    </dd>
+                    <dd className="font-bold capitalize text-slate-800">{modeSelection}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
                     <dt className="text-slate-500">Question cost</dt>
-                    <dd className="font-bold text-slate-800">
-                      ₦{QUESTION_COST}
-                    </dd>
+                    <dd className="font-bold text-slate-800">₦{QUESTION_COST}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Question timer</dt>
-                    <dd className="font-bold text-slate-800">
-                      {QUESTION_TIME_LIMIT}s
-                    </dd>
+                    <dt className="text-slate-500">Human timer</dt>
+                    <dd className="font-bold text-slate-800">{QUESTION_TIME_LIMIT}s</dd>
                   </div>
                   <div className="flex justify-between gap-3">
                     <dt className="text-slate-500">Questions shown</dt>
-                    <dd className="font-bold text-slate-800">
-                      {roundQuestion}
-                    </dd>
+                    <dd className="font-bold text-slate-800">{roundQuestion}</dd>
                   </div>
                 </dl>
               </section>
@@ -1301,9 +1189,7 @@ const legalBoardMoves = useMemo(
                 </summary>
                 <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
                   {history.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      No match events yet.
-                    </p>
+                    <p className="text-sm text-slate-500">No match events yet.</p>
                   ) : (
                     history.map((item, index) => (
                       <p
@@ -1326,19 +1212,28 @@ const legalBoardMoves = useMemo(
         open={isQuestionOpen}
         timeLimit={QUESTION_TIME_LIMIT}
         questionCost={QUESTION_COST}
-        disabled={phaseValue !== "question"}
+        disabled={
+          phaseValue !== "question" ||
+          isBotTurn ||
+          answerSubmitting
+        }
         submitting={answerSubmitting}
         result={questionResult}
         onAnswer={(answerIndex) => processAnswer(answerIndex)}
-        onTimeUp={() => processAnswer(-1, true)}
+        onTimeUp={() => {
+          if (isHumanTurn && phaseValue === "question") {
+            processAnswer(-1, true);
+          }
+        }}
         onContinue={continueAfterAnswer}
-        showTimer
-        showCost
+        showTimer={isHumanTurn}
+        showCost={isHumanTurn}
         allowClose={false}
       />
     </div>
   );
 }
+
 
 
 

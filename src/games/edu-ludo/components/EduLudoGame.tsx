@@ -276,18 +276,34 @@ export default function EduLudoGame({
     return getPlayerLegalMoves(movementPlayer, diceValue);
   }, [phaseValue, diceValue, currentPlayer, movementPlayers]);
 
-  const legalBoardMoves = useMemo(
-    () =>
-      legalMovementMoves.map((move) => ({
-        playerId: move.playerId,
-        tokenId: getTokenIndex(move.tokenId),
-        from: move.from,
-        to: move.to,
-        diceRoll: move.diceRoll,
-        diceValue: move.diceRoll,
-      })) as EduLudoMove[],
-    [legalMovementMoves],
-  );
+ const legalBoardMoves = useMemo(
+  () =>
+    legalMovementMoves.flatMap((move) => {
+      const movementPlayer = movementPlayers.find(
+        (player) => player.id === move.playerId,
+      );
+
+      const tokenIndex =
+        movementPlayer?.tokens.findIndex(
+          (token) => token.id === move.tokenId,
+        ) ?? -1;
+
+      // Do not create a board move for an unmatched token.
+      if (tokenIndex < 0) return [];
+
+      return [
+        {
+          playerId: move.playerId,
+          tokenId: tokenIndex,
+          from: move.from,
+          to: move.to,
+          diceRoll: move.diceRoll,
+          diceValue: move.diceRoll,
+        },
+      ];
+    }),
+  [legalMovementMoves, movementPlayers],
+);
 
   const boardPlayers = useMemo(
     () =>
@@ -540,20 +556,23 @@ export default function EduLudoGame({
       // A bot's move must only be triggered by the bot controller.
       if (player.isBot && isHumanTurn) return;
 
-      const stringTokenId = getTokenStringId(player.id, tokenId);
+     const movementPlayer = movementPlayers.find(
+  (item) => item.id === player.id,
+);
 
+const actualToken = movementPlayer?.tokens[tokenId];
+const stringTokenId = actualToken?.id;
 
-      console.log("Clicked token:", {
-  playerId: player.id,
-  tokenId,
-  expectedTokenId: stringTokenId,
-  actualTokenIds: player.tokens.map((token) => token.id),
-  legalTokenIds: legalMovementMoves.map((move) => move.tokenId),
-});
+if (!stringTokenId) {
+  notify("Could not identify this token. Please try again.");
+  return;
+}
 
-      const movement = legalMovementMoves.find(
-        (move) => move.tokenId === stringTokenId,
-      );
+const movement = legalMovementMoves.find(
+  (move) =>
+    move.playerId === player.id &&
+    move.tokenId === stringTokenId,
+);
 
       if (!movement) {
         notify("That token cannot move with this dice roll.");

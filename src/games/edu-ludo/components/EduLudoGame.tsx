@@ -720,23 +720,27 @@ export default function EduLudoGame({
     // The bot hook uses index 0 to mean "answer correctly".
     // Indices 1–3 mean "choose a wrong answer". Convert that
     // intention into a real option index for this question.
-    onAnswerQuestion: (playerId, answerIntentIndex) => {
-      if (
-        !currentPlayer ||
-        currentPlayer.id !== playerId ||
-        !currentQuestion
-      ) {
-        return;
-      }
+    
+onAnswerQuestion: (_playerId, answerIntent) => {
+  if (!currentQuestion) return;
 
-      const correctIndex = currentQuestion.correctAnswer;
-      const selectedIndex =
-        answerIntentIndex === 0
-          ? correctIndex
-          : (correctIndex + answerIntentIndex) % 4;
+  const correctIndex = currentQuestion.correctAnswer;
 
-      processAnswer(selectedIndex);
-    },
+  const selectedIndex =
+    answerIntent === 0
+      ? correctIndex
+      : (() => {
+          const wrongOptions = [0, 1, 2, 3].filter(
+            (index) => index !== correctIndex,
+          );
+
+          return wrongOptions[
+            Math.floor(Math.random() * wrongOptions.length)
+          ];
+        })();
+
+  processAnswer(selectedIndex);
+},
 
     onContinueAfterFeedback: continueAfterAnswer,
 

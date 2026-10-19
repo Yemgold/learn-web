@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
+  CheckCircle2,
+  Dices,
   Coins,
   History,
   Info,
@@ -107,8 +109,8 @@ type Props = {
 
 const TRACK_LENGTH = 52;
 const FINISH_POSITION = 57;
-const MOVEMENT_STEP_MS = 650;
-const BOT_FEEDBACK_MS = 5000;
+const MOVEMENT_STEP_MS = 1000;
+const BOT_FEEDBACK_MS = 8000;
 const CORRECT_ANSWERS_FOR_BONUS = 6;
 
 const START_POSITIONS: Record<EduLudoColor, number> = {
@@ -1105,7 +1107,7 @@ useEffect(() => {
         const roll = Math.floor(Math.random() * 6) + 1;
         askQuestion(currentPlayer, roll);
       }
-    }, 1200);
+    }, 4000);
 
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
@@ -1328,10 +1330,7 @@ useEffect(() => {
         {phase !== "finished" && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
             <section className="min-w-0 space-y-4">
-<div
-  ref={currentTurnRef}
-  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm"
->
+<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     Current turn
@@ -1342,9 +1341,14 @@ useEffect(() => {
                         className={`h-3 w-3 rounded-full ${COLOR_STYLES[currentPlayer.color].bg}`}
                       />
                     )}
-                    <h2 className="text-lg font-black text-slate-900">
-                      {currentPlayer?.name ?? "Waiting"}
-                    </h2>
+                    
+                    <h2
+  ref={currentTurnRef}
+  className="max-w-full break-words [overflow-wrap:anywhere] scroll-mt-24 text-lg font-black text-slate-900"
+>
+  {currentPlayer?.name ?? "Waiting"}
+</h2>
+
                     {currentPlayer?.isBot && (
                       <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
                         COMPUTER
@@ -1509,21 +1513,43 @@ useEffect(() => {
                       <BookOpen size={18} />
                     </div>
 
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-indigo-950">
-                        {legalMoves.length > 0
-                          ? "Choose a highlighted token"
-                          : "Your turn to play"}
-                      </p>
-                      
-                      <p className="mt-1 text-xs leading-5 text-indigo-800">
-                        {legalMoves.length > 0
-                          ? `Your dice shows ${diceValue}. Select one of the highlighted tokens to count out the move.`
-                          : currentBonuses > 0
-                            ? `Roll normally or use one of your ${currentBonuses} saved guaranteed-6 bonus${currentBonuses === 1 ? "" : "es"}. You will receive a question either way.`
-                            : `Roll the dice to receive a question. Answer correctly to move a legal token. Each question costs ${money(QUESTION_COST)}.`}
-                      </p>
-                    </div>
+<div className="min-w-0 flex-1 rounded-xl border border-indigo-200 bg-white p-3 shadow-md transition-all duration-300">
+  <div className="flex items-start gap-3">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
+      {legalMoves.length > 0 ? (
+        <CheckCircle2 className="h-5 w-5" />
+      ) : (
+        <Dices className="h-5 w-5" />
+      )}
+    </div>
+
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-500">
+        {currentPlayer?.name ?? "Player"} — YOUR TURN
+      </p>
+
+      <p className="mt-1 text-sm font-bold text-indigo-950">
+        {legalMoves.length > 0
+          ? "Choose a highlighted token"
+          : "Your turn to play"}
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-indigo-800">
+        {legalMoves.length > 0
+          ? `Your dice shows ${diceValue}. Select one of the highlighted tokens to count out the move.`
+          : currentBonuses > 0
+            ? `Roll normally or use one of your ${currentBonuses} saved guaranteed-6 bonus${currentBonuses === 1 ? "" : "es"}. You will receive a question either way.`
+            : `Roll the dice to receive a question. Answer correctly to move a legal token. Each question costs ${money(QUESTION_COST)}.`}
+      </p>
+    </div>
+
+    {legalMoves.length > 0 && (
+      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
+        MOVE
+      </span>
+    )}
+  </div>
+</div>
 
                     {legalMoves.length === 0 && (
                       <button

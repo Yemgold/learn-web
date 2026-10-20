@@ -676,7 +676,29 @@ export default function Home() {
             <div className="inspector-divider"/>
             <div className="inspector-section"><h3>Quick actions</h3><button className="inspector-action" onClick={()=>{setPlayhead(selectedClip.start);setNotice("Playhead moved to selected clip")}}><Play size={15}/> Jump to clip</button><button className="inspector-action danger" onClick={deleteSelected}><Trash2 size={15}/> Remove from timeline</button></div>
           </> : <div className="inspector-empty"><Layers3 size={28}/><strong>No clip selected</strong><span>Select a clip on the timeline to adjust its position and duration.</span></div>}
-          <div className="ai-card"><div className="ai-icon"><WandSparkles size={17}/></div><div><strong>AI Background Remover</strong><p>Remove an image background in your browser. First use downloads the AI model; no paid API.</p><button disabled={removingBackground} onClick={removeSelectedBackground}>{removingBackground ? "Removing background…" : "Remove selected image background"} <ChevronDown size={13}/></button></div></div>
+          <div className="ai-card"><div className="ai-icon"><WandSparkles size={17}/></div><div><strong>AI Background Remover</strong><p>Remove an image background in your browser. First use downloads the AI model; no paid API.</p>
+          
+          <button
+  type="button"
+  disabled={removingBackground}
+  onClick={() => {
+    console.log("AI Background Remover clicked");
+    void removeSelectedBackground();
+  }}
+  style={{
+    cursor: removingBackground ? "wait" : "pointer",
+    pointerEvents: "auto",
+    position: "relative",
+    zIndex: 10,
+  }}
+>
+  {removingBackground
+    ? "Removing background…"
+    : "Remove selected image background"}
+  <ChevronDown size={13} />
+</button>
+          
+          </div></div>
           <div className="tips"><CircleHelp size={15}/><span><b>Tip:</b> Drag media onto the timeline. Select a clip, then use Split at the playhead.</span></div>
         </aside>
       </section>

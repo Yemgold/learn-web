@@ -2,8 +2,6 @@
 
 
 
-
-
 "use client";
 
 import {
@@ -26,6 +24,7 @@ import type { Clip } from "@/lib/studio/types";
 
 interface PreviewPanelProps {
   clip?: Clip | null;
+  backgroundClip?: Clip | null;
   currentTime?: number;
   isPlaying?: boolean;
   onPlayPause?: () => void;
@@ -46,6 +45,7 @@ const ASPECT_RATIOS: Record<AspectRatio, string> = {
 
 export default function PreviewPanel({
   clip = null,
+  backgroundClip = null,
   currentTime = 0,
   isPlaying = false,
   onPlayPause,
@@ -56,8 +56,8 @@ export default function PreviewPanel({
 }: PreviewPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const backgroundVideoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
 
   const [aspectRatio, setAspectRatio] =
     useState<AspectRatio>("16:9");
@@ -69,6 +69,10 @@ export default function PreviewPanel({
   const isVideo = clip?.kind === "video";
   const isAudio = clip?.kind === "audio";
   const isImage = clip?.kind === "image";
+  const hasVideoBackground =
+    isVideo && backgroundClip?.kind === "image" && Boolean(backgroundClip.url);
+  const hasVideoBackgroundVideo =
+    isVideo && backgroundClip?.kind === "video" && Boolean(backgroundClip.url);
 
   const duration = mediaDuration || clip?.duration || 0;
   const displayedTime = Math.max(
@@ -79,7 +83,6 @@ export default function PreviewPanel({
   const handleLoadedMetadata = useCallback(
     (value: number) => {
       if (!Number.isFinite(value) || value < 0) return;
-
       setMediaDuration(value);
       onDurationChange?.(value);
     },
@@ -88,9 +91,7 @@ export default function PreviewPanel({
 
   const handleTimeUpdate = useCallback(
     (value: number) => {
-      if (!Number.isFinite(value)) return;
-
-      onTimeUpdate?.(value);
+      if (Number.isFinite(value)) onTimeUpdate?.(value);
     },
     [onTimeUpdate],
   );
@@ -112,13 +113,32 @@ export default function PreviewPanel({
     media.muted = muted;
 
     if (isPlaying) {
-      void media.play().catch(() => {
-        // Playback may require a direct user interaction.
-      });
+      void media.play().catch(() => {});
     } else {
       media.pause();
     }
   }, [isPlaying, isVideo, isAudio, muted, clip?.url]);
+
+  useEffect(() => {
+    const background = backgroundVideoRef.current;
+    if (!background) return;
+
+    background.muted = true;
+    if (isPlaying) {
+      void background.play().catch(() => {});
+    } else {
+      background.pause();
+    }
+
+    if (
+      Number.isFinite(currentTime) &&
+      Math.abs(background.currentTime - currentTime) > 0.75
+    ) {
+      try {
+        background.currentTime = Math.max(0, currentTime);
+      } catch {}
+    }
+  }, [isPlaying, currentTime, backgroundClip?.url]);
 
   useEffect(() => {
     const media = isVideo
@@ -132,9 +152,7 @@ export default function PreviewPanel({
     if (Math.abs(media.currentTime - currentTime) > 0.75) {
       try {
         media.currentTime = Math.max(0, currentTime);
-      } catch {
-        // Some media cannot seek until metadata is available.
-      }
+      } catch {}
     }
   }, [currentTime, isVideo, isAudio, clip?.url]);
 
@@ -143,17 +161,9 @@ export default function PreviewPanel({
       setFullscreen(Boolean(document.fullscreenElement));
     };
 
-    document.addEventListener(
-      "fullscreenchange",
-      handleFullscreenChange,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
-    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const toggleFullscreen = async () => {
@@ -172,14 +182,14 @@ export default function PreviewPanel({
   };
 
   const seekTo = (value: number) => {
-    const nextTime = Math.max(0, Math.min(value, duration));
+    const nextTime = Math.max(0, Math.min(value, duration || value));
 
-    if (videoRef.current) {
-      videoRef.current.currentTime = nextTime;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.currentTime = nextTime;
+    if (videoRef.current) videoRef.current.currentTime = nextTime;
+    if (audioRef.current) audioRef.current.currentTime = nextTime;
+    if (backgroundVideoRef.current) {
+      try {
+        backgroundVideoRef.current.currentTime = nextTime;
+      } catch {}
     }
 
     onSeek?.(nextTime);
@@ -194,6 +204,8 @@ export default function PreviewPanel({
         minWidth: 0,
         minHeight: 0,
         height: "100%",
+        maxHeight: "100%",
+        overflow: "hidden",
         background: "var(--studio-panel, #151515)",
         color: "var(--studio-text, #f4f4f5)",
       }}
@@ -203,24 +215,23 @@ export default function PreviewPanel({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
-          padding: "10px 14px",
+          gap: 8,
+          padding: "7px 10px",
+          flexShrink: 0,
           borderBottom: "1px solid var(--studio-border, #2a2a2a)",
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>
-            Preview
-          </div>
-
+          <div style={{ fontSize: 12, fontWeight: 600 }}>Preview</div>
           <div
             style={{
-              marginTop: 3,
-              fontSize: 11,
+              marginTop: 2,
+              fontSize: 10,
               color: "var(--studio-muted, #a1a1aa)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              maxWidth: 220,
             }}
           >
             {clip?.name || "No media selected"}
@@ -234,12 +245,12 @@ export default function PreviewPanel({
             setAspectRatio(event.target.value as AspectRatio)
           }
           style={{
-            padding: "5px 8px",
+            padding: "4px 6px",
             border: "1px solid var(--studio-border, #333)",
-            borderRadius: 6,
+            borderRadius: 5,
             background: "var(--studio-surface, #202020)",
             color: "inherit",
-            fontSize: 11,
+            fontSize: 10,
           }}
         >
           {Object.keys(ASPECT_RATIOS).map((ratio) => (
@@ -254,11 +265,13 @@ export default function PreviewPanel({
         ref={containerRef}
         style={{
           display: "flex",
-          flex: 1,
+          flex: "1 1 auto",
           flexDirection: "column",
           justifyContent: "center",
+          alignItems: "center",
           minHeight: 0,
-          padding: 12,
+          overflow: "hidden",
+          padding: fullscreen ? 0 : 8,
           background: "#090909",
         }}
       >
@@ -266,14 +279,49 @@ export default function PreviewPanel({
           style={{
             position: "relative",
             width: "100%",
-            maxHeight: fullscreen ? "calc(100vh - 100px)" : "100%",
+            maxWidth: fullscreen ? "100%" : 680,
+            maxHeight: fullscreen ? "calc(100vh - 80px)" : "100%",
             aspectRatio: ASPECT_RATIOS[aspectRatio],
             margin: "0 auto",
             overflow: "hidden",
             background: "#000",
-            borderRadius: fullscreen ? 0 : 8,
+            borderRadius: fullscreen ? 0 : 6,
+            flexShrink: 1,
           }}
         >
+          {hasVideoBackground && (
+            <img
+              src={backgroundClip!.url}
+              alt="Video background"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          {hasVideoBackgroundVideo && (
+            <video
+              ref={backgroundVideoRef}
+              src={backgroundClip!.url}
+              muted
+              playsInline
+              preload="metadata"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0,
+              }}
+            />
+          )}
+
           {isVideo && clip.url && (
             <video
               ref={videoRef}
@@ -290,17 +338,20 @@ export default function PreviewPanel({
               onEnded={() => onPlayPause?.()}
               onError={() => setMediaError(true)}
               style={{
+                position: "absolute",
+                inset: 0,
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
                 display: "block",
+                zIndex: 1,
+                background: "transparent",
               }}
             />
           )}
 
           {isImage && clip.url && (
             <img
-              ref={imageRef}
               src={clip.url}
               alt={clip.name}
               onError={() => setMediaError(true)}
@@ -322,38 +373,34 @@ export default function PreviewPanel({
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "column",
-                gap: 16,
-                padding: 20,
-                background:
-                  "radial-gradient(circle at center, #292044, #090909 75%)",
+                gap: 10,
+                padding: 12,
+                background: "radial-gradient(circle at center, #292044, #090909 75%)",
               }}
             >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 100,
-                  height: 100,
+                  display: "grid",
+                  placeItems: "center",
+                  width: 64,
+                  height: 64,
                   borderRadius: "50%",
                   background: "#7c3aed",
-                  fontSize: 36,
+                  fontSize: 28,
                 }}
               >
                 ♪
               </div>
-
               <div
                 style={{
                   maxWidth: "90%",
-                  fontSize: 13,
+                  fontSize: 12,
                   textAlign: "center",
                   overflowWrap: "anywhere",
                 }}
               >
                 {clip.name}
               </div>
-
               <audio
                 ref={audioRef}
                 src={clip.url}
@@ -379,17 +426,17 @@ export default function PreviewPanel({
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "column",
-                gap: 10,
-                padding: 20,
+                gap: 7,
+                padding: 12,
                 color: "#a1a1aa",
                 textAlign: "center",
               }}
             >
-              <div style={{ fontSize: 32, opacity: 0.65 }}>▶</div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>
+              <div style={{ fontSize: 25, opacity: 0.65 }}>▶</div>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>
                 Your preview appears here
               </div>
-              <div style={{ fontSize: 11 }}>
+              <div style={{ fontSize: 10 }}>
                 Select a clip from your timeline to preview it.
               </div>
             </div>
@@ -404,11 +451,12 @@ export default function PreviewPanel({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: 20,
+                padding: 12,
                 background: "rgba(0,0,0,0.9)",
                 color: "#f87171",
-                fontSize: 12,
+                fontSize: 11,
                 textAlign: "center",
+                zIndex: 3,
               }}
             >
               This media could not be loaded. Try selecting it again.
@@ -419,26 +467,25 @@ export default function PreviewPanel({
             <button
               type="button"
               onClick={toggleFullscreen}
-              aria-label={
-                fullscreen ? "Exit fullscreen" : "Enter fullscreen"
-              }
+              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               title="Fullscreen preview"
               style={{
                 position: "absolute",
-                right: 10,
-                top: 10,
+                right: 7,
+                top: 7,
                 display: "grid",
                 placeItems: "center",
-                width: 32,
-                height: 32,
+                width: 27,
+                height: 27,
                 border: "1px solid #ffffff30",
-                borderRadius: 6,
+                borderRadius: 5,
                 background: "#0009",
                 color: "#fff",
                 cursor: "pointer",
+                zIndex: 4,
               }}
             >
-              <Maximize2 size={15} />
+              <Maximize2 size={13} />
             </button>
           )}
         </div>
@@ -448,22 +495,17 @@ export default function PreviewPanel({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 8,
-          padding: "10px 14px",
+          gap: 5,
+          padding: "7px 10px",
+          flexShrink: 0,
           borderTop: "1px solid var(--studio-border, #2a2a2a)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
-              minWidth: 80,
-              fontSize: 11,
+              minWidth: 70,
+              fontSize: 10,
               fontVariantNumeric: "tabular-nums",
               color: "var(--studio-muted, #a1a1aa)",
             }}
@@ -478,9 +520,7 @@ export default function PreviewPanel({
             max={Math.max(duration, 0.1)}
             step={0.01}
             value={Math.min(displayedTime, Math.max(duration, 0.1))}
-            onChange={(event) =>
-              seekTo(Number(event.currentTarget.value))
-            }
+            onChange={(event) => seekTo(Number(event.currentTarget.value))}
             disabled={!clip || duration <= 0}
             style={{
               flex: 1,
@@ -505,7 +545,7 @@ export default function PreviewPanel({
             aria-label="Restart preview"
             style={iconButtonStyle}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={13} />
           </button>
 
           <button
@@ -515,14 +555,14 @@ export default function PreviewPanel({
             aria-label={isPlaying ? "Pause preview" : "Play preview"}
             style={{
               ...iconButtonStyle,
-              width: 38,
-              height: 34,
+              width: 32,
+              height: 29,
               background: "var(--studio-accent, #7c3aed)",
               color: "#fff",
               border: "none",
             }}
           >
-            {isPlaying ? <Pause size={17} /> : <Play size={17} />}
+            {isPlaying ? <Pause size={15} /> : <Play size={15} />}
           </button>
 
           <button
@@ -533,7 +573,7 @@ export default function PreviewPanel({
             aria-label={muted ? "Unmute media" : "Mute media"}
             style={iconButtonStyle}
           >
-            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
           </button>
         </div>
       </div>
@@ -544,10 +584,10 @@ export default function PreviewPanel({
 const iconButtonStyle: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
-  width: 32,
-  height: 30,
+  width: 28,
+  height: 27,
   border: "1px solid var(--studio-border, #333)",
-  borderRadius: 6,
+  borderRadius: 5,
   background: "var(--studio-surface, #202020)",
   color: "var(--studio-text, #f4f4f5)",
   cursor: "pointer",

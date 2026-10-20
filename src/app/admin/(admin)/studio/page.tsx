@@ -56,14 +56,63 @@ export default function StudioPage() {
   const playhead = timeline.playhead;
 
   const duration = useMemo(
-    () => Math.max(1, timeline.timelineDuration || getTimelineDuration(clips)),
+    () =>
+      Math.max(
+        1,
+        timeline.timelineDuration || getTimelineDuration(clips),
+      ),
     [clips, timeline.timelineDuration],
   );
 
   const selectedAsset = useMemo(
-    () => assets.find((asset) => asset.id === studio.selectedAssetId) ?? null,
+    () =>
+      assets.find((asset) => asset.id === studio.selectedAssetId) ?? null,
     [assets, studio.selectedAssetId],
   );
+
+  /*
+   * PREVIEW COMPOSITING SELECTION
+   *
+   * When the user selects a background image, keep the main video
+   * visible in the preview and show that image behind it.
+   *
+   * An image on the Overlay track is preferred as the background.
+   */
+  const previewVideoClip = useMemo(() => {
+    if (selectedClip?.kind === "video") {
+      return selectedClip;
+    }
+
+    return (
+      clips.find(
+        (clip) => clip.kind === "video" && clip.track === "video",
+      ) ??
+      clips.find((clip) => clip.kind === "video") ??
+      null
+    );
+  }, [clips, selectedClip]);
+
+  const backgroundClip = useMemo(() => {
+    if (selectedClip?.kind === "image") {
+      return selectedClip;
+    }
+
+    return (
+      clips.find(
+        (clip) =>
+          clip.kind === "image" && clip.track === "overlay",
+      ) ??
+      clips.find((clip) => clip.kind === "image") ??
+      null
+    );
+  }, [clips, selectedClip]);
+
+  // Show the image behind the video only when a video is available.
+  const previewClip = previewVideoClip ?? selectedClip;
+  const previewBackground =
+    previewVideoClip && backgroundClip?.id !== previewVideoClip.id
+      ? backgroundClip
+      : null;
 
   const markUnsaved = useCallback(() => {
     setLastSaved(null);
@@ -113,7 +162,9 @@ export default function StudioPage() {
       if (newAssets.length > 0) {
         studio.setSelectedAssetId(newAssets[newAssets.length - 1].id);
         studio.showSuccess(
-          `${newAssets.length} media file${newAssets.length === 1 ? "" : "s"} imported.`,
+          `${newAssets.length} media file${
+            newAssets.length === 1 ? "" : "s"
+          } imported.`,
         );
         markUnsaved();
       }
@@ -145,7 +196,9 @@ export default function StudioPage() {
 
   const handleDeleteAsset = useCallback(
     (asset: Asset) => {
-      const linkedClips = clips.filter((clip) => clip.assetId === asset.id);
+      const linkedClips = clips.filter(
+        (clip) => clip.assetId === asset.id,
+      );
 
       linkedClips.forEach((clip) => timeline.removeClip(clip.id));
       studio.removeAsset(asset.id);
@@ -276,7 +329,9 @@ export default function StudioPage() {
       const anchor = document.createElement("a");
 
       anchor.href = url;
-      anchor.download = file.name || selectedClip.name || "media-export";
+      anchor.download =
+        file.name || selectedClip.name || "media-export";
+
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -284,7 +339,7 @@ export default function StudioPage() {
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       studio.showSuccess(
-        "Original media downloaded. The complete timeline is not rendered yet.",
+        "Original media downloaded. Full timeline compositing is not included in this export yet.",
       );
     } catch (error) {
       console.error("Media export failed:", error);
@@ -322,7 +377,9 @@ export default function StudioPage() {
       playhead <= selectedClip.start ||
       playhead >= selectedClip.start + selectedClip.duration
     ) {
-      studio.showError("Move the playhead inside the selected clip first.");
+      studio.showError(
+        "Move the playhead inside the selected clip first.",
+      );
       return;
     }
 
@@ -355,7 +412,7 @@ export default function StudioPage() {
         : "unsaved";
 
   return (
-    <main className="studio-page flex min-h-screen flex-col bg-background text-foreground">
+    <main className="studio-page flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
       <StudioTopbar
         projectName={studio.projectName}
         onProjectNameChange={handleProjectNameChange}
@@ -370,14 +427,15 @@ export default function StudioPage() {
       {studio.notice && (
         <div
           role="status"
-          className="mx-4 mt-3 rounded-lg border border-border bg-muted px-4 py-2 text-sm text-foreground"
+          className="mx-3 mt-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground"
         >
           {studio.notice}
         </div>
       )}
 
-      <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-        <aside className="min-h-[300px] overflow-hidden rounded-xl border border-border bg-card">
+      <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 xl:grid-cols-[250px_minmax(0,1fr)_280px]">
+        {/* Media library */}
+        <aside className="min-h-[260px] overflow-hidden rounded-xl border border-border bg-card xl:min-h-0">
           <MediaPanel
             assets={assets}
             selectedAssetId={studio.selectedAssetId}
@@ -388,10 +446,13 @@ export default function StudioPage() {
           />
         </aside>
 
+        {/* Main editing workspace */}
         <section className="flex min-w-0 flex-col gap-3">
-          <div className="min-h-[320px] flex-1 overflow-hidden rounded-xl border border-border bg-card">
+          {/* Compact preview */}
+          <div className="h-[280px] min-h-[220px] max-h-[38vh] overflow-hidden rounded-xl border border-border bg-card lg:h-[300px] xl:h-[320px]">
             <PreviewPanel
-              clip={selectedClip}
+              clip={previewClip}
+              backgroundClip={previewBackground}
               currentTime={playhead}
               isPlaying={isPlaying}
               onPlayPause={handlePlayPause}
@@ -400,7 +461,7 @@ export default function StudioPage() {
             />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-3">
+          <div className="rounded-xl border border-border bg-card p-2">
             <TransportControls
               isPlaying={isPlaying}
               currentTime={playhead}
@@ -410,8 +471,9 @@ export default function StudioPage() {
             />
           </div>
 
+          {/* Timeline */}
           <div className="min-h-[280px] overflow-hidden rounded-xl border border-border bg-card">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2.5">
               <div>
                 <h2 className="text-sm font-semibold">Timeline</h2>
                 <p className="text-xs text-muted-foreground">
@@ -472,14 +534,17 @@ export default function StudioPage() {
                 if (selectedAsset) {
                   handleAddToTimeline(selectedAsset);
                 } else {
-                  studio.showNotice("Import and select a media file first.");
+                  studio.showNotice(
+                    "Import and select a media file first.",
+                  );
                 }
               }}
             />
           </div>
         </section>
 
-        <aside className="flex min-h-[300px] flex-col gap-3">
+        {/* Inspector and tools */}
+        <aside className="flex min-h-[260px] flex-col gap-3 xl:min-h-0">
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             <InspectorPanel
               clip={selectedClip}
@@ -508,18 +573,24 @@ export default function StudioPage() {
             />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="mb-2 text-sm font-semibold">Project information</h2>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <h2 className="mb-2 text-sm font-semibold">
+              Project information
+            </h2>
 
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center justify-between gap-3">
                 <span>Media files</span>
-                <span className="font-medium text-foreground">{assets.length}</span>
+                <span className="font-medium text-foreground">
+                  {assets.length}
+                </span>
               </div>
 
               <div className="flex items-center justify-between gap-3">
                 <span>Timeline clips</span>
-                <span className="font-medium text-foreground">{clips.length}</span>
+                <span className="font-medium text-foreground">
+                  {clips.length}
+                </span>
               </div>
 
               <div className="flex items-center justify-between gap-3">
@@ -538,10 +609,11 @@ export default function StudioPage() {
 
               {videoBackgroundRemoval.removingBackground && (
                 <div className="pt-2">
-                  <div className="mb-1 flex justify-between">
+                  <div className="mb-1 flex justify-between gap-2">
                     <span>Removing video background</span>
                     <span>{videoBackgroundRemoval.progress}%</span>
                   </div>
+
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
@@ -550,6 +622,7 @@ export default function StudioPage() {
                       }}
                     />
                   </div>
+
                   <button
                     type="button"
                     onClick={videoBackgroundRemoval.cancelRemoval}
@@ -565,7 +638,7 @@ export default function StudioPage() {
               type="button"
               onClick={handleSaveProject}
               disabled={isSaving}
-              className="mt-4 w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {isSaving ? "Saving project…" : "Save project"}
             </button>

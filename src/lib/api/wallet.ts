@@ -86,7 +86,7 @@ export interface WithdrawalResponse {
    FUND WALLET
 ============================================================ */
 
-export type WalletFundingProvider = "MONNIFY";
+export type WalletFundingProvider = "monnify";
 
 export interface FundWalletRequest {
   walletId: string;

@@ -112,7 +112,7 @@ export default function FundWalletModal({
 
 const response = await fundWallet.mutateAsync({
   walletId,
-  provider: "MONNIFY",
+  provider: "monnify",
   amountInKobo,
 });
 

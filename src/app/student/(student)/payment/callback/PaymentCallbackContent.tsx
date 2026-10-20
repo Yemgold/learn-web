@@ -1,7 +1,8 @@
 
 
 
-//src\app\student\(student)\payment\callback\PaymentCallbackContent.tsx
+
+
 
 "use client";
 
@@ -13,40 +14,44 @@ import {
 
 import { useVerifyPayment } from "@/hooks/payment/useVerifyPayment";
 
-/* ============================================================
-   PAYMENT CALLBACK CONTENT
-   ============================================================ */
-
 export default function PaymentCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const verifyPaymentMutation =
+  const { mutate: verifyPayment, isPending } =
     useVerifyPayment();
 
-  /*
-   * Prevent the verification request from being
-   * triggered more than once.
-   */
   const hasVerified = useRef(false);
-
-  /* ============================================================
-     PAYMENT REFERENCE
-     ============================================================ */
-
-  const reference =
-    searchParams.get("reference") ??
-    searchParams.get("trxref");
-
-  /* ============================================================
-     VERIFY PAYMENT
-     ============================================================ */
+  const queryString = searchParams.toString();
 
   useEffect(() => {
-    /*
-     * No payment reference was returned by Monnify.
-     */
+    const params = new URLSearchParams(queryString);
+
+    console.log("========== PAYMENT CALLBACK DEBUG ==========");
+    console.log("Callback URL:", window.location.href);
+    console.log(
+      "Callback query parameters:",
+      Object.fromEntries(params.entries()),
+    );
+
+    const reference =
+      params.get("paymentReference") ||
+      params.get("transactionReference") ||
+      params.get("transaction_reference") ||
+      params.get("reference") ||
+      params.get("trxref");
+
+    console.log(
+      "Detected payment reference:",
+      reference || "(none)",
+    );
+
     if (!reference) {
+      console.error(
+        "No recognized payment reference was returned. " +
+          "Check the Monnify redirect configuration and backend response.",
+      );
+
       router.replace(
         "/student/payment?error=missing_reference",
       );
@@ -54,78 +59,39 @@ export default function PaymentCallbackContent() {
       return;
     }
 
-    /*
-     * Prevent duplicate verification requests.
-     */
     if (hasVerified.current) {
       return;
     }
 
     hasVerified.current = true;
 
-    console.log(
-      "========== PAYMENT CALLBACK ==========",
-    );
-
-    console.log(
-      "Payment reference:",
-      reference,
-    );
-
-    verifyPaymentMutation.mutate(
-      {
-        reference,
-      },
+    verifyPayment(
+      { reference },
       {
         onSuccess: (response) => {
           console.log(
-            "========== PAYMENT VERIFICATION RESPONSE ==========",
-          );
-
-          console.log(
+            "Payment verification response:",
             response,
           );
 
-          /*
-           * Payment successfully verified.
-           */
           if (
             response.success &&
             response.data?.paid === true
           ) {
-            console.log(
-              "Payment verified successfully.",
-            );
-
             router.replace(
-              `/student/payment/success?reference=${encodeURIComponent(
-                reference,
-              )}`,
+              "/student/payment/success?reference=" +
+                encodeURIComponent(reference),
             );
-
             return;
           }
-
-          /*
-           * Backend responded, but payment was not
-           * confirmed as successful.
-           */
-          console.warn(
-            "Payment verification failed:",
-            response,
-          );
 
           router.replace(
             "/student/payment?error=verification_failed",
           );
         },
-
         onError: (error) => {
           console.error(
-            "========== PAYMENT VERIFICATION ERROR ==========",
-          );
-
-          console.error(
+            "Payment verification request failed:",
             error,
           );
 
@@ -135,37 +101,23 @@ export default function PaymentCallbackContent() {
         },
       },
     );
-  }, [
-    reference,
-    router,
-    verifyPaymentMutation,
-  ]);
-
-  /* ============================================================
-     LOADING STATE
-     ============================================================ */
+  }, [queryString, router, verifyPayment]);
 
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-slate-50 px-6">
       <div className="w-full max-w-md text-center">
-
-        {/* Spinner */}
-
         <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
 
-        {/* Title */}
-
         <h1 className="text-2xl font-bold text-slate-900">
-          Verifying Payment
+          {isPending
+            ? "Verifying Payment..."
+            : "Checking Payment..."}
         </h1>
 
-        {/* Description */}
-
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Please wait while we confirm your
-          payment. Do not close this page.
+          Please wait while we check your transaction.
+          Do not close this page.
         </p>
-
       </div>
     </main>
   );

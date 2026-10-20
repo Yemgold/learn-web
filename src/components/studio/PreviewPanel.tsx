@@ -1,0 +1,554 @@
+
+
+
+
+
+
+"use client";
+
+import {
+  Maximize2,
+  Pause,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { formatTime } from "@/lib/studio/utils";
+import type { Clip } from "@/lib/studio/types";
+
+interface PreviewPanelProps {
+  clip?: Clip | null;
+  currentTime?: number;
+  isPlaying?: boolean;
+  onPlayPause?: () => void;
+  onSeek?: (time: number) => void;
+  onTimeUpdate?: (time: number) => void;
+  onDurationChange?: (duration: number) => void;
+  className?: string;
+}
+
+type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3";
+
+const ASPECT_RATIOS: Record<AspectRatio, string> = {
+  "16:9": "16 / 9",
+  "9:16": "9 / 16",
+  "1:1": "1 / 1",
+  "4:3": "4 / 3",
+};
+
+export default function PreviewPanel({
+  clip = null,
+  currentTime = 0,
+  isPlaying = false,
+  onPlayPause,
+  onSeek,
+  onTimeUpdate,
+  onDurationChange,
+  className = "",
+}: PreviewPanelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const [aspectRatio, setAspectRatio] =
+    useState<AspectRatio>("16:9");
+  const [muted, setMuted] = useState(false);
+  const [mediaDuration, setMediaDuration] = useState(0);
+  const [mediaError, setMediaError] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  const isVideo = clip?.kind === "video";
+  const isAudio = clip?.kind === "audio";
+  const isImage = clip?.kind === "image";
+
+  const duration = mediaDuration || clip?.duration || 0;
+  const displayedTime = Math.max(
+    0,
+    Math.min(currentTime, duration || currentTime),
+  );
+
+  const handleLoadedMetadata = useCallback(
+    (value: number) => {
+      if (!Number.isFinite(value) || value < 0) return;
+
+      setMediaDuration(value);
+      onDurationChange?.(value);
+    },
+    [onDurationChange],
+  );
+
+  const handleTimeUpdate = useCallback(
+    (value: number) => {
+      if (!Number.isFinite(value)) return;
+
+      onTimeUpdate?.(value);
+    },
+    [onTimeUpdate],
+  );
+
+  useEffect(() => {
+    setMediaError(false);
+    setMediaDuration(0);
+  }, [clip?.id, clip?.url]);
+
+  useEffect(() => {
+    const media = isVideo
+      ? videoRef.current
+      : isAudio
+        ? audioRef.current
+        : null;
+
+    if (!media) return;
+
+    media.muted = muted;
+
+    if (isPlaying) {
+      void media.play().catch(() => {
+        // Playback may require a direct user interaction.
+      });
+    } else {
+      media.pause();
+    }
+  }, [isPlaying, isVideo, isAudio, muted, clip?.url]);
+
+  useEffect(() => {
+    const media = isVideo
+      ? videoRef.current
+      : isAudio
+        ? audioRef.current
+        : null;
+
+    if (!media || !Number.isFinite(currentTime)) return;
+
+    if (Math.abs(media.currentTime - currentTime) > 0.75) {
+      try {
+        media.currentTime = Math.max(0, currentTime);
+      } catch {
+        // Some media cannot seek until metadata is available.
+      }
+    }
+  }, [currentTime, isVideo, isAudio, clip?.url]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener(
+      "fullscreenchange",
+      handleFullscreenChange,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange,
+      );
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await container.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("Could not toggle preview fullscreen:", error);
+    }
+  };
+
+  const seekTo = (value: number) => {
+    const nextTime = Math.max(0, Math.min(value, duration));
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = nextTime;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = nextTime;
+    }
+
+    onSeek?.(nextTime);
+  };
+
+  return (
+    <section
+      className={`studio-preview-panel ${className}`.trim()}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        minHeight: 0,
+        height: "100%",
+        background: "var(--studio-panel, #151515)",
+        color: "var(--studio-text, #f4f4f5)",
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "10px 14px",
+          borderBottom: "1px solid var(--studio-border, #2a2a2a)",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            Preview
+          </div>
+
+          <div
+            style={{
+              marginTop: 3,
+              fontSize: 11,
+              color: "var(--studio-muted, #a1a1aa)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {clip?.name || "No media selected"}
+          </div>
+        </div>
+
+        <select
+          aria-label="Preview aspect ratio"
+          value={aspectRatio}
+          onChange={(event) =>
+            setAspectRatio(event.target.value as AspectRatio)
+          }
+          style={{
+            padding: "5px 8px",
+            border: "1px solid var(--studio-border, #333)",
+            borderRadius: 6,
+            background: "var(--studio-surface, #202020)",
+            color: "inherit",
+            fontSize: 11,
+          }}
+        >
+          {Object.keys(ASPECT_RATIOS).map((ratio) => (
+            <option key={ratio} value={ratio}>
+              {ratio}
+            </option>
+          ))}
+        </select>
+      </header>
+
+      <div
+        ref={containerRef}
+        style={{
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          justifyContent: "center",
+          minHeight: 0,
+          padding: 12,
+          background: "#090909",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxHeight: fullscreen ? "calc(100vh - 100px)" : "100%",
+            aspectRatio: ASPECT_RATIOS[aspectRatio],
+            margin: "0 auto",
+            overflow: "hidden",
+            background: "#000",
+            borderRadius: fullscreen ? 0 : 8,
+          }}
+        >
+          {isVideo && clip.url && (
+            <video
+              ref={videoRef}
+              src={clip.url}
+              playsInline
+              preload="metadata"
+              muted={muted}
+              onLoadedMetadata={(event) =>
+                handleLoadedMetadata(event.currentTarget.duration)
+              }
+              onTimeUpdate={(event) =>
+                handleTimeUpdate(event.currentTarget.currentTime)
+              }
+              onEnded={() => onPlayPause?.()}
+              onError={() => setMediaError(true)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          )}
+
+          {isImage && clip.url && (
+            <img
+              ref={imageRef}
+              src={clip.url}
+              alt={clip.name}
+              onError={() => setMediaError(true)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          )}
+
+          {isAudio && clip.url && (
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 16,
+                padding: 20,
+                background:
+                  "radial-gradient(circle at center, #292044, #090909 75%)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 100,
+                  height: 100,
+                  borderRadius: "50%",
+                  background: "#7c3aed",
+                  fontSize: 36,
+                }}
+              >
+                ♪
+              </div>
+
+              <div
+                style={{
+                  maxWidth: "90%",
+                  fontSize: 13,
+                  textAlign: "center",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {clip.name}
+              </div>
+
+              <audio
+                ref={audioRef}
+                src={clip.url}
+                preload="metadata"
+                muted={muted}
+                onLoadedMetadata={(event) =>
+                  handleLoadedMetadata(event.currentTarget.duration)
+                }
+                onTimeUpdate={(event) =>
+                  handleTimeUpdate(event.currentTarget.currentTime)
+                }
+                onEnded={() => onPlayPause?.()}
+                onError={() => setMediaError(true)}
+              />
+            </div>
+          )}
+
+          {!clip && (
+            <div
+              style={{
+                display: "flex",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 10,
+                padding: 20,
+                color: "#a1a1aa",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 32, opacity: 0.65 }}>▶</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                Your preview appears here
+              </div>
+              <div style={{ fontSize: 11 }}>
+                Select a clip from your timeline to preview it.
+              </div>
+            </div>
+          )}
+
+          {mediaError && (
+            <div
+              role="alert"
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+                background: "rgba(0,0,0,0.9)",
+                color: "#f87171",
+                fontSize: 12,
+                textAlign: "center",
+              }}
+            >
+              This media could not be loaded. Try selecting it again.
+            </div>
+          )}
+
+          {clip && (
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={
+                fullscreen ? "Exit fullscreen" : "Enter fullscreen"
+              }
+              title="Fullscreen preview"
+              style={{
+                position: "absolute",
+                right: 10,
+                top: 10,
+                display: "grid",
+                placeItems: "center",
+                width: 32,
+                height: 32,
+                border: "1px solid #ffffff30",
+                borderRadius: 6,
+                background: "#0009",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              <Maximize2 size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: "10px 14px",
+          borderTop: "1px solid var(--studio-border, #2a2a2a)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span
+            style={{
+              minWidth: 80,
+              fontSize: 11,
+              fontVariantNumeric: "tabular-nums",
+              color: "var(--studio-muted, #a1a1aa)",
+            }}
+          >
+            {formatTime(displayedTime)} / {formatTime(duration)}
+          </span>
+
+          <input
+            aria-label="Preview playback position"
+            type="range"
+            min={0}
+            max={Math.max(duration, 0.1)}
+            step={0.01}
+            value={Math.min(displayedTime, Math.max(duration, 0.1))}
+            onChange={(event) =>
+              seekTo(Number(event.currentTarget.value))
+            }
+            disabled={!clip || duration <= 0}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              accentColor: "var(--studio-accent, #8b5cf6)",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => seekTo(0)}
+            disabled={!clip}
+            title="Restart preview"
+            aria-label="Restart preview"
+            style={iconButtonStyle}
+          >
+            <RotateCcw size={15} />
+          </button>
+
+          <button
+            type="button"
+            onClick={onPlayPause}
+            disabled={!clip || !onPlayPause || (!isVideo && !isAudio)}
+            aria-label={isPlaying ? "Pause preview" : "Play preview"}
+            style={{
+              ...iconButtonStyle,
+              width: 38,
+              height: 34,
+              background: "var(--studio-accent, #7c3aed)",
+              color: "#fff",
+              border: "none",
+            }}
+          >
+            {isPlaying ? <Pause size={17} /> : <Play size={17} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMuted((value) => !value)}
+            disabled={!isVideo && !isAudio}
+            title={muted ? "Unmute media" : "Mute media"}
+            aria-label={muted ? "Unmute media" : "Mute media"}
+            style={iconButtonStyle}
+          >
+            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const iconButtonStyle: React.CSSProperties = {
+  display: "grid",
+  placeItems: "center",
+  width: 32,
+  height: 30,
+  border: "1px solid var(--studio-border, #333)",
+  borderRadius: 6,
+  background: "var(--studio-surface, #202020)",
+  color: "var(--studio-text, #f4f4f5)",
+  cursor: "pointer",
+};

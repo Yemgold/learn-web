@@ -152,7 +152,7 @@ export async function fundWalletByWalletId(
       },
     );
 
-    console.log("[Fund Wallet] Backend response:", response.data);
+    // console.log("[Fund Wallet] Backend response:", response.data);
 
   return response.data;
 }

@@ -2,7 +2,6 @@
 
 
 
-
 import { axiosInstance } from "@/lib/api/axios";
 
 /* ============================================================
@@ -87,23 +86,14 @@ export interface WithdrawalResponse {
    FUND WALLET
 ============================================================ */
 
-/**
- * Provider accepted by the funding endpoint.
- *
- * Change the value to match your backend enum if necessary.
- */
 export type WalletFundingProvider = "MONNIFY";
 
 export interface FundWalletRequest {
   walletId: string;
   provider: WalletFundingProvider;
-  amount: number;
+  amountInKobo: number;
 }
 
-/**
- * The backend response may contain a payment checkout URL.
- * Additional response fields are permitted.
- */
 export interface FundWalletData {
   checkoutUrl?: string;
   paymentUrl?: string;
@@ -122,28 +112,34 @@ export interface FundWalletResponse {
 }
 
 /**
- * Start wallet funding.
+ * Starts wallet funding through the selected provider.
  *
- * Endpoint:
  * POST /wallets/fund-wallet-by-walletId/{walletId}/{provider}
  *
- * Assumed request body:
- * { amount: number }
+ * Request body:
+ * {
+ *   amountInKobo: number
+ * }
  *
- * The amount is supplied in naira unless your backend specifies
- * a different request contract.
+ * Example:
+ * ₦5,000 = 500000 kobo
  */
 export async function fundWalletByWalletId(
   payload: FundWalletRequest,
 ): Promise<FundWalletResponse> {
-  const { walletId, provider, amount } = payload;
+  const { walletId, provider, amountInKobo } = payload;
 
   if (!walletId?.trim()) {
     throw new Error("Wallet ID is required.");
   }
 
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Enter a valid funding amount.");
+  if (
+    !Number.isSafeInteger(amountInKobo) ||
+    amountInKobo <= 0
+  ) {
+    throw new Error(
+      "Amount must be a positive integer in kobo.",
+    );
   }
 
   const response =
@@ -151,7 +147,9 @@ export async function fundWalletByWalletId(
       `/wallets/fund-wallet-by-walletId/${encodeURIComponent(
         walletId,
       )}/${encodeURIComponent(provider)}`,
-      { amount },
+      {
+        amountInKobo,
+      },
     );
 
   return response.data;

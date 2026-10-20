@@ -108,11 +108,13 @@ export default function FundWalletModal({
     }
 
     try {
-      const response = await fundWallet.mutateAsync({
-        walletId,
-        provider: "MONNIFY",
-        amount: parsedAmount,
-      });
+      const amountInKobo = Math.round(parsedAmount * 100);
+
+const response = await fundWallet.mutateAsync({
+  walletId,
+  provider: "MONNIFY",
+  amountInKobo,
+});
 
       const checkoutUrl = getCheckoutUrl(response);
 

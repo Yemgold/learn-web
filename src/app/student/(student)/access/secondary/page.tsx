@@ -75,13 +75,13 @@ export default function SecondaryAccessPage() {
 
             <p className="mt-1 text-sm text-slate-500">
               Paid plans will be processed securely through
-              Paystack. Your access will be activated after
+              Monnify. Your access will be activated after
               successful payment verification.
             </p>
           </div>
 
           <div className="shrink-0 text-sm font-semibold text-slate-600">
-            Paystack
+            monnify
           </div>
         </div>
       </section>

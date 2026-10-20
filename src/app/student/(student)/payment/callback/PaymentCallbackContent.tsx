@@ -47,8 +47,7 @@ export default function PaymentCallbackContent() {
 
     setReference(paymentReference);
 
-    // A reference identifies the transaction, but does not
-    // prove that Monnify successfully completed the payment.
+  
     console.info(
       "[Payment Callback] Returned from payment provider.",
       {

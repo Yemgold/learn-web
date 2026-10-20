@@ -65,8 +65,8 @@ export function useWallet() {
     enabled: canFetchWallet,
 
     staleTime: 30 * 1000,
-
-    refetchOnWindowFocus: false,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   /* ============================================================

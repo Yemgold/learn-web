@@ -305,20 +305,10 @@ export function useWalletTransactions(
         (previousData) =>
           previousData,
 
-      /*
-       * Wallet transactions can remain
-       * fresh for 30 seconds.
-       */
-
-      staleTime:
-        30_000,
-
-      /*
-       * Refresh when returning to the page.
-       */
-
-      refetchOnWindowFocus:
-        true,
+    
+      staleTime:30_000,
+      refetchOnMount: "always",
+      refetchOnWindowFocus:true,
 
       /*
        * Retry genuine failures.

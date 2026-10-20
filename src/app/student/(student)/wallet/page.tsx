@@ -1,5 +1,5 @@
 
-
+///api/v1/wallets/fund-wallet-by-walletId/{walletId}/{provider}
 
 
 
@@ -18,6 +18,7 @@ import WalletSummaryCards from "@/components/wallet/WalletSummaryCards";
 import WalletQuickActions from "@/components/wallet/WalletQuickActions";
 import WalletTransactions from "@/components/wallet/WalletTransactions";
 import WithdrawFundsModal from "@/components/wallet/WithdrawFundsModal";
+import FundWalletModal from "@/components/wallet/FundWalletModal";
 
 export default function WalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -26,6 +27,8 @@ export default function WalletPage() {
   const [showSummary, setShowSummary] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
   const [showTransactions, setShowTransactions] = useState(false);
+
+  const [fundOpen, setFundOpen] = useState(false);
 
   const {
     wallet,
@@ -44,10 +47,14 @@ export default function WalletPage() {
      FUND WALLET
   ============================================================ */
 
-  const handleFundWallet = () => {
-    // Temporary action until the funding API/modal is connected.
-    console.log("[Wallet] Fund Wallet clicked");
-  };
+ const handleFundWallet = () => {
+  if (!wallet?._id) {
+    console.error("[Wallet] Cannot fund wallet: wallet ID is missing.");
+    return;
+  }
+
+  setFundOpen(true);
+};
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
@@ -230,6 +237,16 @@ export default function WalletPage() {
           </section>
         </div>
       </div>
+     
+     {/* FUND WALLET MODAL */}
+
+<FundWalletModal
+  open={fundOpen}
+  onOpenChange={setFundOpen}
+  walletId={wallet?._id}
+/>
+
+
 
       {/* WITHDRAWAL MODAL */}
 

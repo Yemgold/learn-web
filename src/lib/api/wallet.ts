@@ -1,3 +1,8 @@
+
+
+
+
+
 import { axiosInstance } from "@/lib/api/axios";
 
 /* ============================================================
@@ -7,18 +12,9 @@ import { axiosInstance } from "@/lib/api/axios";
 export interface Wallet {
   _id: string;
   userId: string;
-
-  /**
-   * Backend returns wallet balance in KOBO.
-   *
-   * Example:
-   * 230000 = ₦2,300.00
-   */
   balanceInKobo: number;
-
   createdAt: string;
   updatedAt: string;
-
   __v?: number;
 }
 
@@ -35,50 +31,28 @@ export interface WalletResponse {
 export interface WalletBalanceResponse {
   success: boolean;
   message: string;
-
-  /**
-   * Backend balance endpoint may return kobo.
-   */
   data: number;
 }
 
+/* ============================================================
+   WALLET TRANSACTIONS
+============================================================ */
+
 export interface WalletTransaction {
   _id: string;
-
   walletId: string;
-
   withdrawalId?: string;
-
-  /*
-   * Backend returns amountInKobo.
-   *
-   * Example:
-   * 10000 = ₦100.00
-   */
   amountInKobo: number;
-
   type: "CREDIT" | "DEBIT";
-
   description: string;
-
   category?: string;
-
   referralLevel?: number;
-
   referredUserId?: string;
-
   referralUserId?: string;
-
   createdAt: string;
-
   updatedAt: string;
-
   __v?: number;
 }
-
-/* ============================================================
-   TRANSACTIONS RESPONSE
-============================================================ */
 
 export interface TransactionsData {
   totalCount: number;
@@ -92,8 +66,7 @@ export interface TransactionsResponse {
   data: TransactionsData;
 }
 
-export type WalletTransactionsResponse =
-  TransactionsResponse;
+export type WalletTransactionsResponse = TransactionsResponse;
 
 /* ============================================================
    WITHDRAWAL
@@ -111,16 +84,91 @@ export interface WithdrawalResponse {
 }
 
 /* ============================================================
+   FUND WALLET
+============================================================ */
+
+/**
+ * Provider accepted by the funding endpoint.
+ *
+ * Change the value to match your backend enum if necessary.
+ */
+export type WalletFundingProvider = "MONNIFY";
+
+export interface FundWalletRequest {
+  walletId: string;
+  provider: WalletFundingProvider;
+  amount: number;
+}
+
+/**
+ * The backend response may contain a payment checkout URL.
+ * Additional response fields are permitted.
+ */
+export interface FundWalletData {
+  checkoutUrl?: string;
+  paymentUrl?: string;
+  authorizationUrl?: string;
+  redirectUrl?: string;
+  transactionReference?: string;
+  reference?: string;
+  [key: string]: unknown;
+}
+
+export interface FundWalletResponse {
+  success: boolean;
+  message: string;
+  data?: FundWalletData | string | null;
+  [key: string]: unknown;
+}
+
+/**
+ * Start wallet funding.
+ *
+ * Endpoint:
+ * POST /wallets/fund-wallet-by-walletId/{walletId}/{provider}
+ *
+ * Assumed request body:
+ * { amount: number }
+ *
+ * The amount is supplied in naira unless your backend specifies
+ * a different request contract.
+ */
+export async function fundWalletByWalletId(
+  payload: FundWalletRequest,
+): Promise<FundWalletResponse> {
+  const { walletId, provider, amount } = payload;
+
+  if (!walletId?.trim()) {
+    throw new Error("Wallet ID is required.");
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Enter a valid funding amount.");
+  }
+
+  const response =
+    await axiosInstance.post<FundWalletResponse>(
+      `/wallets/fund-wallet-by-walletId/${encodeURIComponent(
+        walletId,
+      )}/${encodeURIComponent(provider)}`,
+      { amount },
+    );
+
+  return response.data;
+}
+
+/* ============================================================
    GET WALLET BY USER ID
 ============================================================ */
 
 export async function getWalletByUserId(
   userId: string,
 ): Promise<WalletResponse> {
-  const response =
-    await axiosInstance.get<WalletResponse>(
-      `/wallets/get-wallet-by-userId/${userId}`,
-    );
+  const response = await axiosInstance.get<WalletResponse>(
+    `/wallets/get-wallet-by-userId/${encodeURIComponent(
+      userId,
+    )}`,
+  );
 
   return response.data;
 }
@@ -132,10 +180,11 @@ export async function getWalletByUserId(
 export async function getWalletByWalletId(
   walletId: string,
 ): Promise<WalletResponse> {
-  const response =
-    await axiosInstance.get<WalletResponse>(
-      `/wallets/get-wallet-by-walletId/${walletId}`,
-    );
+  const response = await axiosInstance.get<WalletResponse>(
+    `/wallets/get-wallet-by-walletId/${encodeURIComponent(
+      walletId,
+    )}`,
+  );
 
   return response.data;
 }
@@ -149,7 +198,9 @@ export async function getWalletBalanceByWalletId(
 ): Promise<WalletBalanceResponse> {
   const response =
     await axiosInstance.get<WalletBalanceResponse>(
-      `/wallets/get-wallet-balance-by-walletId/${walletId}`,
+      `/wallets/get-wallet-balance-by-walletId/${encodeURIComponent(
+        walletId,
+      )}`,
     );
 
   return response.data;
@@ -162,9 +213,7 @@ export async function getWalletBalanceByWalletId(
 function createEmptyTransactionsResponse(): WalletTransactionsResponse {
   return {
     success: true,
-
     message: "No transactions found.",
-
     data: {
       totalCount: 0,
       totalPages: 0,
@@ -185,7 +234,9 @@ export async function getWalletTransactions(
   try {
     const response =
       await axiosInstance.get<WalletTransactionsResponse>(
-        `/transactions/get-all-transactions-with-userId/${userId}`,
+        `/transactions/get-all-transactions-with-userId/${encodeURIComponent(
+          userId,
+        )}`,
         {
           params: {
             page,
@@ -197,20 +248,15 @@ export async function getWalletTransactions(
     const data = response.data;
 
     if (
-      !data ||
-      !data.data ||
-      !Array.isArray(
-        data.data.transactionObj,
-      )
+      !data?.data ||
+      !Array.isArray(data.data.transactionObj)
     ) {
       return createEmptyTransactionsResponse();
     }
 
     return data;
   } catch (error: unknown) {
-    if (
-      isAxios404TransactionsNotFound(error)
-    ) {
+    if (isAxios404TransactionsNotFound(error)) {
       return createEmptyTransactionsResponse();
     }
 
@@ -225,47 +271,28 @@ export async function getWalletTransactions(
 function isAxios404TransactionsNotFound(
   error: unknown,
 ): boolean {
-  if (
-    !error ||
-    typeof error !== "object"
-  ) {
+  if (!error || typeof error !== "object") {
     return false;
   }
 
-  const axiosError =
-    error as {
-      response?: {
-        status?: number;
-        data?: {
-          message?: string;
-          success?: boolean;
-          status?: number;
-        };
+  const axiosError = error as {
+    response?: {
+      status?: number;
+      data?: {
+        message?: string;
       };
     };
+  };
 
-  const response =
-    axiosError.response;
-
-  if (!response) {
+  if (axiosError.response?.status !== 404) {
     return false;
   }
 
-  if (response.status !== 404) {
-    return false;
-  }
+  const message = axiosError.response.data?.message
+    ?.toLowerCase()
+    .trim();
 
-  const message =
-    response.data?.message
-      ?.toLowerCase()
-      .trim();
-
-  return (
-    message === "transactions not found" ||
-    message?.includes(
-      "transactions not found",
-    ) === true
-  );
+  return message?.includes("transactions not found") === true;
 }
 
 /* ============================================================
@@ -279,14 +306,15 @@ export async function getTransactionById(
   message: string;
   data: WalletTransaction;
 }> {
-  const response =
-    await axiosInstance.get<{
-      success: boolean;
-      message: string;
-      data: WalletTransaction;
-    }>(
-      `/transactions/get-transaction-by-id/${transactionId}`,
-    );
+  const response = await axiosInstance.get<{
+    success: boolean;
+    message: string;
+    data: WalletTransaction;
+  }>(
+    `/transactions/get-transaction-by-id/${encodeURIComponent(
+      transactionId,
+    )}`,
+  );
 
   return response.data;
 }
@@ -300,7 +328,7 @@ export async function requestWithdrawal(
 ): Promise<WithdrawalResponse> {
   const response =
     await axiosInstance.post<WithdrawalResponse>(
-      `/withdrawals/request-withdrawal`,
+      "/withdrawals/request-withdrawal",
       payload,
     );
 

@@ -1,7 +1,7 @@
 
 
 
-
+//src\app\student\(student)\payment\callback\PaymentCallbackContent.tsx
 
 "use client";
 
@@ -44,7 +44,7 @@ export default function PaymentCallbackContent() {
 
   useEffect(() => {
     /*
-     * No payment reference was returned by Paystack.
+     * No payment reference was returned by Monnify.
      */
     if (!reference) {
       router.replace(

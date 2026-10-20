@@ -34,6 +34,7 @@ export interface AdminNavSection {
 }
 
 export const adminNavigation: AdminNavSection[] = [
+
   {
     title: "Overview",
     items: [
@@ -46,6 +47,17 @@ export const adminNavigation: AdminNavSection[] = [
     ],
   },
 
+{
+  title: "Creative Studio",
+  items: [
+    {
+      label: "Video Studio",
+      href: "/admin/studio",
+      icon: Video,
+      exact: true,
+    },
+  ],
+},
 
 {
   title: "Competition — Secondary Plan",

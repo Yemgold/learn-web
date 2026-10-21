@@ -1,6 +1,7 @@
 
 
 
+
 "use client";
 
 import {
@@ -51,7 +52,6 @@ type ExportMedia = {
 
 function getClipUrl(clip: Clip, assets: Asset[]): string {
   const asset = assets.find((item) => item.id === clip.assetId);
-
   return clip.url || asset?.url || "";
 }
 
@@ -97,6 +97,32 @@ function waitForMedia(
     media.addEventListener("loadedmetadata", onReady, { once: true });
     media.addEventListener("error", onError, { once: true });
     media.load();
+  });
+}
+
+function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("error", onError);
+    };
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error("A video frame could not be decoded."));
+    };
+
+    video.addEventListener("loadeddata", onReady, { once: true });
+    video.addEventListener("error", onError, { once: true });
   });
 }
 
@@ -223,6 +249,7 @@ export default function StudioPage() {
   }, [clips, selectedClip]);
 
   const previewClip = previewVideoClip ?? selectedClip;
+
   const previewBackground =
     previewVideoClip && backgroundClip?.id !== previewVideoClip.id
       ? backgroundClip
@@ -415,10 +442,6 @@ export default function StudioPage() {
     }
   }, [assets, clips, studio, timeline.playhead, zoom]);
 
-  /**
-   * Render the timeline into an off-screen canvas, record its video and
-   * audio, and download the resulting file.
-   */
   const handleExport = useCallback(async () => {
     if (exportInProgressRef.current) return;
 
@@ -436,13 +459,12 @@ export default function StudioPage() {
     canvas.width = EXPORT_WIDTH;
     canvas.height = EXPORT_HEIGHT;
 
-    const context = canvas.getContext("2d", {
-      alpha: false,
-    });
+    const context = canvas.getContext("2d", { alpha: false });
 
     let audioContext: AudioContext | null = null;
     let animationFrame = 0;
     let cancelled = false;
+
     const mediaItems: ExportMedia[] = [];
 
     try {
@@ -452,8 +474,8 @@ export default function StudioPage() {
 
       studio.showNotice("Preparing timeline and media for export…");
 
-      // Load every clip before recording so missing media is reported
-      // before a partial video is downloaded.
+      // Load every timeline clip into a fresh media element.
+      // Each element receives exactly one MediaElementAudioSourceNode.
       for (const clip of clips) {
         const url = getClipUrl(clip, assets);
 
@@ -476,10 +498,13 @@ export default function StudioPage() {
             : document.createElement("audio");
 
         media.preload = "auto";
+
         if (media instanceof HTMLVideoElement) {
-  media.playsInline = true;
-}
+          media.playsInline = true;
+        }
+
         media.src = url;
+
         mediaItems.push({ clip, media });
 
         await waitForMedia(media, clip.name);
@@ -491,27 +516,39 @@ export default function StudioPage() {
           (item.clip.kind === "audio" || item.clip.kind === "video"),
       );
 
-      if (audioItems.length > 0) {
-        const AudioContextConstructor =
-          window.AudioContext;
+      // Create one audio context and one recording destination.
+      // Never create a second source node for the same media element.
+      let audioTracks: MediaStreamTrack[] = [];
 
-        audioContext = new AudioContextConstructor();
+      if (audioItems.length > 0) {
+        audioContext = new AudioContext();
+
+        const audioDestination =
+          audioContext.createMediaStreamDestination();
 
         for (const item of audioItems) {
-          if (!item.media || !audioContext) continue;
+          const media = item.media;
 
-          const source = audioContext.createMediaElementSource(
-            item.media,
-          );
+          if (!media) continue;
 
-          source.connect(audioContext.destination);
+          const source =
+            audioContext.createMediaElementSource(media);
+
+          const gainNode = audioContext.createGain();
+
+          gainNode.gain.value = item.clip.muted
+            ? 0
+            : Math.max(0, Math.min(1, item.clip.volume ?? 1));
+
+          source.connect(gainNode);
+          gainNode.connect(audioDestination);
         }
+
+        audioTracks = audioDestination.stream.getAudioTracks();
 
         await audioContext.resume();
       }
 
-      // Sort visual layers so images form the background and videos
-      // are drawn above them, allowing transparent WebM foregrounds.
       const imageItems = mediaItems.filter(
         (item) => item.clip.kind === "image" && item.image,
       );
@@ -529,9 +566,7 @@ export default function StudioPage() {
 
         if (!media) return;
 
-        const active = activeAt(item.clip, time);
-
-        if (!active) {
+        if (!activeAt(item.clip, time)) {
           if (!media.paused) media.pause();
           return;
         }
@@ -563,7 +598,7 @@ export default function StudioPage() {
         context.fillStyle = "#101010";
         context.fillRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT);
 
-        // Background and image layers.
+        // Draw image backgrounds first.
         for (const item of imageItems) {
           if (!item.image || !activeAt(item.clip, time)) continue;
 
@@ -575,8 +610,8 @@ export default function StudioPage() {
           );
         }
 
-        // Foreground video layers. Transparent WebM keeps the background
-        // image visible behind the person.
+        // Draw videos over the background. Transparent video pixels
+        // reveal the image behind the foreground subject.
         for (const item of videoItems) {
           if (!item.media || !activeAt(item.clip, time)) continue;
 
@@ -588,11 +623,21 @@ export default function StudioPage() {
           );
         }
 
-        // Synchronize both video audio and standalone audio clips.
+        // Keep both video audio and standalone audio synchronized.
         for (const item of audioItems) {
           syncMedia(item, time);
         }
       };
+
+      // Wait for actual video frames rather than waiting on an empty
+      // placeholder video, which could otherwise hang the export.
+      for (const item of videoItems) {
+        if (item.media instanceof HTMLVideoElement) {
+          await waitForVideoFrame(item.media);
+        }
+      }
+
+      renderFrame(0);
 
       let startTime = 0;
 
@@ -608,36 +653,8 @@ export default function StudioPage() {
         animationFrame = window.requestAnimationFrame(drawLoop);
       };
 
-      // Draw the opening frame before recording starts.
-      renderFrame(0);
-      await waitForMedia(
-        videoItems[0]?.media ?? document.createElement("video"),
-        videoItems[0]?.clip.name ?? "initial frame",
-      ).catch(() => undefined);
-
       startTime = performance.now();
       animationFrame = window.requestAnimationFrame(drawLoop);
-
- if (!audioContext) {
-  throw new Error("Audio context could not be initialized.");
-}
-
-const audioDestination =
-  audioContext.createMediaStreamDestination();
-
-for (const item of mediaItems) {
-  if (
-    item.media instanceof HTMLAudioElement ||
-    item.media instanceof HTMLVideoElement
-  ) {
-    const source = audioContext.createMediaElementSource(item.media);
-    source.connect(audioDestination);
-  }
-}
-
-
-
-const audioTracks = audioDestination.stream.getAudioTracks();
 
       const result = await exportVideo({
         canvas,
@@ -652,12 +669,6 @@ const audioTracks = audioDestination.stream.getAudioTracks();
 
       cancelled = true;
       window.cancelAnimationFrame(animationFrame);
-
-      for (const item of mediaItems) {
-        if (item.media) {
-          item.media.pause();
-        }
-      }
 
       downloadExportedVideo(result.blob, result.fileName);
 
@@ -786,6 +797,7 @@ const audioTracks = audioDestination.stream.getAudioTracks();
             <span className="font-medium">Exporting timeline…</span>
             <span>{exportProgress}%</span>
           </div>
+
           <div
             className="h-2 overflow-hidden rounded-full bg-muted"
             role="progressbar"
@@ -799,6 +811,7 @@ const audioTracks = audioDestination.stream.getAudioTracks();
               style={{ width: `${exportProgress}%` }}
             />
           </div>
+
           <p className="mt-2 text-xs text-muted-foreground">
             Keep this tab open until the export finishes.
           </p>

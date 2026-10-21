@@ -3,9 +3,11 @@
 
 
 
+
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   AudioLines,
   Film,
@@ -27,6 +29,7 @@ interface TimelinePanelProps {
   zoom?: number;
   onSelectClip: (clipId: string) => void;
   onSeek: (time: number) => void;
+  onMoveClip?: (clipId: string, newStart: number) => void;
   onDeleteClip?: (clipId: string) => void;
   onSplitClip?: (clipId: string, time: number) => void;
   onAddMedia?: () => void;
@@ -64,6 +67,13 @@ const PIXELS_PER_SECOND = 48;
 const TRACK_HEIGHT = 64;
 const RULER_HEIGHT = 32;
 
+interface DragState {
+  clipId: string;
+  startX: number;
+  originalStart: number;
+  moved: boolean;
+}
+
 export default function TimelinePanel({
   clips,
   selectedClipId,
@@ -72,11 +82,15 @@ export default function TimelinePanel({
   zoom = 1,
   onSelectClip,
   onSeek,
+  onMoveClip,
   onDeleteClip,
   onSplitClip,
   onAddMedia,
   className = "",
 }: TimelinePanelProps) {
+  const dragRef = useRef<DragState | null>(null);
+  const suppressClickRef = useRef(false);
+
   const safeDuration = Math.max(
     10,
     duration,
@@ -105,7 +119,10 @@ export default function TimelinePanel({
   ) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const offsetX = event.clientX - rect.left;
-    onSeek(Math.max(0, Math.min(safeDuration, offsetX / pixelsPerSecond)));
+
+    onSeek(
+      Math.max(0, Math.min(safeDuration, offsetX / pixelsPerSecond)),
+    );
   };
 
   const selectedClip = clips.find(
@@ -123,6 +140,78 @@ export default function TimelinePanel({
     ) {
       onSplitClip(selectedClip.id, playhead);
     }
+  };
+
+  const handleClipPointerDown = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    clip: Clip,
+  ) => {
+    if (event.button !== 0) return;
+
+    event.stopPropagation();
+    onSelectClip(clip.id);
+
+    if (!onMoveClip) return;
+
+    dragRef.current = {
+      clipId: clip.id,
+      startX: event.clientX,
+      originalStart: clip.start,
+      moved: false,
+    };
+
+    suppressClickRef.current = false;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleClipPointerMove = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const drag = dragRef.current;
+
+    if (!drag || !onMoveClip) return;
+
+    const deltaX = event.clientX - drag.startX;
+
+    if (Math.abs(deltaX) > 3) {
+      drag.moved = true;
+    }
+
+    if (!drag.moved) return;
+
+    const deltaSeconds = deltaX / pixelsPerSecond;
+    const newStart = Math.max(
+      0,
+      Math.round((drag.originalStart + deltaSeconds) * 100) / 100,
+    );
+
+    onMoveClip(drag.clipId, newStart);
+  };
+
+  const handleClipPointerUp = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const drag = dragRef.current;
+
+    if (drag?.moved) {
+      suppressClickRef.current = true;
+    }
+
+    dragRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleClipClick = (clipId: string) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+
+    onSelectClip(clipId);
   };
 
   return (
@@ -340,12 +429,27 @@ export default function TimelinePanel({
                       clip.duration * pixelsPerSecond,
                     );
 
+                    const draggable = Boolean(onMoveClip);
+
                     return (
                       <button
                         key={clip.id}
                         type="button"
-                        title={`${clip.name} — ${formatTime(clip.duration)}`}
-                        onClick={() => onSelectClip(clip.id)}
+                        title={
+                          `${clip.name} — ${formatTime(clip.duration)}` +
+                          (draggable
+                            ? "\nDrag left or right to change its start time."
+                            : "")
+                        }
+                        onClick={() => handleClipClick(clip.id)}
+                        onPointerDown={(event) =>
+                          handleClipPointerDown(event, clip)
+                        }
+                        onPointerMove={handleClipPointerMove}
+                        onPointerUp={handleClipPointerUp}
+                        onPointerCancel={() => {
+                          dragRef.current = null;
+                        }}
                         style={{
                           position: "absolute",
                           left: clip.start * pixelsPerSecond,
@@ -361,7 +465,9 @@ export default function TimelinePanel({
                             : `1px solid ${track.color}`,
                           background: `${track.color}${selected ? "cc" : "88"}`,
                           color: "#fff",
-                          cursor: "pointer",
+                          cursor: draggable ? "grab" : "pointer",
+                          touchAction: "none",
+                          userSelect: "none",
                           boxSizing: "border-box",
                           whiteSpace: "nowrap",
                           textOverflow: "ellipsis",

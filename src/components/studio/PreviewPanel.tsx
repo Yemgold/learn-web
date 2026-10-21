@@ -1,7 +1,4 @@
 
-
-
-
 "use client";
 
 import {
@@ -59,8 +56,7 @@ export default function PreviewPanel({
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const [aspectRatio, setAspectRatio] =
-    useState<AspectRatio>("16:9");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [muted, setMuted] = useState(false);
   const [mediaDuration, setMediaDuration] = useState(0);
   const [mediaError, setMediaError] = useState(false);
@@ -69,20 +65,32 @@ export default function PreviewPanel({
   const isVideo = clip?.kind === "video";
   const isAudio = clip?.kind === "audio";
   const isImage = clip?.kind === "image";
-  const hasVideoBackground =
-    isVideo && backgroundClip?.kind === "image" && Boolean(backgroundClip.url);
-  const hasVideoBackgroundVideo =
-    isVideo && backgroundClip?.kind === "video" && Boolean(backgroundClip.url);
+
+  const hasBackgroundImage =
+    isVideo &&
+    backgroundClip?.kind === "image" &&
+    Boolean(backgroundClip.url);
+
+  const hasBackgroundVideo =
+    isVideo &&
+    backgroundClip?.kind === "video" &&
+    Boolean(backgroundClip.url);
 
   const duration = mediaDuration || clip?.duration || 0;
+  const clipStart = clip?.start ?? 0;
+
+  // The timeline uses project time; the media element uses clip-local time.
+  const localTime = Math.max(0, currentTime - clipStart);
+
   const displayedTime = Math.max(
     0,
-    Math.min(currentTime, duration || currentTime),
+    Math.min(localTime, duration || localTime),
   );
 
   const handleLoadedMetadata = useCallback(
     (value: number) => {
       if (!Number.isFinite(value) || value < 0) return;
+
       setMediaDuration(value);
       onDurationChange?.(value);
     },
@@ -91,9 +99,11 @@ export default function PreviewPanel({
 
   const handleTimeUpdate = useCallback(
     (value: number) => {
-      if (Number.isFinite(value)) onTimeUpdate?.(value);
+      if (Number.isFinite(value)) {
+        onTimeUpdate?.(value + clipStart);
+      }
     },
-    [onTimeUpdate],
+    [onTimeUpdate, clipStart],
   );
 
   useEffect(() => {
@@ -101,6 +111,7 @@ export default function PreviewPanel({
     setMediaDuration(0);
   }, [clip?.id, clip?.url]);
 
+  // Synchronize the selected foreground media with the timeline.
   useEffect(() => {
     const media = isVideo
       ? videoRef.current
@@ -112,49 +123,73 @@ export default function PreviewPanel({
 
     media.muted = muted;
 
-    if (isPlaying) {
-      void media.play().catch(() => {});
-    } else {
-      media.pause();
-    }
-  }, [isPlaying, isVideo, isAudio, muted, clip?.url]);
+    const syncAndPlay = async () => {
+      const target = Math.max(0, currentTime - clipStart);
 
+      if (
+        Number.isFinite(target) &&
+        Math.abs(media.currentTime - target) > 0.35
+      ) {
+        try {
+          media.currentTime = target;
+        } catch {
+          // The browser may not permit seeking before metadata is ready.
+        }
+      }
+
+      if (isPlaying) {
+        try {
+          await media.play();
+        } catch (error) {
+          console.warn("Preview playback could not start:", error);
+        }
+      } else {
+        media.pause();
+      }
+    };
+
+    void syncAndPlay();
+  }, [
+    isPlaying,
+    isVideo,
+    isAudio,
+    muted,
+    currentTime,
+    clipStart,
+    clip?.url,
+  ]);
+
+  // Keep a video background moving and aligned with the foreground.
   useEffect(() => {
     const background = backgroundVideoRef.current;
     if (!background) return;
 
     background.muted = true;
-    if (isPlaying) {
-      void background.play().catch(() => {});
-    } else {
-      background.pause();
-    }
 
-    if (
-      Number.isFinite(currentTime) &&
-      Math.abs(background.currentTime - currentTime) > 0.75
-    ) {
-      try {
-        background.currentTime = Math.max(0, currentTime);
-      } catch {}
-    }
-  }, [isPlaying, currentTime, backgroundClip?.url]);
+    const syncBackground = async () => {
+      const target = Math.max(0, currentTime - clipStart);
 
-  useEffect(() => {
-    const media = isVideo
-      ? videoRef.current
-      : isAudio
-        ? audioRef.current
-        : null;
+      if (Math.abs(background.currentTime - target) > 0.5) {
+        try {
+          background.currentTime = target;
+        } catch {
+          // Wait for metadata before seeking.
+        }
+      }
 
-    if (!media || !Number.isFinite(currentTime)) return;
+      if (isPlaying) {
+        try {
+          await background.play();
+        } catch {
+          // Background playback is optional.
+        }
+      } else {
+        background.pause();
+      }
+    };
 
-    if (Math.abs(media.currentTime - currentTime) > 0.75) {
-      try {
-        media.currentTime = Math.max(0, currentTime);
-      } catch {}
-    }
-  }, [currentTime, isVideo, isAudio, clip?.url]);
+    void syncBackground();
+  }, [isPlaying, currentTime, clipStart, backgroundClip?.url]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -162,9 +197,40 @@ export default function PreviewPanel({
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+
     return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange,
+      );
   }, []);
+
+  const seekTo = (value: number) => {
+    const nextLocalTime = Math.max(
+      0,
+      Math.min(value, duration || value),
+    );
+
+    const nextProjectTime = clipStart + nextLocalTime;
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = nextLocalTime;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = nextLocalTime;
+    }
+
+    if (backgroundVideoRef.current) {
+      try {
+        backgroundVideoRef.current.currentTime = nextLocalTime;
+      } catch {
+        // Background may not be ready to seek.
+      }
+    }
+
+    onSeek?.(nextProjectTime);
+  };
 
   const toggleFullscreen = async () => {
     const container = containerRef.current;
@@ -179,20 +245,6 @@ export default function PreviewPanel({
     } catch (error) {
       console.error("Could not toggle preview fullscreen:", error);
     }
-  };
-
-  const seekTo = (value: number) => {
-    const nextTime = Math.max(0, Math.min(value, duration || value));
-
-    if (videoRef.current) videoRef.current.currentTime = nextTime;
-    if (audioRef.current) audioRef.current.currentTime = nextTime;
-    if (backgroundVideoRef.current) {
-      try {
-        backgroundVideoRef.current.currentTime = nextTime;
-      } catch {}
-    }
-
-    onSeek?.(nextTime);
   };
 
   return (
@@ -289,10 +341,11 @@ export default function PreviewPanel({
             flexShrink: 1,
           }}
         >
-          {hasVideoBackground && (
+          {hasBackgroundImage && (
             <img
               src={backgroundClip!.url}
               alt="Video background"
+              draggable={false}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -304,13 +357,13 @@ export default function PreviewPanel({
             />
           )}
 
-          {hasVideoBackgroundVideo && (
+          {hasBackgroundVideo && (
             <video
               ref={backgroundVideoRef}
               src={backgroundClip!.url}
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
               style={{
                 position: "absolute",
                 inset: 0,
@@ -324,14 +377,22 @@ export default function PreviewPanel({
 
           {isVideo && clip.url && (
             <video
+              key={clip.id + clip.url}
               ref={videoRef}
               src={clip.url}
               playsInline
-              preload="metadata"
+              preload="auto"
               muted={muted}
-              onLoadedMetadata={(event) =>
-                handleLoadedMetadata(event.currentTarget.duration)
-              }
+              onLoadedMetadata={(event) => {
+                handleLoadedMetadata(event.currentTarget.duration);
+
+                const target = Math.max(0, currentTime - clipStart);
+                try {
+                  event.currentTarget.currentTime = target;
+                } catch {
+                  // Metadata may finish loading before seeking is allowed.
+                }
+              }}
               onTimeUpdate={(event) =>
                 handleTimeUpdate(event.currentTarget.currentTime)
               }
@@ -375,7 +436,8 @@ export default function PreviewPanel({
                 flexDirection: "column",
                 gap: 10,
                 padding: 12,
-                background: "radial-gradient(circle at center, #292044, #090909 75%)",
+                background:
+                  "radial-gradient(circle at center, #292044, #090909 75%)",
               }}
             >
               <div
@@ -391,6 +453,7 @@ export default function PreviewPanel({
               >
                 ♪
               </div>
+
               <div
                 style={{
                   maxWidth: "90%",
@@ -401,10 +464,11 @@ export default function PreviewPanel({
               >
                 {clip.name}
               </div>
+
               <audio
                 ref={audioRef}
                 src={clip.url}
-                preload="metadata"
+                preload="auto"
                 muted={muted}
                 onLoadedMetadata={(event) =>
                   handleLoadedMetadata(event.currentTarget.duration)

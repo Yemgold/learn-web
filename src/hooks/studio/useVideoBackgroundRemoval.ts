@@ -1,6 +1,9 @@
 
 
 
+
+
+
 "use client";
 
 import { useCallback, useRef, useState } from "react";
@@ -329,7 +332,7 @@ export function useVideoBackgroundRemoval({
           outputContext.globalCompositeOperation = "destination-in";
           outputContext.drawImage(results.segmentationMask, 0, 0, width, height);
           outputContext.globalCompositeOperation = "source-over";
-          canvasTrack.requestFrame();
+          canvasTrack.requestFrame?.();
           latestFrameReady = true;
           maskWaitResolve?.();
         } catch (frameError) {
@@ -411,7 +414,7 @@ export function useVideoBackgroundRemoval({
       const stopScheduling = () => {
         ended = true;
         if (frameCallbackId !== null && video?.cancelVideoFrameCallback) {
-          video.cancelVideoFrameCallback(frameCallbackId);
+          video.cancelVideoFrameCallback?.(frameCallbackId);
           frameCallbackId = null;
         }
         if (animationFrameId !== null) {
@@ -591,7 +594,7 @@ export function useVideoBackgroundRemoval({
     } finally {
       if (progressTimer !== null) window.clearInterval(progressTimer);
       if (frameCallbackId !== null && video?.cancelVideoFrameCallback) {
-        video.cancelVideoFrameCallback(frameCallbackId);
+        video.cancelVideoFrameCallback?.(frameCallbackId);
       }
       if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
 

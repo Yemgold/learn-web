@@ -2,7 +2,6 @@
 
 
 
-
 export interface ExportVideoOptions {
   canvas: HTMLCanvasElement;
   duration: number;
@@ -17,6 +16,8 @@ export interface ExportVideoResult {
   blob: Blob;
   fileName: string;
   mimeType: string;
+  width: number;
+  height: number;
 }
 
 function getSupportedMimeType(): string {
@@ -24,7 +25,8 @@ function getSupportedMimeType(): string {
     return "";
   }
 
-  // Prefer a genuine MP4 recording when the browser supports it.
+  // Prefer MP4 only when the browser genuinely supports recording it.
+  // Otherwise, fall back to WebM.
   const candidates = [
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
     "video/mp4",
@@ -39,7 +41,9 @@ function getSupportedMimeType(): string {
 }
 
 function getExtension(mimeType: string): string {
-  return mimeType.toLowerCase().startsWith("video/mp4") ? ".mp4" : ".webm";
+  return mimeType.toLowerCase().startsWith("video/mp4")
+    ? ".mp4"
+    : ".webm";
 }
 
 function normalizeFileName(
@@ -47,7 +51,10 @@ function normalizeFileName(
   mimeType: string,
 ): string {
   const extension = getExtension(mimeType);
-  const baseName = fileName.replace(/\.(mp4|webm)$/i, "").trim();
+
+  const baseName = fileName
+    .replace(/\.(mp4|webm)$/i, "")
+    .trim();
 
   return `${baseName || "learnyfi-studio-export"}${extension}`;
 }
@@ -58,16 +65,31 @@ function waitForFrame(): Promise<void> {
   });
 }
 
+function getExportError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error("Video export failed unexpectedly.");
+}
+
 /**
- * Records the composition already drawn onto a canvas.
+ * Records the composition already rendered on the supplied canvas.
  *
- * The caller is responsible for rendering the timeline, background image,
- * foreground video, and other visual layers onto this canvas.
+ * IMPORTANT:
+ * This function never changes canvas.width or canvas.height.
+ * The dimensions supplied by the caller determine the recording
+ * dimensions. For example:
  *
+ * Portrait:  1080 x 1920
+ * Landscape: 1920 x 1080
+ * Square:    1080 x 1080
+ * Standard:  1440 x 1080
+ *
+ * The caller must render every timeline frame onto this canvas.
  * Audio tracks supplied by the caller are added to the recorded stream.
  *
- * MP4 is used only if the current browser actually supports recording it.
- * Otherwise, this function safely exports WebM.
+ * MP4 is used only when the browser supports it. Otherwise, WebM is used.
  */
 export async function exportVideo({
   canvas,
@@ -79,7 +101,10 @@ export async function exportVideo({
   onError,
 }: ExportVideoOptions): Promise<ExportVideoResult> {
   let canvasStream: MediaStream | null = null;
+  let combinedStream: MediaStream | null = null;
   let recorder: MediaRecorder | null = null;
+
+  let reportedError: Error | null = null;
 
   try {
     if (typeof window === "undefined") {
@@ -110,6 +135,10 @@ export async function exportVideo({
       throw new Error("Export duration must be greater than zero.");
     }
 
+    if (!Number.isFinite(fps) || fps <= 0) {
+      throw new Error("Export frame rate must be greater than zero.");
+    }
+
     const safeFps = Math.max(1, Math.min(60, Math.floor(fps)));
     const mimeType = getSupportedMimeType();
 
@@ -119,14 +148,36 @@ export async function exportVideo({
       );
     }
 
+    // Capture the existing canvas dimensions. Do not resize this canvas
+    // here: the studio page is responsible for choosing the aspect ratio.
+    const exportWidth = canvas.width;
+    const exportHeight = canvas.height;
+
+    console.info("[Learnyfi Studio] Starting video export", {
+      width: exportWidth,
+      height: exportHeight,
+      aspectRatio: `${exportWidth}:${exportHeight}`,
+      fps: safeFps,
+      duration,
+      mimeType,
+    });
+
     canvasStream = canvas.captureStream(safeFps);
+
+    const videoTracks = canvasStream.getVideoTracks();
+
+    if (videoTracks.length === 0) {
+      throw new Error(
+        "The canvas did not provide a video track for recording.",
+      );
+    }
 
     const liveAudioTracks = audioTracks.filter(
       (track) => track.readyState === "live",
     );
 
-    const combinedStream = new MediaStream([
-      ...canvasStream.getVideoTracks(),
+    combinedStream = new MediaStream([
+      ...videoTracks,
       ...liveAudioTracks,
     ]);
 
@@ -135,7 +186,7 @@ export async function exportVideo({
     recorder = new MediaRecorder(combinedStream, {
       mimeType,
       videoBitsPerSecond: 8_000_000,
-      ...(mimeType.startsWith("video/webm")
+      ...(mimeType.toLowerCase().startsWith("video/webm")
         ? { audioBitsPerSecond: 192_000 }
         : {}),
     });
@@ -145,7 +196,7 @@ export async function exportVideo({
     const resultPromise = new Promise<ExportVideoResult>(
       (resolve, reject) => {
         activeRecorder.ondataavailable = (event: BlobEvent) => {
-          if (event.data.size > 0) {
+          if (event.data && event.data.size > 0) {
             chunks.push(event.data);
           }
         };
@@ -159,7 +210,9 @@ export async function exportVideo({
         };
 
         activeRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: mimeType });
+          const blob = new Blob(chunks, {
+            type: mimeType,
+          });
 
           if (blob.size === 0) {
             reject(new Error("The exported video is empty."));
@@ -170,6 +223,8 @@ export async function exportVideo({
             blob,
             fileName: normalizeFileName(fileName, mimeType),
             mimeType,
+            width: exportWidth,
+            height: exportHeight,
           });
         };
       },
@@ -185,7 +240,10 @@ export async function exportVideo({
         await waitForFrame();
 
         const elapsed = performance.now() - startTime;
-        const progress = Math.min(99, (elapsed / durationMs) * 100);
+        const progress = Math.min(
+          99,
+          (elapsed / durationMs) * 100,
+        );
 
         onProgress?.(Math.round(progress));
 
@@ -195,32 +253,59 @@ export async function exportVideo({
       }
     } finally {
       if (recorder.state !== "inactive") {
+        // Request the final data before stopping the stream tracks.
         recorder.stop();
       }
-
-      canvasStream.getTracks().forEach((track) => track.stop());
     }
 
+    // Wait for the recorder's final data and stop event before cleanup.
     const result = await resultPromise;
 
     onProgress?.(100);
 
+    console.info("[Learnyfi Studio] Video export completed", {
+      width: result.width,
+      height: result.height,
+      mimeType: result.mimeType,
+      fileName: result.fileName,
+      sizeBytes: result.blob.size,
+    });
+
     return result;
   } catch (error) {
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-
-    canvasStream?.getTracks().forEach((track) => track.stop());
-
-    const exportError =
-      error instanceof Error
-        ? error
-        : new Error("Video export failed unexpectedly.");
+    const exportError = getExportError(error);
+    reportedError = exportError;
 
     onError?.(exportError);
 
     throw exportError;
+  } finally {
+    if (recorder && recorder.state !== "inactive") {
+      try {
+        recorder.stop();
+      } catch {
+        // Ignore cleanup errors while handling an export failure.
+      }
+    }
+
+    combinedStream?.getTracks().forEach((track) => {
+      if (track.readyState !== "ended") {
+        track.stop();
+      }
+    });
+
+    canvasStream?.getTracks().forEach((track) => {
+      if (track.readyState !== "ended") {
+        track.stop();
+      }
+    });
+
+    if (reportedError) {
+      console.error(
+        "[Learnyfi Studio] Video export failed:",
+        reportedError,
+      );
+    }
   }
 }
 
@@ -240,16 +325,23 @@ export function downloadExportedVideo(
   }
 
   const mimeType = blob.type || "video/webm";
-  const normalizedFileName = normalizeFileName(fileName, mimeType);
+  const normalizedFileName = normalizeFileName(
+    fileName,
+    mimeType,
+  );
+
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
   anchor.href = url;
   anchor.download = normalizedFileName;
+  anchor.style.display = "none";
 
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
 
-  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 5000);
 }

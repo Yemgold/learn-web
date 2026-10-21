@@ -532,14 +532,47 @@ let segmentation: SegmentationInstance | null = null;
         }
       };
 
-      const endedPromise = new Promise<"ended">((resolve) => {
-        const handleEnded = () => {
-          videoEnded = true;
-          resolve("ended");
-        };
+      
+      
+const endedPromise = new Promise<"ended">((resolve) => {
+  let settled = false;
+  let completionTimer: number | null = null;
 
-        video?.addEventListener("ended", handleEnded, { once: true });
-      });
+  const finish = () => {
+    if (settled) return;
+
+    settled = true;
+    videoEnded = true;
+
+    video?.removeEventListener("ended", handleEnded);
+    video?.removeEventListener("timeupdate", checkCompletion);
+
+    if (completionTimer !== null) {
+      window.clearInterval(completionTimer);
+    }
+
+    resolve("ended");
+  };
+
+  const checkCompletion = () => {
+    if (!video || !Number.isFinite(video.duration)) return;
+
+    if (
+      video.duration > 0 &&
+      video.currentTime >= video.duration - 0.08
+    ) {
+      finish();
+    }
+  };
+
+  const handleEnded = () => finish();
+
+  video?.addEventListener("ended", handleEnded);
+  video?.addEventListener("timeupdate", checkCompletion);
+
+  completionTimer = window.setInterval(checkCompletion, 250);
+});
+
 
       const cancelledPromise = new Promise<"cancelled">((resolve) => {
         cancelResolverRef.current = () => resolve("cancelled");

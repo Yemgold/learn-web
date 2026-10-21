@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useCallback, useRef, useState } from "react";
@@ -77,6 +79,47 @@ function waitForMetadata(
   });
 }
 
+function waitForMediaEnd(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("error", handleError);
+    };
+
+    const handleEnded = () => {
+      cleanup();
+      resolve();
+    };
+
+    const handleError = () => {
+      cleanup();
+      reject(new Error("The source video encountered a playback error."));
+    };
+
+    if (video.ended || video.currentTime >= video.duration) {
+      resolve();
+      return;
+    }
+
+    video.addEventListener("ended", handleEnded, { once: true });
+    video.addEventListener("error", handleError, { once: true });
+  });
+}
+
+function chooseRecorderMimeType(): string {
+  const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+
+  return (
+    candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? ""
+  );
+}
+
 export function useVideoBackgroundRemoval({
   assets,
   selectedClip,
@@ -94,6 +137,10 @@ export function useVideoBackgroundRemoval({
     cancelledRef.current = true;
   }, []);
 
+  const rejectRecordingWaitRef = useRef<
+  ((reason: Error) => void) | null
+>(null);
+
   const removeSelectedBackground = useCallback(async () => {
     if (busyRef.current) return;
 
@@ -103,8 +150,8 @@ export function useVideoBackgroundRemoval({
     }
 
     const sourceClip = selectedClip;
-    const asset = assets.find((item) => item.id === sourceClip.assetId);
-    const file = sourceClip.file ?? asset?.file;
+    const sourceAsset = assets.find((item) => item.id === sourceClip.assetId);
+    const file = sourceClip.file ?? sourceAsset?.file;
 
     if (!file || !file.type.startsWith("video/")) {
       setError("The selected original video file is unavailable.");
@@ -114,7 +161,7 @@ export function useVideoBackgroundRemoval({
     if (
       typeof window === "undefined" ||
       !("MediaRecorder" in window) ||
-      !HTMLCanvasElement.prototype.captureStream
+      typeof HTMLCanvasElement.prototype.captureStream !== "function"
     ) {
       setError("Your browser does not support video recording.");
       return;
@@ -133,14 +180,16 @@ export function useVideoBackgroundRemoval({
     let segmentation: SelfieSegmentationInstance | null = null;
     let video: HTMLVideoElement | null = null;
     let audio: HTMLAudioElement | null = null;
+    let canvasTrack: CanvasCaptureMediaStreamTrack | null = null;
     let frameCallbackId: number | null = null;
     let rafId: number | null = null;
     let progressInterval: number | null = null;
-    let stopped = false;
     let frameBusy = false;
     let frameError: Error | null = null;
     let processedFrames = 0;
     let recordingFinished: Promise<Blob> | null = null;
+    let rejectRecordingWait: ((reason?: unknown) => void) | null = null;
+    let recorderStopped = false;
 
     try {
       const mediaPipe = await import("@mediapipe/selfie_segmentation");
@@ -191,7 +240,9 @@ export function useVideoBackgroundRemoval({
         !Number.isFinite(sourceDuration) ||
         sourceDuration <= 0
       ) {
-        throw new Error("The original video has invalid dimensions or duration.");
+        throw new Error(
+          "The original video has invalid dimensions or duration.",
+        );
       }
 
       const canvas = document.createElement("canvas");
@@ -204,22 +255,29 @@ export function useVideoBackgroundRemoval({
         throw new Error("Could not create the transparent processing canvas.");
       }
 
-      const mimeType = [
-        "video/webm;codecs=vp9,opus",
-        "video/webm;codecs=vp8,opus",
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm",
-      ].find((type) => MediaRecorder.isTypeSupported(type));
+      const mimeType = chooseRecorderMimeType();
 
       if (!mimeType) {
         throw new Error("Your browser cannot export WebM video.");
       }
 
-      outputStream = canvas.captureStream(30);
+      // Manual frame capture ensures the recorder receives each newly
+      // processed segmentation result instead of repeatedly recording a
+      // stale canvas frame.
+      outputStream = canvas.captureStream(0);
+      canvasTrack = outputStream.getVideoTracks()[0] as
+        | CanvasCaptureMediaStreamTrack
+        | undefined
+        ?? null;
 
-      // Capture the source audio separately because the processing video
-      // element is muted to allow background segmentation.
+      if (!canvasTrack || typeof canvasTrack.requestFrame !== "function") {
+        throw new Error(
+          "Manual video-frame capture is not supported by this browser. Please use an up-to-date version of Chrome or Edge.",
+        );
+      }
+
+      // Capture the original audio independently from the muted processing
+      // video element.
       const audioElement = audio as AudioCaptureElement;
       const captureAudio =
         audioElement.captureStream ?? audioElement.mozCaptureStream;
@@ -231,7 +289,6 @@ export function useVideoBackgroundRemoval({
       }
 
       audioStream = captureAudio.call(audioElement);
-
       const audioTracks = audioStream.getAudioTracks();
 
       if (audioTracks.length === 0) {
@@ -250,21 +307,24 @@ export function useVideoBackgroundRemoval({
 
       const chunks: Blob[] = [];
 
-      recorder.ondataavailable = (event: BlobEvent) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-
       recordingFinished = new Promise<Blob>((resolve, reject) => {
         if (!recorder) {
           reject(new Error("The video recorder could not be created."));
           return;
         }
 
+        rejectRecordingWait = reject;
+
+        recorder.ondataavailable = (event: BlobEvent) => {
+          if (event.data.size > 0) chunks.push(event.data);
+        };
+
         recorder.onerror = () => {
           reject(new Error("An error occurred while recording the video."));
         };
 
         recorder.onstop = () => {
+          recorderStopped = true;
           resolve(
             new Blob(chunks, {
               type: recorder?.mimeType || mimeType,
@@ -273,23 +333,56 @@ export function useVideoBackgroundRemoval({
         };
       });
 
-      // Draw the segmented person over a transparent canvas.
+      // Render the current source frame through the segmentation mask onto
+      // a transparent canvas, then explicitly request that frame be recorded.
       segmentation.onResults((results) => {
         if (cancelledRef.current || frameError) return;
 
+        let saved = false;
+
         try {
           context.save();
+          saved = true;
           context.clearRect(0, 0, width, height);
+          context.globalCompositeOperation = "source-over";
           context.drawImage(video!, 0, 0, width, height);
           context.globalCompositeOperation = "destination-in";
           context.drawImage(results.segmentationMask, 0, 0, width, height);
           context.restore();
+          saved = false;
+
+          canvasTrack?.requestFrame();
           processedFrames += 1;
         } catch {
-          context.restore();
-          frameError = new Error("Could not render a processed video frame.");
+          if (saved) {
+            try {
+              context.restore();
+            } catch {
+              // Ignore secondary canvas cleanup errors.
+            }
+          }
+
+          frameError = new Error(
+            "Could not render a processed video frame.",
+          );
         }
       });
+
+      const cancelScheduledFrame = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+
+        if (frameCallbackId !== null && video) {
+          (video as VideoWithFrameCallback).cancelVideoFrameCallback?.(
+            frameCallbackId,
+          );
+          frameCallbackId = null;
+        }
+      };
+
+      let processNextFrame: () => Promise<void>;
 
       const scheduleNextFrame = () => {
         if (
@@ -302,20 +395,24 @@ export function useVideoBackgroundRemoval({
           return;
         }
 
+        cancelScheduledFrame();
+
         const frameVideo = video as VideoWithFrameCallback;
 
-        if (frameVideo.requestVideoFrameCallback) {
+        if (typeof frameVideo.requestVideoFrameCallback === "function") {
           frameCallbackId = frameVideo.requestVideoFrameCallback(() => {
+            frameCallbackId = null;
             void processNextFrame();
           });
         } else {
           rafId = requestAnimationFrame(() => {
+            rafId = null;
             void processNextFrame();
           });
         }
       };
 
-      const processNextFrame = async () => {
+      processNextFrame = async () => {
         if (
           !video ||
           !segmentation ||
@@ -351,15 +448,10 @@ export function useVideoBackgroundRemoval({
 
       recorder.start(1000);
 
-      // Start both source elements from the beginning to keep audio and
-      // video aligned throughout the full recording.
       video.currentTime = 0;
       audio.currentTime = 0;
 
-      const playback = await Promise.allSettled([
-        video.play(),
-        audio.play(),
-      ]);
+      const playback = await Promise.allSettled([video.play(), audio.play()]);
 
       if (playback.some((result) => result.status === "rejected")) {
         throw new Error(
@@ -369,8 +461,10 @@ export function useVideoBackgroundRemoval({
 
       scheduleNextFrame();
 
-      // Use the source duration as the completion target. Do not stop the
-      // recording just because segmentation has temporarily fallen behind.
+      // Wait for the actual ended event, rather than guessing from elapsed
+      // duration, so the final frame has a chance to be processed.
+      const endedPromise = waitForMediaEnd(video);
+
       await new Promise<void>((resolve, reject) => {
         progressInterval = window.setInterval(() => {
           if (cancelledRef.current) {
@@ -389,18 +483,12 @@ export function useVideoBackgroundRemoval({
           }
 
           const currentTime = Math.min(video.currentTime, sourceDuration);
-
           setProgress(
             Math.min(99, Math.floor((currentTime / sourceDuration) * 100)),
           );
-
-          if (
-            video.ended ||
-            currentTime >= sourceDuration - 0.05
-          ) {
-            resolve();
-          }
         }, 100);
+
+        endedPromise.then(resolve).catch(reject);
       });
 
       if (progressInterval !== null) {
@@ -408,12 +496,12 @@ export function useVideoBackgroundRemoval({
         progressInterval = null;
       }
 
-      // Allow the last outstanding segmentation frame to finish before
-      // stopping the recorder.
+      cancelScheduledFrame();
+
+      // The frame callback may still be awaiting MediaPipe. Do not stop the
+      // recorder until that request and its onResults callback have finished.
       while (frameBusy && !cancelledRef.current && !frameError) {
-        await new Promise<void>((resolve) =>
-          window.setTimeout(resolve, 20),
-        );
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 20));
       }
 
       if (cancelledRef.current) {
@@ -422,12 +510,17 @@ export function useVideoBackgroundRemoval({
 
       if (frameError) throw frameError;
 
-      // Stop the source elements only after the source reaches its end.
+      // Ensure the last available source frame is represented in the output.
+      if (processedFrames === 0) {
+        throw new Error(
+          "No video frames were processed. Please try the original video again.",
+        );
+      }
+
       video.pause();
       audio.pause();
 
-      if (!stopped && recorder.state === "recording") {
-        stopped = true;
+      if (recorder.state === "recording") {
         recorder.requestData();
         recorder.stop();
       }
@@ -439,7 +532,9 @@ export function useVideoBackgroundRemoval({
       }
 
       if (outputBlob.size < 1000 || processedFrames < 2) {
-        throw new Error("The processed video is empty or incomplete.");
+        throw new Error(
+          "The processed video is empty or incomplete. Try again with a shorter video or a supported source format.",
+        );
       }
 
       const baseName = file.name.replace(/\.[^.]+$/, "");
@@ -455,34 +550,42 @@ export function useVideoBackgroundRemoval({
         throw new Error("Could not create the processed video asset.");
       }
 
-      const generatedClip = createClipFromAsset(
-        outputAsset,
-        sourceClip.start,
-      );
+      const generatedClip = createClipFromAsset(outputAsset, sourceClip.start);
 
-     const outputClip: Clip = {
-  ...generatedClip,
-
-  // Keep a direct reference to the processed file.
-  // This prevents export from falling back to the original video.
-  file: outputFile,
-
-  name: outputFile.name,
-  url: outputAsset.url,
-
-  track: sourceClip.track,
-  start: sourceClip.start,
-  duration: sourceClip.duration || sourceDuration,
-  trimStart: sourceClip.trimStart,
-  trimEnd: sourceClip.trimEnd,
-  volume: sourceClip.volume,
-  muted: sourceClip.muted,
-};
+      const outputClip: Clip = {
+        ...generatedClip,
+        file: outputFile,
+        name: outputFile.name,
+        url: outputAsset.url,
+        track: sourceClip.track,
+        start: sourceClip.start,
+        duration: sourceClip.duration || sourceDuration,
+        trimStart: sourceClip.trimStart,
+        trimEnd: sourceClip.trimEnd,
+        volume: sourceClip.volume,
+        muted: sourceClip.muted,
+      };
 
       onAssetCreated?.(outputAsset);
       onClipCreated?.(outputClip);
       setProgress(100);
     } catch (caught) {
+      if (recorder && recorder.state !== "inactive") {
+        try {
+          recorder.stop();
+        } catch {
+          // Preserve the original error.
+        }
+      }
+
+      if (recordingFinished && !recorderStopped) {
+        rejectRecordingWaitRef.current?.(
+  caught instanceof Error
+    ? caught
+    : new Error("Video background removal failed."),
+);
+      }
+
       setError(
         caught instanceof Error
           ? caught.message
@@ -493,9 +596,7 @@ export function useVideoBackgroundRemoval({
         window.clearInterval(progressInterval);
       }
 
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
+      if (rafId !== null) cancelAnimationFrame(rafId);
 
       if (frameCallbackId !== null && video) {
         (video as VideoWithFrameCallback).cancelVideoFrameCallback?.(
@@ -507,8 +608,12 @@ export function useVideoBackgroundRemoval({
       audio?.pause();
       segmentation?.close();
 
-      if (recorder?.state === "recording") {
-        recorder.stop();
+      if (recorder && recorder.state !== "inactive") {
+        try {
+          recorder.stop();
+        } catch {
+          // Recorder may already have stopped.
+        }
       }
 
       outputStream?.getTracks().forEach((track) => track.stop());

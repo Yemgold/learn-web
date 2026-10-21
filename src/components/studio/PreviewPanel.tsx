@@ -1,4 +1,6 @@
 
+
+
 "use client";
 
 import {
@@ -19,11 +21,25 @@ import {
 import { formatTime } from "@/lib/studio/utils";
 import type { Clip } from "@/lib/studio/types";
 
+export type StudioAspectRatio = "16:9" | "9:16" | "1:1" | "4:3";
+
+export const STUDIO_ASPECT_RATIOS: Record<
+  StudioAspectRatio,
+  { css: string; label: string }
+> = {
+  "9:16": { css: "9 / 16", label: "Portrait · TikTok / Reels" },
+  "16:9": { css: "16 / 9", label: "Landscape · YouTube" },
+  "1:1": { css: "1 / 1", label: "Square · Social posts" },
+  "4:3": { css: "4 / 3", label: "Classic · 4:3" },
+};
+
 interface PreviewPanelProps {
   clip?: Clip | null;
   backgroundClip?: Clip | null;
   currentTime?: number;
   isPlaying?: boolean;
+  aspectRatio?: StudioAspectRatio;
+  onAspectRatioChange?: (ratio: StudioAspectRatio) => void;
   onPlayPause?: () => void;
   onSeek?: (time: number) => void;
   onTimeUpdate?: (time: number) => void;
@@ -31,20 +47,13 @@ interface PreviewPanelProps {
   className?: string;
 }
 
-type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3";
-
-const ASPECT_RATIOS: Record<AspectRatio, string> = {
-  "16:9": "16 / 9",
-  "9:16": "9 / 16",
-  "1:1": "1 / 1",
-  "4:3": "4 / 3",
-};
-
 export default function PreviewPanel({
   clip = null,
   backgroundClip = null,
   currentTime = 0,
   isPlaying = false,
+  aspectRatio = "9:16",
+  onAspectRatioChange,
   onPlayPause,
   onSeek,
   onTimeUpdate,
@@ -56,7 +65,6 @@ export default function PreviewPanel({
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [muted, setMuted] = useState(false);
   const [mediaDuration, setMediaDuration] = useState(0);
   const [mediaError, setMediaError] = useState(false);
@@ -78,8 +86,6 @@ export default function PreviewPanel({
 
   const duration = mediaDuration || clip?.duration || 0;
   const clipStart = clip?.start ?? 0;
-
-  // The timeline uses project time; the media element uses clip-local time.
   const localTime = Math.max(0, currentTime - clipStart);
 
   const displayedTime = Math.max(
@@ -90,7 +96,6 @@ export default function PreviewPanel({
   const handleLoadedMetadata = useCallback(
     (value: number) => {
       if (!Number.isFinite(value) || value < 0) return;
-
       setMediaDuration(value);
       onDurationChange?.(value);
     },
@@ -99,9 +104,7 @@ export default function PreviewPanel({
 
   const handleTimeUpdate = useCallback(
     (value: number) => {
-      if (Number.isFinite(value)) {
-        onTimeUpdate?.(value + clipStart);
-      }
+      if (Number.isFinite(value)) onTimeUpdate?.(value + clipStart);
     },
     [onTimeUpdate, clipStart],
   );
@@ -111,7 +114,6 @@ export default function PreviewPanel({
     setMediaDuration(0);
   }, [clip?.id, clip?.url]);
 
-  // Synchronize the selected foreground media with the timeline.
   useEffect(() => {
     const media = isVideo
       ? videoRef.current
@@ -133,7 +135,7 @@ export default function PreviewPanel({
         try {
           media.currentTime = target;
         } catch {
-          // The browser may not permit seeking before metadata is ready.
+          // Seeking may not be available until metadata loads.
         }
       }
 
@@ -159,7 +161,6 @@ export default function PreviewPanel({
     clip?.url,
   ]);
 
-  // Keep a video background moving and aligned with the foreground.
   useEffect(() => {
     const background = backgroundVideoRef.current;
     if (!background) return;
@@ -173,7 +174,7 @@ export default function PreviewPanel({
         try {
           background.currentTime = target;
         } catch {
-          // Wait for metadata before seeking.
+          // Wait for media metadata.
         }
       }
 
@@ -197,35 +198,20 @@ export default function PreviewPanel({
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-
     return () =>
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const seekTo = (value: number) => {
-    const nextLocalTime = Math.max(
-      0,
-      Math.min(value, duration || value),
-    );
-
+    const nextLocalTime = Math.max(0, Math.min(value, duration || value));
     const nextProjectTime = clipStart + nextLocalTime;
 
-    if (videoRef.current) {
-      videoRef.current.currentTime = nextLocalTime;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.currentTime = nextLocalTime;
-    }
-
-    if (backgroundVideoRef.current) {
+    for (const media of [videoRef.current, audioRef.current, backgroundVideoRef.current]) {
+      if (!media) continue;
       try {
-        backgroundVideoRef.current.currentTime = nextLocalTime;
+        media.currentTime = nextLocalTime;
       } catch {
-        // Background may not be ready to seek.
+        // The media may not be ready to seek.
       }
     }
 
@@ -274,7 +260,7 @@ export default function PreviewPanel({
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600 }}>Preview</div>
+          <div style={{ fontSize: 12, fontWeight: 600 }}>Preview Canvas</div>
           <div
             style={{
               marginTop: 2,
@@ -286,18 +272,19 @@ export default function PreviewPanel({
               maxWidth: 220,
             }}
           >
-            {clip?.name || "No media selected"}
+            {clip?.name || "Choose a format, then import media"}
           </div>
         </div>
 
         <select
-          aria-label="Preview aspect ratio"
+          aria-label="Project canvas aspect ratio"
           value={aspectRatio}
           onChange={(event) =>
-            setAspectRatio(event.target.value as AspectRatio)
+            onAspectRatioChange?.(event.target.value as StudioAspectRatio)
           }
           style={{
-            padding: "4px 6px",
+            maxWidth: 175,
+            padding: "5px 7px",
             border: "1px solid var(--studio-border, #333)",
             borderRadius: 5,
             background: "var(--studio-surface, #202020)",
@@ -305,9 +292,9 @@ export default function PreviewPanel({
             fontSize: 10,
           }}
         >
-          {Object.keys(ASPECT_RATIOS).map((ratio) => (
+          {Object.entries(STUDIO_ASPECT_RATIOS).map(([ratio, item]) => (
             <option key={ratio} value={ratio}>
-              {ratio}
+              {item.label}
             </option>
           ))}
         </select>
@@ -322,6 +309,7 @@ export default function PreviewPanel({
           justifyContent: "center",
           alignItems: "center",
           minHeight: 0,
+          minWidth: 0,
           overflow: "hidden",
           padding: fullscreen ? 0 : 8,
           background: "#090909",
@@ -331,14 +319,15 @@ export default function PreviewPanel({
           style={{
             position: "relative",
             width: "100%",
+            height: "100%",
             maxWidth: fullscreen ? "100%" : 680,
-            maxHeight: fullscreen ? "calc(100vh - 80px)" : "100%",
-            aspectRatio: ASPECT_RATIOS[aspectRatio],
+            maxHeight: fullscreen ? "100%" : "100%",
+            aspectRatio: STUDIO_ASPECT_RATIOS[aspectRatio].css,
             margin: "0 auto",
             overflow: "hidden",
             background: "#000",
             borderRadius: fullscreen ? 0 : 6,
-            flexShrink: 1,
+            flex: "0 1 auto",
           }}
         >
           {hasBackgroundImage && (
@@ -385,12 +374,10 @@ export default function PreviewPanel({
               muted={muted}
               onLoadedMetadata={(event) => {
                 handleLoadedMetadata(event.currentTarget.duration);
-
-                const target = Math.max(0, currentTime - clipStart);
                 try {
-                  event.currentTarget.currentTime = target;
+                  event.currentTarget.currentTime = Math.max(0, currentTime - clipStart);
                 } catch {
-                  // Metadata may finish loading before seeking is allowed.
+                  // Metadata may load before seeking is allowed.
                 }
               }}
               onTimeUpdate={(event) =>
@@ -436,8 +423,7 @@ export default function PreviewPanel({
                 flexDirection: "column",
                 gap: 10,
                 padding: 12,
-                background:
-                  "radial-gradient(circle at center, #292044, #090909 75%)",
+                background: "radial-gradient(circle at center, #292044, #090909 75%)",
               }}
             >
               <div
@@ -453,7 +439,6 @@ export default function PreviewPanel({
               >
                 ♪
               </div>
-
               <div
                 style={{
                   maxWidth: "90%",
@@ -464,7 +449,6 @@ export default function PreviewPanel({
               >
                 {clip.name}
               </div>
-
               <audio
                 ref={audioRef}
                 src={clip.url}
@@ -498,10 +482,10 @@ export default function PreviewPanel({
             >
               <div style={{ fontSize: 25, opacity: 0.65 }}>▶</div>
               <div style={{ fontSize: 12, fontWeight: 600 }}>
-                Your preview appears here
+                Your canvas is ready
               </div>
               <div style={{ fontSize: 10 }}>
-                Select a clip from your timeline to preview it.
+                Choose your format above, then import your media.
               </div>
             </div>
           )}
@@ -576,7 +560,6 @@ export default function PreviewPanel({
           >
             {formatTime(displayedTime)} / {formatTime(duration)}
           </span>
-
           <input
             aria-label="Preview playback position"
             type="range"

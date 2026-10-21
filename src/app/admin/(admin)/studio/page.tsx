@@ -14,7 +14,9 @@ import {
 
 import StudioTopbar from "@/components/studio/StudioTopbar";
 import MediaPanel from "@/components/studio/MediaPanel";
-import PreviewPanel from "@/components/studio/PreviewPanel";
+import PreviewPanel, {
+  type StudioAspectRatio,
+} from "@/components/studio/PreviewPanel";
 import TimelinePanel from "@/components/studio/TimelinePanel";
 import InspectorPanel from "@/components/studio/InspectorPanel";
 import TransportControls from "@/components/studio/TransportControls";
@@ -40,9 +42,17 @@ import {
 import type { Asset, Clip } from "@/lib/studio/types";
 
 const PROJECT_STORAGE_KEY = "learnyfi-studio-project";
-const EXPORT_WIDTH = 1920;
-const EXPORT_HEIGHT = 1080;
 const EXPORT_FPS = 30;
+
+const EXPORT_DIMENSIONS: Record<
+  StudioAspectRatio,
+  { width: number; height: number }
+> = {
+  "9:16": { width: 1080, height: 1920 },
+  "16:9": { width: 1920, height: 1080 },
+  "1:1": { width: 1080, height: 1080 },
+  "4:3": { width: 1440, height: 1080 },
+};
 
 type ExportMedia = {
   clip: Clip;
@@ -200,6 +210,10 @@ export default function StudioPage() {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
 
+  // Start with a portrait canvas for TikTok, Reels, and Shorts.
+  const [aspectRatio, setAspectRatio] =
+    useState<StudioAspectRatio>("9:16");
+
   const exportInProgressRef = useRef(false);
 
   const assets: Asset[] = studio.assets;
@@ -259,6 +273,14 @@ export default function StudioPage() {
     setLastSaved(null);
     setProjectError(null);
   }, []);
+
+  const handleAspectRatioChange = useCallback(
+    (ratio: StudioAspectRatio) => {
+      setAspectRatio(ratio);
+      markUnsaved();
+    },
+    [markUnsaved],
+  );
 
   const imageBackgroundRemoval = useImageBackgroundRemoval({
     assets,
@@ -410,6 +432,7 @@ export default function StudioPage() {
     try {
       const project = {
         name: studio.projectName,
+        aspectRatio,
         assets: assets.map((asset) => ({
           id: asset.id,
           name: asset.name,
@@ -440,7 +463,14 @@ export default function StudioPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [assets, clips, studio, timeline.playhead, zoom]);
+  }, [
+    assets,
+    clips,
+    studio,
+    timeline.playhead,
+    zoom,
+    aspectRatio,
+  ]);
 
   const handleExport = useCallback(async () => {
     if (exportInProgressRef.current) return;
@@ -456,8 +486,10 @@ export default function StudioPage() {
     setIsPlaying(false);
 
     const canvas = document.createElement("canvas");
-    canvas.width = EXPORT_WIDTH;
-    canvas.height = EXPORT_HEIGHT;
+    const exportSize = EXPORT_DIMENSIONS[aspectRatio];
+
+    canvas.width = exportSize.width;
+    canvas.height = exportSize.height;
 
     const context = canvas.getContext("2d", { alpha: false });
 
@@ -472,7 +504,9 @@ export default function StudioPage() {
         throw new Error("Could not initialize the export canvas.");
       }
 
-      studio.showNotice("Preparing timeline and media for export…");
+      studio.showNotice(
+        `Preparing ${aspectRatio} video (${canvas.width} × ${canvas.height}) for export…`,
+      );
 
       // Load every timeline clip into a fresh media element.
       // Each element receives exactly one MediaElementAudioSourceNode.
@@ -516,8 +550,6 @@ export default function StudioPage() {
           (item.clip.kind === "audio" || item.clip.kind === "video"),
       );
 
-      // Create one audio context and one recording destination.
-      // Never create a second source node for the same media element.
       let audioTracks: MediaStreamTrack[] = [];
 
       if (audioItems.length > 0) {
@@ -596,41 +628,39 @@ export default function StudioPage() {
 
       const renderFrame = (time: number) => {
         context.fillStyle = "#101010";
-        context.fillRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT);
+        context.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw image backgrounds first.
+        // Draw images first, so they can act as backgrounds.
         for (const item of imageItems) {
           if (!item.image || !activeAt(item.clip, time)) continue;
 
           drawImageCover(
             context,
             item.image,
-            EXPORT_WIDTH,
-            EXPORT_HEIGHT,
+            canvas.width,
+            canvas.height,
           );
         }
 
-        // Draw videos over the background. Transparent video pixels
-        // reveal the image behind the foreground subject.
+        // Draw foreground videos over images.
         for (const item of videoItems) {
           if (!item.media || !activeAt(item.clip, time)) continue;
 
           drawVideoContain(
             context,
             item.media as HTMLVideoElement,
-            EXPORT_WIDTH,
-            EXPORT_HEIGHT,
+            canvas.width,
+            canvas.height,
           );
         }
 
-        // Keep both video audio and standalone audio synchronized.
+        // Keep video audio and standalone audio synchronized.
         for (const item of audioItems) {
           syncMedia(item, time);
         }
       };
 
-      // Wait for actual video frames rather than waiting on an empty
-      // placeholder video, which could otherwise hang the export.
+      // Wait for decoded video frames before beginning the export.
       for (const item of videoItems) {
         if (item.media instanceof HTMLVideoElement) {
           await waitForVideoFrame(item.media);
@@ -703,7 +733,7 @@ export default function StudioPage() {
       setExportProgress(0);
       exportInProgressRef.current = false;
     }
-  }, [assets, clips, duration, studio]);
+  }, [assets, clips, duration, studio, aspectRatio]);
 
   const handleRemoveImageBackground = useCallback(async () => {
     try {
@@ -794,7 +824,9 @@ export default function StudioPage() {
       {isExporting && (
         <div className="mx-3 mt-2 rounded-lg border border-border bg-card p-3">
           <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-            <span className="font-medium">Exporting timeline…</span>
+            <span className="font-medium">
+              Exporting {aspectRatio} video…
+            </span>
             <span>{exportProgress}%</span>
           </div>
 
@@ -837,6 +869,8 @@ export default function StudioPage() {
               backgroundClip={previewBackground}
               currentTime={playhead}
               isPlaying={isPlaying}
+              aspectRatio={aspectRatio}
+              onAspectRatioChange={handleAspectRatioChange}
               onPlayPause={handlePlayPause}
               onSeek={handleSeek}
               onTimeUpdate={handleSeek}
@@ -960,6 +994,14 @@ export default function StudioPage() {
             </h2>
 
             <div className="space-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <span>Canvas format</span>
+                <span className="font-medium text-foreground">
+                  {aspectRatio} · {EXPORT_DIMENSIONS[aspectRatio].width} ×{" "}
+                  {EXPORT_DIMENSIONS[aspectRatio].height}
+                </span>
+              </div>
+
               <div className="flex items-center justify-between gap-3">
                 <span>Media files</span>
                 <span className="font-medium text-foreground">

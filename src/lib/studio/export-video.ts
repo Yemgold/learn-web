@@ -20,16 +20,36 @@ export interface ExportVideoResult {
 }
 
 function getSupportedMimeType(): string {
+  if (typeof MediaRecorder === "undefined") {
+    return "";
+  }
+
+  // Prefer a genuine MP4 recording when the browser supports it.
   const candidates = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm",
   ];
 
   return (
-    candidates.find((type) => MediaRecorder.isTypeSupported(type)) ??
-    ""
+    candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? ""
   );
+}
+
+function getExtension(mimeType: string): string {
+  return mimeType.toLowerCase().startsWith("video/mp4") ? ".mp4" : ".webm";
+}
+
+function normalizeFileName(
+  fileName: string,
+  mimeType: string,
+): string {
+  const extension = getExtension(mimeType);
+  const baseName = fileName.replace(/\.(mp4|webm)$/i, "").trim();
+
+  return `${baseName || "learnyfi-studio-export"}${extension}`;
 }
 
 function waitForFrame(): Promise<void> {
@@ -39,37 +59,51 @@ function waitForFrame(): Promise<void> {
 }
 
 /**
- * Export a canvas as a WebM video.
+ * Records the composition already drawn onto a canvas.
  *
- * Note: this records what is drawn on the canvas. It does not automatically
- * render the editor timeline, transitions, or media clips.
+ * The caller is responsible for rendering the timeline, background image,
+ * foreground video, and other visual layers onto this canvas.
+ *
+ * Audio tracks supplied by the caller are added to the recorded stream.
+ *
+ * MP4 is used only if the current browser actually supports recording it.
+ * Otherwise, this function safely exports WebM.
  */
 export async function exportVideo({
   canvas,
   duration,
   fps = 30,
-  fileName = "learnyfi-studio-export.webm",
+  fileName = "learnyfi-studio-export",
   audioTracks = [],
   onProgress,
   onError,
 }: ExportVideoOptions): Promise<ExportVideoResult> {
+  let canvasStream: MediaStream | null = null;
+  let recorder: MediaRecorder | null = null;
+
   try {
     if (typeof window === "undefined") {
       throw new Error("Video export is only available in the browser.");
     }
 
     if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new Error("A valid preview canvas is required.");
+      throw new Error("A valid composition canvas is required.");
+    }
+
+    if (canvas.width <= 0 || canvas.height <= 0) {
+      throw new Error("The export canvas has invalid dimensions.");
     }
 
     if (typeof MediaRecorder === "undefined") {
       throw new Error(
-        "Your browser does not support video recording. Try a recent version of Chrome or Edge.",
+        "Video recording is not supported. Try a recent version of Chrome or Edge.",
       );
     }
 
     if (typeof canvas.captureStream !== "function") {
-      throw new Error("Canvas video capture is not supported by this browser.");
+      throw new Error(
+        "Canvas recording is not supported by this browser.",
+      );
     }
 
     if (!Number.isFinite(duration) || duration <= 0) {
@@ -80,35 +114,51 @@ export async function exportVideo({
     const mimeType = getSupportedMimeType();
 
     if (!mimeType) {
-      throw new Error("This browser does not support WebM video export.");
+      throw new Error(
+        "Your browser does not support MP4 or WebM recording.",
+      );
     }
 
-    const canvasStream = canvas.captureStream(safeFps);
+    canvasStream = canvas.captureStream(safeFps);
+
+    const liveAudioTracks = audioTracks.filter(
+      (track) => track.readyState === "live",
+    );
+
     const combinedStream = new MediaStream([
       ...canvasStream.getVideoTracks(),
-      ...audioTracks.filter((track) => track.readyState === "live"),
+      ...liveAudioTracks,
     ]);
 
     const chunks: BlobPart[] = [];
 
-    const recorder = new MediaRecorder(combinedStream, {
+    recorder = new MediaRecorder(combinedStream, {
       mimeType,
-      videoBitsPerSecond: 5_000_000,
+      videoBitsPerSecond: 8_000_000,
+      ...(mimeType.startsWith("video/webm")
+        ? { audioBitsPerSecond: 192_000 }
+        : {}),
     });
+
+    const activeRecorder = recorder;
 
     const resultPromise = new Promise<ExportVideoResult>(
       (resolve, reject) => {
-        recorder.ondataavailable = (event: BlobEvent) => {
+        activeRecorder.ondataavailable = (event: BlobEvent) => {
           if (event.data.size > 0) {
             chunks.push(event.data);
           }
         };
 
-        recorder.onerror = () => {
-          reject(new Error("An error occurred while recording the video."));
+        activeRecorder.onerror = () => {
+          reject(
+            new Error(
+              "Recording failed. Try a shorter video or a lower resolution.",
+            ),
+          );
         };
 
-        recorder.onstop = () => {
+        activeRecorder.onstop = () => {
           const blob = new Blob(chunks, { type: mimeType });
 
           if (blob.size === 0) {
@@ -118,9 +168,7 @@ export async function exportVideo({
 
           resolve({
             blob,
-            fileName: fileName.endsWith(".webm")
-              ? fileName
-              : `${fileName}.webm`,
+            fileName: normalizeFileName(fileName, mimeType),
             mimeType,
           });
         };
@@ -137,7 +185,7 @@ export async function exportVideo({
         await waitForFrame();
 
         const elapsed = performance.now() - startTime;
-        const progress = Math.min(100, (elapsed / durationMs) * 100);
+        const progress = Math.min(99, (elapsed / durationMs) * 100);
 
         onProgress?.(Math.round(progress));
 
@@ -159,39 +207,49 @@ export async function exportVideo({
 
     return result;
   } catch (error) {
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+
+    canvasStream?.getTracks().forEach((track) => track.stop());
+
     const exportError =
       error instanceof Error
         ? error
         : new Error("Video export failed unexpectedly.");
 
     onError?.(exportError);
+
     throw exportError;
   }
 }
 
 /**
- * Trigger a browser download for an exported video.
+ * Downloads the recorded video using its actual format and file extension.
  */
 export function downloadExportedVideo(
   blob: Blob,
-  fileName = "learnyfi-studio-export.webm",
+  fileName = "learnyfi-studio-export",
 ): void {
   if (typeof document === "undefined") {
     throw new Error("Downloads are only available in the browser.");
   }
 
+  if (blob.size === 0) {
+    throw new Error("Cannot download an empty video.");
+  }
+
+  const mimeType = blob.type || "video/webm";
+  const normalizedFileName = normalizeFileName(fileName, mimeType);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
   anchor.href = url;
-  anchor.download = fileName.endsWith(".webm")
-    ? fileName
-    : `${fileName}.webm`;
+  anchor.download = normalizedFileName;
 
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
 
-  // Give the browser time to begin the download before releasing the URL.
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
 }

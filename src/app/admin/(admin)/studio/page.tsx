@@ -1,14 +1,13 @@
 
 
 
-
-
 "use client";
 
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -32,9 +31,133 @@ import {
   getTimelineDuration,
 } from "@/lib/studio/utils";
 
+import {
+  exportVideo,
+  downloadExportedVideo,
+} from "@/lib/studio/export-video";
+
 import type { Asset, Clip } from "@/lib/studio/types";
 
 const PROJECT_STORAGE_KEY = "learnyfi-studio-project";
+const EXPORT_WIDTH = 1920;
+const EXPORT_HEIGHT = 1080;
+const EXPORT_FPS = 30;
+
+type ExportMedia = {
+  clip: Clip;
+  image?: HTMLImageElement;
+  media?: HTMLVideoElement | HTMLAudioElement;
+};
+
+function getClipUrl(clip: Clip, assets: Asset[]): string {
+  const asset = assets.find((item) => item.id === clip.assetId);
+
+  return clip.url || asset?.url || "";
+}
+
+function waitForImage(image: HTMLImageElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (image.complete && image.naturalWidth > 0) {
+      resolve();
+      return;
+    }
+
+    image.onload = () => resolve();
+    image.onerror = () => {
+      reject(new Error(`Could not load image: ${image.src}`));
+    };
+  });
+}
+
+function waitForMedia(
+  media: HTMLMediaElement,
+  label: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (media.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      resolve();
+      return;
+    }
+
+    const cleanup = () => {
+      media.removeEventListener("loadedmetadata", onReady);
+      media.removeEventListener("error", onError);
+    };
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error(`Could not load media: ${label}`));
+    };
+
+    media.addEventListener("loadedmetadata", onReady, { once: true });
+    media.addEventListener("error", onError, { once: true });
+    media.load();
+  });
+}
+
+function drawImageCover(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+) {
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = image.naturalHeight;
+
+  if (!sourceWidth || !sourceHeight) return;
+
+  const scale = Math.max(
+    width / sourceWidth,
+    height / sourceHeight,
+  );
+
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+
+  context.drawImage(
+    image,
+    (width - drawWidth) / 2,
+    (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
+}
+
+function drawVideoContain(
+  context: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  width: number,
+  height: number,
+) {
+  if (
+    video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+    !video.videoWidth ||
+    !video.videoHeight
+  ) {
+    return;
+  }
+
+  const scale = Math.min(
+    width / video.videoWidth,
+    height / video.videoHeight,
+  );
+
+  const drawWidth = video.videoWidth * scale;
+  const drawHeight = video.videoHeight * scale;
+
+  context.drawImage(
+    video,
+    (width - drawWidth) / 2,
+    (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
+}
 
 export default function StudioPage() {
   const studio = useStudioState({
@@ -46,8 +169,12 @@ export default function StudioPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [zoom, setZoom] = useState(50);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
+
+  const exportInProgressRef = useRef(false);
 
   const assets: Asset[] = studio.assets;
   const clips: Clip[] = timeline.clips;
@@ -70,18 +197,8 @@ export default function StudioPage() {
     [assets, studio.selectedAssetId],
   );
 
-  /*
-   * PREVIEW COMPOSITING SELECTION
-   *
-   * When the user selects a background image, keep the main video
-   * visible in the preview and show that image behind it.
-   *
-   * An image on the Overlay track is preferred as the background.
-   */
   const previewVideoClip = useMemo(() => {
-    if (selectedClip?.kind === "video") {
-      return selectedClip;
-    }
+    if (selectedClip?.kind === "video") return selectedClip;
 
     return (
       clips.find(
@@ -93,9 +210,7 @@ export default function StudioPage() {
   }, [clips, selectedClip]);
 
   const backgroundClip = useMemo(() => {
-    if (selectedClip?.kind === "image") {
-      return selectedClip;
-    }
+    if (selectedClip?.kind === "image") return selectedClip;
 
     return (
       clips.find(
@@ -107,7 +222,6 @@ export default function StudioPage() {
     );
   }, [clips, selectedClip]);
 
-  // Show the image behind the video only when a video is available.
   const previewClip = previewVideoClip ?? selectedClip;
   const previewBackground =
     previewVideoClip && backgroundClip?.id !== previewVideoClip.id
@@ -162,9 +276,7 @@ export default function StudioPage() {
       if (newAssets.length > 0) {
         studio.setSelectedAssetId(newAssets[newAssets.length - 1].id);
         studio.showSuccess(
-          `${newAssets.length} media file${
-            newAssets.length === 1 ? "" : "s"
-          } imported.`,
+          `${newAssets.length} media file${newAssets.length === 1 ? "" : "s"} imported.`,
         );
         markUnsaved();
       }
@@ -179,7 +291,6 @@ export default function StudioPage() {
       timeline.addClip(clip);
       timeline.selectClip(clip.id);
       timeline.seek(clip.start);
-
       studio.setSelectedAssetId(asset.id);
       studio.showSuccess(`${asset.name} added to the timeline.`);
       markUnsaved();
@@ -238,10 +349,7 @@ export default function StudioPage() {
   );
 
   const handlePlayPause = useCallback(() => {
-    if (playhead >= duration) {
-      timeline.seek(0);
-    }
-
+    if (playhead >= duration) timeline.seek(0);
     setIsPlaying((playing) => !playing);
   }, [duration, playhead, timeline]);
 
@@ -307,49 +415,284 @@ export default function StudioPage() {
     }
   }, [assets, clips, studio, timeline.playhead, zoom]);
 
-  
-  const handleExport = useCallback(() => {
-  if (!selectedClip) {
-    studio.showError("Select a clip before exporting.");
-    return;
+  /**
+   * Render the timeline into an off-screen canvas, record its video and
+   * audio, and download the resulting file.
+   */
+  const handleExport = useCallback(async () => {
+    if (exportInProgressRef.current) return;
+
+    if (clips.length === 0) {
+      studio.showError("Add media to the timeline before exporting.");
+      return;
+    }
+
+    exportInProgressRef.current = true;
+    setIsExporting(true);
+    setExportProgress(0);
+    setIsPlaying(false);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = EXPORT_WIDTH;
+    canvas.height = EXPORT_HEIGHT;
+
+    const context = canvas.getContext("2d", {
+      alpha: false,
+    });
+
+    let audioContext: AudioContext | null = null;
+    let animationFrame = 0;
+    let cancelled = false;
+    const mediaItems: ExportMedia[] = [];
+
+    try {
+      if (!context) {
+        throw new Error("Could not initialize the export canvas.");
+      }
+
+      studio.showNotice("Preparing timeline and media for export…");
+
+      // Load every clip before recording so missing media is reported
+      // before a partial video is downloaded.
+      for (const clip of clips) {
+        const url = getClipUrl(clip, assets);
+
+        if (!url) {
+          throw new Error(`Media is missing for "${clip.name}".`);
+        }
+
+        if (clip.kind === "image") {
+          const image = new Image();
+          image.src = url;
+          await waitForImage(image);
+
+          mediaItems.push({ clip, image });
+          continue;
+        }
+
+        const media =
+          clip.kind === "video"
+            ? document.createElement("video")
+            : document.createElement("audio");
+
+        media.preload = "auto";
+        if (media instanceof HTMLVideoElement) {
+  media.playsInline = true;
+}
+        media.src = url;
+        mediaItems.push({ clip, media });
+
+        await waitForMedia(media, clip.name);
+      }
+
+      const audioItems = mediaItems.filter(
+        (item) =>
+          item.media &&
+          (item.clip.kind === "audio" || item.clip.kind === "video"),
+      );
+
+      if (audioItems.length > 0) {
+        const AudioContextConstructor =
+          window.AudioContext;
+
+        audioContext = new AudioContextConstructor();
+
+        for (const item of audioItems) {
+          if (!item.media || !audioContext) continue;
+
+          const source = audioContext.createMediaElementSource(
+            item.media,
+          );
+
+          source.connect(audioContext.destination);
+        }
+
+        await audioContext.resume();
+      }
+
+      // Sort visual layers so images form the background and videos
+      // are drawn above them, allowing transparent WebM foregrounds.
+      const imageItems = mediaItems.filter(
+        (item) => item.clip.kind === "image" && item.image,
+      );
+
+      const videoItems = mediaItems.filter(
+        (item) => item.clip.kind === "video" && item.media,
+      );
+
+      const activeAt = (clip: Clip, time: number) =>
+        time >= clip.start &&
+        time < clip.start + clip.duration;
+
+      const syncMedia = (item: ExportMedia, time: number) => {
+        const media = item.media;
+
+        if (!media) return;
+
+        const active = activeAt(item.clip, time);
+
+        if (!active) {
+          if (!media.paused) media.pause();
+          return;
+        }
+
+        const desiredTime = Math.max(
+          0,
+          item.clip.trimStart + time - item.clip.start,
+        );
+
+        if (
+          Number.isFinite(media.duration) &&
+          media.duration > 0 &&
+          Math.abs(media.currentTime - desiredTime) > 0.35
+        ) {
+          media.currentTime = Math.min(
+            desiredTime,
+            Math.max(0, media.duration - 0.05),
+          );
+        }
+
+        if (media.paused) {
+          void media.play().catch((error: unknown) => {
+            console.warn("Media playback could not start:", error);
+          });
+        }
+      };
+
+      const renderFrame = (time: number) => {
+        context.fillStyle = "#101010";
+        context.fillRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT);
+
+        // Background and image layers.
+        for (const item of imageItems) {
+          if (!item.image || !activeAt(item.clip, time)) continue;
+
+          drawImageCover(
+            context,
+            item.image,
+            EXPORT_WIDTH,
+            EXPORT_HEIGHT,
+          );
+        }
+
+        // Foreground video layers. Transparent WebM keeps the background
+        // image visible behind the person.
+        for (const item of videoItems) {
+          if (!item.media || !activeAt(item.clip, time)) continue;
+
+          drawVideoContain(
+            context,
+            item.media as HTMLVideoElement,
+            EXPORT_WIDTH,
+            EXPORT_HEIGHT,
+          );
+        }
+
+        // Synchronize both video audio and standalone audio clips.
+        for (const item of audioItems) {
+          syncMedia(item, time);
+        }
+      };
+
+      let startTime = 0;
+
+      const drawLoop = () => {
+        if (cancelled) return;
+
+        const time = Math.min(
+          (performance.now() - startTime) / 1000,
+          duration,
+        );
+
+        renderFrame(time);
+        animationFrame = window.requestAnimationFrame(drawLoop);
+      };
+
+      // Draw the opening frame before recording starts.
+      renderFrame(0);
+      await waitForMedia(
+        videoItems[0]?.media ?? document.createElement("video"),
+        videoItems[0]?.clip.name ?? "initial frame",
+      ).catch(() => undefined);
+
+      startTime = performance.now();
+      animationFrame = window.requestAnimationFrame(drawLoop);
+
+ if (!audioContext) {
+  throw new Error("Audio context could not be initialized.");
+}
+
+const audioDestination =
+  audioContext.createMediaStreamDestination();
+
+for (const item of mediaItems) {
+  if (
+    item.media instanceof HTMLAudioElement ||
+    item.media instanceof HTMLVideoElement
+  ) {
+    const source = audioContext.createMediaElementSource(item.media);
+    source.connect(audioDestination);
   }
+}
 
-  const asset = assets.find(
-    (item) => item.id === selectedClip.assetId,
-  );
 
-  const file = selectedClip.file ?? asset?.file;
 
-  if (!file) {
-    studio.showError(
-      "The selected clip's media file is unavailable.",
-    );
-    return;
-  }
+const audioTracks = audioDestination.stream.getAudioTracks();
 
-  try {
-    const url = URL.createObjectURL(file);
-    const anchor = document.createElement("a");
+      const result = await exportVideo({
+        canvas,
+        duration,
+        fps: EXPORT_FPS,
+        fileName: `${studio.projectName || "learnyfi-export"}.mp4`,
+        audioTracks,
+        onProgress: (progress) => {
+          setExportProgress(progress);
+        },
+      });
 
-    anchor.href = url;
-    anchor.download =
-      file.name || selectedClip.name || "learnyfi-export";
+      cancelled = true;
+      window.cancelAnimationFrame(animationFrame);
 
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+      for (const item of mediaItems) {
+        if (item.media) {
+          item.media.pause();
+        }
+      }
 
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+      downloadExportedVideo(result.blob, result.fileName);
 
-    studio.showSuccess(
-      `Downloaded ${file.name}. This is the selected clip, not the full timeline export.`,
-    );
-  } catch (error) {
-    console.error("Media export failed:", error);
-    studio.showError("Could not download the selected media.");
-  }
-}, [assets, selectedClip, studio]);
+      studio.showSuccess(
+        `Export downloaded as ${result.fileName} (${result.mimeType}).`,
+      );
+    } catch (error) {
+      console.error("Timeline export failed:", error);
 
+      studio.showError(
+        error instanceof Error
+          ? error.message
+          : "Timeline export failed. Please try again.",
+      );
+    } finally {
+      cancelled = true;
+      window.cancelAnimationFrame(animationFrame);
+
+      for (const item of mediaItems) {
+        if (item.media) {
+          item.media.pause();
+          item.media.removeAttribute("src");
+          item.media.load();
+        }
+      }
+
+      if (audioContext && audioContext.state !== "closed") {
+        await audioContext.close().catch(() => undefined);
+      }
+
+      setIsExporting(false);
+      setExportProgress(0);
+      exportInProgressRef.current = false;
+    }
+  }, [assets, clips, duration, studio]);
 
   const handleRemoveImageBackground = useCallback(async () => {
     try {
@@ -425,7 +768,7 @@ export default function StudioPage() {
         onUndo={() => studio.showNotice("Undo is not available yet.")}
         onRedo={() => studio.showNotice("Redo is not available yet.")}
         isSaving={isSaving}
-        isExporting={false}
+        isExporting={isExporting}
       />
 
       {studio.notice && (
@@ -437,8 +780,32 @@ export default function StudioPage() {
         </div>
       )}
 
+      {isExporting && (
+        <div className="mx-3 mt-2 rounded-lg border border-border bg-card p-3">
+          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium">Exporting timeline…</span>
+            <span>{exportProgress}%</span>
+          </div>
+          <div
+            className="h-2 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-label="Export progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={exportProgress}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${exportProgress}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Keep this tab open until the export finishes.
+          </p>
+        </div>
+      )}
+
       <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 xl:grid-cols-[250px_minmax(0,1fr)_280px]">
-        {/* Media library */}
         <aside className="min-h-[260px] overflow-hidden rounded-xl border border-border bg-card xl:min-h-0">
           <MediaPanel
             assets={assets}
@@ -450,9 +817,7 @@ export default function StudioPage() {
           />
         </aside>
 
-        {/* Main editing workspace */}
         <section className="flex min-w-0 flex-col gap-3">
-          {/* Compact preview */}
           <div className="h-[280px] min-h-[220px] max-h-[38vh] overflow-hidden rounded-xl border border-border bg-card lg:h-[300px] xl:h-[320px]">
             <PreviewPanel
               clip={previewClip}
@@ -475,7 +840,6 @@ export default function StudioPage() {
             />
           </div>
 
-          {/* Timeline */}
           <div className="min-h-[280px] overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2.5">
               <div>
@@ -489,7 +853,7 @@ export default function StudioPage() {
                 <button
                   type="button"
                   onClick={handleSplitClip}
-                  disabled={!selectedClip}
+                  disabled={!selectedClip || isExporting}
                   className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Split clip
@@ -498,7 +862,7 @@ export default function StudioPage() {
                 <button
                   type="button"
                   onClick={handleClearTimeline}
-                  disabled={clips.length === 0}
+                  disabled={clips.length === 0 || isExporting}
                   className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Clear timeline
@@ -508,7 +872,8 @@ export default function StudioPage() {
                   <button
                     type="button"
                     onClick={() => handleAddToTimeline(selectedAsset)}
-                    className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:opacity-90"
+                    disabled={isExporting}
+                    className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:opacity-90 disabled:opacity-50"
                   >
                     Add selected media
                   </button>
@@ -547,7 +912,6 @@ export default function StudioPage() {
           </div>
         </section>
 
-        {/* Inspector and tools */}
         <aside className="flex min-h-[260px] flex-col gap-3 xl:min-h-0">
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             <InspectorPanel
@@ -641,7 +1005,7 @@ export default function StudioPage() {
             <button
               type="button"
               onClick={handleSaveProject}
-              disabled={isSaving}
+              disabled={isSaving || isExporting}
               className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {isSaving ? "Saving project…" : "Save project"}

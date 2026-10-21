@@ -1,9 +1,3 @@
-
-
-
-
-
-
 "use client";
 
 import { useCallback, useRef, useState } from "react";
@@ -156,6 +150,73 @@ function waitForSeek(video: HTMLVideoElement, target: number): Promise<void> {
     15000,
     "Timed out while seeking through the source video.",
   );
+}
+
+
+/**
+ * MediaRecorder WebM files may report Infinity/NaN for duration immediately
+ * after loadedmetadata because the container has no finalized duration field.
+ * Seeking to the end lets Chromium parse the final cluster and expose a real
+ * duration before we decide whether the export is incomplete.
+ */
+async function measureRecordedVideoDuration(file: File): Promise<number> {
+  const url = URL.createObjectURL(file);
+  const checkVideo = document.createElement("video");
+  checkVideo.preload = "metadata";
+  checkVideo.muted = true;
+  checkVideo.src = url;
+
+  try {
+    await waitForMetadata(checkVideo);
+
+    if (Number.isFinite(checkVideo.duration) && checkVideo.duration > 0) {
+      return checkVideo.duration;
+    }
+
+    // Chromium often reports Infinity for a MediaRecorder-generated WebM until
+    // it has performed a seek. Listen before assigning currentTime to avoid
+    // missing a fast seeked event.
+    const measured = await withTimeout(
+      new Promise<number>((resolve, reject) => {
+        const cleanup = () => {
+          checkVideo.removeEventListener("seeked", onSeeked);
+          checkVideo.removeEventListener("timeupdate", onTimeUpdate);
+          checkVideo.removeEventListener("error", onError);
+        };
+        const tryResolve = () => {
+          const duration = checkVideo.duration;
+          if (Number.isFinite(duration) && duration > 0) {
+            cleanup();
+            resolve(duration);
+          }
+        };
+        const onSeeked = () => tryResolve();
+        const onTimeUpdate = () => tryResolve();
+        const onError = () => {
+          cleanup();
+          reject(new Error("The browser could not inspect the processed WebM duration."));
+        };
+
+        checkVideo.addEventListener("seeked", onSeeked);
+        checkVideo.addEventListener("timeupdate", onTimeUpdate);
+        checkVideo.addEventListener("error", onError);
+        try {
+          checkVideo.currentTime = 1e10;
+        } catch (seekError) {
+          cleanup();
+          reject(seekError);
+        }
+      }),
+      10000,
+      "The browser could not determine the processed WebM duration.",
+    );
+    return measured;
+  } finally {
+    checkVideo.pause();
+    checkVideo.removeAttribute("src");
+    checkVideo.load();
+    URL.revokeObjectURL(url);
+  }
 }
 
 export function useVideoBackgroundRemoval({
@@ -534,26 +595,11 @@ export function useVideoBackgroundRemoval({
 
       // Verify that the generated file actually contains approximately the
       // source duration. Do not create a misleading short timeline clip.
-      const checkUrl = URL.createObjectURL(outputFile);
-      try {
-        const checkVideo = document.createElement("video");
-        checkVideo.preload = "metadata";
-        checkVideo.src = checkUrl;
-        await waitForMetadata(checkVideo);
-        const outputDuration = checkVideo.duration;
-        checkVideo.removeAttribute("src");
-        checkVideo.load();
-
-        if (
-          !Number.isFinite(outputDuration) ||
-          outputDuration < sourceDuration * 0.85
-        ) {
-          throw new Error(
-            `The processed recording is only ${Number.isFinite(outputDuration) ? outputDuration.toFixed(1) : "an unknown number of"} seconds long, but the original is ${sourceDuration.toFixed(1)} seconds. The browser could not record all processed frames. Try a lower-resolution video or a shorter source.`,
-          );
-        }
-      } finally {
-        URL.revokeObjectURL(checkUrl);
+      const outputDuration = await measureRecordedVideoDuration(outputFile);
+      if (outputDuration < sourceDuration * 0.85) {
+        throw new Error(
+          `The processed recording is ${outputDuration.toFixed(1)} seconds long, but the original is ${sourceDuration.toFixed(1)} seconds. The recording is genuinely incomplete. Try a lower-resolution video or shorter source, and do not use this export.`,
+        );
       }
 
       setProgress(99);

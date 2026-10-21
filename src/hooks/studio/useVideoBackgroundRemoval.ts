@@ -460,19 +460,24 @@ export function useVideoBackgroundRemoval({
         sourceClip.start,
       );
 
-      // Preserve the timeline duration and trim settings of the original
-      // clip. The generated file itself is still the complete source-length
-      // recording; this avoids a short metadata-derived timeline duration.
-      const outputClip: Clip = {
-        ...generatedClip,
-        track: sourceClip.track,
-        start: sourceClip.start,
-        duration: sourceClip.duration || sourceDuration,
-        trimStart: sourceClip.trimStart,
-        trimEnd: sourceClip.trimEnd,
-        volume: sourceClip.volume,
-        muted: sourceClip.muted,
-      };
+     const outputClip: Clip = {
+  ...generatedClip,
+
+  // Keep a direct reference to the processed file.
+  // This prevents export from falling back to the original video.
+  file: outputFile,
+
+  name: outputFile.name,
+  url: outputAsset.url,
+
+  track: sourceClip.track,
+  start: sourceClip.start,
+  duration: sourceClip.duration || sourceDuration,
+  trimStart: sourceClip.trimStart,
+  trimEnd: sourceClip.trimEnd,
+  volume: sourceClip.volume,
+  muted: sourceClip.muted,
+};
 
       onAssetCreated?.(outputAsset);
       onClipCreated?.(outputClip);

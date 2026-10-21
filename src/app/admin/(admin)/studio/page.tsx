@@ -307,45 +307,49 @@ export default function StudioPage() {
     }
   }, [assets, clips, studio, timeline.playhead, zoom]);
 
+  
   const handleExport = useCallback(() => {
-    if (!selectedClip) {
-      studio.showError("Select a clip before exporting.");
-      return;
-    }
+  if (!selectedClip) {
+    studio.showError("Select a clip before exporting.");
+    return;
+  }
 
-    const asset = assets.find(
-      (item) => item.id === selectedClip.assetId,
+  const asset = assets.find(
+    (item) => item.id === selectedClip.assetId,
+  );
+
+  const file = selectedClip.file ?? asset?.file;
+
+  if (!file) {
+    studio.showError(
+      "The selected clip's media file is unavailable.",
     );
+    return;
+  }
 
-    const file = selectedClip.file ?? asset?.file;
+  try {
+    const url = URL.createObjectURL(file);
+    const anchor = document.createElement("a");
 
-    if (!file) {
-      studio.showError("The original media file is not available.");
-      return;
-    }
+    anchor.href = url;
+    anchor.download =
+      file.name || selectedClip.name || "learnyfi-export";
 
-    try {
-      const url = URL.createObjectURL(file);
-      const anchor = document.createElement("a");
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
 
-      anchor.href = url;
-      anchor.download =
-        file.name || selectedClip.name || "media-export";
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
+    studio.showSuccess(
+      `Downloaded ${file.name}. This is the selected clip, not the full timeline export.`,
+    );
+  } catch (error) {
+    console.error("Media export failed:", error);
+    studio.showError("Could not download the selected media.");
+  }
+}, [assets, selectedClip, studio]);
 
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-      studio.showSuccess(
-        "Original media downloaded. Full timeline compositing is not included in this export yet.",
-      );
-    } catch (error) {
-      console.error("Media export failed:", error);
-      studio.showError("Could not export this media file.");
-    }
-  }, [assets, selectedClip, studio]);
 
   const handleRemoveImageBackground = useCallback(async () => {
     try {

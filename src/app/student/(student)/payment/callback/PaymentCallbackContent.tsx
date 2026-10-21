@@ -1,7 +1,6 @@
 
 
 
-
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -37,14 +36,10 @@ export default function PaymentCallbackContent() {
     }
 
     if (hasVerified.current) return;
-
     hasVerified.current = true;
 
     verifyPayment(
-      {
-        provider: "monnify",
-        reference,
-      },
+      { provider: "monnify", reference },
       {
         onSuccess: (response) => {
           console.log(
@@ -52,40 +47,70 @@ export default function PaymentCallbackContent() {
             JSON.stringify(response, null, 2),
           );
 
-          // Only show success when the API explicitly confirms payment.
+          // API response structure:
+          // response.data.data.data = transaction
+          const transaction = response?.data?.data?.data;
+
+          const status =
+            typeof transaction?.status === "string"
+              ? transaction.status.toUpperCase()
+              : "";
+
+          const isVerified = transaction?.verified === true;
+          const isSuccessful = status === "SUCCESSFUL";
+
           if (
-            response.success === true &&
-            response.data?.paid === true
+            response?.success === true &&
+            isVerified &&
+            isSuccessful
           ) {
+            const transactionReference =
+              transaction.reference || reference;
+
+            const isWalletFunding =
+              transaction.description === "User funding wallet." ||
+              transactionReference.startsWith("FUND_WALLET_");
+
+            const type = isWalletFunding ? "wallet" : "subscription";
+
             router.replace(
-              `/student/payment/success?reference=${encodeURIComponent(reference)}`,
+              `/student/payment/success?type=${type}&reference=${encodeURIComponent(
+                transactionReference,
+              )}`,
             );
+
             return;
           }
 
-          // A successful API request is not necessarily a paid transaction.
-          // Avoid claiming payment failed when the payment is still pending.
-          const status = response.data?.status?.toLowerCase();
-
           if (
-            status === "pending" ||
-            status === "processing"
+            status === "PENDING" ||
+            status === "PROCESSING"
           ) {
             router.replace(
-              `/student/payment?error=verification_pending&reference=${encodeURIComponent(reference)}`,
+              `/student/payment?error=verification_pending&reference=${encodeURIComponent(
+                reference,
+              )}`,
             );
             return;
           }
 
           router.replace(
-            `/student/payment?error=verification_failed&reference=${encodeURIComponent(reference)}`,
+            `/student/payment?error=verification_failed&reference=${encodeURIComponent(
+              reference,
+            )}`,
           );
         },
+
         onError: (error) => {
-          console.error("Payment verification request failed:", error);
+          console.error(
+            "Payment verification request failed:",
+            error,
+          );
 
           router.replace(
-            `/student/payment?error=verification_unavailable&reference=${encodeURIComponent(reference)}`,
+            `/student/payment?error=verification_unavailable&reference=${encodeURIComponent(
+              reference,
+            )}`,
           );
         },
       },
@@ -98,7 +123,9 @@ export default function PaymentCallbackContent() {
         <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
 
         <h1 className="text-2xl font-bold text-slate-900">
-          {isPending ? "Verifying Payment..." : "Checking Payment..."}
+          {isPending
+            ? "Verifying Payment..."
+            : "Checking Payment..."}
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-slate-500">

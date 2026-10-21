@@ -222,8 +222,11 @@ export default function PaymentCallbackContent() {
     hasVerified.current = true;
 
     verifyPayment(
-      { reference },
-      {
+  {
+    provider: "monnify",
+    reference,
+  },
+  {
         onSuccess: (response) => {
           console.log(
             "Payment verification response:",

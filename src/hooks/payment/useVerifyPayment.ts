@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
@@ -17,14 +18,19 @@ export interface VerifyPaymentResponse {
 }
 
 async function verifyPayment(
+  provider: string,
   reference: string,
 ): Promise<VerifyPaymentResponse> {
   if (!reference) {
     throw new Error("Payment reference is required.");
   }
 
+  if (!provider) {
+    throw new Error("Payment provider is required.");
+  }
+
   const response = await api.get<VerifyPaymentResponse>(
-    `/payments/verify-payment/${encodeURIComponent(reference)}`,
+    `/payments/verify-payment/${encodeURIComponent(provider)}/${encodeURIComponent(reference)}`,
   );
 
   return response.data;
@@ -32,7 +38,12 @@ async function verifyPayment(
 
 export function useVerifyPayment() {
   return useMutation({
-    mutationFn: ({ reference }: { reference: string }) =>
-      verifyPayment(reference),
+    mutationFn: ({
+      provider,
+      reference,
+    }: {
+      provider: string;
+      reference: string;
+    }) => verifyPayment(provider, reference),
   });
 }

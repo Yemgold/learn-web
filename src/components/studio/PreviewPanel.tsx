@@ -40,16 +40,103 @@ interface PreviewPanelProps {
   backgroundClip?: Clip | null;
   currentTime?: number;
   isPlaying?: boolean;
-
-  // Required: the parent page owns the selected ratio.
   aspectRatio: StudioAspectRatio;
   onAspectRatioChange: (ratio: StudioAspectRatio) => void;
-
   onPlayPause?: () => void;
   onSeek?: (time: number) => void;
   onTimeUpdate?: (time: number) => void;
   onDurationChange?: (duration: number) => void;
   className?: string;
+}
+
+const DRIFT_TOLERANCE = 0.3;
+const PLAYING_DRIFT_TOLERANCE = 0.85;
+
+function getClipDuration(clip: Clip | null | undefined): number {
+  if (!clip) return 0;
+
+  const duration = Number.isFinite(clip.duration)
+    ? Math.max(0, clip.duration)
+    : 0;
+
+  const trimStart = Number.isFinite(clip.trimStart)
+    ? Math.max(0, clip.trimStart)
+    : 0;
+
+  const trimEnd = Number.isFinite(clip.trimEnd)
+    ? Math.max(0, clip.trimEnd)
+    : 0;
+
+  // In this editor, duration is the timeline clip length.
+  // Trim values describe the source-media boundaries.
+  return Math.max(0, duration - trimEnd);
+}
+
+function getLocalTime(projectTime: number, clip: Clip): number {
+  const trimStart = Number.isFinite(clip.trimStart)
+    ? Math.max(0, clip.trimStart)
+    : 0;
+
+  return Math.max(0, trimStart + projectTime - clip.start);
+}
+
+function getClipEnd(clip: Clip): number {
+  return clip.start + Math.max(0, clip.duration);
+}
+
+function isClipActiveAtTime(
+  clip: Clip | null | undefined,
+  projectTime: number,
+): clip is Clip {
+  if (!clip) return false;
+
+  return (
+    projectTime >= clip.start &&
+    projectTime < getClipEnd(clip)
+  );
+}
+
+function seekMedia(
+  media: HTMLMediaElement | null,
+  target: number,
+  force = false,
+) {
+  if (!media || !Number.isFinite(target)) return;
+
+  const safeTarget = Math.max(0, target);
+
+  if (media.readyState < HTMLMediaElement.HAVE_METADATA) return;
+
+  const finiteDuration = Number.isFinite(media.duration)
+    ? media.duration
+    : safeTarget;
+
+  const clampedTarget = Math.min(safeTarget, finiteDuration);
+
+  if (
+    force ||
+    Math.abs(media.currentTime - clampedTarget) > DRIFT_TOLERANCE
+  ) {
+    try {
+      media.currentTime = clampedTarget;
+    } catch {
+      // Some browsers cannot seek until a media seekable range is available.
+    }
+  }
+}
+
+async function playMedia(media: HTMLMediaElement | null) {
+  if (!media) return;
+
+  try {
+    await media.play();
+  } catch {
+    // Playback can be blocked until the browser receives user interaction.
+  }
+}
+
+function pauseMedia(media: HTMLMediaElement | null) {
+  media?.pause();
 }
 
 export default function PreviewPanel({
@@ -70,6 +157,11 @@ export default function PreviewPanel({
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  const previousClipIdRef = useRef<string | null>(null);
+  const previousBackgroundIdRef = useRef<string | null>(null);
+  const previousPlayingRef = useRef(isPlaying);
+  const lastReportedTimeRef = useRef(-1);
+
   const [muted, setMuted] = useState(false);
   const [mediaDuration, setMediaDuration] = useState(0);
   const [mediaError, setMediaError] = useState(false);
@@ -89,18 +181,29 @@ export default function PreviewPanel({
     backgroundClip?.kind === "video" &&
     Boolean(backgroundClip.url);
 
-  const duration = mediaDuration || clip?.duration || 0;
   const clipStart = clip?.start ?? 0;
-  const localTime = Math.max(0, currentTime - clipStart);
+  const clipDuration = clip ? getClipDuration(clip) : 0;
 
-  const displayedTime = Math.max(
-    0,
-    Math.min(localTime, duration || localTime),
-  );
+  const clipLocalTime = clip
+    ? getLocalTime(currentTime, clip)
+    : 0;
+
+  const displayedTime = clip
+    ? Math.max(0, Math.min(clipLocalTime, clipDuration))
+    : 0;
+
+  const duration = mediaDuration || clipDuration;
+
+  const mainMediaRef = isVideo ? videoRef : isAudio ? audioRef : null;
+
+  const isMainClipActive = isClipActiveAtTime(clip, currentTime);
+  const isBackgroundActive =
+    isClipActiveAtTime(backgroundClip, currentTime);
 
   const handleLoadedMetadata = useCallback(
     (value: number) => {
       if (!Number.isFinite(value) || value < 0) return;
+
       setMediaDuration(value);
       onDurationChange?.(value);
     },
@@ -108,96 +211,166 @@ export default function PreviewPanel({
   );
 
   const handleTimeUpdate = useCallback(
-    (value: number) => {
-      if (Number.isFinite(value)) {
-        onTimeUpdate?.(value + clipStart);
+    (mediaTime: number) => {
+      if (!clip || !Number.isFinite(mediaTime)) return;
+
+      // Convert media-local time back to the project's timeline time.
+      const projectTime =
+        clip.start +
+        Math.max(
+          0,
+          mediaTime -
+            (Number.isFinite(clip.trimStart)
+              ? Math.max(0, clip.trimStart)
+              : 0),
+        );
+
+      // Avoid redundant callbacks when multiple media events report the
+      // same time. The parent remains responsible for owning the playhead.
+      if (Math.abs(projectTime - lastReportedTimeRef.current) < 0.015) {
+        return;
       }
+
+      lastReportedTimeRef.current = projectTime;
+      onTimeUpdate?.(projectTime);
     },
-    [onTimeUpdate, clipStart],
+    [clip, onTimeUpdate],
   );
 
+  /*
+   * Reset metadata/error state when the selected source changes.
+   */
   useEffect(() => {
     setMediaError(false);
     setMediaDuration(0);
+    lastReportedTimeRef.current = -1;
   }, [clip?.id, clip?.url]);
 
+  /*
+   * Keep media volume/mute consistent. Background video is always silent,
+   * so it cannot compete with the foreground clip's audio.
+   */
   useEffect(() => {
-    const media = isVideo
-      ? videoRef.current
-      : isAudio
-        ? audioRef.current
-        : null;
+    if (videoRef.current) {
+      videoRef.current.muted = muted || Boolean(clip?.muted);
+      videoRef.current.volume = Math.min(
+        1,
+        Math.max(0, clip?.volume ?? 1),
+      );
+    }
 
-    if (!media) return;
+    if (audioRef.current) {
+      audioRef.current.muted = muted || Boolean(clip?.muted);
+      audioRef.current.volume = Math.min(
+        1,
+        Math.max(0, clip?.volume ?? 1),
+      );
+    }
 
-    media.muted = muted;
+    if (backgroundVideoRef.current) {
+      backgroundVideoRef.current.muted = true;
+      backgroundVideoRef.current.volume = 0;
+    }
+  }, [muted, clip?.id, clip?.muted, clip?.volume]);
 
-    const syncAndPlay = async () => {
-      const target = Math.max(0, currentTime - clipStart);
+  /*
+   * Synchronize all media to the timeline playhead.
+   *
+   * A foreground clip and a background clip can have different start points
+   * and trim values, so each receives its own local seek position.
+   */
+  useEffect(() => {
+    const foreground = mainMediaRef?.current ?? null;
+    const background = backgroundVideoRef.current;
 
-      if (
-        Number.isFinite(target) &&
-        Math.abs(media.currentTime - target) > 0.35
-      ) {
-        try {
-          media.currentTime = target;
-        } catch {
-          // Seeking may not be available until metadata loads.
-        }
-      }
+    const foregroundActive =
+      Boolean(foreground) && isMainClipActive;
 
-      if (isPlaying) {
-        try {
-          await media.play();
-        } catch (error) {
-          console.warn("Preview playback could not start:", error);
-        }
+    const backgroundActive =
+      Boolean(background) &&
+      hasBackgroundVideo &&
+      isBackgroundActive;
+
+    const foregroundTarget = clip
+      ? getLocalTime(currentTime, clip)
+      : 0;
+
+    const backgroundTarget =
+      backgroundClip && hasBackgroundVideo
+        ? getLocalTime(currentTime, backgroundClip)
+        : 0;
+
+    const sourceChanged =
+      previousClipIdRef.current !== (clip?.id ?? null);
+
+    const backgroundChanged =
+      previousBackgroundIdRef.current !==
+      (backgroundClip?.id ?? null);
+
+    const playStateChanged =
+      previousPlayingRef.current !== isPlaying;
+
+    previousClipIdRef.current = clip?.id ?? null;
+    previousBackgroundIdRef.current = backgroundClip?.id ?? null;
+    previousPlayingRef.current = isPlaying;
+
+    if (foreground) {
+      foreground.muted = muted || Boolean(clip?.muted);
+
+      seekMedia(
+        foreground,
+        foregroundTarget,
+        sourceChanged || playStateChanged || !isPlaying,
+      );
+
+      if (isPlaying && foregroundActive) {
+        void playMedia(foreground);
       } else {
-        media.pause();
+        pauseMedia(foreground);
       }
-    };
+    }
 
-    void syncAndPlay();
+    if (background) {
+      background.muted = true;
+      background.volume = 0;
+
+      seekMedia(
+        background,
+        backgroundTarget,
+        backgroundChanged || playStateChanged || !isPlaying,
+      );
+
+      if (isPlaying && backgroundActive) {
+        void playMedia(background);
+      } else {
+        pauseMedia(background);
+      }
+    }
+
+    // Images have no playback clock. Audio/video playback is driven by the
+    // timeline state, not by a second independent timer.
   }, [
-    isPlaying,
-    isVideo,
-    isAudio,
-    muted,
     currentTime,
-    clipStart,
-    clip?.url,
+    isPlaying,
+    muted,
+    clip,
+    backgroundClip,
+    mainMediaRef,
+    isMainClipActive,
+    isBackgroundActive,
+    hasBackgroundVideo,
   ]);
 
+  /*
+   * Pause media when this component unmounts.
+   */
   useEffect(() => {
-    const background = backgroundVideoRef.current;
-    if (!background) return;
-
-    background.muted = true;
-
-    const syncBackground = async () => {
-      const target = Math.max(0, currentTime - clipStart);
-
-      if (Math.abs(background.currentTime - target) > 0.5) {
-        try {
-          background.currentTime = target;
-        } catch {
-          // Wait for media metadata.
-        }
-      }
-
-      if (isPlaying) {
-        try {
-          await background.play();
-        } catch {
-          // Background playback is optional.
-        }
-      } else {
-        background.pause();
-      }
+    return () => {
+      pauseMedia(videoRef.current);
+      pauseMedia(backgroundVideoRef.current);
+      pauseMedia(audioRef.current);
     };
-
-    void syncBackground();
-  }, [isPlaying, currentTime, clipStart, backgroundClip?.url]);
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -214,26 +387,79 @@ export default function PreviewPanel({
     };
   }, []);
 
-  const seekTo = (value: number) => {
-    const nextLocalTime = Math.max(0, Math.min(value, duration || value));
-    const nextProjectTime = clipStart + nextLocalTime;
+  /*
+   * When the preview media is the timeline clock, report its current
+   * project time. Do not seek it again from its own timeupdate callback.
+   */
+  const handleForegroundTimeUpdate = useCallback(
+    (mediaTime: number) => {
+      if (!clip || !Number.isFinite(mediaTime)) return;
 
-    for (const media of [
-      videoRef.current,
-      audioRef.current,
-      backgroundVideoRef.current,
-    ]) {
-      if (!media) continue;
+      const trimStart = Number.isFinite(clip.trimStart)
+        ? Math.max(0, clip.trimStart)
+        : 0;
 
-      try {
-        media.currentTime = nextLocalTime;
-      } catch {
-        // The media may not be ready to seek.
+      const projectTime =
+        clip.start + Math.max(0, mediaTime - trimStart);
+
+      if (Math.abs(projectTime - lastReportedTimeRef.current) < 0.015) {
+        return;
       }
-    }
 
-    onSeek?.(nextProjectTime);
-  };
+      lastReportedTimeRef.current = projectTime;
+      onTimeUpdate?.(projectTime);
+    },
+    [clip, onTimeUpdate],
+  );
+
+  const seekTo = useCallback(
+    (value: number) => {
+      if (!clip) return;
+
+      const safeLocalTime = Math.max(
+        0,
+        Math.min(value, clipDuration),
+      );
+
+      const projectTime = clipStart + safeLocalTime;
+
+      /*
+       * Seek each media element using its own clip's start and trim.
+       * The background does not necessarily begin at the same timeline time
+       * as the foreground clip.
+       */
+      seekMedia(
+        videoRef.current,
+        getLocalTime(projectTime, clip),
+        true,
+      );
+
+      seekMedia(
+        audioRef.current,
+        getLocalTime(projectTime, clip),
+        true,
+      );
+
+      if (backgroundClip && hasBackgroundVideo) {
+        seekMedia(
+          backgroundVideoRef.current,
+          getLocalTime(projectTime, backgroundClip),
+          true,
+        );
+      }
+
+      lastReportedTimeRef.current = projectTime;
+      onSeek?.(projectTime);
+    },
+    [
+      clip,
+      clipDuration,
+      clipStart,
+      backgroundClip,
+      hasBackgroundVideo,
+      onSeek,
+    ],
+  );
 
   const toggleFullscreen = async () => {
     const container = containerRef.current;
@@ -301,11 +527,11 @@ export default function PreviewPanel({
         <select
           aria-label="Project canvas aspect ratio"
           value={aspectRatio}
-          onChange={(event) => {
+          onChange={(event) =>
             onAspectRatioChange(
               event.target.value as StudioAspectRatio,
-            );
-          }}
+            )
+          }
           style={{
             maxWidth: 175,
             padding: "5px 7px",
@@ -354,7 +580,7 @@ export default function PreviewPanel({
             flex: "0 1 auto",
           }}
         >
-          {hasBackgroundImage && (
+          {hasBackgroundImage && isBackgroundActive && (
             <img
               src={backgroundClip!.url}
               alt="Video background"
@@ -372,11 +598,22 @@ export default function PreviewPanel({
 
           {hasBackgroundVideo && (
             <video
+              key={`background-${backgroundClip!.id}-${backgroundClip!.url}`}
               ref={backgroundVideoRef}
               src={backgroundClip!.url}
               muted
               playsInline
               preload="auto"
+              onLoadedMetadata={() => {
+                if (!backgroundClip) return;
+
+                seekMedia(
+                  backgroundVideoRef.current,
+                  getLocalTime(currentTime, backgroundClip),
+                  true,
+                );
+              }}
+              onError={() => setMediaError(true)}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -384,34 +621,36 @@ export default function PreviewPanel({
                 height: "100%",
                 objectFit: "cover",
                 zIndex: 0,
+                display: isBackgroundActive ? "block" : "none",
               }}
             />
           )}
 
           {isVideo && clip.url && (
             <video
-              key={clip.id + clip.url}
+              key={`foreground-${clip.id}-${clip.url}`}
               ref={videoRef}
               src={clip.url}
               playsInline
               preload="auto"
-              muted={muted}
+              muted={muted || Boolean(clip.muted)}
               onLoadedMetadata={(event) => {
                 handleLoadedMetadata(event.currentTarget.duration);
 
-                try {
-                  event.currentTarget.currentTime = Math.max(
-                    0,
-                    currentTime - clipStart,
-                  );
-                } catch {
-                  // Metadata may load before seeking is allowed.
-                }
+                seekMedia(
+                  event.currentTarget,
+                  getLocalTime(currentTime, clip),
+                  true,
+                );
               }}
               onTimeUpdate={(event) =>
-                handleTimeUpdate(event.currentTarget.currentTime)
+                handleForegroundTimeUpdate(
+                  event.currentTarget.currentTime,
+                )
               }
-              onEnded={() => onPlayPause?.()}
+              onEnded={() => {
+                if (onPlayPause) onPlayPause();
+              }}
               onError={() => setMediaError(true)}
               style={{
                 position: "absolute",
@@ -419,7 +658,7 @@ export default function PreviewPanel({
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
-                display: "block",
+                display: isMainClipActive ? "block" : "none",
                 zIndex: 1,
                 background: "transparent",
               }}
@@ -481,17 +720,22 @@ export default function PreviewPanel({
               </div>
 
               <audio
+                key={`audio-${clip.id}-${clip.url}`}
                 ref={audioRef}
                 src={clip.url}
                 preload="auto"
-                muted={muted}
+                muted={muted || Boolean(clip.muted)}
                 onLoadedMetadata={(event) =>
                   handleLoadedMetadata(event.currentTarget.duration)
                 }
                 onTimeUpdate={(event) =>
-                  handleTimeUpdate(event.currentTarget.currentTime)
+                  handleForegroundTimeUpdate(
+                    event.currentTarget.currentTime,
+                  )
                 }
-                onEnded={() => onPlayPause?.()}
+                onEnded={() => {
+                  if (onPlayPause) onPlayPause();
+                }}
                 onError={() => setMediaError(true)}
               />
             </div>
@@ -512,11 +756,9 @@ export default function PreviewPanel({
               }}
             >
               <div style={{ fontSize: 25, opacity: 0.65 }}>▶</div>
-
               <div style={{ fontSize: 12, fontWeight: 600 }}>
                 Your canvas is ready
               </div>
-
               <div style={{ fontSize: 10 }}>
                 Choose your format above, then import your media.
               </div>
@@ -601,7 +843,9 @@ export default function PreviewPanel({
             max={Math.max(duration, 0.1)}
             step={0.01}
             value={Math.min(displayedTime, Math.max(duration, 0.1))}
-            onChange={(event) => seekTo(Number(event.currentTarget.value))}
+            onChange={(event) =>
+              seekTo(Number(event.currentTarget.value))
+            }
             disabled={!clip || duration <= 0}
             style={{
               flex: 1,
@@ -673,3 +917,4 @@ const iconButtonStyle: React.CSSProperties = {
   color: "var(--studio-text, #f4f4f5)",
   cursor: "pointer",
 };
+

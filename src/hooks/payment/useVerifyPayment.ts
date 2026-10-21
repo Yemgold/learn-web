@@ -1,20 +1,39 @@
 
 
 
+
+
+
+
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios";
 
+export interface VerifyPaymentTransaction {
+  _id?: string;
+  walletId?: string;
+  amountInKobo?: number;
+  type?: string;
+  description?: string;
+  reference?: string;
+  provider?: string;
+  status?: string;
+  verified?: boolean;
+  category?: string;
+  plan?: string;
+  paymentReference?: string;
+}
+
 export interface VerifyPaymentResponse {
   success: boolean;
-  data?: {
-    paid?: boolean;
-    paymentReference?: string;
-    status?: string;
-    plan?: string;
-  };
   message?: string;
+  data?: {
+    message?: string;
+    success?: boolean;
+    status?: number;
+    data?: VerifyPaymentTransaction;
+  };
 }
 
 async function verifyPayment(
@@ -30,7 +49,9 @@ async function verifyPayment(
   }
 
   const response = await api.get<VerifyPaymentResponse>(
-    `/payments/verify-payment/${encodeURIComponent(provider)}/${encodeURIComponent(reference)}`,
+    `/payments/verify-payment/${encodeURIComponent(
+      provider,
+    )}/${encodeURIComponent(reference)}`,
   );
 
   return response.data;

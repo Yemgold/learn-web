@@ -49,7 +49,7 @@ export default function PaymentCallbackContent() {
 
           // API response structure:
           // response.data.data.data = transaction
-          const transaction = response?.data?.data?.data;
+          const transaction = response?.data?.data;
 
           const status =
             typeof transaction?.status === "string"

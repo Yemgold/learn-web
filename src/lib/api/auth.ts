@@ -286,6 +286,8 @@ export const loginUser = async (
         payload.deviceName,
     });
 
+
+
     /* ========================================================
        API REQUEST
        ======================================================== */
@@ -996,6 +998,67 @@ export const logoutUser =
 
       console.error(
         "=================================",
+      );
+
+      throw error;
+    }
+  };
+
+  
+/* ============================================================
+   GET CURRENT AUTHENTICATED USER
+   GET /api/v1/users/me
+   ============================================================ */
+
+export interface CurrentUserResponse {
+  success: boolean;
+  message: string;
+  data: LoginUser;
+}
+
+/* ============================================================
+   FETCH CURRENT USER PROFILE
+   ============================================================ */
+
+export const getCurrentUser =
+  async (): Promise<CurrentUserResponse> => {
+    try {
+      const response =
+        await api.get<CurrentUserResponse>(
+          "/users/me",
+        );
+
+      console.log(
+        "========== CURRENT USER SUCCESS ==========",
+      );
+
+      console.log({
+        success: response.data.success,
+        message: response.data.message,
+        user: response.data.data,
+      });
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error(
+        "========== GET CURRENT USER ERROR ==========",
+      );
+
+      if (axios.isAxiosError(error)) {
+        console.error({
+          status: error.response?.status,
+          response: error.response?.data,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+          message: error.message,
+        });
+      } else if (error instanceof Error) {
+        console.error(error.message);
+      }
+
+      console.error(
+        "===========================================",
       );
 
       throw error;

@@ -3,17 +3,30 @@
 
 
 
-
-
 import type { ExamType, QuestionBankItem } from "./types";
 
 // ============================================================
-// BIOLOGY — JAMB
+// BIOLOGY QUESTION BANKS
 // ============================================================
 
-import easyBiologyJambQuestions from "./biology/easy/jamb";
-import mediumBiologyJambQuestions from "./biology/medium/jamb";
-import hardBiologyJambQuestions from "./biology/hard/jamb";
+import jambBiologyEasyQuestions from "./biology/easy/jamb";
+import jambBiologyMediumQuestions from "./biology/medium/jamb";
+import jambBiologyHardQuestions from "./biology/hard/jamb";
+
+
+import jambChemistryEasyQuestions from "./chemistry/easy/jamb";
+import jambChemistryMediumQuestions from "./chemistry/medium/jamb";
+import jambChemistryHardQuestions from "./chemistry/hard/jamb";
+
+
+import jambPhysicsEasyQuestions from "./physics/easy/jamb";
+import jambPhysicsMediumQuestions from "./physics/medium/jamb";
+import jambPhysicsHardQuestions from "./physics/hard/jamb";
+
+
+import jambMathematicsEasyQuestions from "./mathematics/easy/jamb";
+import jambMathematicsMediumQuestions from "./mathematics/medium/jamb";
+import jambMathematicsHardQuestions from "./mathematics/hard/jamb";
 
 // ============================================================
 // TYPES
@@ -27,11 +40,6 @@ export type QuestionBanks = {
   hard: QuestionBankItem[];
 };
 
-type QuestionBankMap = Record<
-  string,
-  Partial<Record<ExamType, QuestionBankItem[]>>
->;
-
 type DifficultyBankMap = Record<
   string,
   Partial<
@@ -43,73 +51,47 @@ type DifficultyBankMap = Record<
 >;
 
 // ============================================================
-// STANDARD QUESTION BANK REGISTRY
-// ============================================================
-//
-// This registry keeps the existing getQuestionBank() behaviour.
-//
-// Example:
-//
-// biology
-//   └── jamb → simple Biology questions
-//
-// This is useful anywhere in the application that only needs
-// the default/simple question bank.
-// ============================================================
-
-const questionBank: QuestionBankMap = {
-  biology: {
-    jamb: easyBiologyJambQuestions,
-  },
-
-  // Add Chemistry when ready:
-  //
-  // chemistry: {
-  //   jamb: jambChemistryQuestions,
-  //   waec: waecChemistryQuestions,
-  //   neco: necoChemistryQuestions,
-  // },
-
-  // Add Physics when ready:
-  //
-  // physics: {
-  //   jamb: jambPhysicsQuestions,
-  //   waec: waecPhysicsQuestions,
-  //   neco: necoPhysicsQuestions,
-  // },
-};
-
-// ============================================================
 // DIFFICULTY-AWARE QUESTION BANK REGISTRY
-// ============================================================
-//
-// This is the important part for cross-difficulty validation.
-//
-// Biology JAMB:
-//
-// simple → 1,400 Easy questions
-// medium → 3,000 Medium questions
-// hard   → Hard questions
-//
-// The validator can now compare:
-//
-// simple ↔ medium
-// simple ↔ hard
-// medium ↔ hard
 // ============================================================
 
 const difficultyQuestionBank: DifficultyBankMap = {
   biology: {
     jamb: {
-      easy: easyBiologyJambQuestions,
-      medium: mediumBiologyJambQuestions,
-      hard: hardBiologyJambQuestions,
+      easy: jambBiologyEasyQuestions,
+      medium: jambBiologyMediumQuestions,
+      hard: jambBiologyHardQuestions,
+    },
+  },
+
+  chemistry: {
+    jamb: {
+      easy: jambChemistryEasyQuestions,
+      medium: jambChemistryMediumQuestions,
+      hard: jambChemistryHardQuestions,
+    },
+  },
+
+  physics: {
+    jamb: {
+      easy: jambPhysicsEasyQuestions,
+      medium: jambPhysicsMediumQuestions,
+      hard: jambPhysicsHardQuestions,
+    },
+  },
+
+  mathematics: {
+    jamb: {
+      easy: jambMathematicsEasyQuestions,
+      medium: jambMathematicsMediumQuestions,
+      hard: jambMathematicsHardQuestions,
     },
   },
 };
 
 // ============================================================
 // SUBJECT NORMALIZATION
+// Supports names such as:
+// "Biology", "biology", "English & Mathematics"
 // ============================================================
 
 function normalizeSubjectName(subjectName: string): string {
@@ -121,37 +103,7 @@ function normalizeSubjectName(subjectName: string): string {
 }
 
 // ============================================================
-// GET SIMPLE / DEFAULT QUESTION BANK
-// ============================================================
-
-export function getQuestionBank(
-  subjectName: string,
-  examType: ExamType,
-): QuestionBankItem[] {
-  const subjectKey = normalizeSubjectName(subjectName);
-
-  const subjectBank = questionBank[subjectKey];
-
-  if (!subjectBank) {
-    return [];
-  }
-
-  return subjectBank[examType] ?? [];
-}
-
-// ============================================================
 // GET ALL DIFFICULTY BANKS
-// ============================================================
-//
-// This is the function the validator should use.
-//
-// Example:
-//
-// const banks = getQuestionBanks("Biology", "jamb");
-//
-// banks.simple
-// banks.medium
-// banks.hard
 // ============================================================
 
 export function getQuestionBanks(
@@ -159,32 +111,25 @@ export function getQuestionBanks(
   examType: ExamType,
 ): QuestionBanks {
   const subjectKey = normalizeSubjectName(subjectName);
-
-  const subjectBank = difficultyQuestionBank[subjectKey];
-
-  if (!subjectBank) {
-    return {
-      easy: [],
-      medium: [],
-      hard: [],
-    };
-  }
-
-  const examBank = subjectBank[examType];
-
-  if (!examBank) {
-    return {
-      easy: [],
-      medium: [],
-      hard: [],
-    };
-  }
+  const examBank = difficultyQuestionBank[subjectKey]?.[examType];
 
   return {
-    easy: examBank.easy ?? [],
-    medium: examBank.medium ?? [],
-    hard: examBank.hard ?? [],
+    easy: examBank?.easy ?? [],
+    medium: examBank?.medium ?? [],
+    hard: examBank?.hard ?? [],
   };
+}
+
+// ============================================================
+// GET SIMPLE / DEFAULT QUESTION BANK
+// Defaults to the easy bank for backward compatibility.
+// ============================================================
+
+export function getQuestionBank(
+  subjectName: string,
+  examType: ExamType,
+): QuestionBankItem[] {
+  return getQuestionBanks(subjectName, examType).easy;
 }
 
 // ============================================================
@@ -213,9 +158,7 @@ export function hasQuestionBankForDifficulty(
   examType: ExamType,
   difficulty: QuestionDifficulty,
 ): boolean {
-  const banks = getQuestionBanks(subjectName, examType);
-
-  return banks[difficulty].length > 0;
+  return getQuestionBanks(subjectName, examType)[difficulty].length > 0;
 }
 
 // ============================================================
@@ -247,28 +190,21 @@ export function getAvailableExamTypes(
   subjectName: string,
 ): ExamType[] {
   const subjectKey = normalizeSubjectName(subjectName);
-
   const subjectBank = difficultyQuestionBank[subjectKey];
 
   if (!subjectBank) {
     return [];
   }
 
-  return (Object.keys(subjectBank) as ExamType[]).filter(
-    (examType) => {
-      const examBank = subjectBank[examType];
+  return (Object.keys(subjectBank) as ExamType[]).filter((examType) => {
+    const examBank = subjectBank[examType];
 
-      if (!examBank) {
-        return false;
-      }
-
-      return (
-        (examBank.easy?.length ?? 0) > 0 ||
-        (examBank.medium?.length ?? 0) > 0 ||
-        (examBank.hard?.length ?? 0) > 0
-      );
-    },
-  );
+    return Boolean(
+      (examBank?.easy?.length ?? 0) > 0 ||
+        (examBank?.medium?.length ?? 0) > 0 ||
+        (examBank?.hard?.length ?? 0) > 0,
+    );
+  });
 }
 
 // ============================================================
@@ -281,6 +217,20 @@ export function getQuestionBankSubjects(): string[] {
 
 // ============================================================
 // DEFAULT EXPORT
+// Preserves the original default export shape.
 // ============================================================
+
+const questionBank: Record<
+  string,
+  Partial<Record<ExamType, QuestionBankItem[]>>
+> = {};
+
+for (const [subject, exams] of Object.entries(difficultyQuestionBank)) {
+  questionBank[subject] = {};
+
+  for (const [examType, banks] of Object.entries(exams)) {
+    questionBank[subject][examType as ExamType] = banks?.easy ?? [];
+  }
+}
 
 export default questionBank;

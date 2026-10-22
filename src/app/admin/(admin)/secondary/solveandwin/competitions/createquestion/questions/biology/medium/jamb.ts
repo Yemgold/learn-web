@@ -9,7 +9,7 @@
 
 import type { QuestionBankItem } from "../../types"; 
 
-export const jambBiologyQuestions: QuestionBankItem[] = [
+export const jambBiologyMediumQuestions: QuestionBankItem[] = [
   
   
  {
@@ -59108,4 +59108,4 @@ export const jambBiologyQuestions: QuestionBankItem[] = [
 
 ];
 
-export default jambBiologyQuestions;
+export default jambBiologyMediumQuestions;

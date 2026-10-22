@@ -8,7 +8,7 @@
 import type { QuestionBankItem } from "../../types";
 
 
-export const jambMathematicsQuestions: QuestionBankItem[] = [
+export const jambMathematicsHardQuestions: QuestionBankItem[] = [
 
 
   {
@@ -94614,4 +94614,4 @@ export const jambMathematicsQuestions: QuestionBankItem[] = [
   }
     ];
     
-    export default jambMathematicsQuestions;
+    export default jambMathematicsHardQuestions;

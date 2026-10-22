@@ -3,7 +3,7 @@
 import type { QuestionBankItem } from "../../types";
 
 
-export const jambMathematicsQuestions: QuestionBankItem[] = [
+export const jambMathematicsEasyQuestions: QuestionBankItem[] = [
 
   {
     "content": [
@@ -94007,4 +94007,4 @@ export const jambMathematicsQuestions: QuestionBankItem[] = [
   }
 ];
 
-export default jambMathematicsQuestions;
+export default jambMathematicsEasyQuestions;

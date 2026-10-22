@@ -37,7 +37,7 @@ export default function SecondaryAccessPage() {
 
   if (plan.disabled) {
     console.log(
-      `${plan.name} is currently unavailable.`,
+      `${plan.name} is  unavailable.`,
     );
   }
 };

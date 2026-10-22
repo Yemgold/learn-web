@@ -286,7 +286,7 @@ export default function EndScreenDesigner({
   onCreate,
 }: EndScreenDesignerProps) {
   const [placement, setPlacement] =
-    useState<ScreenPlacement>("end");
+    useState<ScreenPlacement>("intro");
 
   const [title, setTitle] = useState("Thanks for watching!");
   const [subtitle, setSubtitle] = useState(

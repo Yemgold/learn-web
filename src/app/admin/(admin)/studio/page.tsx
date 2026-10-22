@@ -22,6 +22,7 @@ import InspectorPanel from "@/components/studio/InspectorPanel";
 import TransportControls from "@/components/studio/TransportControls";
 import StudioStatusbar from "@/components/studio/StudioStatusbar";
 import AIBackgroundRemover from "@/components/studio/AIBackgroundRemover";
+
 import EndScreenDesigner, {
   type ScreenPlacement,
 } from "@/components/studio/EndScreenDesigner";
@@ -474,29 +475,23 @@ export default function StudioPage() {
     [studio, timeline, markUnsaved],
   );
 
-  /*
-   * Create either an intro or an end screen.
-   *
-   * Intro:
-   * - Moves every existing timeline clip forward by the intro duration.
-   * - Preserves each clip's duration, trims, track and relative spacing.
-   * - Adds the intro at 00:00.
-   *
-   * End screen:
-   * - Leaves the existing clips in place.
-   * - Adds the screen after the current end of the timeline.
-   */
+
   const handleCreateScreen = useCallback(
     (asset: Asset, placement: ScreenPlacement) => {
       try {
+       
         const screenDuration = Math.max(1, asset.duration ?? 5);
-        const screenClip = createClipFromAsset(
-          asset,
-          0,
-          "overlay",
-        );
 
-        screenClip.duration = screenDuration;
+// Register the image before creating its timeline clip.
+studio.addAsset(asset);
+
+const screenClip = createClipFromAsset(
+  asset,
+  0,
+  "overlay",
+);
+
+screenClip.duration = screenDuration;
 
         if (placement === "intro") {
           // Use a snapshot so every clip is shifted by the same amount.

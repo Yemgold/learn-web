@@ -580,11 +580,11 @@ export default function StudentDashboardPage() {
 
   const actions: QuickAction[] = [
     {
-      title: "CBT Wallet",
+      title: "OffLine Practice",
       description:
-        "Manage your CBT points",
-      href: "/student/practice/cbt-wallet",
-      icon: "wallet",
+        "Manage your DATA",
+      href: "/student/practice/offline",
+      icon: "book",
     },
 
     {

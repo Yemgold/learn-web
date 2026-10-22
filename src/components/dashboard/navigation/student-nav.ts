@@ -32,6 +32,11 @@ export const studentNavigation: NavigationSection[] = [
         href: "/student/wallet",
         icon: Wallet,
       },
+       {
+      label: "CBT Wallet",
+      href: "/student/practice/cbt-wallet",
+      icon: Wallet,
+    },
     ],
   },
 

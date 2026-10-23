@@ -1,8 +1,4 @@
 
-
-
-
-
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
@@ -10,6 +6,7 @@ import "./globals.css";
 
 import AppProviders from "@/providers/AppProviders";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
+import MetaPixel from "@/components/analytics/MetaPixel";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -145,6 +142,8 @@ export default function RootLayout({
       >
         <ServiceWorkerRegistration />
 
+        <MetaPixel />
+
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
@@ -162,12 +161,15 @@ export default function RootLayout({
 
 
 
-// import type { Metadata } from "next";
+
+
+// import type { Metadata, Viewport } from "next";
 // import { Inter } from "next/font/google";
 
 // import "./globals.css";
 
 // import AppProviders from "@/providers/AppProviders";
+// import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 
 // const inter = Inter({
 //   subsets: ["latin"],
@@ -186,16 +188,7 @@ export default function RootLayout({
 // const siteDescription =
 //   "Learn new skills, practise with interactive questions, prepare for exams, take courses, and compete with other learners on Learnyfi Educational Platform.";
 
-// /**
-//  * REQUIRED IMAGE FILE:
-//  *
-//  * public/images/learnyfi-logo.png
-//  *
-//  * Public URL:
-//  * https://learn-web-pink.vercel.app/images/learnyfi-logo.png
-//  */
 // const logoPath = "/images/learnyfi-logo.png";
-
 // const logoUrl = `${siteUrl}${logoPath}`;
 
 // /* =========================================================
@@ -213,6 +206,8 @@ export default function RootLayout({
 //   },
 
 //   description: siteDescription,
+
+//   manifest: "/manifest.json",
 
 //   keywords: [
 //     "Learnyfi",
@@ -237,14 +232,8 @@ export default function RootLayout({
 //   ],
 
 //   authors: [{ name: siteName }],
-
 //   creator: siteName,
-
 //   publisher: siteName,
-
-//   /* =======================================================
-//      BROWSER TAB ICON
-//   ======================================================= */
 
 //   icons: {
 //     icon: logoPath,
@@ -252,23 +241,13 @@ export default function RootLayout({
 //     apple: logoPath,
 //   },
 
-//   /* =======================================================
-//      WHATSAPP, FACEBOOK AND LINK PREVIEWS
-//   ======================================================= */
-
 //   openGraph: {
 //     type: "website",
-
 //     url: siteUrl,
-
 //     siteName,
-
 //     title: siteName,
-
 //     description: siteDescription,
-
 //     locale: "en_NG",
-
 //     images: [
 //       {
 //         url: logoUrl,
@@ -276,18 +255,11 @@ export default function RootLayout({
 //       },
 //     ],
 //   },
-
-//   /* =======================================================
-//      TWITTER / X
-//   ======================================================= */
 
 //   twitter: {
 //     card: "summary_large_image",
-
 //     title: siteName,
-
 //     description: siteDescription,
-
 //     images: [
 //       {
 //         url: logoUrl,
@@ -295,15 +267,10 @@ export default function RootLayout({
 //       },
 //     ],
 //   },
-
-//   /* =======================================================
-//      SEARCH ENGINE SETTINGS
-//   ======================================================= */
 
 //   robots: {
 //     index: true,
 //     follow: true,
-
 //     googleBot: {
 //       index: true,
 //       follow: true,
@@ -312,6 +279,12 @@ export default function RootLayout({
 //       "max-video-preview": -1,
 //     },
 //   },
+// };
+
+// export const viewport: Viewport = {
+//   width: "device-width",
+//   initialScale: 1,
+//   themeColor: "#2563eb",
 // };
 
 // /* =========================================================
@@ -330,10 +303,9 @@ export default function RootLayout({
 //       <body
 //         className={`${inter.variable} font-sans bg-white text-slate-900 antialiased`}
 //       >
+//         <ServiceWorkerRegistration />
+
 //         <AppProviders>{children}</AppProviders>
 //       </body>
 //     </html>
 //   );
-// }
-
-

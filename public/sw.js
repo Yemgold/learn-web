@@ -224,6 +224,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Cache Next.js generated assets, icons, and the web manifest.
+  // Cache Next.js generated assets, icons, and the web manifest.
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||

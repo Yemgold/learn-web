@@ -250,9 +250,9 @@ export default function StudentDashboardPage() {
         setQuizzesLoading(true);
         setQuizzesError(false);
 
-        console.log(
-          "========== DASHBOARD QUIZ FETCH ==========",
-        );
+        // console.log(
+        //   "========== DASHBOARD QUIZ FETCH ==========",
+        // );
 
         const response =
           (await getAllQuizzes(

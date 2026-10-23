@@ -1,10 +1,15 @@
 
-import type { Metadata } from "next";
+
+
+
+
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import "./globals.css";
 
 import AppProviders from "@/providers/AppProviders";
+import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,16 +28,7 @@ const siteUrl = "https://learn-web-pink.vercel.app";
 const siteDescription =
   "Learn new skills, practise with interactive questions, prepare for exams, take courses, and compete with other learners on Learnyfi Educational Platform.";
 
-/**
- * REQUIRED IMAGE FILE:
- *
- * public/images/learnyfi-logo.png
- *
- * Public URL:
- * https://learn-web-pink.vercel.app/images/learnyfi-logo.png
- */
 const logoPath = "/images/learnyfi-logo.png";
-
 const logoUrl = `${siteUrl}${logoPath}`;
 
 /* =========================================================
@@ -50,6 +46,8 @@ export const metadata: Metadata = {
   },
 
   description: siteDescription,
+
+  manifest: "/manifest.json",
 
   keywords: [
     "Learnyfi",
@@ -74,14 +72,8 @@ export const metadata: Metadata = {
   ],
 
   authors: [{ name: siteName }],
-
   creator: siteName,
-
   publisher: siteName,
-
-  /* =======================================================
-     BROWSER TAB ICON
-  ======================================================= */
 
   icons: {
     icon: logoPath,
@@ -89,23 +81,13 @@ export const metadata: Metadata = {
     apple: logoPath,
   },
 
-  /* =======================================================
-     WHATSAPP, FACEBOOK AND LINK PREVIEWS
-  ======================================================= */
-
   openGraph: {
     type: "website",
-
     url: siteUrl,
-
     siteName,
-
     title: siteName,
-
     description: siteDescription,
-
     locale: "en_NG",
-
     images: [
       {
         url: logoUrl,
@@ -113,18 +95,11 @@ export const metadata: Metadata = {
       },
     ],
   },
-
-  /* =======================================================
-     TWITTER / X
-  ======================================================= */
 
   twitter: {
     card: "summary_large_image",
-
     title: siteName,
-
     description: siteDescription,
-
     images: [
       {
         url: logoUrl,
@@ -132,15 +107,10 @@ export const metadata: Metadata = {
       },
     ],
   },
-
-  /* =======================================================
-     SEARCH ENGINE SETTINGS
-  ======================================================= */
 
   robots: {
     index: true,
     follow: true,
-
     googleBot: {
       index: true,
       follow: true,
@@ -149,6 +119,12 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563eb",
 };
 
 /* =========================================================
@@ -167,6 +143,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans bg-white text-slate-900 antialiased`}
       >
+        <ServiceWorkerRegistration />
+
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
@@ -184,15 +162,6 @@ export default function RootLayout({
 
 
 
-
-
-
-
-
-
-
-// // C:\Users\Lara Spellman\Jamb\jamb-league\src\app\layout.tsx
-
 // import type { Metadata } from "next";
 // import { Inter } from "next/font/google";
 
@@ -206,22 +175,52 @@ export default function RootLayout({
 //   variable: "--font-inter",
 // });
 
+// /* =========================================================
+//    LEARNYFI WEBSITE BRANDING
+// ========================================================= */
+
+// const siteName = "Learnyfi Educational Platform";
+
+// const siteUrl = "https://learn-web-pink.vercel.app";
+
+// const siteDescription =
+//   "Learn new skills, practise with interactive questions, prepare for exams, take courses, and compete with other learners on Learnyfi Educational Platform.";
+
+// /**
+//  * REQUIRED IMAGE FILE:
+//  *
+//  * public/images/learnyfi-logo.png
+//  *
+//  * Public URL:
+//  * https://learn-web-pink.vercel.app/images/learnyfi-logo.png
+//  */
+// const logoPath = "/images/learnyfi-logo.png";
+
+// const logoUrl = `${siteUrl}${logoPath}`;
+
+// /* =========================================================
+//    WEBSITE METADATA
+// ========================================================= */
+
 // export const metadata: Metadata = {
+//   metadataBase: new URL(siteUrl),
+
+//   applicationName: siteName,
+
 //   title: {
-//     default: "JAMB League | Learn, Practice & Compete",
-//     template: "%s | JAMB League",
+//     default: siteName,
+//     template: `%s | ${siteName}`,
 //   },
 
-//   description:
-//     "JAMB League is a learning platform where students and learners can take courses, learn new skills, practice with interactive questions, prepare for exams, take quizzes, and compete with other learners.",
+//   description: siteDescription,
 
 //   keywords: [
-//     "JAMB League",
+//     "Learnyfi",
+//     "Learnyfi Educational Platform",
 //     "learning platform",
 //     "online learning",
 //     "online courses",
-//     "learning platform Nigeria",
-//     "education platform",
+//     "education platform Nigeria",
 //     "online education",
 //     "study platform",
 //     "practice questions",
@@ -237,43 +236,87 @@ export default function RootLayout({
 //     "online study",
 //   ],
 
-//   authors: [
-//     {
-//       name: "JAMB League",
-//     },
-//   ],
+//   authors: [{ name: siteName }],
 
-//   creator: "JAMB League",
+//   creator: siteName,
 
-//   publisher: "JAMB League",
+//   publisher: siteName,
+
+//   /* =======================================================
+//      BROWSER TAB ICON
+//   ======================================================= */
+
+//   icons: {
+//     icon: logoPath,
+//     shortcut: logoPath,
+//     apple: logoPath,
+//   },
+
+//   /* =======================================================
+//      WHATSAPP, FACEBOOK AND LINK PREVIEWS
+//   ======================================================= */
 
 //   openGraph: {
-//     title: "JAMB League | Learn, Practice & Compete",
-
-//     description:
-//       "Learn new skills, study for exams, practice with interactive questions, take courses, and compete with other learners.",
-
 //     type: "website",
+
+//     url: siteUrl,
+
+//     siteName,
+
+//     title: siteName,
+
+//     description: siteDescription,
 
 //     locale: "en_NG",
 
-//     siteName: "Learning Platform",
+//     images: [
+//       {
+//         url: logoUrl,
+//         alt: "Learnyfi Educational Platform logo",
+//       },
+//     ],
 //   },
+
+//   /* =======================================================
+//      TWITTER / X
+//   ======================================================= */
 
 //   twitter: {
 //     card: "summary_large_image",
 
-//     title: "JAMB League | Learn, Practice & Compete",
+//     title: siteName,
 
-//     description:
-//       "Learn, practice, build skills, prepare for exams, and compete with other learners.",
+//     description: siteDescription,
+
+//     images: [
+//       {
+//         url: logoUrl,
+//         alt: "Learnyfi Educational Platform logo",
+//       },
+//     ],
 //   },
+
+//   /* =======================================================
+//      SEARCH ENGINE SETTINGS
+//   ======================================================= */
 
 //   robots: {
 //     index: true,
 //     follow: true,
+
+//     googleBot: {
+//       index: true,
+//       follow: true,
+//       "max-image-preview": "large",
+//       "max-snippet": -1,
+//       "max-video-preview": -1,
+//     },
 //   },
 // };
+
+// /* =========================================================
+//    ROOT LAYOUT
+// ========================================================= */
 
 // interface RootLayoutProps {
 //   children: React.ReactNode;
@@ -292,3 +335,5 @@ export default function RootLayout({
 //     </html>
 //   );
 // }
+
+

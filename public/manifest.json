@@ -1,0 +1,17 @@
+
+
+
+
+
+{
+  "id": "learnyfi-pwa",
+  "name": "Learnyfi",
+  "short_name": "Learnyfi",
+  "description": "Learn and practise exams online or offline.",
+  "start_url": "/student/practice/offline",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": []
+}

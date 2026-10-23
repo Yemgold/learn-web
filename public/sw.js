@@ -19,6 +19,8 @@ const OFFLINE_ROUTES = [
   "/student/games/edu-ludo",
   "/student/games/word-challenge",
   "/student/arena",
+  "/student/books",
+
 ];
 
 const EXCLUDED_PATHS = [

@@ -452,55 +452,86 @@ export default function WithdrawFundsModal({
   ============================================================ */
 
   const handleSaveAccount = async () => {
-    if (!userId) {
-      setError("Your user ID is missing. Please sign in again.");
+  if (!userId) {
+    setError("Your user ID is missing. Please sign in again.");
+    return;
+  }
+
+  if (!verifiedAccount) {
+    setError("Verify your bank account before saving it.");
+    return;
+  }
+
+  const accountName = verifiedAccount.accountName.trim();
+  const bankName = (
+    verifiedAccount.bankName ||
+    selectedBank?.name ||
+    ""
+  ).trim();
+  const cleanedAccountNumber = verifiedAccount.accountNumber.trim();
+  const bankCode = verifiedAccount.bankCode.trim();
+
+  if (!accountName) {
+    setError("The verified account name is missing. Please verify again.");
+    return;
+  }
+
+  if (!bankName) {
+    setError("The bank name is missing. Please select your bank and verify again.");
+    return;
+  }
+
+  if (!/^\d{10}$/.test(cleanedAccountNumber)) {
+    setError("The account number must contain exactly 10 digits.");
+    return;
+  }
+
+  if (!bankCode) {
+    setError("The bank code is missing. Please select your bank again.");
+    return;
+  }
+
+  setSavingAccount(true);
+  setError("");
+  setNotice("");
+
+  try {
+    const response = await createAccount({
+      userId,
+      accountNumber: cleanedAccountNumber,
+      accountName,
+      bankCode,
+      bankName,
+    });
+
+    if (response.success === false) {
+      setError(response.message || "Unable to save your bank account.");
       return;
     }
 
-    if (!verifiedAccount) {
-      setError("Verify your bank account before saving it.");
-      return;
-    }
+    const responseAccount = normalizeAccount(response);
 
-    setSavingAccount(true);
-    setError("");
-    setNotice("");
+    const accountToSave: AccountDetails = {
+      accountName:
+        responseAccount?.accountName || accountName,
+      accountNumber:
+        responseAccount?.accountNumber || cleanedAccountNumber,
+      bankCode:
+        responseAccount?.bankCode || bankCode,
+      bankName:
+        responseAccount?.bankName || bankName,
+    };
 
-    try {
-      const response = await createAccount({
-        userId,
-        accountNumber: verifiedAccount.accountNumber,
-        bankCode: verifiedAccount.bankCode,
-      });
-
-      if (response.success === false) {
-        setError(response.message || "Unable to save your bank account.");
-        return;
-      }
-
-      const responseAccount = normalizeAccount(response);
-
-      const accountToSave: AccountDetails = {
-        ...verifiedAccount,
-        ...(responseAccount ?? {}),
-        accountName:
-          responseAccount?.accountName || verifiedAccount.accountName,
-        accountNumber:
-          responseAccount?.accountNumber || verifiedAccount.accountNumber,
-        bankCode: responseAccount?.bankCode || verifiedAccount.bankCode,
-        bankName: responseAccount?.bankName || verifiedAccount.bankName,
-      };
-
-      setSavedAccount(accountToSave);
-      setVerifiedAccount(null);
-      setStep("account");
-      setNotice("Your bank account has been saved successfully.");
-    } catch (requestError) {
-      setError(getErrorMessage(requestError));
-    } finally {
-      setSavingAccount(false);
-    }
-  };
+    setSavedAccount(accountToSave);
+    setVerifiedAccount(null);
+    setStep("account");
+    setNotice("Your bank account has been saved successfully.");
+  } catch (requestError) {
+    setError(getErrorMessage(requestError));
+  } finally {
+    setSavingAccount(false);
+  }
+};
 
   /* ============================================================
      CONTINUE TO WITHDRAWAL

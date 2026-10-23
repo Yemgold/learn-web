@@ -69,11 +69,19 @@ export interface UserBankAccountResponse {
    CREATE BANK ACCOUNT
    ============================================================ */
 
+// export interface CreateAccountRequest {
+//   userId: string;
+//   accountNumber: string;
+//   bankCode: string;
+//   [key: string]: unknown;
+// }
+
 export interface CreateAccountRequest {
   userId: string;
   accountNumber: string;
+  accountName: string;
   bankCode: string;
-  [key: string]: unknown;
+  bankName: string;
 }
 
 export interface CreateAccountResponse {

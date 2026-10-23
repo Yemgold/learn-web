@@ -72,17 +72,10 @@ export interface UserBankAccountResponse {
 export interface CreateAccountRequest {
   userId: string;
   accountNumber: string;
+  accountName: string;
   bankCode: string;
-  [key: string]: unknown;
+  bankName: string;
 }
-
-// export interface CreateAccountRequest {
-//   userId: string;
-//   accountNumber: string;
-//   accountName: string;
-//   bankCode: string;
-//   bankName: string;
-// }
 
 export interface CreateAccountResponse {
   success: boolean;

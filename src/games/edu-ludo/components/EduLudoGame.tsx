@@ -1,5 +1,8 @@
 
 
+
+
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +19,8 @@ import {
   Trophy,
   Wallet,
   Zap,
+  Pause,
+  Play,
 } from "lucide-react";
 
 import type {
@@ -31,10 +36,7 @@ import type {
   EduLudoTransaction,
 } from "./eduLudoTypes";
 
-import {
-  EDU_LUDO_QUESTION_BANK,
-  getRandomEduLudoQuestion,
-} from "../index";
+import { EDU_LUDO_QUESTION_BANK } from "../index";
 
 import type { EduLudoGameQuestion } from "../question-bank/adapter";
 import {
@@ -102,6 +104,7 @@ type Props = {
 const TRACK_LENGTH = 52;
 const FINISH_POSITION = 57;
 const MOVEMENT_STEP_MS = 1000;
+const BOT_TURN_MS = 4000;
 const BOT_FEEDBACK_MS = 8000;
 const CORRECT_ANSWERS_FOR_BONUS = 6;
 
@@ -119,8 +122,6 @@ const DIFFICULTY_POINTS: Record<EduLudoDifficulty, number> = {
   medium: 30,
   hard: 40,
 };
-
-
 
 function money(amount: number) {
   return `₦${Math.max(0, amount).toLocaleString("en-NG")}`;
@@ -206,8 +207,6 @@ function randomQuestion(
       !seen.includes(item.id),
   );
 
-  // If the selected difficulty has no unseen questions,
-  // use other difficulties at the same subject and level.
   const sameLevel = EDU_LUDO_QUESTION_BANK.filter(
     (item) =>
       matchesSubject(item) &&
@@ -215,7 +214,6 @@ function randomQuestion(
       !seen.includes(item.id),
   );
 
-  // If that pool is exhausted, allow previously seen questions.
   const reusable = EDU_LUDO_QUESTION_BANK.filter(
     (item) =>
       matchesSubject(item) &&
@@ -237,6 +235,7 @@ function randomQuestion(
 
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
 function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -277,6 +276,9 @@ export default function EduLudoGame({
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
   const [movementCount, setMovementCount] = useState(0);
 
+  // Pause applies while reading the question or answer feedback.
+  const [isGamePaused, setIsGamePaused] = useState(false);
+
   const [learningStreaks, setLearningStreaks] = useState<
     Record<string, number>
   >({});
@@ -286,6 +288,12 @@ export default function EduLudoGame({
 
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Preserve a bot timer's remaining time when the user pauses.
+  const botTimerDueAtRef = useRef<number | null>(null);
+  const botTimerRemainingRef = useRef<number | null>(null);
+  const isGamePausedRef = useRef(false);
+
   const answerGuardRef = useRef(false);
   const movementLockRef = useRef(false);
   const mountedRef = useRef(true);
@@ -294,9 +302,11 @@ export default function EduLudoGame({
   const previousTurnPlayerIdRef = useRef<string | null>(null);
 
   const currentPlayer = players[turn] ?? null;
+
   const currentStreak = currentPlayer
     ? learningStreaks[currentPlayer.id] ?? 0
     : 0;
+
   const currentBonuses = currentPlayer
     ? guaranteedSixBonuses[currentPlayer.id] ?? 0
     : 0;
@@ -310,13 +320,18 @@ export default function EduLudoGame({
 
     return () => {
       mountedRef.current = false;
+
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
       if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
+
+      botTimerRef.current = null;
+      rollTimerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     if (!toast) return;
+
     const timeout = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(timeout);
   }, [toast]);
@@ -376,8 +391,19 @@ export default function EduLudoGame({
     setLegalMoves([]);
     setSelectedTokenId(null);
     setMovementCount(0);
+    setIsGamePaused(false);
+    isGamePausedRef.current = false;
     answerGuardRef.current = false;
   }, []);
+
+  const toggleGamePause = useCallback(() => {
+    // The board movement animation should finish uninterrupted.
+    if (phase !== "question" && phase !== "feedback") return;
+
+    const nextPaused = !isGamePausedRef.current;
+    isGamePausedRef.current = nextPaused;
+    setIsGamePaused(nextPaused);
+  }, [phase]);
 
   const startGame = useCallback(() => {
     if (mode !== "solo") {
@@ -388,7 +414,14 @@ export default function EduLudoGame({
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
     if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
 
+    botTimerRef.current = null;
+    rollTimerRef.current = null;
+    botTimerDueAtRef.current = null;
+    botTimerRemainingRef.current = null;
+    isGamePausedRef.current = false;
+
     movementLockRef.current = false;
+    setIsGamePaused(false);
     setIsAnimatingMove(false);
     setPlayers(makePlayers(playerColor, difficulty));
     setTurn(0);
@@ -460,6 +493,27 @@ export default function EduLudoGame({
         return;
       }
 
+      let selectedQuestion: LocalQuestion;
+
+      try {
+        selectedQuestion = randomQuestion(
+          subject,
+          level,
+          difficulty,
+          seenQuestions,
+        );
+      } catch (error) {
+        notify(
+          error instanceof Error
+            ? error.message
+            : "No questions are available for these settings.",
+        );
+        setDiceValue(null);
+        setPhase("playing");
+        return;
+      }
+
+      // Charge only after confirming a question can be presented.
       if (!player.isBot) {
         setBalance((value) => value - QUESTION_COST);
         addTransaction(
@@ -469,12 +523,10 @@ export default function EduLudoGame({
         );
       }
 
-      const selectedQuestion = randomQuestion(
-        subject,
-        level,
-        difficulty,
-        seenQuestions,
-      );
+      setIsGamePaused(false);
+      isGamePausedRef.current = false;
+      botTimerRemainingRef.current = null;
+      botTimerDueAtRef.current = null;
 
       setSeenQuestions((previous) => [...previous, selectedQuestion.id]);
       setQuestion(selectedQuestion);
@@ -595,7 +647,8 @@ export default function EduLudoGame({
         !question ||
         !currentPlayer ||
         answerGuardRef.current ||
-        phase !== "question"
+        phase !== "question" ||
+        isGamePausedRef.current
       ) {
         return;
       }
@@ -797,6 +850,8 @@ export default function EduLudoGame({
       setSelectedAnswer(null);
       setDiceValue(null);
       setMovementCount(0);
+      setIsGamePaused(false);
+      isGamePausedRef.current = false;
       answerGuardRef.current = false;
 
       if (hasWon) {
@@ -814,7 +869,7 @@ export default function EduLudoGame({
 
   const applyMove = useCallback(
     async (move: EduLudoMove) => {
-      if (movementLockRef.current) return;
+      if (movementLockRef.current || isGamePausedRef.current) return;
 
       const actor = players.find((player) => player.id === move.playerId);
       if (!actor) return;
@@ -891,18 +946,27 @@ export default function EduLudoGame({
     [players, resolveCompletedMove],
   );
 
- 
-useEffect(() => {
-  if (phase === "lobby" || !currentPlayer) {
-    previousTurnPlayerIdRef.current = null;
-    return;
-  }
+  useEffect(() => {
+    if (phase === "lobby" || !currentPlayer) {
+      previousTurnPlayerIdRef.current = null;
+      return;
+    }
 
-  previousTurnPlayerIdRef.current = currentPlayer.id;
-}, [currentPlayer?.id, phase]);
+    previousTurnPlayerIdRef.current = currentPlayer.id;
+  }, [currentPlayer?.id, phase]);
 
   const continueAfterFeedback = useCallback(() => {
-    if (!answerResult || !currentPlayer || phase !== "feedback") return;
+    if (
+      !answerResult ||
+      !currentPlayer ||
+      phase !== "feedback" ||
+      isGamePausedRef.current
+    ) {
+      return;
+    }
+
+    setIsGamePaused(false);
+    isGamePausedRef.current = false;
 
     if (!answerResult.isCorrect || legalMoves.length === 0) {
       clearQuestionState();
@@ -912,6 +976,7 @@ useEffect(() => {
       return;
     }
 
+    // A correct answer allows the player to select a legal token.
     setPhase("playing");
   }, [
     answerResult,
@@ -926,6 +991,7 @@ useEffect(() => {
     (player: EduLudoPlayer, tokenId: number) => {
       if (
         phase !== "playing" ||
+        isGamePausedRef.current ||
         isAnimatingMove ||
         movementLockRef.current ||
         !currentPlayer ||
@@ -946,10 +1012,28 @@ useEffect(() => {
     [phase, isAnimatingMove, currentPlayer, legalMoves, applyMove],
   );
 
+  // Bot turn timer. Pausing stores the remaining delay instead of
+  // restarting the entire delay after Resume.
   useEffect(() => {
-    if (phase !== "playing" || !currentPlayer?.isBot) return;
+    if (
+      phase !== "playing" ||
+      !currentPlayer?.isBot ||
+      isGamePaused
+    ) {
+      return;
+    }
+
+    const delay = botTimerRemainingRef.current ?? BOT_TURN_MS;
+    botTimerRemainingRef.current = null;
+    botTimerDueAtRef.current = Date.now() + delay;
 
     botTimerRef.current = setTimeout(() => {
+      botTimerRef.current = null;
+      botTimerDueAtRef.current = null;
+      botTimerRemainingRef.current = null;
+
+      if (!mountedRef.current || isGamePausedRef.current) return;
+
       const hasBonus =
         (guaranteedSixBonuses[currentPlayer.id] ?? 0) > 0;
 
@@ -967,23 +1051,61 @@ useEffect(() => {
         const roll = Math.floor(Math.random() * 6) + 1;
         askQuestion(currentPlayer, roll);
       }
-    }, 4000);
+    }, delay);
 
     return () => {
-      if (botTimerRef.current) clearTimeout(botTimerRef.current);
+      if (botTimerRef.current) {
+        clearTimeout(botTimerRef.current);
+        botTimerRef.current = null;
+
+        if (isGamePausedRef.current && botTimerDueAtRef.current !== null) {
+          botTimerRemainingRef.current = Math.max(
+            0,
+            botTimerDueAtRef.current - Date.now(),
+          );
+        } else {
+          botTimerRemainingRef.current = null;
+        }
+      }
+
+      botTimerDueAtRef.current = null;
     };
-  }, [phase, currentPlayer, askQuestion, guaranteedSixBonuses]);
+  }, [
+    phase,
+    currentPlayer,
+    isGamePaused,
+    askQuestion,
+    guaranteedSixBonuses,
+  ]);
 
+  // Bot answer timer.
   useEffect(() => {
-    if (phase !== "question" || !currentPlayer?.isBot || !question) return;
+    if (
+      phase !== "question" ||
+      !currentPlayer?.isBot ||
+      !question ||
+      isGamePaused
+    ) {
+      return;
+    }
 
-    const delay =
+    const defaultDelay =
       difficulty === "hard" ? 3200 : difficulty === "medium" ? 3800 : 4200;
+
+    const delay = botTimerRemainingRef.current ?? defaultDelay;
+    botTimerRemainingRef.current = null;
+    botTimerDueAtRef.current = Date.now() + delay;
 
     const chance =
       difficulty === "easy" ? 0.58 : difficulty === "medium" ? 0.76 : 0.91;
 
     botTimerRef.current = setTimeout(() => {
+      botTimerRef.current = null;
+      botTimerDueAtRef.current = null;
+      botTimerRemainingRef.current = null;
+
+      if (!mountedRef.current || isGamePausedRef.current) return;
+
       const answer =
         Math.random() < chance
           ? question.correctAnswer
@@ -993,19 +1115,56 @@ useEffect(() => {
     }, delay);
 
     return () => {
-      if (botTimerRef.current) clearTimeout(botTimerRef.current);
-    };
-  }, [phase, currentPlayer, question, difficulty, finishAnswer]);
+      if (botTimerRef.current) {
+        clearTimeout(botTimerRef.current);
+        botTimerRef.current = null;
 
+        if (isGamePausedRef.current && botTimerDueAtRef.current !== null) {
+          botTimerRemainingRef.current = Math.max(
+            0,
+            botTimerDueAtRef.current - Date.now(),
+          );
+        } else {
+          botTimerRemainingRef.current = null;
+        }
+      }
+
+      botTimerDueAtRef.current = null;
+    };
+  }, [
+    phase,
+    currentPlayer,
+    question,
+    difficulty,
+    isGamePaused,
+    finishAnswer,
+  ]);
+
+  // Bot feedback timer. This is also paused while the user reads the
+  // correct answer and explanation.
   useEffect(() => {
-    if (phase !== "feedback" || !currentPlayer?.isBot || !answerResult) {
+    if (
+      phase !== "feedback" ||
+      !currentPlayer?.isBot ||
+      !answerResult ||
+      isGamePaused
+    ) {
       return;
     }
 
+    const delay = botTimerRemainingRef.current ?? BOT_FEEDBACK_MS;
+    botTimerRemainingRef.current = null;
+    botTimerDueAtRef.current = Date.now() + delay;
+
     botTimerRef.current = setTimeout(() => {
+      botTimerRef.current = null;
+      botTimerDueAtRef.current = null;
+      botTimerRemainingRef.current = null;
+
+      if (!mountedRef.current || isGamePausedRef.current) return;
+
       if (answerResult.isCorrect && legalMoves.length > 0) {
-        const move =
-          legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
 
         if (move) {
           void applyMove(move);
@@ -1014,16 +1173,31 @@ useEffect(() => {
       }
 
       continueAfterFeedback();
-    }, BOT_FEEDBACK_MS);
+    }, delay);
 
     return () => {
-      if (botTimerRef.current) clearTimeout(botTimerRef.current);
+      if (botTimerRef.current) {
+        clearTimeout(botTimerRef.current);
+        botTimerRef.current = null;
+
+        if (isGamePausedRef.current && botTimerDueAtRef.current !== null) {
+          botTimerRemainingRef.current = Math.max(
+            0,
+            botTimerDueAtRef.current - Date.now(),
+          );
+        } else {
+          botTimerRemainingRef.current = null;
+        }
+      }
+
+      botTimerDueAtRef.current = null;
     };
   }, [
     phase,
     currentPlayer,
     answerResult,
     legalMoves,
+    isGamePaused,
     applyMove,
     continueAfterFeedback,
   ]);
@@ -1054,7 +1228,14 @@ useEffect(() => {
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
     if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
 
+    botTimerRef.current = null;
+    rollTimerRef.current = null;
+    botTimerDueAtRef.current = null;
+    botTimerRemainingRef.current = null;
+    isGamePausedRef.current = false;
+
     movementLockRef.current = false;
+    setIsGamePaused(false);
     setIsAnimatingMove(false);
     setIsRolling(false);
     setPlayers([]);
@@ -1125,7 +1306,6 @@ useEffect(() => {
   return (
     <main className="min-h-screen bg-slate-950 px-2 py-3 text-white sm:px-5 sm:py-5">
       <div className="mx-auto max-w-5xl space-y-3">
-        {/* Compact game header */}
         <header className="flex items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3 shadow-sm">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -1170,7 +1350,6 @@ useEffect(() => {
 
         {phase !== "finished" && (
           <>
-            {/* Current turn */}
             <section
               ref={currentTurnRef}
               className="scroll-mt-4 rounded-2xl border border-indigo-500/40 bg-slate-900 p-3 shadow-sm sm:p-4"
@@ -1204,20 +1383,29 @@ useEffect(() => {
               </div>
 
               <p className="mt-2 text-sm text-slate-300">
-                {phase === "moving"
-                  ? "Your token is moving across the board."
-                  : phase === "question"
-                    ? "Answer the question to continue your move."
-                    : phase === "feedback"
-                      ? answerResult?.isCorrect
-                        ? "Correct answer! Continue to your move."
-                        : "Incorrect answer. Your turn will pass."
-                      : currentPlayer?.isBot
-                        ? "The computer is taking its turn."
-                        : legalMoves.length > 0
-                          ? "Select one of your highlighted tokens."
-                          : "Roll the dice to begin your turn."}
+                {isGamePaused
+                  ? "Game paused. Take your time reading the question or explanation."
+                  : phase === "moving"
+                    ? "Your token is moving across the board."
+                    : phase === "question"
+                      ? "Answer the question to continue your move."
+                      : phase === "feedback"
+                        ? answerResult?.isCorrect
+                          ? "Correct answer! Continue to your move."
+                          : "Incorrect answer. Your turn will pass."
+                        : currentPlayer?.isBot
+                          ? "The computer is taking its turn."
+                          : legalMoves.length > 0
+                            ? "Select one of your highlighted tokens."
+                            : "Roll the dice to begin your turn."}
               </p>
+
+              {isGamePaused && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-700/50 bg-amber-950/50 p-3 text-sm font-bold text-amber-200">
+                  <Pause size={17} />
+                  Paused — timers and bot actions are on hold.
+                </div>
+              )}
 
               {phase === "playing" &&
                 currentPlayer &&
@@ -1284,38 +1472,34 @@ useEffect(() => {
                 )}
             </section>
 
-          
-           
-{/* Board — keep the entire board visible during every player's turn */}
-<section
-  aria-label="Educational Ludo board"
-  className="w-full min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-1.5 shadow-sm sm:p-3"
->
-  <div className="mx-auto w-full min-w-0 max-w-[640px]">
-    <LudoBoard
-      players={sharedPlayers}
-      currentPlayerId={currentPlayer?.id ?? null}
-      legalMoves={legalMoves}
-      selectedTokenId={selectedTokenId}
-      diceValue={diceValue}
-      disabled={
-        isRolling ||
-        isAnimatingMove ||
-        currentPlayer?.isBot === true ||
-        phase !== "playing" ||
-        legalMoves.length === 0
-      }
-      onTokenClick={selectToken}
-      onDiceClick={rollDice}
-      showDice
-      movementCount={movementCount}
-      isMoving={isAnimatingMove}
-    />
-  </div>
-</section>
+            <section
+              aria-label="Educational Ludo board"
+              className="w-full min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-1.5 shadow-sm sm:p-3"
+            >
+              <div className="mx-auto w-full min-w-0 max-w-[640px]">
+                <LudoBoard
+                  players={sharedPlayers}
+                  currentPlayerId={currentPlayer?.id ?? null}
+                  legalMoves={legalMoves}
+                  selectedTokenId={selectedTokenId}
+                  diceValue={diceValue}
+                  disabled={
+                    isGamePaused ||
+                    isRolling ||
+                    isAnimatingMove ||
+                    currentPlayer?.isBot === true ||
+                    phase !== "playing" ||
+                    legalMoves.length === 0
+                  }
+                  onTokenClick={selectToken}
+                  onDiceClick={rollDice}
+                  showDice
+                  movementCount={movementCount}
+                  isMoving={isAnimatingMove}
+                />
+              </div>
+            </section>
 
-
-            {/* Secondary controls */}
             <details className="rounded-2xl border border-slate-800 bg-slate-900 shadow-sm">
               <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-200">
                 <span className="flex items-center justify-between gap-3">
@@ -1389,9 +1573,7 @@ useEffect(() => {
                 </div>
 
                 <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3">
-                  <p className="mb-3 font-bold text-white">
-                    Match rewards
-                  </p>
+                  <p className="mb-3 font-bold text-white">Match rewards</p>
                   <div className="space-y-2 text-xs text-slate-300">
                     <p className="flex justify-between gap-2">
                       <span>Question fee</span>
@@ -1426,7 +1608,6 @@ useEffect(() => {
               </div>
             </details>
 
-            {/* Utility buttons */}
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -1458,7 +1639,6 @@ useEffect(() => {
           </>
         )}
 
-        {/* Finished-game screen */}
         {phase === "finished" && (
           <section className="rounded-2xl border border-amber-700/50 bg-slate-900 p-5 shadow-sm sm:p-8">
             <div className="text-center">
@@ -1516,7 +1696,6 @@ useEffect(() => {
           </section>
         )}
 
-        {/* Question UI */}
         <QuestionModal
           question={selectedQuestion}
           open={
@@ -1529,6 +1708,8 @@ useEffect(() => {
           submitting={false}
           selectedAnswer={selectedAnswer}
           result={answerResult}
+          paused={isGamePaused}
+          onTogglePause={toggleGamePause}
           onAnswer={finishAnswer}
           onTimeUp={() => finishAnswer(-1)}
           onClose={() => {
@@ -1544,7 +1725,6 @@ useEffect(() => {
           allowClose={false}
         />
 
-        {/* Existing dialogs */}
         <LudoGameDialogs
           activeDialog={dialog}
           onCloseDialog={() => setDialog(null)}

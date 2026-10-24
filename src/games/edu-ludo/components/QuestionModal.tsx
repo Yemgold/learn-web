@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 // "use client";
 
 // import { useEffect, useRef, useState } from "react";
@@ -74,6 +81,7 @@
 
 //   const explanationRef = useRef<HTMLDivElement>(null);
 //   const questionPanelRef = useRef<HTMLElement>(null);
+//   const contentRef = useRef<HTMLDivElement>(null);
 
 //   useEffect(() => {
 //     if (!open || !question) return;
@@ -83,24 +91,23 @@
 //     setHasTimedOut(false);
 //   }, [question?.id, open, timeLimit]);
 
-//   // Scroll the explanation into view after ANY answer, including wrong
-//   // answers and timeouts.
+//   // Scroll the explanation into view within the scrollable content area.
 //   useEffect(() => {
-//     if (!open || !question || !answered || !question.explanation) return;
+//     if (!open || !question || !answered) return;
 
 //     const timeout = window.setTimeout(() => {
 //       const explanation = explanationRef.current;
-//       const panel = questionPanelRef.current;
+//       const content = contentRef.current;
 
-//       if (!explanation || !panel) return;
+//       if (!explanation || !content) return;
 
 //       const explanationTop =
 //         explanation.getBoundingClientRect().top -
-//         panel.getBoundingClientRect().top +
-//         panel.scrollTop;
+//         content.getBoundingClientRect().top +
+//         content.scrollTop;
 
-//       panel.scrollTo({
-//         top: Math.max(0, explanationTop - 16),
+//       content.scrollTo({
+//         top: Math.max(0, explanationTop - 12),
 //         behavior: "smooth",
 //       });
 //     }, 200);
@@ -170,19 +177,20 @@
 
 //   return (
 //     <div
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/80 p-2 backdrop-blur-sm sm:p-5"
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-slate-950/80 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:p-5"
 //       role="dialog"
 //       aria-modal="true"
 //       aria-labelledby="edu-ludo-question-title"
 //     >
 //       <section
 //         ref={questionPanelRef}
-//         className="my-auto max-h-[96vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white shadow-2xl scroll-smooth"
+//         className="my-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[94dvh] sm:rounded-3xl"
 //       >
-//         <div className="bg-gradient-to-r from-indigo-700 via-violet-700 to-indigo-700 px-5 py-5 text-white sm:px-7">
+//         {/* Header */}
+//         <div className="shrink-0 bg-gradient-to-r from-indigo-700 via-violet-700 to-indigo-700 px-4 py-4 text-white sm:px-7 sm:py-5">
 //           <div className="flex items-start justify-between gap-3">
-//             <div className="flex items-start gap-3">
-//               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+//             <div className="flex min-w-0 items-start gap-3">
+//               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 sm:h-11 sm:w-11 sm:rounded-2xl">
 //                 {answered ? (
 //                   result?.isCorrect ? (
 //                     <CheckCircle2 size={24} />
@@ -194,17 +202,19 @@
 //                 )}
 //               </div>
 
-//               <div>
-//                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-100">
+//               <div className="min-w-0">
+//                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-100 sm:text-xs sm:tracking-[0.16em]">
 //                   Learnyfi Educational Ludo
 //                 </p>
+
 //                 <h2
 //                   id="edu-ludo-question-title"
-//                   className="mt-1 text-xl font-black sm:text-2xl"
+//                   className="mt-1 text-lg font-black leading-tight sm:text-2xl"
 //                 >
 //                   {answered ? "Answer review" : "Answer to move"}
 //                 </h2>
-//                 <p className="mt-1 text-sm capitalize text-indigo-100">
+
+//                 <p className="mt-1 break-words text-xs capitalize text-indigo-100 sm:text-sm">
 //                   {question.subject} · {question.level} · {question.difficulty}
 //                 </p>
 //               </div>
@@ -214,7 +224,7 @@
 //               <button
 //                 type="button"
 //                 onClick={() => onClose?.()}
-//                 className="rounded-xl p-2 text-white/90 transition hover:bg-white/15"
+//                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
 //                 aria-label="Close question"
 //               >
 //                 <XCircle size={20} />
@@ -223,11 +233,16 @@
 //           </div>
 //         </div>
 
-//         <div className="space-y-5 p-4 sm:p-7">
+//         {/* Scrollable question and explanation */}
+//         <div
+//           ref={contentRef}
+//           className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [scrollbar-gutter:stable] sm:space-y-5 sm:p-7"
+//           style={{ WebkitOverflowScrolling: "touch" }}
+//         >
 //           {automated && (
 //             <div
 //               className={[
-//                 "flex items-center gap-3 rounded-2xl border p-4",
+//                 "flex items-start gap-3 rounded-2xl border p-3 sm:p-4",
 //                 answered
 //                   ? result?.isCorrect
 //                     ? "border-emerald-200 bg-emerald-50 text-emerald-900"
@@ -252,12 +267,13 @@
 //                 )}
 //               </div>
 
-//               <div>
+//               <div className="min-w-0">
 //                 <p className="font-extrabold">
 //                   {answered
 //                     ? `${botName} ${result?.isCorrect ? "answered correctly" : "answered incorrectly"}`
 //                     : `${botName} is thinking…`}
 //                 </p>
+
 //                 <p className="mt-1 text-sm">
 //                   {answered
 //                     ? "Review the selected answer and explanation below."
@@ -267,60 +283,69 @@
 //             </div>
 //           )}
 
-//           <div className="grid gap-3 sm:grid-cols-2">
-//             {showTimer && !automated && (
-//               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-//                 <div className="flex items-center justify-between gap-2">
-//                   <span className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
-//                     <Clock3 size={15} />
-//                     Time remaining
-//                   </span>
-//                   <span
-//                     className={[
-//                       "text-lg font-black tabular-nums",
-//                       timeLeft <= 5 ? "text-rose-600" : "text-slate-900",
-//                     ].join(" ")}
-//                   >
-//                     {timeLeft}s
-//                   </span>
+//           {/* Timer and question charge */}
+//           {(showTimer && !automated) || (showCost && !automated) ? (
+//             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+//               {showTimer && !automated && (
+//                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+//                   <div className="flex items-center justify-between gap-2">
+//                     <span className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+//                       <Clock3 size={15} />
+//                       Time remaining
+//                     </span>
+
+//                     <span
+//                       className={[
+//                         "text-lg font-black tabular-nums",
+//                         timeLeft <= 5 ? "text-rose-600" : "text-slate-900",
+//                       ].join(" ")}
+//                     >
+//                       {timeLeft}s
+//                     </span>
+//                   </div>
+
+//                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+//                     <div
+//                       className={[
+//                         "h-full rounded-full transition-all duration-300",
+//                         timeLeft <= 5 ? "bg-rose-500" : "bg-indigo-600",
+//                       ].join(" ")}
+//                       style={{ width: `${timerPercent}%` }}
+//                     />
+//                   </div>
 //                 </div>
+//               )}
 
-//                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-//                   <div
-//                     className={[
-//                       "h-full rounded-full transition-all duration-300",
-//                       timeLeft <= 5 ? "bg-rose-500" : "bg-indigo-600",
-//                     ].join(" ")}
-//                     style={{ width: `${timerPercent}%` }}
-//                   />
+//               {showCost && !automated && (
+//                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+//                   <p className="text-xs font-bold uppercase text-amber-800">
+//                     Question charge
+//                   </p>
+
+//                   <p className="mt-1 text-lg font-black text-amber-950">
+//                     ₦{questionCost.toLocaleString("en-NG")}
+//                   </p>
+
+//                   <p className="text-xs leading-5 text-amber-800">
+//                     Charged when your question is presented.
+//                   </p>
 //                 </div>
-//               </div>
-//             )}
+//               )}
+//             </div>
+//           ) : null}
 
-//             {showCost && !automated && (
-//               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-//                 <p className="text-xs font-bold uppercase text-amber-800">
-//                   Question charge
-//                 </p>
-//                 <p className="mt-1 text-lg font-black text-amber-950">
-//                   ₦{questionCost.toLocaleString("en-NG")}
-//                 </p>
-//                 <p className="text-xs text-amber-800">
-//                   Charged when your question is presented.
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-
+//           {/* Question */}
 //           <div>
 //             <p className="text-xs font-extrabold uppercase tracking-wider text-indigo-600">
 //               Question
 //             </p>
+
 //             <p className="mt-2 whitespace-pre-wrap break-words text-base font-bold leading-7 text-slate-900 sm:text-lg">
 //               {question.content}
 //             </p>
 //           </div>
 
+//           {/* Answer options */}
 //           <div className="space-y-3">
 //             {question.options.map((option, index) => {
 //               const isSelected = effectiveSelection === index;
@@ -347,11 +372,14 @@
 //                   key={`${question.id}-option-${index}`}
 //                   type="button"
 //                   onClick={() => handleAnswer(index)}
-//                   disabled={interactionDisabled || effectiveSelection !== null}
+//                   disabled={
+//                     interactionDisabled || effectiveSelection !== null
+//                   }
 //                   className={[
-//                     "flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition",
+//                     "flex min-h-14 w-full items-start gap-3 rounded-2xl border p-3 text-left transition sm:p-4",
 //                     optionStyle,
 //                     interactionDisabled ? "cursor-default" : "",
+//                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
 //                   ].join(" ")}
 //                 >
 //                   <span
@@ -369,7 +397,7 @@
 //                     {String.fromCharCode(65 + index)}
 //                   </span>
 
-//                   <span className="flex-1 break-words pt-1 text-sm font-semibold leading-6 sm:text-base">
+//                   <span className="min-w-0 flex-1 break-words pt-1 text-sm font-semibold leading-6 sm:text-base">
 //                     {option}
 //                   </span>
 
@@ -391,10 +419,11 @@
 //             })}
 //           </div>
 
+//           {/* Answer result and explanation */}
 //           {answered && (
 //             <div
 //               className={[
-//                 "rounded-2xl border p-4",
+//                 "rounded-2xl border p-3 sm:p-4",
 //                 result?.isCorrect
 //                   ? "border-emerald-300 bg-emerald-50"
 //                   : "border-rose-300 bg-rose-50",
@@ -444,7 +473,7 @@
 //                   {question.explanation?.trim() ? (
 //                     <div
 //                       ref={explanationRef}
-//                       className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-slate-900"
+//                       className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 sm:p-4"
 //                     >
 //                       <p className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-indigo-700">
 //                         <Lightbulb size={18} className="shrink-0" />
@@ -458,7 +487,7 @@
 //                   ) : (
 //                     <div
 //                       ref={explanationRef}
-//                       className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+//                       className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950 sm:p-4"
 //                     >
 //                       <p className="font-bold">Explanation unavailable</p>
 //                       <p className="mt-1 text-sm leading-6">
@@ -474,7 +503,8 @@
 //           {automated && !answered && (
 //             <p className="text-center text-xs leading-5 text-slate-500">
 //               <Loader2 size={13} className="mr-1 inline animate-spin" />
-//               The bot is answering automatically. You cannot select its answers.
+//               The bot is answering automatically. You cannot select its
+//               answers.
 //             </p>
 //           )}
 
@@ -483,24 +513,25 @@
 //               The bot will continue automatically after reviewing the answer.
 //             </p>
 //           )}
+//         </div>
 
-//           {answered && !automated && onContinue && (
+//         {/* Fixed-in-modal Continue footer: stays visible on mobile */}
+//         {answered && !automated && onContinue && (
+//           <div className="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-7 sm:py-4">
 //             <button
 //               type="button"
 //               onClick={onContinue}
-//               className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-indigo-700"
+//               className="flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-base font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
 //             >
-//               <Zap size={17} />
+//               <Zap size={18} />
 //               Continue
 //             </button>
-//           )}
-//         </div>
+//           </div>
+//         )}
 //       </section>
 //     </div>
 //   );
 // }
-
-
 
 
 
@@ -519,6 +550,8 @@ import {
   HelpCircle,
   Lightbulb,
   Loader2,
+  Pause,
+  Play,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -552,6 +585,12 @@ interface QuestionModalProps {
   automated?: boolean;
   botThinking?: boolean;
   botName?: string;
+
+  /** Freezes the question countdown while true. */
+  paused?: boolean;
+
+  /** Lets the parent pause/resume the game controller too. */
+  onTogglePause?: () => void;
 }
 
 export default function QuestionModal({
@@ -565,28 +604,35 @@ export default function QuestionModal({
   result = null,
   onAnswer,
   onTimeUp,
-  onContinue,
   onClose,
+  onContinue,
   showTimer = true,
   showCost = true,
   allowClose = false,
   automated = false,
   botThinking = false,
   botName = "Bot",
+  paused = false,
+  onTogglePause,
 }: QuestionModalProps) {
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [localSelection, setLocalSelection] = useState<number | null>(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
+  const explanationRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const timeoutHandledRef = useRef(false);
+
   const effectiveSelection = selectedAnswer ?? localSelection;
   const answered = result != null;
 
   const interactionDisabled =
-    disabled || automated || submitting || answered || hasTimedOut;
-
-  const explanationRef = useRef<HTMLDivElement>(null);
-  const questionPanelRef = useRef<HTMLElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+    disabled ||
+    automated ||
+    submitting ||
+    answered ||
+    hasTimedOut ||
+    paused;
 
   useEffect(() => {
     if (!open || !question) return;
@@ -594,9 +640,9 @@ export default function QuestionModal({
     setTimeLeft(timeLimit);
     setLocalSelection(null);
     setHasTimedOut(false);
+    timeoutHandledRef.current = false;
   }, [question?.id, open, timeLimit]);
 
-  // Scroll the explanation into view within the scrollable content area.
   useEffect(() => {
     if (!open || !question || !answered) return;
 
@@ -620,6 +666,7 @@ export default function QuestionModal({
     return () => window.clearTimeout(timeout);
   }, [open, question?.id, answered, question?.explanation]);
 
+  // The countdown is suspended during a pause, without resetting timeLeft.
   useEffect(() => {
     if (
       !open ||
@@ -629,14 +676,18 @@ export default function QuestionModal({
       automated ||
       submitting ||
       answered ||
-      hasTimedOut
+      hasTimedOut ||
+      paused
     ) {
       return;
     }
 
     if (timeLeft <= 0) {
-      setHasTimedOut(true);
-      onTimeUp?.();
+      if (!timeoutHandledRef.current) {
+        timeoutHandledRef.current = true;
+        setHasTimedOut(true);
+        onTimeUp?.();
+      }
       return;
     }
 
@@ -654,6 +705,7 @@ export default function QuestionModal({
     submitting,
     answered,
     hasTimedOut,
+    paused,
     timeLeft,
     onTimeUp,
   ]);
@@ -687,10 +739,7 @@ export default function QuestionModal({
       aria-modal="true"
       aria-labelledby="edu-ludo-question-title"
     >
-      <section
-        ref={questionPanelRef}
-        className="my-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[94dvh] sm:rounded-3xl"
-      >
+      <section className="my-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[94dvh] sm:rounded-3xl">
         {/* Header */}
         <div className="shrink-0 bg-gradient-to-r from-indigo-700 via-violet-700 to-indigo-700 px-4 py-4 text-white sm:px-7 sm:py-5">
           <div className="flex items-start justify-between gap-3">
@@ -716,7 +765,13 @@ export default function QuestionModal({
                   id="edu-ludo-question-title"
                   className="mt-1 text-lg font-black leading-tight sm:text-2xl"
                 >
-                  {answered ? "Answer review" : "Answer to move"}
+                  {paused
+                    ? "Game paused"
+                    : answered
+                      ? "Answer review"
+                      : automated
+                        ? `${botName}'s question`
+                        : "Answer to move"}
                 </h2>
 
                 <p className="mt-1 break-words text-xs capitalize text-indigo-100 sm:text-sm">
@@ -725,25 +780,54 @@ export default function QuestionModal({
               </div>
             </div>
 
-            {allowClose && (
-              <button
-                type="button"
-                onClick={() => onClose?.()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Close question"
-              >
-                <XCircle size={20} />
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-2">
+              {onTogglePause && (
+                <button
+                  type="button"
+                  onClick={onTogglePause}
+                  className="flex min-h-9 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 text-sm font-bold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-pressed={paused}
+                >
+                  {paused ? <Play size={16} /> : <Pause size={16} />}
+                  {paused ? "Resume" : "Pause"}
+                </button>
+              )}
+
+              {allowClose && (
+                <button
+                  type="button"
+                  onClick={() => onClose?.()}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Close question"
+                >
+                  <XCircle size={20} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Scrollable question and explanation */}
+        {/* Scrollable content */}
         <div
           ref={contentRef}
           className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [scrollbar-gutter:stable] sm:space-y-5 sm:p-7"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
+          {paused && (
+            <div
+              className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+              role="status"
+              aria-live="polite"
+            >
+              <p className="font-extrabold">Take your time.</p>
+              <p className="mt-1 text-sm leading-6">
+                The game is paused. Read the question or explanation carefully.
+                The question countdown is frozen. Select Resume when you are
+                ready.
+              </p>
+            </div>
+          )}
+
           {automated && (
             <div
               className={[
@@ -767,7 +851,7 @@ export default function QuestionModal({
                 ) : (
                   <Loader2
                     size={22}
-                    className={botThinking ? "animate-spin" : ""}
+                    className={botThinking && !paused ? "animate-spin" : ""}
                   />
                 )}
               </div>
@@ -775,21 +859,29 @@ export default function QuestionModal({
               <div className="min-w-0">
                 <p className="font-extrabold">
                   {answered
-                    ? `${botName} ${result?.isCorrect ? "answered correctly" : "answered incorrectly"}`
-                    : `${botName} is thinking…`}
+                    ? `${botName} ${
+                        result?.isCorrect
+                          ? "answered correctly"
+                          : "answered incorrectly"
+                      }`
+                    : paused
+                      ? `${botName}'s turn is paused`
+                      : `${botName} is thinking…`}
                 </p>
 
                 <p className="mt-1 text-sm">
                   {answered
                     ? "Review the selected answer and explanation below."
-                    : "The bot will answer automatically."}
+                    : paused
+                      ? "The bot will wait until you resume the game."
+                      : "The bot will answer automatically."}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Timer and question charge */}
-          {(showTimer && !automated) || (showCost && !automated) ? (
+          {/* Timer and charge */}
+          {((showTimer && !automated) || (showCost && !automated)) && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {showTimer && !automated && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -802,7 +894,11 @@ export default function QuestionModal({
                     <span
                       className={[
                         "text-lg font-black tabular-nums",
-                        timeLeft <= 5 ? "text-rose-600" : "text-slate-900",
+                        paused
+                          ? "text-amber-600"
+                          : timeLeft <= 5
+                            ? "text-rose-600"
+                            : "text-slate-900",
                       ].join(" ")}
                     >
                       {timeLeft}s
@@ -813,11 +909,21 @@ export default function QuestionModal({
                     <div
                       className={[
                         "h-full rounded-full transition-all duration-300",
-                        timeLeft <= 5 ? "bg-rose-500" : "bg-indigo-600",
+                        paused
+                          ? "bg-amber-500"
+                          : timeLeft <= 5
+                            ? "bg-rose-500"
+                            : "bg-indigo-600",
                       ].join(" ")}
                       style={{ width: `${timerPercent}%` }}
                     />
                   </div>
+
+                  {paused && (
+                    <p className="mt-2 text-xs font-bold text-amber-700">
+                      Timer suspended
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -832,12 +938,13 @@ export default function QuestionModal({
                   </p>
 
                   <p className="text-xs leading-5 text-amber-800">
-                    Charged when your question is presented.
+                    Charged when your question is presented, not when you
+                    resume.
                   </p>
                 </div>
               )}
             </div>
-          ) : null}
+          )}
 
           {/* Question */}
           <div>
@@ -850,7 +957,7 @@ export default function QuestionModal({
             </p>
           </div>
 
-          {/* Answer options */}
+          {/* Options */}
           <div className="space-y-3">
             {question.options.map((option, index) => {
               const isSelected = effectiveSelection === index;
@@ -924,7 +1031,7 @@ export default function QuestionModal({
             })}
           </div>
 
-          {/* Answer result and explanation */}
+          {/* Result and explanation */}
           {answered && (
             <div
               className={[
@@ -975,31 +1082,25 @@ export default function QuestionModal({
                     </p>
                   )}
 
-                  {question.explanation?.trim() ? (
-                    <div
-                      ref={explanationRef}
-                      className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 sm:p-4"
-                    >
-                      <p className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-indigo-700">
-                        <Lightbulb size={18} className="shrink-0" />
-                        Explanation
-                      </p>
+                  <div
+                    ref={explanationRef}
+                    className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 sm:p-4"
+                  >
+                    <p className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-indigo-700">
+                      <Lightbulb size={18} className="shrink-0" />
+                      Explanation
+                    </p>
 
+                    {question.explanation?.trim() ? (
                       <p className="mt-2 whitespace-pre-wrap break-words text-sm font-medium leading-7 text-slate-800 sm:text-base">
                         {question.explanation}
                       </p>
-                    </div>
-                  ) : (
-                    <div
-                      ref={explanationRef}
-                      className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950 sm:p-4"
-                    >
-                      <p className="font-bold">Explanation unavailable</p>
-                      <p className="mt-1 text-sm leading-6">
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
                         No explanation was provided for this question.
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1007,29 +1108,39 @@ export default function QuestionModal({
 
           {automated && !answered && (
             <p className="text-center text-xs leading-5 text-slate-500">
-              <Loader2 size={13} className="mr-1 inline animate-spin" />
-              The bot is answering automatically. You cannot select its
-              answers.
+              <Loader2
+                size={13}
+                className={[
+                  "mr-1 inline",
+                  botThinking && !paused ? "animate-spin" : "",
+                ].join(" ")}
+              />
+              {paused
+                ? "The bot is waiting while the game is paused."
+                : "The bot is answering automatically."}
             </p>
           )}
 
           {answered && automated && (
             <p className="text-center text-sm font-semibold text-slate-600">
-              The bot will continue automatically after reviewing the answer.
+              {paused
+                ? "The game will remain paused until you resume."
+                : "The bot will continue automatically after reviewing the answer."}
             </p>
           )}
         </div>
 
-        {/* Fixed-in-modal Continue footer: stays visible on mobile */}
+        {/* Continue footer */}
         {answered && !automated && onContinue && (
           <div className="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-7 sm:py-4">
             <button
               type="button"
               onClick={onContinue}
-              className="flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-base font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              disabled={paused}
+              className="flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-base font-extrabold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               <Zap size={18} />
-              Continue
+              {paused ? "Resume to continue" : "Continue"}
             </button>
           </div>
         )}

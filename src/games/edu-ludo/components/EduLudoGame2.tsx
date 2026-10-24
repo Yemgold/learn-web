@@ -1,5 +1,9 @@
 
 
+
+
+
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,6 +35,12 @@ import type {
   EduLudoTransaction,
 } from "./eduLudoTypes";
 
+import {
+  EDU_LUDO_QUESTION_BANK,
+  getRandomEduLudoQuestion,
+} from "../index";
+
+import type { EduLudoGameQuestion } from "../question-bank/adapter";
 import {
   CAPTURE_REWARD,
   COLOR_STYLES,
@@ -75,16 +85,7 @@ type LocalPlayer = EduLudoPlayer & {
   tokens: LocalToken[];
 };
 
-type LocalQuestion = {
-  id: string;
-  subject: string;
-  level: string;
-  difficulty: EduLudoDifficulty;
-  content: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-};
+type LocalQuestion = EduLudoGameQuestion;
 
 type LocalTransaction = {
   id: string;
@@ -123,103 +124,7 @@ const DIFFICULTY_POINTS: Record<EduLudoDifficulty, number> = {
   hard: 40,
 };
 
-const QUESTION_BANK: LocalQuestion[] = [
-  // {
-  //   id: "math-001",
-  //   subject: "Mathematics",
-  //   level: "JAMB",
-  //   difficulty: "easy",
-  //   content: "What is 15% of 200?",
-  //   options: ["15", "20", "30", "35"],
-  //   correctAnswer: 2,
-  //   explanation: "15% of 200 = 0.15 × 200 = 30.",
-  // },
-  {
-    id: "math-002",
-    subject: "Mathematics",
-    level: "JAMB",
-    difficulty: "medium",
-    content: "Solve for x: 3x + 7 = 22.",
-    options: ["3", "5", "7", "9"],
-    correctAnswer: 1,
-    explanation: "Subtract 7 to get 3x = 15, then divide by 3.",
-  },
-  {
-    id: "math-003",
-    subject: "Mathematics",
-    level: "JAMB",
-    difficulty: "hard",
-    content: "If x² − 5x + 6 = 0, what are the roots?",
-    options: ["1 and 6", "−2 and −3", "2 and 3", "−1 and −6"],
-    correctAnswer: 2,
-    explanation: "Factorise as (x − 2)(x − 3) = 0.",
-  },
-  {
-    id: "eng-001",
-    subject: "English",
-    level: "JAMB",
-    difficulty: "easy",
-    content: "Choose the word nearest in meaning to 'diligent'.",
-    options: ["Careless", "Hardworking", "Impatient", "Weak"],
-    correctAnswer: 1,
-    explanation: "Diligent means careful and hardworking.",
-  },
-  {
-    id: "eng-002",
-    subject: "English",
-    level: "JAMB",
-    difficulty: "medium",
-    content: "Choose the correct sentence.",
-    options: [
-      "She have finished her work.",
-      "She has finish her work.",
-      "She has finished her work.",
-      "She having finished her work.",
-    ],
-    correctAnswer: 2,
-    explanation: "'Has finished' is the correct present perfect form.",
-  },
-  {
-    id: "sci-001",
-    subject: "Science",
-    level: "JAMB",
-    difficulty: "easy",
-    content: "Which organ pumps blood around the human body?",
-    options: ["Liver", "Kidney", "Heart", "Lung"],
-    correctAnswer: 2,
-    explanation: "The heart pumps blood through the circulatory system.",
-  },
-  {
-    id: "bio-001",
-    subject: "Biology",
-    level: "JAMB",
-    difficulty: "medium",
-    content: "Which cell organelle is mainly responsible for photosynthesis?",
-    options: ["Nucleus", "Chloroplast", "Ribosome", "Mitochondrion"],
-    correctAnswer: 1,
-    explanation: "Chloroplasts contain chlorophyll and carry out photosynthesis.",
-  },
-  {
-    id: "chem-001",
-    subject: "Chemistry",
-    level: "JAMB",
-    difficulty: "medium",
-    content: "What is the chemical symbol for sodium?",
-    options: ["So", "S", "Na", "N"],
-    correctAnswer: 2,
-    explanation: "Sodium's chemical symbol is Na.",
-  },
-  {
-    id: "phy-001",
-    subject: "Physics",
-    level: "JAMB",
-    difficulty: "medium",
-    content: "What is the SI unit of force?",
-    options: ["Joule", "Watt", "Pascal", "Newton"],
-    correctAnswer: 3,
-    explanation: "Force is measured in newtons (N).",
-  },
-];
+
 
 function money(amount: number) {
   return `₦${Math.max(0, amount).toLocaleString("en-NG")}`;
@@ -294,33 +199,48 @@ function randomQuestion(
   difficulty: EduLudoDifficulty,
   seen: string[],
 ): LocalQuestion {
-  let pool = QUESTION_BANK.filter(
+  const matchesSubject = (item: LocalQuestion) =>
+    subject === "All Subjects" || item.subject === subject;
+
+  const unseen = EDU_LUDO_QUESTION_BANK.filter(
     (item) =>
-      (subject === "All Subjects" || item.subject === subject) &&
-      (item.level === level || level === "Custom") &&
+      matchesSubject(item) &&
       item.difficulty === difficulty &&
+      (level === "Custom" || item.level === level) &&
       !seen.includes(item.id),
   );
 
-  if (pool.length === 0) {
-    pool = QUESTION_BANK.filter(
-      (item) =>
-        (subject === "All Subjects" || item.subject === subject) &&
-        !seen.includes(item.id),
-    );
-  }
+  // If the selected difficulty has no unseen questions,
+  // use other difficulties at the same subject and level.
+  const sameLevel = EDU_LUDO_QUESTION_BANK.filter(
+    (item) =>
+      matchesSubject(item) &&
+      (level === "Custom" || item.level === level) &&
+      !seen.includes(item.id),
+  );
+
+  // If that pool is exhausted, allow previously seen questions.
+  const reusable = EDU_LUDO_QUESTION_BANK.filter(
+    (item) =>
+      matchesSubject(item) &&
+      (level === "Custom" || item.level === level),
+  );
+
+  const pool =
+    unseen.length > 0
+      ? unseen
+      : sameLevel.length > 0
+        ? sameLevel
+        : reusable;
 
   if (pool.length === 0) {
-    pool = QUESTION_BANK.filter(
-      (item) => subject === "All Subjects" || item.subject === subject,
+    throw new Error(
+      `No Educational Ludo questions are available for ${subject} at ${level}.`,
     );
   }
-
-  if (pool.length === 0) pool = QUESTION_BANK;
 
   return pool[Math.floor(Math.random() * pool.length)];
 }
-
 function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }

@@ -3,11 +3,18 @@
 
 
 
+
+
+
+
+
+
 "use client";
 
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,6 +29,7 @@ import {
   Copy,
   Gift,
   Loader2,
+  X,
   Share2,
   TrendingUp,
   Users,
@@ -31,6 +39,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useAuthStore } from "@/stores";
+import { useWithdrawFunds } from "@/hooks/wallet/useWithdrawFunds";
+import { getWalletByUserId, type Wallet } from "@/lib/api/wallet";
 
 import {
   getReferralNetwork,
@@ -50,6 +60,7 @@ interface ReferralUserData {
   referralCode?: string;
   userWallet?: {
     balance?: number;
+    _id?: string;
   };
 }
 
@@ -64,7 +75,15 @@ export default function ReferralsPage() {
 
   const userId = referralUser?._id ?? "";
   const referralCode = referralUser?.referralCode ?? "";
-  const walletBalance = referralUser?.userWallet?.balance ?? 0;
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [withdrawNotice, setWithdrawNotice] = useState<string | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const withdrawMutation = useWithdrawFunds();
+  const walletBalance = wallet ? wallet.balanceInKobo / 100 : (referralUser?.userWallet?.balance ?? 0);
 
   /* ============================================================
      STATE
@@ -86,6 +105,79 @@ export default function ReferralsPage() {
   const [showNetwork, setShowNetwork] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  /* ============================================================
+     LOAD WALLET FOR WITHDRAWAL
+     ============================================================ */
+
+  const openWithdrawal = async () => {
+    setWithdrawOpen(true);
+    setWithdrawError(null);
+    setWithdrawNotice(null);
+    setWithdrawAmount("");
+    idempotencyKeyRef.current = null;
+
+    if (!userId) {
+      setWithdrawError("Your account information is unavailable. Please sign in again.");
+      return;
+    }
+
+    try {
+      setWalletLoading(true);
+      const response = await getWalletByUserId(userId);
+      if (!response.success || !response.data?._id) {
+        throw new Error(response.message || "Your wallet could not be loaded.");
+      }
+      setWallet(response.data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to load your wallet.";
+      setWithdrawError(message);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const submitWithdrawal = async () => {
+    setWithdrawError(null);
+    setWithdrawNotice(null);
+
+    const amount = Number(withdrawAmount);
+    if (!wallet?._id) {
+      setWithdrawError("Wallet information is unavailable. Please close this window and try again.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 10) {
+      setWithdrawError("Minimum withdrawal is ₦10.00.");
+      return;
+    }
+    if (Math.round(amount * 100) > wallet.balanceInKobo) {
+      setWithdrawError("Your withdrawal amount exceeds your available wallet balance.");
+      return;
+    }
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
+    try {
+      const response = await withdrawMutation.mutateAsync({
+        walletId: wallet._id,
+        amountInKobo: Math.round(amount * 100),
+        idempotencyKey: idempotencyKeyRef.current,
+      });
+      if (response.success === false) {
+        throw new Error(response.message || "Withdrawal request failed.");
+      }
+      setWithdrawNotice(response.message || "Your withdrawal request was submitted successfully.");
+      setWallet((current) => current ? {
+        ...current,
+        balanceInKobo: Math.max(0, current.balanceInKobo - Math.round(amount * 100)),
+      } : current);
+      idempotencyKeyRef.current = null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to submit your withdrawal request.";
+      setWithdrawError(message);
+    }
+  };
 
   /* ============================================================
      REFERRAL LINK
@@ -361,6 +453,7 @@ export default function ReferralsPage() {
 
               <button
                 type="button"
+                onClick={() => void openWithdrawal()}
                 className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/80 transition hover:text-white"
               >
                 Withdraw earnings
@@ -747,6 +840,103 @@ export default function ReferralsPage() {
             )}
           </AnimatePresence>
         </motion.section>
+
+        {/* WITHDRAWAL MODAL */}
+        <AnimatePresence>
+          {withdrawOpen && (
+            <motion.div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget && !withdrawMutation.isPending) setWithdrawOpen(false);
+              }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="withdrawal-title"
+                initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                className="w-full max-w-md overflow-hidden rounded-3xl bg-white text-slate-900 shadow-2xl"
+              >
+                <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                  <div>
+                    <h2 id="withdrawal-title" className="text-lg font-bold">Withdraw earnings</h2>
+                    <p className="mt-1 text-sm text-slate-500">Request a payout to your saved withdrawal account.</p>
+                  </div>
+                  <button type="button" aria-label="Close withdrawal window" onClick={() => setWithdrawOpen(false)} disabled={withdrawMutation.isPending} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50">
+                    <X size={19} />
+                  </button>
+                </div>
+
+                <div className="space-y-5 px-5 py-5 sm:px-6">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Available wallet balance</p>
+                    <p className="mt-1 text-2xl font-extrabold">{walletLoading ? "Loading…" : `₦${walletBalance.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</p>
+                    <p className="mt-1 text-xs text-slate-400">Minimum withdrawal: ₦10.00</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="referral-withdrawal-amount" className="mb-2 block text-sm font-semibold text-slate-700">Withdrawal amount (₦)</label>
+                    <input
+                      id="referral-withdrawal-amount"
+                      type="number"
+                      min="10"
+                      step="0.01"
+                      max={walletBalance}
+                      value={withdrawAmount}
+                      onChange={(event) => {
+                        setWithdrawAmount(event.target.value);
+                        setWithdrawError(null);
+                        setWithdrawNotice(null);
+                        idempotencyKeyRef.current = null;
+                      }}
+                      disabled={walletLoading || withdrawMutation.isPending}
+                      placeholder="Enter amount"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 disabled:bg-slate-50"
+                    />
+                  </div>
+
+                  {Number(withdrawAmount) >= 10 && Number.isFinite(Number(withdrawAmount)) && (
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                      <p className="text-xs text-blue-600">Withdrawal request amount</p>
+                      <p className="mt-1 text-lg font-bold text-blue-900">₦{Number(withdrawAmount).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="mt-2 text-xs leading-5 text-blue-700">Please confirm the amount before submitting your withdrawal request.</p>
+                    </div>
+                  )}
+
+                  {withdrawError && (
+                    <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      <AlertCircle size={17} className="mt-0.5 shrink-0" />
+                      <span className="break-words">{withdrawError}</span>
+                    </div>
+                  )}
+
+                  {withdrawNotice && (
+                    <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{withdrawNotice}</div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
+                  <button type="button" onClick={() => setWithdrawOpen(false)} disabled={withdrawMutation.isPending} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{withdrawNotice ? "Close" : "Cancel"}</button>
+                  {!withdrawNotice && (
+                    <button
+                      type="button"
+                      onClick={() => void submitWithdrawal()}
+                      disabled={walletLoading || withdrawMutation.isPending || !wallet?._id || !withdrawAmount.trim() || !Number.isFinite(Number(withdrawAmount)) || Number(withdrawAmount) < 10 || Number(withdrawAmount) * 100 > (wallet?.balanceInKobo ?? 0)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {withdrawMutation.isPending ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : "Confirm withdrawal"}
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* WALLET NOTE */}
 

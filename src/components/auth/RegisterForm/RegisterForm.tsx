@@ -653,7 +653,7 @@ export default function RegisterForm() {
   password: data.password,
   confirmPassword: data.confirmPassword,
 
-  ...(referralCode ? { referralCode } : {}),
+  ...(referralCode ? { referredBy: referralCode } : {}),
 };
 
       await registerMutation.mutateAsync(normalizedData);

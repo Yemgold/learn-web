@@ -4,8 +4,9 @@
 
 "use client";
 
+
 import { useRouter } from "next/navigation";
-import { useState, type FocusEvent } from "react";
+import { useEffect, useState, type FocusEvent } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -476,6 +477,17 @@ export default function RegisterForm() {
   const router = useRouter();
   const registerMutation = useRegister();
 
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("ref")?.trim();
+
+    if (code) {
+      setReferralCode(code);
+    }
+  }, []);
+
   const [showForm, setShowForm] = useState(false);
   const [step, setStep] = useState<RegistrationStep>(1);
   const [direction, setDirection] = useState(1);
@@ -628,20 +640,21 @@ export default function RegisterForm() {
     setSubmitError(null);
 
     try {
-      const normalizedData = {
-        ...data,
+     const normalizedData = {
+  ...data,
 
-        firstName: data.firstName.trim(),
-        lastName: data.lastName.trim(),
-        email: data.email.trim().toLowerCase(),
-        phoneNumber: sanitizePhoneNumber(
-          data.phoneNumber.trim(),
-        ),
+  firstName: data.firstName.trim(),
+  lastName: data.lastName.trim(),
+  email: data.email.trim().toLowerCase(),
+  phoneNumber: sanitizePhoneNumber(
+    data.phoneNumber.trim(),
+  ),
 
-        // Do not trim or otherwise modify passwords.
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-      };
+  password: data.password,
+  confirmPassword: data.confirmPassword,
+
+  ...(referralCode ? { referralCode } : {}),
+};
 
       await registerMutation.mutateAsync(normalizedData);
 

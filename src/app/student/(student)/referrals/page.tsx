@@ -194,34 +194,35 @@ export default function ReferralsPage() {
      SHARE REFERRAL LINK
   ============================================================ */
 
-  const shareReferral = async () => {
-    if (!referralLink) return;
+  const shareReferral = () => {
+  const referralCode = user?.referralCode;
 
-    const shareData = {
-      title: "Join Learnyfi Exams",
-      text:
-        "Join me on Learnyfi Exams and prepare smarter for your exams.",
-      url: referralLink,
-    };
+  if (!referralCode) {
+    setError("Your referral code is not available. Please try again.");
+    return;
+  }
 
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share(shareData);
-        return;
-      }
+  const referralLink = new URL(
+    "/register",
+    window.location.origin
+  );
 
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
+  referralLink.searchParams.set("ref", referralCode);
 
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      if ((err as Error)?.name !== "AbortError") {
-        console.error("Share failed:", err);
-        setError("Unable to share the referral link. Please try again.");
-      }
-    }
-  };
+  const message = [
+    "🎓 Join me on Learnyfi!",
+    "",
+    "Learn, practise questions, and prepare for your exams.",
+    "",
+    "Register using my referral link:",
+    referralLink.toString(),
+  ].join("\n");
 
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+};
+  
   /* ============================================================
      LOADING STATE
   ============================================================ */

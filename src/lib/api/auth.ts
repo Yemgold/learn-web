@@ -27,7 +27,7 @@ export interface RegisterRequest {
   email: string;
   phone?: string;
   password: string;
-   referredBy?: string;
+  referredBy?: string;
 }
 
 export const registerUser = async (

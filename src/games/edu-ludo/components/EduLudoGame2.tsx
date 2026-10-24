@@ -124,16 +124,16 @@ const DIFFICULTY_POINTS: Record<EduLudoDifficulty, number> = {
 };
 
 const QUESTION_BANK: LocalQuestion[] = [
-  {
-    id: "math-001",
-    subject: "Mathematics",
-    level: "JAMB",
-    difficulty: "easy",
-    content: "What is 15% of 200?",
-    options: ["15", "20", "30", "35"],
-    correctAnswer: 2,
-    explanation: "15% of 200 = 0.15 × 200 = 30.",
-  },
+  // {
+  //   id: "math-001",
+  //   subject: "Mathematics",
+  //   level: "JAMB",
+  //   difficulty: "easy",
+  //   content: "What is 15% of 200?",
+  //   options: ["15", "20", "30", "35"],
+  //   correctAnswer: 2,
+  //   explanation: "15% of 200 = 0.15 × 200 = 30.",
+  // },
   {
     id: "math-002",
     subject: "Mathematics",

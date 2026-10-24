@@ -72,8 +72,9 @@ export type WalletTransactionsResponse = TransactionsResponse;
 ============================================================ */
 
 export interface WithdrawalRequest {
-  amount: number;
   walletId: string;
+  amountInKobo: number;
+  idempotencyKey: string;
 }
 
 export interface WithdrawalResponse {
@@ -319,6 +320,7 @@ export async function getTransactionById(
   return response.data;
 }
 
+
 /* ============================================================
    REQUEST WITHDRAWAL
 ============================================================ */
@@ -326,11 +328,38 @@ export async function getTransactionById(
 export async function requestWithdrawal(
   payload: WithdrawalRequest,
 ): Promise<WithdrawalResponse> {
+  const { walletId, amountInKobo, idempotencyKey } = payload;
+
+  if (!walletId?.trim()) {
+    throw new Error("Wallet ID is required.");
+  }
+
+  if (
+    !Number.isSafeInteger(amountInKobo) ||
+    amountInKobo < 1000
+  ) {
+    throw new Error(
+      "Withdrawal amount must be at least ₦10 (1000 kobo).",
+    );
+  }
+
+  if (
+    typeof idempotencyKey !== "string" ||
+    !idempotencyKey.trim()
+  ) {
+    throw new Error("A valid idempotency key is required.");
+  }
+
   const response =
     await axiosInstance.post<WithdrawalResponse>(
       "/withdrawals/request-withdrawal",
-      payload,
+      {
+        walletId,
+        amountInKobo,
+        idempotencyKey,
+      },
     );
 
   return response.data;
 }
+

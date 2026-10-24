@@ -84384,3 +84384,8 @@ export const jambBiologyEasyQuestions: QuestionBankItem[] = [
 export default jambBiologyEasyQuestions;
 
 
+
+
+
+
+

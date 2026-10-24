@@ -28,6 +28,16 @@ import jambMathematicsEasyQuestions from "./mathematics/easy/jamb";
 import jambMathematicsMediumQuestions from "./mathematics/medium/jamb";
 import jambMathematicsHardQuestions from "./mathematics/hard/jamb";
 
+
+import jambAccountingEasyQuestions from "./mathematics/easy/jamb";
+import jambAccountingMediumQuestions from "./mathematics/medium/jamb";
+import jambAccountingHardQuestions from "./mathematics/hard/jamb";
+
+
+import jambEconomicsEasyQuestions from "./mathematics/easy/jamb";
+import jambEconomicsMediumQuestions from "./mathematics/medium/jamb";
+import jambEconomicsHardQuestions from "./mathematics/hard/jamb";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -84,6 +94,22 @@ const difficultyQuestionBank: DifficultyBankMap = {
       easy: jambMathematicsEasyQuestions,
       medium: jambMathematicsMediumQuestions,
       hard: jambMathematicsHardQuestions,
+    },
+  },
+
+    economics: {
+    jamb: {
+      easy: jambEconomicsEasyQuestions,
+      medium: jambEconomicsMediumQuestions,
+      hard: jambEconomicsHardQuestions,
+    },
+  },
+
+    accounting: {
+    jamb: {
+      easy: jambAccountingEasyQuestions,
+      medium: jambAccountingMediumQuestions,
+      hard: jambAccountingHardQuestions,
     },
   },
 };

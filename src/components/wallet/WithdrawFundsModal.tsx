@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect,useRef, useMemo, useState } from "react";
 import {
   Loader2,
   Wallet,
@@ -246,7 +246,7 @@ export default function WithdrawFundsModal({
   const [resolvingAccount, setResolvingAccount] = useState(false);
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountLookupFailed, setAccountLookupFailed] = useState(false);
-
+  
   const withdrawMutation = useWithdrawFunds();
 
   const numericAmount = Number(amount);
@@ -591,24 +591,38 @@ export default function WithdrawFundsModal({
     return true;
   };
 
-  /* ============================================================
-     SUBMIT WITHDRAWAL
-  ============================================================ */
+ const idempotencyKeyRef = useRef<string | null>(null);
+/* ============================================================
+   SUBMIT WITHDRAWAL
+============================================================ */
 
-  const handleSubmit = async () => {
-    if (!validateAmount()) return;
+const handleSubmit = async () => {
+  if (!validateAmount()) return;
 
-    try {
-      await withdrawMutation.mutateAsync({
-        amount: numericAmount,
-        walletId: walletId!,
-      });
+  if (!Number.isSafeInteger(Math.round(numericAmount * 100))) {
+    setError("Please enter a valid withdrawal amount.");
+    return;
+  }
 
-      onOpenChange(false);
-    } catch (requestError) {
-      setError(getErrorMessage(requestError));
-    }
-  };
+  // Reuse the key when retrying the same withdrawal request.
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = crypto.randomUUID();
+  }
+
+  try {
+    await withdrawMutation.mutateAsync({
+  walletId: walletId!,
+  amountInKobo: Math.round(numericAmount * 100),
+  idempotencyKey: idempotencyKeyRef.current!,
+});
+
+    idempotencyKeyRef.current = null;
+    onOpenChange(false);
+  } catch (requestError) {
+    setError(getErrorMessage(requestError));
+  }
+};
+
 
   const busy =
     loadingAccount ||
@@ -1036,8 +1050,10 @@ export default function WithdrawFundsModal({
                         max={balance}
                         step="1"
                         value={amount}
+                        
                         onChange={(event) => {
                           setAmount(event.target.value);
+                          idempotencyKeyRef.current = null;
                           setError("");
                         }}
                         disabled={withdrawMutation.isPending}

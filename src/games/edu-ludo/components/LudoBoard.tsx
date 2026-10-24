@@ -230,12 +230,14 @@ export default function LudoBoard({
       (coordinate) => coordinate.row === row && coordinate.col === col,
     );
 
-  return (
-    <section
-      className={`w-full ${className}`}
-      aria-label="Educational Ludo board"
-    >
-      <div className="mx-auto w-full max-w-[620px]">
+  
+return (
+  <section
+    className={`w-full min-w-0 ${className}`}
+    aria-label="Educational Ludo board"
+  >
+    <div className="mx-auto w-full min-w-0 max-w-[620px]">
+
         {/* Board heading */}
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -266,8 +268,11 @@ export default function LudoBoard({
         </div>
 
         {/* Raised board frame */}
-        <div className="relative rounded-[22px] bg-gradient-to-br from-slate-500 via-slate-700 to-slate-950 p-[5px] shadow-[0_5px_0_#334155,0_10px_0_#1e293b,0_18px_28px_rgba(15,23,42,0.28)] sm:rounded-[28px] sm:p-2">
-          <div className="rounded-[18px] bg-gradient-to-br from-white via-slate-100 to-slate-300 p-1.5 shadow-[inset_0_2px_4px_rgba(255,255,255,0.95),inset_0_-3px_6px_rgba(15,23,42,0.18)] sm:rounded-[22px] sm:p-2">
+        
+<div className="relative w-full min-w-0 rounded-[18px] bg-gradient-to-br from-slate-500 via-slate-700 to-slate-950 p-[3px] shadow-[0_3px_0_#334155,0_6px_0_#1e293b,0_12px_20px_rgba(15,23,42,0.24)] sm:rounded-[28px] sm:p-2 sm:shadow-[0_5px_0_#334155,0_10px_0_#1e293b,0_18px_28px_rgba(15,23,42,0.28)]">
+
+
+<div className="w-full min-w-0 rounded-[14px] bg-gradient-to-br from-white via-slate-100 to-slate-300 p-1 shadow-[inset_0_2px_4px_rgba(255,255,255,0.95),inset_0_-3px_6px_rgba(15,23,42,0.18)] sm:rounded-[22px] sm:p-2">
             <div
               className="grid aspect-square w-full overflow-hidden rounded-xl border-2 border-slate-400 bg-slate-300 shadow-[inset_0_3px_7px_rgba(15,23,42,0.24)] sm:rounded-2xl"
               style={{

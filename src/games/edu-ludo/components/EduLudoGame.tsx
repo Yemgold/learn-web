@@ -978,32 +978,15 @@ export default function EduLudoGame({
     [players, resolveCompletedMove],
   );
 
-  useEffect(() => {
-    if (phase === "lobby" || !currentPlayer) {
-      previousTurnPlayerIdRef.current = null;
-      return;
-    }
+ 
+useEffect(() => {
+  if (phase === "lobby" || !currentPlayer) {
+    previousTurnPlayerIdRef.current = null;
+    return;
+  }
 
-    const previousPlayerId = previousTurnPlayerIdRef.current;
-    const currentPlayerId = currentPlayer.id;
-
-    previousTurnPlayerIdRef.current = currentPlayerId;
-
-    if (!previousPlayerId || previousPlayerId === currentPlayerId) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      if (!mountedRef.current) return;
-
-      currentTurnRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }, 150);
-
-    return () => window.clearTimeout(timeout);
-  }, [currentPlayer?.id, phase, currentPlayer]);
+  previousTurnPlayerIdRef.current = currentPlayer.id;
+}, [currentPlayer?.id, phase]);
 
   const continueAfterFeedback = useCallback(() => {
     if (!answerResult || !currentPlayer || phase !== "feedback") return;
@@ -1388,28 +1371,36 @@ export default function EduLudoGame({
                 )}
             </section>
 
-            {/* Board */}
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-2 shadow-sm sm:p-4">
-              <LudoBoard
-                players={sharedPlayers}
-                currentPlayerId={currentPlayer?.id ?? null}
-                legalMoves={legalMoves}
-                selectedTokenId={selectedTokenId}
-                diceValue={diceValue}
-                disabled={
-                  isRolling ||
-                  isAnimatingMove ||
-                  currentPlayer?.isBot === true ||
-                  phase !== "playing" ||
-                  legalMoves.length === 0
-                }
-                onTokenClick={selectToken}
-                onDiceClick={rollDice}
-                showDice
-                movementCount={movementCount}
-                isMoving={isAnimatingMove}
-              />
-            </section>
+          
+           
+{/* Board — keep the entire board visible during every player's turn */}
+<section
+  aria-label="Educational Ludo board"
+  className="w-full min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-1.5 shadow-sm sm:p-3"
+>
+  <div className="mx-auto w-full min-w-0 max-w-[640px]">
+    <LudoBoard
+      players={sharedPlayers}
+      currentPlayerId={currentPlayer?.id ?? null}
+      legalMoves={legalMoves}
+      selectedTokenId={selectedTokenId}
+      diceValue={diceValue}
+      disabled={
+        isRolling ||
+        isAnimatingMove ||
+        currentPlayer?.isBot === true ||
+        phase !== "playing" ||
+        legalMoves.length === 0
+      }
+      onTokenClick={selectToken}
+      onDiceClick={rollDice}
+      showDice
+      movementCount={movementCount}
+      isMoving={isAnimatingMove}
+    />
+  </div>
+</section>
+
 
             {/* Secondary controls */}
             <details className="rounded-2xl border border-slate-800 bg-slate-900 shadow-sm">

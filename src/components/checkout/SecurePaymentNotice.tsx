@@ -15,7 +15,7 @@ export default function SecurePaymentNotice() {
           </p>
 
           <p className="text-sm text-emerald-700">
-            Your payment is processed securely through Paystack.
+            Your payment is processed securely through Monnify.
           </p>
         </div>
       </div>

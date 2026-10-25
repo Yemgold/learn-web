@@ -896,6 +896,7 @@ export default function OfflinePracticePage() {
                 </p>
               </div>
 
+// To Download New Questions
               <button
   type="button"
   onClick={() => setShowNewQuestionsConfirm(true)}
@@ -1002,7 +1003,7 @@ export default function OfflinePracticePage() {
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     <Download className="h-4 w-4" />
-                    Download questions
+                    Download mixed questions
                   </button>
                 )}
               </Card>

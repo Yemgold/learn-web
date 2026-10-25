@@ -587,13 +587,21 @@ export default function StudentDashboardPage() {
       icon: "book",
     },
 
-    {
-  title: "Solve & Win Cash",
-  // description: "Earn While You Learn",
-  href: "#",
-  icon: "trophy",
-  comingSoon: true,
-},
+     {
+      title: "OffLine Timed Practice",
+      description:
+        "Manage your DATA",
+      href: "/student/practice/offline/timed",
+      icon: "book",
+    },
+
+//     {
+//   title: "Solve & Win Cash",
+//   // description: "Earn While You Learn",
+//   href: "#",
+//   icon: "trophy",
+//   comingSoon: true,
+// },
 
     {
       title: "Quiz Board",

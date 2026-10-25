@@ -587,14 +587,6 @@ export default function StudentDashboardPage() {
       icon: "book",
     },
 
-    //  {
-    //   title: "OffLine Timed Practice",
-    //   description:
-    //     "Manage your DATA",
-    //   href: "/student/practice/offline/timed",
-    //   icon: "book",
-    // },
-
     {
   title: "Solve & Win Cash",
   // description: "Earn While You Learn",

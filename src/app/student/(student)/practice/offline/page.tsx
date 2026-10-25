@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import CertificateOfExcellence from "@/components/practice/CertificateOfExcellence";
 import {
   ArrowLeft,
   ArrowRight,
@@ -1726,6 +1727,19 @@ export default function OfflinePracticePage() {
                     </div>
                   </div>
                 </Card>
+
+
+                {timedPercentage >= 80 && (
+  <div className="mb-8">
+    <CertificateOfExcellence
+      subject={selectedPractice.subject}
+      exam={selectedPractice.exam}
+      score={timedScore}
+      totalQuestions={totalQuestions}
+      percentage={timedPercentage}
+    />
+  </div>
+)}
 
                 <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>

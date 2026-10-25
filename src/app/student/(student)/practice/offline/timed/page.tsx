@@ -73,25 +73,99 @@ type ExamResult = {
   completedAt: number;
 };
 
+
 const DB_NAME = "learnyfi-offline-practice";
 const STORE_NAME = "practice-sets";
-const DB_VERSION = 1;
 
 const SECONDS_PER_QUESTION = 60;
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    if (typeof window === "undefined" || !("indexedDB" in window)) {
+    if (typeof window === "undefined" || !window.indexedDB) {
       reject(new Error("Your browser does not support offline storage."));
       return;
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Open the existing database without forcing an older version.
+    const request = window.indexedDB.open(DB_NAME);
 
-    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => {
+      reject(
+        request.error ??
+          new Error("Could not open offline storage."),
+      );
+    };
 
-    request.onerror = () =>
-      reject(request.error ?? new Error("Could not open offline storage."));
+    request.onblocked = () => {
+      reject(
+        new Error(
+          "Offline storage is blocked by another open tab. Close other Learnyfi tabs and try again.",
+        ),
+      );
+    };
+
+    request.onsuccess = () => {
+      const db = request.result;
+
+      // The expected store already exists.
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.onversionchange = () => db.close();
+        resolve(db);
+        return;
+      }
+
+      // The database exists, but the expected store is missing.
+      // Upgrade the database before attempting a transaction.
+      const nextVersion = db.version + 1;
+      db.close();
+
+      const upgradeRequest = window.indexedDB.open(
+        DB_NAME,
+        nextVersion,
+      );
+
+      upgradeRequest.onupgradeneeded = () => {
+        const upgradedDb = upgradeRequest.result;
+
+        if (!upgradedDb.objectStoreNames.contains(STORE_NAME)) {
+          upgradedDb.createObjectStore(STORE_NAME, {
+            keyPath: "id",
+          });
+        }
+      };
+
+      upgradeRequest.onerror = () => {
+        reject(
+          upgradeRequest.error ??
+            new Error("Could not repair offline storage."),
+        );
+      };
+
+      upgradeRequest.onblocked = () => {
+        reject(
+          new Error(
+            "Database upgrade is blocked. Close other Learnyfi tabs and reload this page.",
+          ),
+        );
+      };
+
+      upgradeRequest.onsuccess = () => {
+        const upgradedDb = upgradeRequest.result;
+
+        if (!upgradedDb.objectStoreNames.contains(STORE_NAME)) {
+          upgradedDb.close();
+          reject(
+            new Error(
+              'The "practice-sets" store could not be initialized. Check the database configuration in the original Offline Practice page.',
+            ),
+          );
+          return;
+        }
+
+        upgradedDb.onversionchange = () => upgradedDb.close();
+        resolve(upgradedDb);
+      };
+    };
   });
 }
 
@@ -100,16 +174,39 @@ async function getStoredSets(): Promise<StoredPracticeSet[]> {
 
   try {
     return await new Promise((resolve, reject) => {
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        reject(
+          new Error(
+            'The offline "practice-sets" store is unavailable.',
+          ),
+        );
+        return;
+      }
+
       const transaction = db.transaction(STORE_NAME, "readonly");
       const request = transaction.objectStore(STORE_NAME).getAll();
 
+      let sets: StoredPracticeSet[] = [];
+
       request.onsuccess = () => {
-        resolve((request.result ?? []) as StoredPracticeSet[]);
+        sets = (request.result ?? []) as StoredPracticeSet[];
       };
 
-      request.onerror = () => {
+      transaction.oncomplete = () => {
+        resolve(sets);
+      };
+
+      transaction.onerror = () => {
         reject(
-          request.error ?? new Error("Could not load downloaded questions."),
+          transaction.error ??
+            new Error("Could not load downloaded questions."),
+        );
+      };
+
+      transaction.onabort = () => {
+        reject(
+          transaction.error ??
+            new Error("Loading downloaded questions was interrupted."),
         );
       };
     });
@@ -117,6 +214,7 @@ async function getStoredSets(): Promise<StoredPracticeSet[]> {
     db.close();
   }
 }
+
 
 function getQuestionText(question: QuestionBankItem): string {
   if (question.question?.trim()) {

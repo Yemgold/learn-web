@@ -896,7 +896,7 @@ export default function OfflinePracticePage() {
                 </p>
               </div>
 
-// To Download New Questions
+// To Download New Questions //
               <button
   type="button"
   onClick={() => setShowNewQuestionsConfirm(true)}

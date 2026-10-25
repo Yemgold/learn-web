@@ -902,7 +902,7 @@ export default function OfflinePracticePage() {
   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
 >
   <Download className="h-4 w-4" />
-  Download questions
+  Download new questions
 </button>
             </div>
 

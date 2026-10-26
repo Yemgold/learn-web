@@ -396,18 +396,8 @@ export default function SolveAndWinCbtPlayPage() {
     setGameState("CASHED_OUT");
   };
 
- const handleTryAgain = () => {
-  setSelectedAnswer(null);
-  setLastCorrectAnswer(null);
-  setLastReward(0);
-  setRemainingMs(ROUND_DURATION_MS);
-  setIsSubmitting(false);
-
-  // Restart the game
-  setCurrentQuestionIndex(0);
-  setTotalWinnings(0);
-
-  setGameState("QUESTION");
+const handleTryAgain = () => {
+  router.push("/student/solve-and-win-cash");
 };
 
   const handleRestart = () => {

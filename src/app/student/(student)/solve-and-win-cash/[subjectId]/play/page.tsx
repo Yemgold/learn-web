@@ -60,6 +60,8 @@ type SubjectConfig = {
 const ROUND_DURATION_MS = 30_000;
 const TIMER_UPDATE_MS = 50;
 
+const MINIMUM_CASHOUT = 70_000;
+
 
 
 
@@ -379,9 +381,15 @@ export default function SolveAndWinCbtPlayPage() {
     setGameState("QUESTION");
   };
 
-  const handleCashOut = () => {
-    setGameState("CASHED_OUT");
-  };
+ const MINIMUM_CASHOUT = 70_000;
+
+const handleCashOut = () => {
+  if (totalWinnings < MINIMUM_CASHOUT) {
+    return;
+  }
+
+  setGameState("CASHED_OUT");
+};
 
   const handleTryAgain = () => {
     setSelectedAnswer(null);
@@ -1395,9 +1403,23 @@ function CbtLadder({
             ₦{formatCash(totalWinnings)}
           </p>
 
-          <p className="mt-1 text-[10px] text-slate-600">
-            Not a withdrawable balance
-          </p>
+          <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+  <p className="text-xs text-slate-400">
+    Minimum cash-out
+  </p>
+
+  <p className="mt-1 font-black text-amber-300">
+    ₦{formatCash(MINIMUM_CASHOUT)}
+  </p>
+
+  <p className="mt-1 text-xs text-slate-400">
+    {totalWinnings >= MINIMUM_CASHOUT
+      ? "You have reached the cash-out threshold."
+      : `Earn ₦${formatCash(
+          MINIMUM_CASHOUT - totalWinnings,
+        )} more to qualify.`}
+  </p>
+</div>
         </div>
       </div>
 

@@ -141,7 +141,7 @@ function getGameQuestions(subjectKey: string): Question[] {
     .map((item, index) => convertBankQuestion(item, index, subjectKey))
     .filter((question): question is Question => question !== null);
 
-  // Shuffle questions randomly.
+  // Shuffle  randomly.
 // 50 questions match the game's 50 reward levels.
 for (let i = allQuestions.length - 1; i > 0; i--) {
   const j = Math.floor(Math.random() * (i + 1));

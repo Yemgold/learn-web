@@ -397,7 +397,7 @@ export default function SolveAndWinCbtPlayPage() {
   };
 
 const handleTryAgain = () => {
-  router.push("/student/solve-and-win-cash");
+  router.refresh();
 };
 
   const handleRestart = () => {

@@ -848,81 +848,88 @@ function QuestionScreen({
         </div>
       </div>
 
-      {/* QUESTION + ANSWERS FILL REMAINING HEIGHT */}
+  
+{/* QUESTION + ANSWERS — SCROLLABLE FOR LONG CONTENT */}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-[#0c1220] p-3 shadow-xl shadow-black/10 sm:rounded-3xl sm:p-5 lg:p-6">
-        <div className="mb-2 flex shrink-0 items-center gap-2 sm:mb-3">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-500/15 text-[10px] font-black text-violet-300 sm:h-8 sm:w-8 sm:text-xs">
-            Q{questionNumber}
-          </span>
+<div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-800 bg-[#0c1220] p-3 shadow-xl shadow-black/10 sm:rounded-3xl sm:p-5 lg:p-6">
 
-          <span className="text-[9px] font-black uppercase tracking-[0.12em] text-violet-300 sm:text-[10px]">
-            Choose your answer
-          </span>
-        </div>
+  {/* SCROLLABLE QUESTION AND OPTIONS */}
 
-        <h2 className="mb-3 shrink-0 text-sm font-black leading-snug tracking-tight text-white sm:mb-4 sm:text-xl lg:text-2xl">
-          {question.question}
-        </h2>
+  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
 
-        {/* TWO COLUMNS ON MOBILE TO REDUCE PAGE HEIGHT */}
+    <div className="mb-2 flex items-center gap-2 sm:mb-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-[10px] font-black text-violet-300 sm:h-8 sm:w-8 sm:text-xs">
+        Q{questionNumber}
+      </span>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 content-start gap-2 sm:grid-cols-2 sm:gap-3">
+      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-violet-300 sm:text-[10px]">
+        Choose your answer
+      </span>
+    </div>
 
-          {question.options.map((option) => {
-            const selected = selectedAnswer === option.label;
+    <h2 className="mb-4 whitespace-pre-wrap break-words text-sm font-black leading-relaxed tracking-tight text-white sm:mb-5 sm:text-xl sm:leading-relaxed lg:text-2xl">
+      {question.question}
+    </h2>
 
-            return (
-              <button
-                key={option.label}
-                type="button"
-                disabled={answerDisabled}
-                onClick={() => onAnswer(option.label)}
-                aria-pressed={selected}
-                className={[
-                  "group flex min-h-[52px] min-w-0 items-center gap-2 rounded-xl border p-2 text-left transition duration-150 sm:min-h-[64px] sm:gap-3 sm:rounded-2xl sm:p-3",
-                  selected
-                    ? "border-violet-400 bg-violet-500/15 ring-1 ring-violet-400/20"
-                    : "border-slate-700/80 bg-slate-900/70 hover:border-violet-400/60 hover:bg-violet-500/[0.06]",
-                  answerDisabled
-                    ? "cursor-not-allowed opacity-75"
-                    : "active:scale-[0.99]",
-                ].join(" ")}
-              >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black transition sm:h-9 sm:w-9 sm:rounded-xl sm:text-xs ${
-                    selected
-                      ? "border-violet-400 bg-violet-500 text-white"
-                      : "border-slate-700 bg-slate-800 text-slate-300 group-hover:border-violet-400/50 group-hover:text-white"
-                  }`}
-                >
-                  {selected && isSubmitting ? (
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  ) : (
-                    option.label
-                  )}
-                </span>
+    {/* ALL FOUR OPTIONS REMAIN ACCESSIBLE */}
 
-                <span className="min-w-0 flex-1 break-words text-[10px] font-semibold leading-snug text-slate-100 sm:text-sm">
-                  {option.text}
-                </span>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
 
-                <ArrowRight
-                  className={`hidden h-4 w-4 shrink-0 sm:block ${
-                    selected
-                      ? "text-violet-300"
-                      : "text-slate-600 group-hover:text-violet-300"
-                  }`}
-                />
-              </button>
-            );
-          })}
-        </div>
+      {question.options.map((option) => {
+        const selected = selectedAnswer === option.label;
 
-        <p className="mt-2 shrink-0 text-center text-[8px] leading-tight text-slate-600 sm:mt-3 sm:text-[10px]">
-          Choose one answer. Selection locks immediately. Demo rewards only.
-        </p>
-      </div>
+        return (
+          <button
+            key={option.label}
+            type="button"
+            disabled={answerDisabled}
+            onClick={() => onAnswer(option.label)}
+            aria-pressed={selected}
+            className={[
+              "group flex min-h-[56px] min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition duration-150 sm:min-h-[68px] sm:rounded-2xl sm:p-4",
+              selected
+                ? "border-violet-400 bg-violet-500/15 ring-1 ring-violet-400/20"
+                : "border-slate-700/80 bg-slate-900/70 hover:border-violet-400/60 hover:bg-violet-500/[0.06]",
+              answerDisabled
+                ? "cursor-not-allowed opacity-75"
+                : "active:scale-[0.99]",
+            ].join(" ")}
+          >
+            <span
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black transition sm:h-9 sm:w-9 sm:rounded-xl sm:text-xs ${
+                selected
+                  ? "border-violet-400 bg-violet-500 text-white"
+                  : "border-slate-700 bg-slate-800 text-slate-300 group-hover:border-violet-400/50 group-hover:text-white"
+              }`}
+            >
+              {selected && isSubmitting ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ) : (
+                option.label
+              )}
+            </span>
+
+            <span className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs font-semibold leading-relaxed text-slate-100 sm:text-sm">
+              {option.text}
+            </span>
+          </button>
+        );
+      })}
+
+    </div>
+  </div>
+
+  {/* FIXED NOTE BELOW THE SCROLLABLE AREA */}
+
+  <p className="mt-2 shrink-0 border-t border-slate-800 pt-2 text-center text-[8px] leading-relaxed text-slate-500 sm:mt-3 sm:pt-3 sm:text-[10px]">
+    Choose one answer. Selection locks immediately. Demo rewards only.
+  </p>
+
+</div>
+
+
+
+
     </section>
   );
 }

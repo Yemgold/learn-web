@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +28,9 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
+
+import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types";
+import { getQuestionBanks } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions";
 
 /* =========================================================
    TYPES AND CONFIGURATION
@@ -56,335 +67,82 @@ const SUBJECTS: Record<string, SubjectConfig> = {
   chemistry: { name: "Chemistry", shortName: "CHEM", icon: "⚗️" },
   physics: { name: "Physics", shortName: "PHY", icon: "⚡" },
   mathematics: { name: "Mathematics", shortName: "MATH", icon: "📐" },
+  economics: { name: "Economics", shortName: "ECON", icon: "📊" },
+  accounting: { name: "Accounting", shortName: "ACC", icon: "🧾" },
 };
 
 /* =========================================================
    QUESTION BANK
 ========================================================= */
 
-const QUESTIONS_BY_SUBJECT: Record<string, Question[]> = {
-  biology: [
-    {
-      id: "bio-1",
-      question: "Which of the following is the basic unit of life?",
-      options: [
-        { label: "A", text: "Tissue" },
-        { label: "B", text: "Cell" },
-        { label: "C", text: "Organ" },
-        { label: "D", text: "Organ system" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "The cell is the basic structural and functional unit of life.",
-    },
-    {
-      id: "bio-2",
-      question:
-        "Which organelle is commonly described as the powerhouse of the cell?",
-      options: [
-        { label: "A", text: "Ribosome" },
-        { label: "B", text: "Nucleus" },
-        { label: "C", text: "Mitochondrion" },
-        { label: "D", text: "Golgi apparatus" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "Mitochondria produce most of the ATP used by cells for energy.",
-    },
-    {
-      id: "bio-3",
-      question:
-        "Which process allows green plants to manufacture food using light energy?",
-      options: [
-        { label: "A", text: "Respiration" },
-        { label: "B", text: "Photosynthesis" },
-        { label: "C", text: "Transpiration" },
-        { label: "D", text: "Excretion" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "Photosynthesis uses light energy to convert carbon dioxide and water into glucose.",
-    },
-    {
-      id: "bio-4",
-      question:
-        "Which blood cells are primarily responsible for fighting infection?",
-      options: [
-        { label: "A", text: "Red blood cells" },
-        { label: "B", text: "Platelets" },
-        { label: "C", text: "White blood cells" },
-        { label: "D", text: "Plasma cells" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "White blood cells help defend the body against pathogens and other foreign substances.",
-    },
-    {
-      id: "bio-5",
-      question:
-        "Which part of a plant absorbs most water and mineral salts from the soil?",
-      options: [
-        { label: "A", text: "Leaf" },
-        { label: "B", text: "Root hair" },
-        { label: "C", text: "Flower" },
-        { label: "D", text: "Fruit" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "Root hairs provide a large surface area for absorbing water and mineral salts.",
-    },
-    {
-      id: "bio-6",
-      question:
-        "Which molecule carries genetic information in most living organisms?",
-      options: [
-        { label: "A", text: "DNA" },
-        { label: "B", text: "Glucose" },
-        { label: "C", text: "ATP" },
-        { label: "D", text: "Water" },
-      ],
-      correctAnswer: "A",
-      explanation:
-        "DNA stores genetic information used in the development and functioning of organisms.",
-    },
-  ],
+function extractQuestionText(item: QuestionBankItem): string {
+  if (typeof item.question === "string" && item.question.trim()) {
+    return item.question.trim();
+  }
 
-  chemistry: [
-    {
-      id: "chem-1",
-      question: "What is the chemical symbol for sodium?",
-      options: [
-        { label: "A", text: "S" },
-        { label: "B", text: "So" },
-        { label: "C", text: "Na" },
-        { label: "D", text: "N" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "The chemical symbol for sodium is Na, derived from its Latin name natrium.",
-    },
-    {
-      id: "chem-2",
-      question: "Which particle has a negative electrical charge?",
-      options: [
-        { label: "A", text: "Proton" },
-        { label: "B", text: "Electron" },
-        { label: "C", text: "Neutron" },
-        { label: "D", text: "Nucleus" },
-      ],
-      correctAnswer: "B",
-      explanation: "Electrons carry a negative electrical charge.",
-    },
-    {
-      id: "chem-3",
-      question: "What is the pH of a neutral solution at room temperature?",
-      options: [
-        { label: "A", text: "0" },
-        { label: "B", text: "5" },
-        { label: "C", text: "7" },
-        { label: "D", text: "14" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "A neutral aqueous solution has a pH of approximately 7 at room temperature.",
-    },
-    {
-      id: "chem-4",
-      question: "Which gas is released when an acid reacts with a carbonate?",
-      options: [
-        { label: "A", text: "Oxygen" },
-        { label: "B", text: "Hydrogen" },
-        { label: "C", text: "Carbon dioxide" },
-        { label: "D", text: "Nitrogen" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "Acids react with carbonates to produce a salt, water and carbon dioxide.",
-    },
-    {
-      id: "chem-5",
-      question: "Which of these is a noble gas?",
-      options: [
-        { label: "A", text: "Chlorine" },
-        { label: "B", text: "Oxygen" },
-        { label: "C", text: "Argon" },
-        { label: "D", text: "Hydrogen" },
-      ],
-      correctAnswer: "C",
-      explanation: "Argon belongs to Group 18, the noble gases.",
-    },
-    {
-      id: "chem-6",
-      question: "What type of bond involves the sharing of electrons?",
-      options: [
-        { label: "A", text: "Ionic bond" },
-        { label: "B", text: "Covalent bond" },
-        { label: "C", text: "Metallic bond" },
-        { label: "D", text: "Hydrogen bond" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "A covalent bond is formed when atoms share electron pairs.",
-    },
-  ],
+  const content = item.content ?? [];
+  return content
+    .map((block) =>
+      (block.segments ?? [])
+        .map((segment) => segment.text ?? "")
+        .join(""),
+    )
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
 
-  physics: [
-    {
-      id: "phy-1",
-      question: "What is the SI unit of force?",
-      options: [
-        { label: "A", text: "Joule" },
-        { label: "B", text: "Watt" },
-        { label: "C", text: "Newton" },
-        { label: "D", text: "Pascal" },
-      ],
-      correctAnswer: "C",
-      explanation: "The SI unit of force is the newton (N).",
-    },
-    {
-      id: "phy-2",
-      question:
-        "Which of the following quantities has both magnitude and direction?",
-      options: [
-        { label: "A", text: "Mass" },
-        { label: "B", text: "Speed" },
-        { label: "C", text: "Distance" },
-        { label: "D", text: "Velocity" },
-      ],
-      correctAnswer: "D",
-      explanation:
-        "Velocity is a vector quantity because it has both magnitude and direction.",
-    },
-    {
-      id: "phy-3",
-      question:
-        "What is the approximate acceleration due to gravity near Earth's surface?",
-      options: [
-        { label: "A", text: "4.9 m/s²" },
-        { label: "B", text: "9.8 m/s²" },
-        { label: "C", text: "19.6 m/s²" },
-        { label: "D", text: "98 m/s²" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "The commonly used value of gravitational acceleration near Earth's surface is 9.8 m/s².",
-    },
-    {
-      id: "phy-4",
-      question: "Which instrument is used to measure electric current?",
-      options: [
-        { label: "A", text: "Voltmeter" },
-        { label: "B", text: "Ammeter" },
-        { label: "C", text: "Barometer" },
-        { label: "D", text: "Thermometer" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "An ammeter is used to measure electric current in a circuit.",
-    },
-    {
-      id: "phy-5",
-      question: "What form of energy is stored in a stretched spring?",
-      options: [
-        { label: "A", text: "Chemical energy" },
-        { label: "B", text: "Nuclear energy" },
-        { label: "C", text: "Elastic potential energy" },
-        { label: "D", text: "Sound energy" },
-      ],
-      correctAnswer: "C",
-      explanation:
-        "A stretched or compressed spring stores elastic potential energy.",
-    },
-    {
-      id: "phy-6",
-      question: "What is the formula for speed?",
-      options: [
-        { label: "A", text: "Distance × Time" },
-        { label: "B", text: "Distance ÷ Time" },
-        { label: "C", text: "Time ÷ Distance" },
-        { label: "D", text: "Mass ÷ Volume" },
-      ],
-      correctAnswer: "B",
-      explanation: "Speed is calculated as distance divided by time.",
-    },
-  ],
+function convertBankQuestion(
+  item: QuestionBankItem,
+  index: number,
+  subjectKey: string,
+): Question | null {
+  const questionText = extractQuestionText(item);
+  const sourceOptions = item.options ?? [];
 
-  mathematics: [
-    {
-      id: "math-1",
-      question: "What is 15% of 200?",
-      options: [
-        { label: "A", text: "20" },
-        { label: "B", text: "25" },
-        { label: "C", text: "30" },
-        { label: "D", text: "35" },
-      ],
-      correctAnswer: "C",
-      explanation: "15% of 200 = 15/100 × 200 = 30.",
-    },
-    {
-      id: "math-2",
-      question: "Solve: 3x = 18.",
-      options: [
-        { label: "A", text: "3" },
-        { label: "B", text: "6" },
-        { label: "C", text: "9" },
-        { label: "D", text: "12" },
-      ],
-      correctAnswer: "B",
-      explanation: "Divide both sides by 3: x = 18 ÷ 3 = 6.",
-    },
-    {
-      id: "math-3",
-      question: "What is the square root of 144?",
-      options: [
-        { label: "A", text: "10" },
-        { label: "B", text: "11" },
-        { label: "C", text: "12" },
-        { label: "D", text: "14" },
-      ],
-      correctAnswer: "C",
-      explanation: "12 × 12 = 144, so √144 = 12.",
-    },
-    {
-      id: "math-4",
-      question: "What is 2³?",
-      options: [
-        { label: "A", text: "6" },
-        { label: "B", text: "8" },
-        { label: "C", text: "9" },
-        { label: "D", text: "12" },
-      ],
-      correctAnswer: "B",
-      explanation: "2³ means 2 × 2 × 2 = 8.",
-    },
-    {
-      id: "math-5",
-      question: "If a = 5 and b = 3, what is a² + b²?",
-      options: [
-        { label: "A", text: "25" },
-        { label: "B", text: "30" },
-        { label: "C", text: "34" },
-        { label: "D", text: "40" },
-      ],
-      correctAnswer: "C",
-      explanation: "a² + b² = 5² + 3² = 25 + 9 = 34.",
-    },
-    {
-      id: "math-6",
-      question: "What is the next number in the sequence 2, 4, 6, 8, ...?",
-      options: [
-        { label: "A", text: "9" },
-        { label: "B", text: "10" },
-        { label: "C", text: "11" },
-        { label: "D", text: "12" },
-      ],
-      correctAnswer: "B",
-      explanation:
-        "The sequence increases by 2 each time, so the next number is 10.",
-    },
-  ],
-};
+  if (!questionText || sourceOptions.length < 4) return null;
+
+  const options: Option[] = sourceOptions.slice(0, 4).map((option, optionIndex) => ({
+    label: String(option.label || String.fromCharCode(65 + optionIndex)),
+    text: String(option.value ?? ""),
+  }));
+
+  const correctValues = (item.correctAnswers ?? []).map((value) => String(value));
+  const correctOption = sourceOptions.slice(0, 4).find((option) =>
+    correctValues.includes(String(option.value)) ||
+    correctValues.includes(String(option.label)),
+  );
+
+  if (!correctOption) return null;
+
+  const correctAnswer = String(
+    correctOption.label ||
+      String.fromCharCode(65 + sourceOptions.indexOf(correctOption)),
+  );
+
+  return {
+    id: `${subjectKey}-${String(item.topic ?? "question")}-${index}`,
+    question: questionText,
+    options,
+    correctAnswer,
+    explanation: String(item.explanation ?? ""),
+  };
+}
+
+function getGameQuestions(subjectKey: string): Question[] {
+  const banks = getQuestionBanks(subjectKey, "jamb");
+  const allQuestions = [...banks.easy, ...banks.medium, ...banks.hard]
+    .map((item, index) => convertBankQuestion(item, index, subjectKey))
+    .filter((question): question is Question => question !== null);
+
+  // Six questions match the game's six reward levels.
+  for (let i = allQuestions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+  }
+
+  return allQuestions.slice(0, 6);
+}
 
 /* =========================================================
    HELPERS
@@ -431,8 +189,7 @@ export default function SolveAndWinCbtPlayPage() {
 
   const subject = SUBJECTS[normalizedSubjectId] ?? SUBJECTS.biology;
 
-  const questions =
-    QUESTIONS_BY_SUBJECT[normalizedSubjectId] ?? QUESTIONS_BY_SUBJECT.biology;
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [gameState, setGameState] = useState<GameState>("QUESTION");
@@ -442,6 +199,21 @@ export default function SolveAndWinCbtPlayPage() {
   const [lastReward, setLastReward] = useState(0);
   const [lastCorrectAnswer, setLastCorrectAnswer] = useState<string | null>(null);
   const [remainingMs, setRemainingMs] = useState(ROUND_DURATION_MS);
+
+  useEffect(() => {
+    const questionSubject = SUBJECTS[normalizedSubjectId]
+      ? normalizedSubjectId
+      : "biology";
+    setQuestions(getGameQuestions(questionSubject));
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setLastCorrectAnswer(null);
+    setLastReward(0);
+    setTotalWinnings(0);
+    setRemainingMs(ROUND_DURATION_MS);
+    setIsSubmitting(false);
+    setGameState("QUESTION");
+  }, [normalizedSubjectId]);
 
   const roundStartedAtRef = useRef<number | null>(null);
   const answerLockedRef = useRef(false);

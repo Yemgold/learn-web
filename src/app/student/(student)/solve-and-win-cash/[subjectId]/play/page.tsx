@@ -396,14 +396,19 @@ export default function SolveAndWinCbtPlayPage() {
     setGameState("CASHED_OUT");
   };
 
-  const handleTryAgain = () => {
-    setSelectedAnswer(null);
-    setLastCorrectAnswer(null);
-    setLastReward(0);
-    setRemainingMs(ROUND_DURATION_MS);
-    setIsSubmitting(false);
-    setGameState("QUESTION");
-  };
+ const handleTryAgain = () => {
+  setSelectedAnswer(null);
+  setLastCorrectAnswer(null);
+  setLastReward(0);
+  setRemainingMs(ROUND_DURATION_MS);
+  setIsSubmitting(false);
+
+  // Restart the game
+  setCurrentQuestionIndex(0);
+  setTotalWinnings(0);
+
+  setGameState("QUESTION");
+};
 
   const handleRestart = () => {
     if (submissionTimeoutRef.current !== null) {
@@ -1230,6 +1235,8 @@ function TimeUpScreen({
     </div>
   );
 }
+
+
 /* =========================================================
    EXPLANATION
 ========================================================= */

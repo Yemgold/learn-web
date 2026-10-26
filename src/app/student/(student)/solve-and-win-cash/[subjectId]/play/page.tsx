@@ -57,10 +57,16 @@ type SubjectConfig = {
   icon: string;
 };
 
-const ROUND_DURATION_MS = 10_000;
+const ROUND_DURATION_MS = 30_000;
 const TIMER_UPDATE_MS = 50;
 
-const REWARDS = [500, 550, 600, 650, 700, 750];
+
+
+
+const REWARDS = Array.from(
+  { length: 50 },
+  (_, index) => 500 + index * 50,
+);
 
 const SUBJECTS: Record<string, SubjectConfig> = {
   biology: { name: "Biology", shortName: "BIO", icon: "🧬" },
@@ -135,13 +141,17 @@ function getGameQuestions(subjectKey: string): Question[] {
     .map((item, index) => convertBankQuestion(item, index, subjectKey))
     .filter((question): question is Question => question !== null);
 
-  // Six questions match the game's six reward levels.
-  for (let i = allQuestions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
-  }
+  // Shuffle questions randomly.
+// 50 questions match the game's 50 reward levels.
+for (let i = allQuestions.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [allQuestions[i], allQuestions[j]] = [
+    allQuestions[j],
+    allQuestions[i],
+  ];
+}
 
-  return allQuestions.slice(0, 6);
+return allQuestions.slice(0, REWARDS.length);
 }
 
 /* =========================================================
@@ -1393,13 +1403,14 @@ function CbtLadder({
 
       <div className="p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs font-black text-slate-300">
-            Question rewards
-          </p>
-          <span className="text-[10px] font-bold text-slate-600">
-            6 LEVELS
-          </span>
-        </div>
+  <p className="text-xs font-black text-slate-300">
+    Question rewards
+  </p>
+
+  <span className="text-[10px] font-bold text-slate-600">
+    {REWARDS.length} LEVELS
+  </span>
+</div>
 
         <div className="space-y-2">
           {REWARDS.map((reward, index) => {

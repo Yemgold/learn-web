@@ -1095,59 +1095,79 @@ function WrongScreen({
     question.options.find((option) => option.label === correctAnswer)?.text ??
     "-";
 
-  return (
-    <div className="rounded-3xl border border-red-400/20 bg-[#160d14] p-5 shadow-2xl sm:p-9">
-      <ResultHeading
-        icon={<XCircle className="h-9 w-9 text-red-300 sm:h-10 sm:w-10" />}
-        label="Incorrect answer"
-        title="Keep learning"
-        description="Review the correct answer and give it another try."
-      />
+return (
+  <div className="rounded-3xl border border-red-400/20 bg-[#160d14] p-5 shadow-2xl sm:p-9">
+    <ResultHeading
+      icon={<XCircle className="h-9 w-9 text-red-300 sm:h-10 sm:w-10" />}
+      label="Incorrect answer"
+      title="Keep learning"
+      description="Review the correct answer and give it another try."
+    />
 
-      <div className="mt-5 grid gap-3 sm:mt-7 sm:grid-cols-2">
-        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-red-300/70">
-            Your answer
-          </p>
-          <p className="mt-2 text-sm font-bold leading-6 text-red-200">
-            {selectedText}
-          </p>
-        </div>
+    {/* Question */}
+    <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:mt-7 sm:p-6">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Question
+      </p>
 
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">
-            Correct answer
-          </p>
-          <p className="mt-2 text-sm font-bold leading-6 text-emerald-200">
-            {correctText}
-          </p>
-        </div>
+      <p className="mt-3 whitespace-pre-wrap text-base font-semibold leading-7 text-white sm:text-lg sm:leading-8">
+        {question.question}
+      </p>
+    </div>
+
+    {/* Your answer and correct answer */}
+    <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2">
+      <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-red-300/70">
+          Your answer
+        </p>
+
+        <p className="mt-2 text-sm font-bold leading-6 text-red-200">
+          {selectedText}
+        </p>
       </div>
 
-      <ExplanationCard explanation={question.explanation} />
-      <DemoTotal totalWinnings={totalWinnings} />
+      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">
+          Correct answer
+        </p>
 
-      <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={onTryAgain}
-          className={primaryButton}
-        >
-          <RotateCcw className="h-4 w-4" />
-          Try This Question Again
-        </button>
-
-        <button
-          type="button"
-          onClick={onCashOut}
-          className={secondaryButton}
-        >
-          <Wallet className="h-4 w-4" />
-          Finish Session
-        </button>
+        <p className="mt-2 text-sm font-bold leading-6 text-emerald-200">
+          {correctText}
+        </p>
       </div>
     </div>
-  );
+
+    {/* Explanation */}
+    <ExplanationCard explanation={question.explanation} />
+
+    {/* Total winnings */}
+    <DemoTotal totalWinnings={totalWinnings} />
+
+    {/* Actions */}
+    <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2">
+      <button
+        type="button"
+        onClick={onTryAgain}
+        className={primaryButton}
+      >
+        <RotateCcw className="h-4 w-4" />
+        Try This Question Again
+      </button>
+
+      <button
+        type="button"
+        onClick={onCashOut}
+        className={secondaryButton}
+      >
+        <Wallet className="h-4 w-4" />
+        Finish Session
+      </button>
+    </div>
+  </div>
+);
+
+
 }
 
 /* =========================================================

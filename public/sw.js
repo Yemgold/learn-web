@@ -20,7 +20,7 @@ const OFFLINE_ROUTES = [
   "/student/games/word-challenge",
   "/student/arena",
   "/student/books",
-  "/student/practice/offline/timed",
+  "/student/practice/offline2",
 
 ];
 

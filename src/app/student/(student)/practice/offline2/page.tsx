@@ -76,10 +76,28 @@ type StoredPracticeSet = {
   updatedAt: number;
 };
 
+
+
 const DB_NAME = "learnyfi-offline-practice";
 const STORE_NAME = "practice-sets";
 const DB_VERSION = 2;
 const SECONDS_PER_QUESTION = 60;
+
+const ACTIVE_PRACTICE_KEY = "learnyfi-offline-active-practice";
+
+type ActivePracticeSession = {
+  setId: string;
+  mode: PracticeMode;
+  questionIndex: number;
+  selectedAnswer: string;
+  showAnswerFeedback: boolean;
+  showExplanation: boolean;
+  timedAnswers: Record<number, string>;
+  timedStarted: boolean;
+  timedFinished: boolean;
+  deadline: number | null;
+};
+
 
 const SUBJECTS: Subject[] = [
   "Mathematics",
@@ -424,6 +442,8 @@ export default function OfflinePracticePage() {
   const [sets, setSets] = useState<StoredPracticeSet[]>([]);
   const [loadingSavedSets, setLoadingSavedSets] = useState(true);
 
+  const [sessionRestored, setSessionRestored] = useState(false);
+
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("All subjects");
 
@@ -457,27 +477,156 @@ export default function OfflinePracticePage() {
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [notice, setNotice] = useState("");
 
-  const refreshSets = useCallback(async () => {
-    setLoadingSavedSets(true);
+  
+  
+const refreshSets = useCallback(async () => {
+  setLoadingSavedSets(true);
 
+  try {
+    const saved = await getAllStoredSets();
+    saved.sort((a, b) => b.updatedAt - a.updatedAt);
+    setSets(saved);
+
+    // Restore the active practice session after loading IndexedDB.
     try {
-      const saved = await getAllStoredSets();
-      saved.sort((a, b) => b.updatedAt - a.updatedAt);
-      setSets(saved);
-    } catch (error) {
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "Could not load saved practice sets.",
+      const rawSession = window.localStorage.getItem(
+        ACTIVE_PRACTICE_KEY,
       );
-    } finally {
-      setLoadingSavedSets(false);
-    }
-  }, []);
 
-  useEffect(() => {
-    void refreshSets();
-  }, [refreshSets]);
+      if (rawSession) {
+        const session = JSON.parse(
+          rawSession,
+        ) as ActivePracticeSession;
+
+        const savedSet = saved.find(
+          (set) => set.id === session.setId,
+        );
+
+        if (savedSet && savedSet.questions.length > 0) {
+          const lastIndex = savedSet.questions.length - 1;
+          const index = Math.max(
+            0,
+            Math.min(session.questionIndex, lastIndex),
+          );
+
+          setSelectedPractice(savedSet);
+          setPracticeMode(session.mode);
+          setNormalIndex(index);
+
+          setNormalAnswers(savedSet.answers ?? {});
+          setSelectedAnswer(
+            session.mode === "normal"
+              ? session.selectedAnswer
+              : "",
+          );
+
+          setShowAnswerFeedback(
+            session.mode === "normal" &&
+              Boolean(session.showAnswerFeedback),
+          );
+
+          setShowExplanation(
+            session.mode === "normal" &&
+              Boolean(session.showExplanation),
+          );
+
+          setTimedAnswers(session.timedAnswers ?? {});
+          setTimedFinished(Boolean(session.timedFinished));
+          setConfirmFinish(false);
+
+          if (
+            session.mode === "timed" &&
+            session.timedStarted &&
+            !session.timedFinished
+          ) {
+            const remaining = session.deadline
+              ? Math.max(
+                  0,
+                  Math.ceil(
+                    (session.deadline - Date.now()) / 1000,
+                  ),
+                )
+              : savedSet.questions.length * SECONDS_PER_QUESTION;
+
+            setTimeLeft(remaining);
+            setTimedStarted(remaining > 0);
+            setTimedFinished(remaining <= 0);
+          } else {
+            setTimeLeft(0);
+            setTimedStarted(false);
+          }
+        } else {
+          window.localStorage.removeItem(ACTIVE_PRACTICE_KEY);
+        }
+      }
+    } catch {
+      // Invalid session data must not prevent downloaded sets loading.
+      window.localStorage.removeItem(ACTIVE_PRACTICE_KEY);
+    }
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Could not load saved practice sets.",
+    );
+  } finally {
+    setLoadingSavedSets(false);
+    setSessionRestored(true);
+  }
+}, []);
+
+useEffect(() => {
+  void refreshSets();
+}, [refreshSets]);
+
+
+useEffect(() => {
+  if (!sessionRestored) return;
+
+  if (!selectedPractice) {
+    window.localStorage.removeItem(ACTIVE_PRACTICE_KEY);
+    return;
+  }
+
+  const session: ActivePracticeSession = {
+    setId: selectedPractice.id,
+    mode: practiceMode,
+    questionIndex: normalIndex,
+    selectedAnswer,
+    showAnswerFeedback,
+    showExplanation,
+    timedAnswers,
+    timedStarted,
+    timedFinished,
+    deadline:
+      practiceMode === "timed" && timedStarted
+        ? Date.now() + timeLeft * 1000
+        : null,
+  };
+
+  try {
+    window.localStorage.setItem(
+      ACTIVE_PRACTICE_KEY,
+      JSON.stringify(session),
+    );
+  } catch (error) {
+    console.error("Could not save active practice session:", error);
+  }
+}, [
+  sessionRestored,
+  selectedPractice,
+  practiceMode,
+  normalIndex,
+  selectedAnswer,
+  showAnswerFeedback,
+  showExplanation,
+  timedAnswers,
+  timedStarted,
+  timedFinished,
+  timeLeft,
+]);
+
+
 
   const storageUsedBytes = useMemo(
     () => sets.reduce((total, set) => total + getStorageSizeInBytes(set), 0),
@@ -738,26 +887,49 @@ export default function OfflinePracticePage() {
     }
   }
 
-  function moveNormalQuestion(nextIndex: number) {
-    if (!selectedPractice) return;
+ async function moveNormalQuestion(nextIndex: number) {
+  if (!selectedPractice) return;
 
-    const boundedIndex = Math.max(
-      0,
-      Math.min(
-        nextIndex,
-        selectedPractice.questions.length - 1,
+  const boundedIndex = Math.max(
+    0,
+    Math.min(
+      nextIndex,
+      selectedPractice.questions.length - 1,
+    ),
+  );
+
+  const updatedSet: StoredPracticeSet = {
+    ...selectedPractice,
+    currentIndex: boundedIndex,
+    updatedAt: Date.now(),
+  };
+
+  setNormalIndex(boundedIndex);
+  setSelectedPractice(updatedSet);
+  setSelectedAnswer(
+    normalAnswers[boundedIndex]?.selectedOption ?? "",
+  );
+  setShowAnswerFeedback(
+    Boolean(normalAnswers[boundedIndex]),
+  );
+  setShowExplanation(false);
+
+  try {
+    await saveStoredSet(updatedSet);
+
+    setSets((previous) =>
+      previous.map((set) =>
+        set.id === updatedSet.id ? updatedSet : set,
       ),
     );
-
-    setNormalIndex(boundedIndex);
-    setSelectedAnswer(
-      normalAnswers[boundedIndex]?.selectedOption ?? "",
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? `Progress could not be saved: ${error.message}`
+        : "Progress could not be saved locally.",
     );
-    setShowAnswerFeedback(
-      Boolean(normalAnswers[boundedIndex]),
-    );
-    setShowExplanation(false);
   }
+}
 
 
   /* ---------------- Timed practice ---------------- */
@@ -851,16 +1023,20 @@ export default function OfflinePracticePage() {
     finishTimedPractice,
   ]);
 
-  function closePractice() {
-    setSelectedPractice(null);
-    setPracticeMode("normal");
-    setTimedStarted(false);
-    setTimedFinished(false);
-    setConfirmFinish(false);
-    setTimeLeft(0);
-    setTimedAnswers({});
-    setNotice("");
-  }
+ 
+function closePractice() {
+  window.localStorage.removeItem(ACTIVE_PRACTICE_KEY);
+
+  setSelectedPractice(null);
+  setPracticeMode("normal");
+  setTimedStarted(false);
+  setTimedFinished(false);
+  setConfirmFinish(false);
+  setTimeLeft(0);
+  setTimedAnswers({});
+  setNotice("");
+}
+
 
   async function removeSet(set: StoredPracticeSet) {
     const confirmed = window.confirm(

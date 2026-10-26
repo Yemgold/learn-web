@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -368,6 +364,13 @@ export default function SolveAndWinCbtPlayPage() {
 
   const handleWinMore = () => {
     if (currentQuestionIndex >= questions.length - 1) {
+      if (totalWinnings < MINIMUM_CASHOUT) {
+        window.alert(
+          `You have completed the available questions, but you need at least ₦${formatCash(MINIMUM_CASHOUT)} to qualify for cash-out. Your current demo total is ₦${formatCash(totalWinnings)}.`,
+        );
+        return;
+      }
+
       setGameState("CASHED_OUT");
       return;
     }
@@ -381,15 +384,17 @@ export default function SolveAndWinCbtPlayPage() {
     setGameState("QUESTION");
   };
 
- const MINIMUM_CASHOUT = 70_000;
+  const handleCashOut = () => {
+    if (totalWinnings < MINIMUM_CASHOUT) {
+      const amountNeeded = MINIMUM_CASHOUT - totalWinnings;
+      window.alert(
+        `Cash-out is locked until you reach ₦${formatCash(MINIMUM_CASHOUT)}. You need ₦${formatCash(amountNeeded)} more.`,
+      );
+      return;
+    }
 
-const handleCashOut = () => {
-  if (totalWinnings < MINIMUM_CASHOUT) {
-    return;
-  }
-
-  setGameState("CASHED_OUT");
-};
+    setGameState("CASHED_OUT");
+  };
 
   const handleTryAgain = () => {
     setSelectedAnswer(null);
@@ -1403,104 +1408,88 @@ function CbtLadder({
             ₦{formatCash(totalWinnings)}
           </p>
 
-          <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
-  <p className="text-xs text-slate-400">
-    Minimum cash-out
-  </p>
-
-  <p className="mt-1 font-black text-amber-300">
-    ₦{formatCash(MINIMUM_CASHOUT)}
-  </p>
-
-  <p className="mt-1 text-xs text-slate-400">
-    {totalWinnings >= MINIMUM_CASHOUT
-      ? "You have reached the cash-out threshold."
-      : `Earn ₦${formatCash(
-          MINIMUM_CASHOUT - totalWinnings,
-        )} more to qualify.`}
-  </p>
-</div>
+          <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+            <p className="text-xs text-slate-400">Minimum cash-out</p>
+            <p className="mt-1 font-black text-amber-300">
+              ₦{formatCash(MINIMUM_CASHOUT)}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              {totalWinnings >= MINIMUM_CASHOUT
+                ? "You have reached the cash-out threshold."
+                : `Earn ₦${formatCash(MINIMUM_CASHOUT - totalWinnings)} more to qualify.`}
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-  <p className="text-xs font-black text-slate-300">
-    Question rewards
-  </p>
+          <p className="text-xs font-black text-slate-300">
+            Question rewards
+          </p>
 
-  <span className="text-[10px] font-bold text-slate-600">
-    {REWARDS.length} LEVELS
-  </span>
-</div>
+          <span className="text-[10px] font-bold text-slate-600">
+            {REWARDS.length} LEVELS · 5 PER ROW
+          </span>
+        </div>
 
-        <div className="space-y-2">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
           {REWARDS.map((reward, index) => {
             const completed = index < currentQuestionIndex;
             const current = index === currentQuestionIndex;
 
             const status = completed
-              ? "Completed"
+              ? "Done"
               : current
                 ? isQuestionActive
-                  ? "Current"
+                  ? "Now"
                   : "Reached"
-                : "Upcoming";
+                : "Next";
 
             return (
               <div
                 key={index}
-                className={`flex items-center justify-between gap-2 rounded-xl border p-3 transition ${
+                aria-current={current ? "step" : undefined}
+                aria-label={`Level ${index + 1}, reward ₦${formatCash(reward)}, ${status}`}
+                className={`flex min-w-0 flex-col items-center justify-center rounded-lg border px-1 py-2 text-center transition sm:rounded-xl sm:py-2.5 ${
                   current
-                    ? "border-violet-400/40 bg-violet-500/[0.09] ring-1 ring-violet-400/10"
+                    ? "border-violet-400/50 bg-violet-500/[0.12] ring-1 ring-violet-400/20"
                     : completed
-                      ? "border-emerald-400/15 bg-emerald-400/[0.04]"
+                      ? "border-emerald-400/20 bg-emerald-400/[0.06]"
                       : "border-slate-800 bg-slate-950/40"
                 }`}
               >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
-                      completed
-                        ? "bg-emerald-400 text-[#062015]"
-                        : current
-                          ? "bg-violet-500 text-white"
-                          : "bg-slate-800 text-slate-500"
-                    }`}
-                  >
-                    {completed ? <Check className="h-4 w-4" /> : index + 1}
-                  </span>
-
-                  <div className="min-w-0">
-                    <p
-                      className={`text-xs font-bold ${
-                        current
-                          ? "text-violet-200"
-                          : completed
-                            ? "text-emerald-200"
-                            : "text-slate-400"
-                      }`}
-                    >
-                      Question {index + 1}
-                    </p>
-
-                    <p className="mt-0.5 text-[9px] text-slate-600">
-                      {status}
-                    </p>
-                  </div>
-                </div>
-
-                <p
-                  className={`shrink-0 text-xs font-black tabular-nums ${
-                    current
-                      ? "text-violet-200"
-                      : completed
-                        ? "text-emerald-300"
-                        : "text-slate-500"
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-black sm:h-7 sm:w-7 sm:rounded-lg sm:text-xs ${
+                    completed
+                      ? "bg-emerald-400 text-[#062015]"
+                      : current
+                        ? "bg-violet-500 text-white"
+                        : "bg-slate-800 text-slate-500"
                   }`}
                 >
+                  {completed ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                </span>
+
+                <span className={`mt-1.5 text-[8px] font-bold sm:text-[9px] ${
+                  current
+                    ? "text-violet-200"
+                    : completed
+                      ? "text-emerald-200"
+                      : "text-slate-500"
+                }`}>
+                  {status}
+                </span>
+
+                <span className={`mt-1 break-all text-[8px] font-black leading-tight tabular-nums sm:text-[10px] ${
+                  current
+                    ? "text-violet-200"
+                    : completed
+                      ? "text-emerald-300"
+                      : "text-slate-400"
+                }`}>
                   ₦{formatCash(reward)}
-                </p>
+                </span>
               </div>
             );
           })}

@@ -39,7 +39,7 @@ const planFeatures = [
   "Support for your examination preparation",
 ];
 
-const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
 
 export default function SecondaryCheckoutPage() {
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function SecondaryCheckoutPage() {
   const goToAgents = () => {
     router.push("/student/access/secondary/agents");
   };
+const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#080d1a] text-white">

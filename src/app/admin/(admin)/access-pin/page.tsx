@@ -22,7 +22,7 @@ import {
 import { axiosInstance } from "@/lib/api/axios";
 
 // IMPORTANT: Confirm this route against your backend.
-const GENERATE_PINS_ENDPOINT = "/subscription-pins/generate";
+const GENERATE_PINS_ENDPOINT = "/generate";
 
 // From the sample PIN-generation response you supplied.
 const SECONDARY_PLAN_ID = "6a7b0abcafa6aaf987e9ca3b";

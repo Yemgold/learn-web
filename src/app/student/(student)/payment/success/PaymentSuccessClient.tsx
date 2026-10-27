@@ -68,7 +68,16 @@ export default function PaymentSuccessClient() {
       }
 
       // Update Zustand and the persisted user profile.
-      updateUser(response.data as unknown as User);
+      const existingUser = useAuthStore.getState().user;
+
+if (!existingUser) {
+  throw new Error("Your session could not be found.");
+}
+
+updateUser({
+  ...existingUser,
+  ...response.data,
+});
 
       // Navigate only after the latest profile has been stored.
       router.push(destination);

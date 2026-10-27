@@ -23,6 +23,9 @@ import {
 import { useState } from "react";
 import ActivatePinModal from "../ActivatePinModal";
 
+import { getCurrentUser } from "@/lib/api/auth";
+import { useAuthStore } from "@/stores";
+
 import { SECONDARY_PLAN } from "@/constants/secondary-plan";
 import { axiosInstance } from "@/lib";
 
@@ -50,6 +53,28 @@ export default function SecondaryCheckoutPage() {
     router.push("/student/access/secondary/agents");
   };
 const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
+const refreshStudentAccess = async () => {
+  const response = await getCurrentUser();
+  const currentUser = response?.data;
+
+  if (!currentUser) {
+    throw new Error("Unable to refresh your account.");
+  }
+
+  // Preserve the current authenticated user and update it
+  // only after verifying the API response has the required fields.
+  const existingUser = useAuthStore.getState().user;
+
+  if (!existingUser) {
+    throw new Error("Your session could not be found.");
+  }
+
+  useAuthStore.getState().updateUser({
+    ...existingUser,
+    ...currentUser,
+  });
+};
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#080d1a] text-white">
@@ -332,7 +357,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false);
         </footer>
       </div>
 
-    <ActivatePinModal
+<ActivatePinModal
   isOpen={isPinModalOpen}
   onClose={() => setIsPinModalOpen(false)}
   onActivate={async (pin) => {
@@ -343,8 +368,9 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
     return response.data;
   }}
-  onSuccess={() => {
-    // Refresh the user's subscription plan/access data here.
+  onSuccess={async () => {
+    await refreshStudentAccess();
+    setIsPinModalOpen(false);
   }}
 />
     </main>

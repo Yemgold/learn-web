@@ -1,5 +1,11 @@
 
-import { Check } from "lucide-react";
+
+
+
+
+
+
+import { Check, GraduationCap, ShieldCheck } from "lucide-react";
 import { SECONDARY_PLAN } from "@/constants/secondary-plan";
 
 export default function PlanDetailsCard() {
@@ -10,102 +16,97 @@ export default function PlanDetailsCard() {
   }).format(SECONDARY_PLAN.price);
 
   return (
-    <section className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6 lg:p-5 xl:p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-xl xl:text-2xl">
-            {SECONDARY_PLAN.name}
-          </h2>
+    <section className="relative w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl shadow-black/10 sm:p-6 lg:p-5 xl:p-6">
+      {/* Subtle decorative background */}
+      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-indigo-500/[0.08] blur-3xl" />
 
-          <p className="mt-1.5 max-w-md text-sm leading-5 text-slate-500">
-            Complete secondary-school examination preparation access.
+      <div className="relative">
+        {/* Plan heading */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/10 text-indigo-300">
+            <GraduationCap className="h-6 w-6" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <span className="inline-flex items-center rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-300 sm:text-xs">
+              Learnyfi access
+            </span>
+
+            <h2 className="mt-2 text-xl font-black tracking-tight text-white sm:text-2xl lg:text-xl xl:text-2xl">
+              {SECONDARY_PLAN.name}
+            </h2>
+
+            <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+              Complete secondary-school examination preparation access.
+            </p>
+          </div>
+        </div>
+
+        {/* Pricing */}
+        <div className="mt-5 rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+            Plan price
+          </p>
+
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-3xl xl:text-4xl">
+              {price}
+            </span>
+
+            <span className="text-xs font-medium text-slate-400">
+              / year
+            </span>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 border-t border-slate-800 pt-3">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
+
+            <span className="text-xs leading-5 text-slate-400">
+              Secure payment with access activated after successful verification.
+            </span>
+          </div>
+        </div>
+
+        {/* Included features */}
+        <div className="mt-5">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-extrabold text-white">
+              What&apos;s included
+            </h3>
+
+            <span className="text-xs font-medium text-slate-500">
+              {SECONDARY_PLAN.features.length} features
+            </span>
+          </div>
+
+          <ul className="mt-3 space-y-3">
+            {SECONDARY_PLAN.features.map((feature) => (
+              <li
+                key={feature}
+                className="flex items-start gap-3 text-sm leading-6 text-slate-300"
+              >
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10">
+                  <Check
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 text-emerald-300"
+                    strokeWidth={2.5}
+                  />
+                </span>
+
+                <span className="min-w-0">{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Bottom note */}
+        <div className="mt-5 rounded-xl border border-slate-800 bg-slate-950/50 px-3.5 py-3">
+          <p className="text-xs leading-5 text-slate-400">
+            Your selected plan and price are displayed above. Review the
+            details before proceeding to payment.
           </p>
         </div>
-      </div>
-
-      <div className="mt-4 border-b border-slate-100 pb-4 lg:mt-3 lg:pb-3 xl:mt-4 xl:pb-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-          Plan price
-        </p>
-
-        <div className="mt-1 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-3xl xl:text-4xl">
-          {price}
-        </div>
-      </div>
-
-      <div className="mt-4 lg:mt-3 xl:mt-4">
-        <h3 className="text-sm font-bold text-slate-800">
-          What&apos;s included
-        </h3>
-
-        <ul className="mt-3 space-y-2 lg:mt-2.5 lg:space-y-1.5 xl:space-y-2">
-          {SECONDARY_PLAN.features.map((feature) => (
-            <li
-              key={feature}
-              className="flex items-start gap-2.5 text-sm leading-5 text-slate-600"
-            >
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                <Check
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 text-blue-600"
-                  strokeWidth={2.5}
-                />
-              </span>
-
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );
 }
-
-
-
-
-
-
-
-
-
-
-// import { Check } from "lucide-react";
-// import { SECONDARY_PLAN } from "@/constants/secondary-plan"; 
-
-// export default function PlanDetailsCard() {
-//   const price = new Intl.NumberFormat("en-NG", {
-//     style: "currency",
-//     currency: "NGN",
-//     maximumFractionDigits: 0,
-//   }).format(SECONDARY_PLAN.price);
-
-//   return (
-//     <section className="rounded-3xl border bg-white p-8">
-//       <h2 className="text-2xl font-bold">
-//         {SECONDARY_PLAN.name}
-//       </h2>
-
-//       <p className="mt-2 text-slate-500">
-//         Complete secondary-school examination preparation access.
-//       </p>
-
-//       <div className="mt-6 text-4xl font-extrabold">
-//         {price}
-//       </div>
-
-//       <ul className="mt-8 space-y-3">
-//         {SECONDARY_PLAN.features.map((feature) => (
-//           <li
-//             key={feature}
-//             className="flex gap-3"
-//           >
-//             <Check className="h-5 w-5 text-blue-600" />
-
-//             {feature}
-//           </li>
-//         ))}
-//       </ul>
-//     </section>
-//   );
-// }

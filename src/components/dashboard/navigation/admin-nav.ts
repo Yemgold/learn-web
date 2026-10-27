@@ -47,6 +47,18 @@ export const adminNavigation: AdminNavSection[] = [
     ],
   },
 
+  {
+  title: "Create Pin",
+  items: [
+    {
+      label: "Secondary Access Pin",
+      href: "/admin/access-pin",
+      icon: Book,
+      exact: true,
+    },
+  ],
+},
+
 {
   title: "Creative Studio",
   items: [

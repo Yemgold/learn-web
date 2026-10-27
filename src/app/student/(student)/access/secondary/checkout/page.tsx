@@ -98,19 +98,20 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false);
                 </span>
               </div>
 
-              <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">
-                Activate your Secondary Plan
-              </h1>
+              <div className="flex flex-wrap items-center gap-4">
+  <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">
+    Activate your Secondary Plan
+  </h1>
 
-
-              <button
-  type="button"
-  onClick={() => setIsPinModalOpen(true)}
-  className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
->
-  <KeyRound className="h-4 w-4" />
-  Activate with PIN
-</button>
+  <button
+    type="button"
+    onClick={() => setIsPinModalOpen(true)}
+    className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
+  >
+    <KeyRound className="h-4 w-4" />
+    Activate My PIN
+  </button>
+</div>
 
 
 
@@ -329,21 +330,20 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false);
           </button>
         </footer>
       </div>
+
+      <ActivatePinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onActivate={async (pin) => {
+          // Connect your PIN activation API here later.
+          throw new Error("PIN activation is not connected yet.");
+        }}
+        onSuccess={() => {
+          // Refresh the user's plan/access data after successful activation.
+        }}
+      />
     </main>
   );
-
-  <ActivatePinModal
-  isOpen={isPinModalOpen}
-  onClose={() => setIsPinModalOpen(false)}
-  onActivate={async (pin) => {
-    // TODO: Call your PIN activation endpoint here.
-    // Throw an Error if the API rejects the PIN.
-  }}
-  onSuccess={() => {
-    // TODO: Refresh the user's plan/access data.
-  }}
-/>
-
 }
 
 

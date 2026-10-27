@@ -384,7 +384,7 @@ export default function DashboardLayout({
 
     const recognition = new Recognition();
 
-    recognition.lang = "en-NG";
+    recognition.lang = "en-US";
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -401,21 +401,48 @@ export default function DashboardLayout({
     };
 
     recognition.onerror = (event) => {
-      if (event.error === "not-allowed") {
-        setVoiceError(
-          "Microphone permission was denied. " +
-          "Allow microphone access in your browser settings.",
-        );
-      } else if (event.error === "no-speech") {
-        setVoiceMessage(
-          "No speech detected. Tap the microphone to try again.",
-        );
-      } else if (event.error !== "aborted") {
-        setVoiceError(
-          `Voice recognition error: ${event.error}. Please try again.`,
-        );
-      }
-    };
+  setVoiceListening(false);
+
+  switch (event.error) {
+    case "not-allowed":
+    case "service-not-allowed":
+      setVoiceError(
+        "Microphone access is blocked. Allow microphone access " +
+          "in your browser settings, then try again.",
+      );
+      break;
+
+    case "no-speech":
+      setVoiceError(
+        "I didn't hear anything. Check your microphone and try again.",
+      );
+      break;
+
+    case "network":
+      setVoiceError(
+        "The speech recognition service could not connect. " +
+          "Check your internet connection and try again. " +
+          "If the problem continues, try Chrome or Edge.",
+      );
+      break;
+
+    case "audio-capture":
+      setVoiceError(
+        "No microphone was detected. Check that your microphone " +
+          "is connected and enabled.",
+      );
+      break;
+
+    case "aborted":
+      setVoiceMessage("Voice recognition stopped.");
+      break;
+
+    default:
+      setVoiceError(
+        `Voice recognition failed (${event.error}). Please try again.`,
+      );
+  }
+};
 
     recognition.onend = () => {
       setVoiceListening(false);

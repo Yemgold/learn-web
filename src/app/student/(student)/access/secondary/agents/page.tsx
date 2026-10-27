@@ -4,7 +4,6 @@
 
 
 
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -21,6 +20,7 @@ import {
   Users,
   AlertCircle,
   X,
+  UserPlus,
 } from "lucide-react";
 
 interface Agent {
@@ -31,81 +31,86 @@ interface Agent {
   state: string;
   city: string;
   address: string;
-  isVerified: boolean;
+  isRecruitment?: boolean;
 }
 
-/**
- * MOCK DATA FOR UI PREVIEW ONLY.
- *
- * These are fictional agents. Replace this array with
- * real backend data when you are ready to integrate the API.
- */
-const MOCK_AGENTS: Agent[] = [
-  {
-    id: "preview-1",
-    name: "Ada Education Services",
-    phone: "",
-    whatsappNumber: "",
-    state: "Lagos",
-    city: "Ikeja",
-    address: "Sample office address — UI preview only",
-    isVerified: true,
-  },
-  {
-    id: "preview-2",
-    name: "Bright Future Learning Hub",
-    phone: "",
-    whatsappNumber: "",
-    state: "FCT",
-    city: "Abuja",
-    address: "Sample office address — UI preview only",
-    isVerified: true,
-  },
-  {
-    id: "preview-3",
-    name: "Success Point Agents",
-    phone: "",
-    whatsappNumber: "",
-    state: "Oyo",
-    city: "Ibadan",
-    address: "Sample office address — UI preview only",
-    isVerified: false,
-  },
-  {
-    id: "preview-4",
-    name: "Knowledge First Services",
-    phone: "",
-    whatsappNumber: "",
-    state: "Rivers",
-    city: "Port Harcourt",
-    address: "Sample office address — UI preview only",
-    isVerified: true,
-  },
-  {
-    id: "preview-5",
-    name: "Excellent Scholars Centre",
-    phone: "",
-    whatsappNumber: "",
-    state: "Enugu",
-    city: "Enugu",
-    address: "Sample office address — UI preview only",
-    isVerified: false,
-  },
-  {
-    id: "preview-6",
-    name: "Prime Academic Support",
-    phone: "",
-    whatsappNumber: "",
-    state: "Kano",
-    city: "Kano",
-    address: "Sample office address — UI preview only",
-    isVerified: true,
-  },
+const NIGERIAN_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+  "Federal Capital Territory (FCT)",
 ];
 
-function formatLocation(agent: Agent): string {
-  return [agent.city, agent.state].filter(Boolean).join(", ");
-}
+/**
+ * Directory preview data.
+ * The two supplied agent contacts are included below.
+ * Other states display an invitation to become a Learnyfi agent.
+ */
+const AGENTS: Agent[] = [
+  {
+    id: "ekiti-1",
+    name: "Bright Future Learning Hub",
+    phone: "07067853764",
+    whatsappNumber: "07067853764",
+    state: "Ekiti",
+    city: "",
+    address: "",
+  },
+  {
+    id: "ondo-1",
+    name: "Success Point Agents",
+    phone: "08062699331",
+    whatsappNumber: "08062699331",
+    state: "Ondo",
+    city: "",
+    address: "",
+  },
+  ...NIGERIAN_STATES.filter(
+    (state) => state !== "Ekiti" && state !== "Ondo",
+  ).map((state) => ({
+    id: `recruitment-${state.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    name: `Become a Learnyfi Agent`,
+    phone: "",
+    whatsappNumber: "",
+    state,
+    city: "",
+    address: "",
+    isRecruitment: true,
+  })),
+];
 
 function getInitials(name: string): string {
   return name
@@ -116,36 +121,48 @@ function getInitials(name: string): string {
     .join("");
 }
 
+function getWhatsAppNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+
+  if (digits.startsWith("0") && digits.length === 11) {
+    return `234${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("234") && digits.length === 13) {
+    return digits;
+  }
+
+  if (digits.length === 10) {
+    return `234${digits}`;
+  }
+
+  return digits;
+}
+
 export default function SecondaryAgentsPage() {
   const router = useRouter();
-
   const [search, setSearch] = useState("");
-
-  // Hardcoded preview data. No API request is made.
-  const agents = MOCK_AGENTS;
 
   const filteredAgents = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return agents;
-    }
+    if (!query) return AGENTS;
 
-    return agents.filter((agent) => {
-      const searchableText = [
+    return AGENTS.filter((agent) =>
+      [
         agent.name,
         agent.phone,
         agent.whatsappNumber,
         agent.state,
         agent.city,
         agent.address,
+        agent.isRecruitment ? "contact us become an agent" : "available agent",
       ]
         .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(query);
-    });
-  }, [agents, search]);
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [search]);
 
   function handleCall(phone: string) {
     if (!phone) return;
@@ -154,18 +171,9 @@ export default function SecondaryAgentsPage() {
   }
 
   function handleWhatsApp(phone: string) {
-    const digits = phone.replace(/\D/g, "");
+    const number = getWhatsAppNumber(phone);
 
-    if (!digits) return;
-
-    let number = digits;
-
-    // Convert common Nigerian phone formats to international format.
-    if (digits.startsWith("0") && digits.length === 11) {
-      number = `234${digits.slice(1)}`;
-    } else if (digits.length === 10) {
-      number = `234${digits}`;
-    }
+    if (!number) return;
 
     const message = encodeURIComponent(
       "Hello, I want to buy a Learnyfi Secondary Plan PIN. Please let me know the price and payment instructions.",
@@ -181,34 +189,25 @@ export default function SecondaryAgentsPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:py-10">
-        {/* Preview indicator */}
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 sm:text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          UI preview mode — displaying fictional sample agents.
-        </div>
-
         {/* Back navigation */}
         <button
           type="button"
-          onClick={() =>
-            router.push("/student/access/secondary")
-          }
+          onClick={() => router.push("/student/access/secondary")}
           className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to payment
         </button>
 
-        {/* Page heading */}
+        {/* Header */}
         <section className="relative mt-4 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-800 via-blue-700 to-indigo-700 p-5 text-white shadow-lg sm:mt-5 sm:rounded-3xl sm:p-8 lg:p-9">
           <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 right-36 h-40 w-40 rounded-full bg-indigo-300/20 blur-3xl" />
 
           <div className="relative flex items-center gap-4 sm:gap-6">
             <div className="min-w-0 flex-1">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
                 <ShieldCheck className="h-4 w-4" />
-                PIN purchase through an agent
+                Learnyfi PIN agents
               </div>
 
               <h1 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
@@ -216,9 +215,9 @@ export default function SecondaryAgentsPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                Find an agent, contact them directly, and ask for
-                instructions to purchase your Secondary Plan PIN.
-                After receiving your PIN, redeem it on Learnyfi.
+                Find an agent in your state, contact them directly, and ask
+                how to purchase your Secondary Plan PIN. If your state has
+                no listed agent yet, contact Learnyfi to become an agent.
               </p>
             </div>
 
@@ -230,11 +229,11 @@ export default function SecondaryAgentsPage() {
           <div className="relative mt-6 flex flex-wrap gap-3 border-t border-white/15 pt-5">
             <div className="flex items-center gap-2 text-sm text-blue-50">
               <ShieldCheck className="h-4 w-4" />
-              Safety guidance included
+              Contact agents directly
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-50">
-              <Search className="h-4 w-4" />
-              Search by location
+              <MapPin className="h-4 w-4" />
+              Listings across Nigerian states
             </div>
           </div>
         </section>
@@ -247,8 +246,8 @@ export default function SecondaryAgentsPage() {
             <p className="font-bold">Stay safe when buying a PIN</p>
             <p className="mt-1">
               Confirm the price and payment instructions before paying.
-              Never share your password or OTP with an agent. Only use
-              contact details you have independently confirmed.
+              Never share your password or OTP with an agent. Contact the
+              agent using the number displayed on this page.
             </p>
           </div>
         </div>
@@ -258,16 +257,16 @@ export default function SecondaryAgentsPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-                Available agents
+                Agents by state
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Search by agent name, state, city, or phone number.
+                Search by agent name, state, or phone number.
               </p>
             </div>
 
             <p className="text-sm font-medium text-slate-500">
               {filteredAgents.length}{" "}
-              {filteredAgents.length === 1 ? "agent" : "agents"} found
+              {filteredAgents.length === 1 ? "listing" : "listings"} found
             </p>
           </div>
 
@@ -278,8 +277,8 @@ export default function SecondaryAgentsPage() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Try Lagos, Abuja, or an agent's name"
-              aria-label="Search PIN agents"
+              placeholder="Search Ekiti, Ondo, Lagos..."
+              aria-label="Search agents by state or name"
               className="min-w-0 flex-1 bg-transparent py-4 text-sm outline-none placeholder:text-slate-400"
             />
 
@@ -296,102 +295,136 @@ export default function SecondaryAgentsPage() {
           </div>
         </section>
 
-        {/* Agent cards */}
+        {/* Agent and recruitment cards */}
         {filteredAgents.length > 0 ? (
           <section className="mt-5 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredAgents.map((agent) => {
-              const location = formatLocation(agent);
-              const contactNumber =
-                agent.whatsappNumber || agent.phone;
-
-              return (
-                <article
-                  key={agent.id}
-                  className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md sm:rounded-3xl sm:p-5"
-                >
-                  {/* Agent identity */}
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 text-sm font-extrabold text-blue-700 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-base">
-                      {getInitials(agent.name) || (
-                        <Building2 className="h-6 w-6" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-sm font-bold leading-5 text-slate-900 sm:text-base">
-                        {agent.name}
-                      </h3>
-
-                      {agent.isVerified ? (
-                        <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
-                          <BadgeCheck className="h-4 w-4" />
-                          Verified sample
-                        </span>
-                      ) : (
-                        <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-slate-500">
-                          <ShieldCheck className="h-4 w-4" />
-                          Sample listing
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="mt-5 space-y-3">
-                    <div className="flex items-start gap-3 text-sm text-slate-600">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-
-                      <div className="min-w-0">
-                        <p className="font-semibold text-slate-800">
-                          {location || "Location not provided"}
-                        </p>
-
-                        {agent.address && (
-                          <p className="mt-1 break-words text-xs leading-5 text-slate-500">
-                            {agent.address}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {agent.phone ? (
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <Phone className="h-4 w-4 shrink-0 text-slate-400" />
-                        <span className="break-all">{agent.phone}</span>
-                      </div>
+            {filteredAgents.map((agent) => (
+              <article
+                key={agent.id}
+                className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md sm:rounded-3xl sm:p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl ${
+                      agent.isRecruitment
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700"
+                    }`}
+                  >
+                    {agent.isRecruitment ? (
+                      <UserPlus className="h-6 w-6" />
                     ) : (
-                      <p className="text-xs text-slate-400">
-                        Contact details will appear when connected to
-                        real agent data.
-                      </p>
+                      <span className="text-sm font-extrabold sm:text-base">
+                        {getInitials(agent.name)}
+                      </span>
                     )}
                   </div>
 
-                  {/* Contact actions */}
-                  <div className="mt-auto grid grid-cols-2 gap-2.5 pt-5">
-                    <button
-                      type="button"
-                      onClick={() => handleCall(agent.phone)}
-                      disabled={!agent.phone}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Phone className="h-4 w-4" />
-                      Call
-                    </button>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="break-words text-sm font-bold leading-5 text-slate-900 sm:text-base">
+                      {agent.isRecruitment
+                        ? `Become a Learnyfi Agent`
+                        : agent.name}
+                    </h3>
 
-                    <button
-                      type="button"
-                      onClick={() => handleWhatsApp(contactNumber)}
-                      disabled={!contactNumber}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    <span
+                      className={`mt-1.5 inline-flex items-center gap-1 text-xs font-semibold ${
+                        agent.isRecruitment
+                          ? "text-emerald-700"
+                          : "text-blue-700"
+                      }`}
                     >
-                      <MessageCircle className="h-4 w-4" />
-                      WhatsApp
-                    </button>
+                      {agent.isRecruitment ? (
+                        <>
+                          <UserPlus className="h-4 w-4" />
+                          Agent opportunity
+                        </>
+                      ) : (
+                        <>
+                          <BadgeCheck className="h-4 w-4" />
+                          PIN contact
+                        </>
+                      )}
+                    </span>
                   </div>
-                </article>
-              );
-            })}
+                </div>
+
+                <div className="mt-5 flex items-start gap-3 text-sm text-slate-600">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800">
+                      {agent.state}
+                    </p>
+
+                    {agent.city && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {agent.city}
+                      </p>
+                    )}
+
+                    {agent.address && (
+                      <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                        {agent.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {agent.isRecruitment ? (
+                  <div className="mt-4 flex-1 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-sm font-bold text-emerald-900">
+                      No agent listed in this state yet?
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-emerald-800">
+                      Contact us to become a Learnyfi agent and help students
+                      in your state access their Secondary Plan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex-1 rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">
+                      Phone number
+                    </p>
+                    <p className="mt-1 break-all text-sm font-bold text-slate-900">
+                      {agent.phone}
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-auto grid grid-cols-2 gap-2.5 pt-5">
+                  {agent.isRecruitment ? (
+                    <div className="col-span-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-sm font-bold text-emerald-800">
+                      <UserPlus className="h-4 w-4 shrink-0" />
+                      Contact us to become an agent
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCall(agent.phone)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        <Phone className="h-4 w-4" />
+                        Call
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleWhatsApp(
+                            agent.whatsappNumber || agent.phone,
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            ))}
           </section>
         ) : (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center sm:rounded-3xl sm:px-6">
@@ -400,11 +433,11 @@ export default function SecondaryAgentsPage() {
             </div>
 
             <h3 className="mt-4 font-bold text-slate-900">
-              No matching agents
+              No matching states or agents
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Try a different name, state, or city.
+              Try searching for another state or agent name.
             </p>
 
             <button
@@ -417,7 +450,7 @@ export default function SecondaryAgentsPage() {
           </div>
         )}
 
-        {/* Footer guidance */}
+        {/* PIN purchase instructions */}
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:mt-10 sm:rounded-3xl sm:p-6">
           <h3 className="font-extrabold text-slate-900">
             What happens after I buy a PIN?
@@ -448,8 +481,7 @@ export default function SecondaryAgentsPage() {
                 3
               </span>
               <span className="text-sm leading-6 text-slate-600">
-                Return to Learnyfi and redeem the PIN to activate your
-                plan.
+                Return to Learnyfi and redeem the PIN to activate your plan.
               </span>
             </li>
           </ol>
@@ -457,9 +489,7 @@ export default function SecondaryAgentsPage() {
           <div className="mt-6 border-t border-slate-100 pt-4">
             <button
               type="button"
-              onClick={() =>
-                router.push("/student/access/secondary")
-              }
+              onClick={() => router.push("/student/access/secondary")}
               className="inline-flex min-h-10 items-center gap-2 rounded-xl text-sm font-bold text-blue-700 transition hover:text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -469,8 +499,8 @@ export default function SecondaryAgentsPage() {
         </section>
 
         <p className="mt-5 text-center text-xs leading-5 text-slate-400">
-          Preview data only. No real agents or contact details are
-          connected to this page.
+          Agent listings and recruitment opportunities are displayed by state.
+          Please confirm payment details directly with the agent.
         </p>
       </div>
     </main>

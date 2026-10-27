@@ -12,6 +12,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Check,
+  KeyRound,
   CreditCard,
   GraduationCap,
   LockKeyhole,
@@ -19,6 +20,8 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { useState } from "react";
+import ActivatePinModal from "../ActivatePinModal";
 
 import { SECONDARY_PLAN } from "@/constants/secondary-plan";
 
@@ -35,6 +38,8 @@ const planFeatures = [
   "Practice questions and revision activities",
   "Support for your examination preparation",
 ];
+
+const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
 export default function SecondaryCheckoutPage() {
   const router = useRouter();
@@ -95,6 +100,18 @@ export default function SecondaryCheckoutPage() {
               <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">
                 Activate your Secondary Plan
               </h1>
+
+
+              <button
+  type="button"
+  onClick={() => setIsPinModalOpen(true)}
+  className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
+>
+  <KeyRound className="h-4 w-4" />
+  Activate with PIN
+</button>
+
+
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
                 Review your plan and contact an authorized agent to
@@ -313,6 +330,19 @@ export default function SecondaryCheckoutPage() {
       </div>
     </main>
   );
+
+  <ActivatePinModal
+  isOpen={isPinModalOpen}
+  onClose={() => setIsPinModalOpen(false)}
+  onActivate={async (pin) => {
+    // TODO: Call your PIN activation endpoint here.
+    // Throw an Error if the API rejects the PIN.
+  }}
+  onSuccess={() => {
+    // TODO: Refresh the user's plan/access data.
+  }}
+/>
+
 }
 
 

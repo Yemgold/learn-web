@@ -24,6 +24,7 @@ import { useState } from "react";
 import ActivatePinModal from "../ActivatePinModal";
 
 import { SECONDARY_PLAN } from "@/constants/secondary-plan";
+import { axiosInstance } from "@/lib";
 
 function formatNaira(amount: number) {
   return new Intl.NumberFormat("en-NG", {

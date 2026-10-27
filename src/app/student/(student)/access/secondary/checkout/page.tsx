@@ -331,17 +331,21 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false);
         </footer>
       </div>
 
-      <ActivatePinModal
-        isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onActivate={async (pin) => {
-          // Connect your PIN activation API here later.
-          throw new Error("PIN activation is not connected yet.");
-        }}
-        onSuccess={() => {
-          // Refresh the user's plan/access data after successful activation.
-        }}
-      />
+    <ActivatePinModal
+  isOpen={isPinModalOpen}
+  onClose={() => setIsPinModalOpen(false)}
+  onActivate={async (pin) => {
+    const response = await axiosInstance.post(
+      "/pins/subscribe-to-plan-with-pin",
+      { pin },
+    );
+
+    return response.data;
+  }}
+  onSuccess={() => {
+    // Refresh the user's subscription plan/access data here.
+  }}
+/>
     </main>
   );
 }

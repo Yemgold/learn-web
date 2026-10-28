@@ -29,7 +29,7 @@ import { Card } from "@/components/ui/card";
 import type {
   ExamType as BankExamType,
   QuestionBankItem,
-} from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types";
+} from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions/types";
 
 type Subject =
   | "Mathematics"
@@ -530,7 +530,7 @@ export default function OfflinePracticePage() {
       }
 
       const registry = await import(
-        "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions"
+        "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions"
       );
 
       const bankExam = selectedExam.toLowerCase() as BankExamType;

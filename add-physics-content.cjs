@@ -105,7 +105,7 @@ for (const file of files) {
   // Create a backup before changing the original file.
   fs.copyFileSync(filePath, `${filePath}.bak`);
 
-  const output = `import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types";
+  const output = `import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions/types";
 
   
 

@@ -5,7 +5,7 @@
 //C:\Users\Lara Spellman\Jamb\jamb-league\src\games\edu-ludo\question-bank\adapter.ts
 
 
-import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types"; 
+import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions/types"; 
 import type { EduLudoDifficulty,EduLudoLevel } from "../components/eduLudoTypes"; 
 
 export type EduLudoGameQuestion = {

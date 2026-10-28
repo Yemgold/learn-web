@@ -1,5 +1,5 @@
 
-import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types";
+import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions/types";
 
 const DB_NAME = "learnyfi-question-history";
 const DB_VERSION = 1;

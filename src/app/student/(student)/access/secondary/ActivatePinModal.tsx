@@ -236,8 +236,7 @@ export default function ActivatePinModal({
                 <div className="flex items-start gap-3 rounded-xl border border-emerald-400/10 bg-emerald-400/5 p-3.5">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
                   <p className="text-xs leading-5 text-slate-400">
-                    Your PIN will be checked by Learnyfi when the activation
-                    endpoint is connected. Never share your PIN publicly.
+                     Never share your PIN publicly.
                   </p>
                 </div>
 

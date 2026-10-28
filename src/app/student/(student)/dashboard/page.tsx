@@ -21,6 +21,8 @@ import { getAllNotCompletedContests } from "@/lib/api/solveAndWin";
 import UpcomingQuiz from "@/components/dashboard/UpcomingQuiz";
 import UpcomingAndWin from "@/components/dashboard/UpcomingAndWin";
 
+import WhatsAppCommunityCard from "@/components/dashboard/WhatsAppCommunityCard";
+
 /* =========================================================
    CONSTANTS
    ========================================================= */
@@ -28,14 +30,7 @@ import UpcomingAndWin from "@/components/dashboard/UpcomingAndWin";
 const FREE_TRIAL_DAYS = 30;
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
-/*
- * Backend quiz statuses can vary depending on the
- * current stage of the competition.
- *
- * WAITING is the main upcoming status, but these
- * additional statuses are allowed if the quiz has
- * not started yet.
- */
+
 const UPCOMING_QUIZ_STATUSES = new Set([
   "WAITING",
   "UPCOMING",
@@ -687,6 +682,16 @@ export default function StudentDashboardPage() {
             </div>
 
           </section>
+
+          
+          {/* ==================================================
+              LEARNYFI WHATSAPP CHANNEL
+              ================================================== */}
+
+          <section aria-label="Learnyfi WhatsApp Channel">
+            <WhatsAppCommunityCard />
+          </section>
+
 
           {/* ==================================================
               ACCESS BLOCKER

@@ -326,7 +326,7 @@ export default function JambPracticePage() {
                     </p>
 
                     <p className="mt-1 text-lg font-bold text-green-400">
-                      1 point
+                      10 points
                     </p>
 
                     <p className="text-[11px] text-slate-500">

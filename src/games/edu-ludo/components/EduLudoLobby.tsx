@@ -1,10 +1,6 @@
-
-
-
-
-
 "use client";
 
+import { useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -46,7 +42,7 @@ interface EduLudoLobbyProps {
   subject?: EduLudoSubject;
   level?: EduLudoLevel;
   difficulty?: EduLudoDifficulty;
-  playerColor?: EduLudoColor;
+  playerColor?: EduLudoColor | null;
 
   balance?: number;
   cbtPoints?: number;
@@ -104,12 +100,7 @@ const MODES: {
   },
 ];
 
-const COLOR_OPTIONS: EduLudoColor[] = [
-  "red",
-  "green",
-  "yellow",
-  "blue",
-];
+const COLOR_OPTIONS: EduLudoColor[] = ["red", "green", "yellow", "blue"];
 
 function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG", {
@@ -166,7 +157,7 @@ export default function EduLudoLobby({
   subject = "All Subjects",
   level = "JAMB",
   difficulty = "medium",
-  playerColor = "red",
+  playerColor = null,
 
   balance = INITIAL_WALLET_BALANCE,
   cbtPoints = INITIAL_CBT_POINTS,
@@ -186,10 +177,34 @@ export default function EduLudoLobby({
   loading = false,
   error = null,
 }: EduLudoLobbyProps) {
+  const [colorError, setColorError] = useState("");
   const canAffordQuestion =
     Number.isFinite(balance) && balance >= QUESTION_COST;
+  const selectedColorStyles = playerColor
+    ? COLOR_STYLES[playerColor]
+    : null;
 
-  const selectedColorStyles = COLOR_STYLES[playerColor];
+  const handleStartGame = () => {
+    if (!playerColor || !COLOR_OPTIONS.includes(playerColor)) {
+      setColorError("Please choose a token colour before starting the game.");
+      return;
+    }
+
+    setColorError("");
+    onStartGame();
+  };
+
+  const chooseColor = (color: EduLudoColor) => {
+    setColorError("");
+    onPlayerColorChange?.(color);
+  };
+
+  const canStart =
+    !loading &&
+    canAffordQuestion &&
+    mode === "solo" &&
+    Boolean(playerColor) &&
+    COLOR_OPTIONS.includes(playerColor as EduLudoColor);
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-5 bg-slate-950 pb-8 text-white">
@@ -212,12 +227,10 @@ export default function EduLudoLobby({
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
                 <GraduationCap size={20} />
               </span>
-
               <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">
                 Edu Ludo
               </h1>
             </div>
-
             <p className="mt-1 text-sm text-slate-400">
               Play smart. Answer questions. Move to victory.
             </p>
@@ -235,7 +248,6 @@ export default function EduLudoLobby({
               <span className="hidden sm:inline">Rules</span>
             </button>
           )}
-
           {onViewRewards && (
             <button
               type="button"
@@ -260,30 +272,23 @@ export default function EduLudoLobby({
               <Sparkles size={14} />
               Learn while you play
             </span>
-
             <h2 className="mt-4 text-3xl font-black leading-tight text-white sm:text-4xl">
               Every move is a
-              <span className="block text-amber-300">
-                chance to learn.
-              </span>
+              <span className="block text-amber-300">chance to learn.</span>
             </h2>
-
             <p className="mt-3 max-w-lg text-sm leading-6 text-indigo-100/80 sm:text-base">
-              Choose your subject, answer questions, move your tokens,
-              and earn CBT points as you progress.
+              Choose your subject, answer questions, move your tokens, and earn
+              CBT points as you progress.
             </p>
-
             <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-indigo-100">
                 <BookOpen size={14} />
                 Educational questions
               </span>
-
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-indigo-100">
                 <Shield size={14} />
                 Safe squares
               </span>
-
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-indigo-100">
                 <Zap size={14} />
                 CBT rewards
@@ -311,12 +316,10 @@ export default function EduLudoLobby({
             <Wallet size={17} className="text-indigo-400" />
             Wallet balance
           </div>
-
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <p className="text-2xl font-black tabular-nums text-white">
               {formatNaira(balance)}
             </p>
-
             {onFundWallet && (
               <button
                 type="button"
@@ -327,11 +330,9 @@ export default function EduLudoLobby({
               </button>
             )}
           </div>
-
           <p className="mt-1 text-xs leading-5 text-slate-400">
             Each presented question costs {formatNaira(QUESTION_COST)}.
           </p>
-
           {!canAffordQuestion && (
             <p className="mt-2 rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs font-semibold text-red-300">
               Your wallet balance is too low to start a question.
@@ -344,11 +345,9 @@ export default function EduLudoLobby({
             <Coins size={17} />
             CBT reward points
           </div>
-
           <p className="mt-2 text-2xl font-black tabular-nums text-white">
             {cbtPoints.toLocaleString("en-NG")} CBT
           </p>
-
           <p className="mt-1 text-xs leading-5 text-amber-100/70">
             Reward points are separate from your naira wallet balance.
           </p>
@@ -358,10 +357,7 @@ export default function EduLudoLobby({
       {/* Game setup */}
       <section className="rounded-3xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6">
         <div>
-          <h2 className="text-lg font-extrabold text-white">
-            Choose your game
-          </h2>
-
+          <h2 className="text-lg font-extrabold text-white">Choose your game</h2>
           <p className="mt-1 text-sm text-slate-400">
             Select a mode and customize your learning session.
           </p>
@@ -372,7 +368,6 @@ export default function EduLudoLobby({
           {MODES.map((item) => {
             const Icon = item.icon;
             const selected = mode === item.value;
-
             return (
               <button
                 key={item.value}
@@ -395,7 +390,6 @@ export default function EduLudoLobby({
                     <Check size={14} />
                   </span>
                 )}
-
                 <div
                   className={[
                     "flex h-11 w-11 items-center justify-center rounded-xl",
@@ -406,22 +400,17 @@ export default function EduLudoLobby({
                 >
                   <Icon size={21} />
                 </div>
-
                 <h3 className="mt-3 pr-5 text-sm font-extrabold text-white">
                   {item.title}
                 </h3>
-
                 <p className="mt-1 text-xs leading-5 text-slate-400">
                   {item.description}
                 </p>
-
-                {!item.available && (
+                {!item.available ? (
                   <span className="mt-3 inline-block rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
                     Coming soon
                   </span>
-                )}
-
-                {item.available && (
+                ) : (
                   <span className="mt-3 inline-block rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
                     Available
                   </span>
@@ -436,11 +425,9 @@ export default function EduLudoLobby({
           <h3 className="text-base font-extrabold text-white">
             Learning preferences
           </h3>
-
           <p className="mt-1 text-sm text-slate-400">
             Choose what you want to study during the game.
           </p>
-
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SelectField
               label="Subject"
@@ -448,14 +435,12 @@ export default function EduLudoLobby({
               options={EDU_LUDO_SUBJECTS}
               onChange={(value) => onSubjectChange?.(value)}
             />
-
             <SelectField
               label="School level"
               value={level}
               options={EDU_LUDO_LEVELS}
               onChange={(value) => onLevelChange?.(value)}
             />
-
             <SelectField
               label="Bot difficulty"
               value={difficulty}
@@ -468,23 +453,22 @@ export default function EduLudoLobby({
         {/* Token color */}
         <div className="mt-6 border-t border-slate-800 pt-6">
           <h3 className="text-base font-extrabold text-white">
-            Choose your token color
+            Choose your token colour <span className="text-red-400">*</span>
           </h3>
-
           <p className="mt-1 text-sm text-slate-400">
-            Pick the color you want to play with.
+            Select one colour to continue. You must choose a colour before
+            starting the game.
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {COLOR_OPTIONS.map((color) => {
               const colorStyle = COLOR_STYLES[color];
               const selected = playerColor === color;
-
               return (
                 <button
                   key={color}
                   type="button"
-                  onClick={() => onPlayerColorChange?.(color)}
+                  onClick={() => chooseColor(color)}
                   aria-pressed={selected}
                   className={[
                     "flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all",
@@ -506,7 +490,6 @@ export default function EduLudoLobby({
                       <span className="h-3 w-3 rounded-full border-2 border-white/80" />
                     )}
                   </span>
-
                   <span
                     className={[
                       "text-sm font-bold",
@@ -515,7 +498,6 @@ export default function EduLudoLobby({
                   >
                     {colorStyle.name}
                   </span>
-
                   {selected && (
                     <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-300">
                       Selected
@@ -525,6 +507,20 @@ export default function EduLudoLobby({
               );
             })}
           </div>
+
+          {colorError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-red-300"
+            >
+              {colorError}
+            </p>
+          )}
+          {!playerColor && !colorError && (
+            <p className="mt-3 text-xs font-medium text-amber-300">
+              Required: choose Red, Green, Yellow, or Blue.
+            </p>
+          )}
         </div>
 
         {/* Error */}
@@ -543,16 +539,12 @@ export default function EduLudoLobby({
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
               <Info size={18} />
             </div>
-
             <div>
-              <p className="text-sm font-bold text-indigo-200">
-                Before you start
-              </p>
-
+              <p className="text-sm font-bold text-indigo-200">Before you start</p>
               <p className="mt-1 text-sm leading-6 text-slate-300">
-                Solo mode is currently available. Friends, classroom,
-                and tournament modes are upcoming features. Question
-                charges and CBT rewards are handled by the game logic.
+                Solo mode is currently available. Friends, classroom, and
+                tournament modes are upcoming features. Question charges and
+                CBT rewards are handled by the game logic.
               </p>
             </div>
           </div>
@@ -561,8 +553,8 @@ export default function EduLudoLobby({
         {/* Start game */}
         <button
           type="button"
-          onClick={onStartGame}
-          disabled={loading || !canAffordQuestion || mode !== "solo"}
+          onClick={handleStartGame}
+          disabled={!canStart}
           className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-4 text-base font-extrabold text-white shadow-lg shadow-indigo-950/30 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
         >
           {loading ? (
@@ -579,7 +571,8 @@ export default function EduLudoLobby({
         </button>
 
         <p className="mt-3 text-center text-xs text-slate-500">
-          Selected color: {selectedColorStyles.name} · {subject} · {level}
+          Selected colour: {selectedColorStyles?.name ?? "Not selected"} ·{" "}
+          {subject} · {level}
         </p>
       </section>
     </main>

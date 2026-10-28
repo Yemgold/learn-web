@@ -22,6 +22,7 @@ import UpcomingQuiz from "@/components/dashboard/UpcomingQuiz";
 import UpcomingAndWin from "@/components/dashboard/UpcomingAndWin";
 
 import WhatsAppCommunityCard from "@/components/dashboard/WhatsAppCommunityCard";
+import CBTPracticeRewardCard from "@/components/cbt/CBTPracticeRewardCard";
 
 /* =========================================================
    CONSTANTS
@@ -683,6 +684,7 @@ export default function StudentDashboardPage() {
 
           </section>
 
+          <CBTPracticeRewardCard />
           
           {/* ==================================================
               LEARNYFI WHATSAPP CHANNEL

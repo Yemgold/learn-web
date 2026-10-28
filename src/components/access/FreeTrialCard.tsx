@@ -15,7 +15,7 @@ Gift,
 X,
 } from "lucide-react";
 
-const FREE_TRIAL_DAYS = 30;
+const FREE_TRIAL_DAYS = 3;
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
 // The notification will reappear 60 seconds after dismissal.

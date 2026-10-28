@@ -3,6 +3,9 @@
 
 
 
+
+
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -248,6 +251,7 @@ export default function EduLudoGame({
 }: Props) {
   const [mode, setMode] = useState<EduLudoMode>("solo");
   const [subject, setSubject] = useState<EduLudoSubject>("All Subjects");
+  const [subjectSelected, setSubjectSelected] = useState(false);
   const [level, setLevel] = useState<EduLudoLevel>("JAMB");
   const [difficulty, setDifficulty] =
     useState<EduLudoDifficulty>("medium");
@@ -406,6 +410,11 @@ export default function EduLudoGame({
   }, [phase]);
 
   const startGame = useCallback(() => {
+    if (!subjectSelected || subject === "All Subjects") {
+      notify("Please select a subject before starting the game.");
+      return;
+    }
+
     if (mode !== "solo") {
       notify("Multiplayer modes are coming soon. Solo mode is available now.");
       return;
@@ -436,7 +445,7 @@ export default function EduLudoGame({
     setGuaranteedSixBonuses({});
     setToast("");
     answerGuardRef.current = false;
-  }, [mode, playerColor, difficulty, notify, clearQuestionState]);
+  }, [mode, playerColor, difficulty, subject, subjectSelected, notify, clearQuestionState]);
 
   const getLegalMoves = useCallback(
     (player: LocalPlayer, roll: number) => {
@@ -1279,7 +1288,10 @@ export default function EduLudoGame({
             balance={balance}
             cbtPoints={cbtPoints}
             onModeChange={setMode}
-            onSubjectChange={setSubject}
+            onSubjectChange={(nextSubject) => {
+              setSubject(nextSubject);
+              setSubjectSelected(true);
+            }}
             onLevelChange={setLevel}
             onDifficultyChange={setDifficulty}
             onPlayerColorChange={setPlayerColor}

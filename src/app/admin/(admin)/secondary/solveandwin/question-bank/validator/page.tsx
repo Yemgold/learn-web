@@ -29,7 +29,7 @@ import { getSubjectsByPlan } from "@/lib/api/subjects";
 import {
   getQuestionBanks,
   type QuestionDifficulty,
-} from "../../competitions/createquestion/questions";
+} from "../../competitions/createquestion/jamb/questions";
 
 type ExamType = "jamb" | "waec" | "neco";
 

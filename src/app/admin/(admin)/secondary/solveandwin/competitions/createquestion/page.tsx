@@ -20,14 +20,14 @@ import {
   X,
 } from "lucide-react";
 
-import { getQuestionBanks } from "./questions";
+import { getQuestionBanks } from "./jamb/questions";
 
 import type {
   Difficulty,
   ExamType,
   QuestionBankItem,
   QuestionOption,
-} from "./questions/types";
+} from "./jamb/questions/types";
 
 import { getSubjectsByPlan } from "@/lib/api/subjects";
 import { axiosInstance } from "@/lib/api/axios";

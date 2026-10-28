@@ -1,4 +1,8 @@
 
+
+
+
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -84,28 +88,28 @@ const SUBJECT_STYLES: Record<
 > = {
   Mathematics: {
     icon: "M",
-    color: "text-blue-700 dark:text-blue-300",
-    background: "bg-blue-100 dark:bg-blue-500/15",
+    color: "text-blue-300 text-indigo-300",
+    background: "bg-blue-500/100/15 dark:bg-blue-500/100/15",
   },
   Biology: {
     icon: "B",
-    color: "text-emerald-700 dark:text-emerald-300",
-    background: "bg-emerald-100 dark:bg-emerald-500/15",
+    color: "text-emerald-300 text-emerald-300",
+    background: "bg-emerald-500/100/15 dark:bg-emerald-500/100/15",
   },
   "English Language": {
     icon: "E",
-    color: "text-violet-700 dark:text-violet-300",
-    background: "bg-violet-100 dark:bg-violet-500/15",
+    color: "text-violet-300 dark:text-violet-300",
+    background: "bg-violet-500/15 dark:bg-violet-500/15",
   },
   Chemistry: {
     icon: "C",
-    color: "text-orange-700 dark:text-orange-300",
-    background: "bg-orange-100 dark:bg-orange-500/15",
+    color: "text-orange-300 dark:text-orange-300",
+    background: "bg-orange-500/15 dark:bg-orange-500/15",
   },
   Physics: {
     icon: "P",
-    color: "text-pink-700 dark:text-pink-300",
-    background: "bg-pink-100 dark:bg-pink-500/15",
+    color: "text-pink-300 dark:text-pink-300",
+    background: "bg-pink-500/15 dark:bg-pink-500/15",
   },
 };
 
@@ -823,7 +827,7 @@ export default function OfflinePracticePage() {
     return (
       <>
         {question.instruction && (
-          <p className="mb-3 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <p className="mb-3 text-sm font-medium text-slate-400 text-slate-400">
             {question.instruction}
           </p>
         )}
@@ -846,7 +850,7 @@ export default function OfflinePracticePage() {
 
     if (!explanationText && explanationSteps.length === 0) {
       return (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-slate-400 text-slate-400">
           No explanation was provided for this question.
         </p>
       );
@@ -866,11 +870,11 @@ export default function OfflinePracticePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+    <main className="min-h-screen bg-slate-950 text-slate-100 dark:bg-slate-950 text-white">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
         <Link
           href="/student/practice"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-600 dark:text-slate-400"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-blue-300 text-slate-400"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Practice
@@ -880,7 +884,7 @@ export default function OfflinePracticePage() {
           <>
             <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 dark:border-emerald-500/20 dark:bg-emerald-500/100/10 text-emerald-300">
                   <WifiOff className="h-4 w-4" />
                   Available offline
                 </div>
@@ -889,7 +893,7 @@ export default function OfflinePracticePage() {
                   Offline Practice
                 </h1>
 
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400 sm:text-base">
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 text-slate-400 sm:text-base">
                   Download question sets once, then practise without an
                   internet connection. Choose normal practice for immediate
                   feedback or timed practice to test yourself.
@@ -899,7 +903,7 @@ export default function OfflinePracticePage() {
               <button
   type="button"
   onClick={() => setShowNewQuestionsConfirm(true)}
-  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
 >
   <Download className="h-4 w-4" />
   Download new questions
@@ -907,17 +911,17 @@ export default function OfflinePracticePage() {
             </div>
 
             <div className="mb-6 grid gap-4 sm:grid-cols-3">
-              <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+              <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900">
                 <HardDrive className="mb-3 h-6 w-6 text-blue-500" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-400 text-slate-400">
                   Downloaded sets
                 </p>
                 <p className="mt-1 text-2xl font-bold">{sets.length}</p>
               </Card>
 
-              <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+              <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900">
                 <BookOpen className="mb-3 h-6 w-6 text-violet-500" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-400 text-slate-400">
                   Questions available
                 </p>
                 <p className="mt-1 text-2xl font-bold">
@@ -925,9 +929,9 @@ export default function OfflinePracticePage() {
                 </p>
               </Card>
 
-              <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+              <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900">
                 <HardDrive className="mb-3 h-6 w-6 text-emerald-500" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-400 text-slate-400">
                   Storage used
                 </p>
                 <p className="mt-1 text-2xl font-bold">
@@ -939,7 +943,7 @@ export default function OfflinePracticePage() {
             {notice && (
               <div
                 role="status"
-                className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-200"
+                className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-blue-200 dark:border-blue-500/20 dark:bg-blue-500/100/10 dark:text-blue-200"
               >
                 <span>{notice}</span>
                 <button
@@ -959,14 +963,14 @@ export default function OfflinePracticePage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search downloaded sets..."
-                  className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03]"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 py-3 pl-10 pr-4 text-sm outline-none focus:border-indigo-500 border-slate-800 bg-slate-900"
                 />
               </div>
 
               <select
                 value={subjectFilter}
                 onChange={(event) => setSubjectFilter(event.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-slate-900"
+                className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-indigo-500 border-slate-800 dark:bg-slate-900"
               >
                 <option>All subjects</option>
                 {SUBJECTS.map((subject) => (
@@ -976,21 +980,21 @@ export default function OfflinePracticePage() {
             </div>
 
             {loadingSavedSets ? (
-              <Card className="p-10 text-center dark:border-white/10 dark:bg-white/[0.03]">
-                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-blue-600" />
-                <p className="text-sm text-slate-500">
+              <Card className="p-10 text-center border-slate-800 bg-slate-900">
+                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-blue-300" />
+                <p className="text-sm text-slate-400">
                   Loading downloaded questions...
                 </p>
               </Card>
             ) : visibleSets.length === 0 ? (
-              <Card className="flex flex-col items-center border-dashed border-slate-300 bg-white px-6 py-14 text-center dark:border-white/15 dark:bg-white/[0.02]">
+              <Card className="flex flex-col items-center border-dashed border-slate-700 bg-slate-900 px-6 py-14 text-center border-slate-700 bg-slate-900">
                 <BookOpen className="mb-4 h-10 w-10 text-slate-400" />
                 <h2 className="text-xl font-bold">
                   {sets.length === 0
                     ? "No downloaded questions yet"
                     : "No matching question sets"}
                 </h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-400 text-slate-400">
                   {sets.length === 0
                     ? "Download a question set to start practising offline. Your downloaded questions will be saved on this device."
                     : "Try a different search term or subject filter."}
@@ -999,7 +1003,7 @@ export default function OfflinePracticePage() {
                   <button
                     type="button"
                     onClick={() => setShowDownload(true)}
-                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500"
                   >
                     <Download className="h-4 w-4" />
                     Download mixed questions
@@ -1015,7 +1019,7 @@ export default function OfflinePracticePage() {
                   return (
                     <Card
                       key={set.id}
-                      className="flex flex-col border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]"
+                      className="flex flex-col border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900"
                     >
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <div
@@ -1024,26 +1028,26 @@ export default function OfflinePracticePage() {
                           {style.icon}
                         </div>
 
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 dark:bg-emerald-500/100/10 text-emerald-300">
                           <WifiOff className="h-3 w-3" />
                           Offline
                         </span>
                       </div>
 
                       <h2 className="text-lg font-bold">{set.subject}</h2>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      <p className="mt-1 text-sm text-slate-400 text-slate-400">
                         {set.exam} · {formatDifficulty(set.difficulty)}
                       </p>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]">
+                      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-950/60 p-3 bg-slate-950/60">
                         <div>
-                          <p className="text-xs text-slate-500">Questions</p>
+                          <p className="text-xs text-slate-400">Questions</p>
                           <p className="mt-1 font-bold">
                             {set.questions.length}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-400">
                             Normal progress
                           </p>
                           <p className="mt-1 font-bold">
@@ -1056,7 +1060,7 @@ export default function OfflinePracticePage() {
                         <button
                           type="button"
                           onClick={() => openNormalPractice(set)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
                         >
                           <Play className="h-4 w-4" />
                           Normal practice
@@ -1065,7 +1069,7 @@ export default function OfflinePracticePage() {
                         <button
                           type="button"
                           onClick={() => startTimedPractice(set)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-blue-500/10"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/30 px-4 py-3 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/100/10 dark:border-blue-500/30 text-indigo-300 dark:hover:bg-blue-500/100/100/10"
                         >
                           <Clock3 className="h-4 w-4" />
                           Timed practice
@@ -1075,7 +1079,7 @@ export default function OfflinePracticePage() {
                           type="button"
                           disabled={removingId === set.id}
                           onClick={() => void removeSet(set)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-500/10"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/100/10 disabled:opacity-50 text-red-300 dark:hover:bg-red-500/100/100/10"
                         >
                           {removingId === set.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1100,17 +1104,17 @@ export default function OfflinePracticePage() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="download-title"
-              className="my-6 w-full max-w-xl border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900 sm:p-7"
+              className="my-6 w-full max-w-xl border-slate-800 bg-slate-900 p-5 border-slate-800 dark:bg-slate-900 sm:p-7"
             >
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/100/15 text-blue-300 dark:bg-blue-500/100/15 text-indigo-300">
                     <Download className="h-5 w-5" />
                   </div>
                   <h2 id="download-title" className="text-xl font-bold">
                     Download questions
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400 text-slate-400">
                     Save a question set to this device.
                   </p>
                 </div>
@@ -1120,7 +1124,7 @@ export default function OfflinePracticePage() {
                   disabled={downloading}
                   onClick={() => setShowDownload(false)}
                   aria-label="Close download dialog"
-                  className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-white/10"
+                  className="rounded-lg p-2 hover:bg-slate-800 disabled:opacity-50 hover:bg-slate-800"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1137,7 +1141,7 @@ export default function OfflinePracticePage() {
                       setSelectedSubject(event.target.value as Subject)
                     }
                     disabled={downloading}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-950"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm border-slate-800 dark:bg-slate-950"
                   >
                     {SUBJECTS.map((subject) => (
                       <option key={subject}>{subject}</option>
@@ -1158,8 +1162,8 @@ export default function OfflinePracticePage() {
                         onClick={() => setSelectedExam(exam)}
                         className={`rounded-xl border px-3 py-3 text-sm font-semibold ${
                           selectedExam === exam
-                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
-                            : "border-slate-200 dark:border-white/10"
+                            ? "border-blue-500 bg-blue-500/10 text-blue-300 dark:bg-blue-500/100/10 text-indigo-300"
+                            : "border-slate-800 border-slate-800"
                         }`}
                       >
                         {exam}
@@ -1181,8 +1185,8 @@ export default function OfflinePracticePage() {
                         onClick={() => setSelectedDifficulty(difficulty)}
                         className={`rounded-xl border px-3 py-3 text-sm font-semibold ${
                           selectedDifficulty === difficulty
-                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
-                            : "border-slate-200 dark:border-white/10"
+                            ? "border-blue-500 bg-blue-500/10 text-blue-300 dark:bg-blue-500/100/10 text-indigo-300"
+                            : "border-slate-800 border-slate-800"
                         }`}
                       >
                         {formatDifficulty(difficulty)}
@@ -1204,8 +1208,8 @@ export default function OfflinePracticePage() {
                         onClick={() => setQuestionCount(count)}
                         className={`rounded-xl border px-3 py-3 text-sm font-semibold ${
                           questionCount === count
-                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
-                            : "border-slate-200 dark:border-white/10"
+                            ? "border-blue-500 bg-blue-500/10 text-blue-300 dark:bg-blue-500/100/10 text-indigo-300"
+                            : "border-slate-800 border-slate-800"
                         }`}
                       >
                         {count}
@@ -1217,7 +1221,7 @@ export default function OfflinePracticePage() {
                 {downloadProgress && (
                   <div
                     role="status"
-                    className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-500/10 dark:text-blue-200"
+                    className="flex items-center gap-3 rounded-xl bg-blue-500/10 p-4 text-sm text-blue-200 dark:bg-blue-500/100/10 dark:text-blue-200"
                   >
                     <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
                     {downloadProgress}
@@ -1225,7 +1229,7 @@ export default function OfflinePracticePage() {
                 )}
 
                 {notice && (
-                  <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+                  <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200 dark:bg-amber-500/100/10 dark:text-amber-200">
                     {notice}
                   </p>
                 )}
@@ -1234,7 +1238,7 @@ export default function OfflinePracticePage() {
                   type="button"
                   disabled={downloading}
                   onClick={() => void downloadSet()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {downloading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -1258,13 +1262,13 @@ export default function OfflinePracticePage() {
                     <button
                       type="button"
                       onClick={closePractice}
-                      className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400"
+                      className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-blue-300 text-slate-400"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Back to downloaded sets
                     </button>
 
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 dark:bg-blue-500/100/10 text-indigo-300">
                       <BookOpen className="h-4 w-4" />
                       Normal practice
                     </div>
@@ -1272,14 +1276,14 @@ export default function OfflinePracticePage() {
                     <h1 className="text-2xl font-bold sm:text-3xl">
                       {selectedPractice.subject}
                     </h1>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-slate-400 text-slate-400">
                       {selectedPractice.exam} · Question {normalIndex + 1} of{" "}
                       {totalQuestions}
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 border-slate-800 bg-slate-900">
+                    <p className="text-xs text-slate-400 text-slate-400">
                       Questions answered
                     </p>
                     <p className="mt-1 text-xl font-bold">
@@ -1288,9 +1292,9 @@ export default function OfflinePracticePage() {
                   </div>
                 </div>
 
-                <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-blue-600 transition-all"
+                    className="h-full rounded-full bg-indigo-600 transition-all"
                     style={{
                       width: `${
                         (normalAnsweredCount / Math.max(1, totalQuestions)) *
@@ -1300,12 +1304,12 @@ export default function OfflinePracticePage() {
                   />
                 </div>
 
-                <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03] sm:p-8">
+                <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900 sm:p-8">
                   <div className="mb-6 flex items-center justify-between gap-3">
-                    <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold dark:bg-white/10">
+                    <span className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold bg-slate-800">
                       Question {normalIndex + 1}
                     </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                    <span className="text-sm text-slate-400 text-slate-400">
                       {currentNormalAnswer ? "Answered" : "Not answered"}
                     </span>
                   </div>
@@ -1321,17 +1325,17 @@ export default function OfflinePracticePage() {
                       );
 
                       let optionStyle =
-                        "border-slate-200 hover:border-blue-300 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]";
+                        "border-slate-800 hover:border-blue-500/40 hover:bg-slate-800 border-slate-800 dark:hover:bg-slate-900/[0.04]";
 
                       if (showAnswerFeedback && correct) {
                         optionStyle =
-                          "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10";
+                          "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/100/10";
                       } else if (showAnswerFeedback && isSelected && !correct) {
                         optionStyle =
-                          "border-red-400 bg-red-50 dark:bg-red-500/10";
+                          "border-red-400 bg-red-500/10 dark:bg-red-500/100/10";
                       } else if (isSelected) {
                         optionStyle =
-                          "border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-500/10";
+                          "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500 dark:bg-blue-500/100/10";
                       }
 
                       return (
@@ -1342,7 +1346,7 @@ export default function OfflinePracticePage() {
                           onClick={() => chooseNormalAnswer(option.label)}
                           className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition disabled:cursor-default ${optionStyle}`}
                         >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold dark:bg-white/10">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold bg-slate-800">
                             {option.label}
                           </span>
                           <span className="pt-1 text-sm leading-6">
@@ -1350,7 +1354,7 @@ export default function OfflinePracticePage() {
                           </span>
 
                           {showAnswerFeedback && correct && (
-                            <CheckCircle2 className="ml-auto mt-1 h-5 w-5 shrink-0 text-emerald-600" />
+                            <CheckCircle2 className="ml-auto mt-1 h-5 w-5 shrink-0 text-emerald-300" />
                           )}
                         </button>
                       );
@@ -1361,8 +1365,8 @@ export default function OfflinePracticePage() {
                     <div
                       className={`mt-5 rounded-xl border p-4 ${
                         currentNormalAnswer?.correct
-                          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
-                          : "border-red-200 bg-red-50 dark:border-red-500/20 dark:bg-red-500/10"
+                          ? "border-emerald-500/25 bg-emerald-500/10 dark:border-emerald-500/20 dark:bg-emerald-500/100/10"
+                          : "border-red-500/25 bg-red-500/10 dark:border-red-500/20 dark:bg-red-500/100/10"
                       }`}
                     >
                       <p className="font-semibold">
@@ -1394,12 +1398,12 @@ export default function OfflinePracticePage() {
                     </div>
                   )}
 
-                  <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-slate-200 pt-5 dark:border-white/10 sm:flex-row">
+                  <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-slate-800 pt-5 border-slate-800 sm:flex-row">
                     <button
                       type="button"
                       disabled={normalIndex === 0}
                       onClick={() => moveNormalQuestion(normalIndex - 1)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold disabled:opacity-40 dark:border-white/10"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm font-semibold disabled:opacity-40 border-slate-800"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
@@ -1410,7 +1414,7 @@ export default function OfflinePracticePage() {
                         type="button"
                         disabled={!selectedAnswer}
                         onClick={() => void checkNormalAnswer()}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Check className="h-4 w-4" />
                         Check answer
@@ -1420,7 +1424,7 @@ export default function OfflinePracticePage() {
                         type="button"
                         onClick={() => moveNormalQuestion(normalIndex + 1)}
                         disabled={normalIndex === totalQuestions - 1}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Next question
                         <ChevronRight className="h-4 w-4" />
@@ -1429,7 +1433,7 @@ export default function OfflinePracticePage() {
                   </div>
 
                   {normalIndex === totalQuestions - 1 && showAnswerFeedback && (
-                    <p className="mt-4 text-center text-sm text-emerald-700 dark:text-emerald-300">
+                    <p className="mt-4 text-center text-sm text-emerald-300 text-emerald-300">
                       You have reached the end of this question set.
                     </p>
                   )}
@@ -1444,13 +1448,13 @@ export default function OfflinePracticePage() {
                     <button
                       type="button"
                       onClick={() => setConfirmFinish(true)}
-                      className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400"
+                      className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-blue-300 text-slate-400"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Finish or leave test
                     </button>
 
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 dark:bg-blue-500/100/10 text-indigo-300">
                       <Clock3 className="h-4 w-4" />
                       Timed practice
                     </div>
@@ -1458,7 +1462,7 @@ export default function OfflinePracticePage() {
                     <h1 className="text-2xl font-bold sm:text-3xl">
                       {selectedPractice.subject}
                     </h1>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-slate-400 text-slate-400">
                       {selectedPractice.exam} · Question {normalIndex + 1} of{" "}
                       {totalQuestions}
                     </p>
@@ -1467,8 +1471,8 @@ export default function OfflinePracticePage() {
                   <div
                     className={`flex items-center gap-3 self-start rounded-2xl border px-5 py-3 sm:self-auto ${
                       timeLeft <= 60
-                        ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
-                        : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300"
+                        ? "border-red-500/25 bg-red-500/10 text-red-300 dark:border-red-500/30 dark:bg-red-500/100/10 text-red-300"
+                        : "border-blue-500/30 bg-blue-500/10 text-blue-300 dark:border-blue-500/30 dark:bg-blue-500/100/10 text-indigo-300"
                     }`}
                     aria-live="polite"
                   >
@@ -1483,12 +1487,12 @@ export default function OfflinePracticePage() {
                 </div>
 
                 <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-                  <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03] sm:p-8">
+                  <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900 sm:p-8">
                     <div className="mb-6 flex items-center justify-between gap-3">
-                      <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold dark:bg-white/10">
+                      <span className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold bg-slate-800">
                         Question {normalIndex + 1}
                       </span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                      <span className="text-sm text-slate-400 text-slate-400">
                         {timedAnswers[normalIndex]
                           ? "Answer selected"
                           : "Not answered"}
@@ -1509,32 +1513,32 @@ export default function OfflinePracticePage() {
                             onClick={() => chooseTimedAnswer(option.label)}
                             className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition ${
                               isSelected
-                                ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-500/10"
-                                : "border-slate-200 hover:border-blue-300 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
+                                ? "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500 dark:bg-blue-500/100/10"
+                                : "border-slate-800 hover:border-blue-500/40 hover:bg-slate-800 border-slate-800 dark:hover:bg-slate-900/[0.04]"
                             }`}
                           >
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold dark:bg-white/10">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold bg-slate-800">
                               {option.label}
                             </span>
                             <span className="pt-1 text-sm leading-6">
                               {option.value}
                             </span>
                             {isSelected && (
-                              <CheckCircle2 className="ml-auto mt-1 h-5 w-5 shrink-0 text-blue-600" />
+                              <CheckCircle2 className="ml-auto mt-1 h-5 w-5 shrink-0 text-blue-300" />
                             )}
                           </button>
                         );
                       })}
                     </div>
 
-                    <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-slate-200 pt-5 dark:border-white/10 sm:flex-row">
+                    <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-slate-800 pt-5 border-slate-800 sm:flex-row">
                       <button
                         type="button"
                         disabled={normalIndex === 0}
                         onClick={() =>
                           setNormalIndex((index) => Math.max(0, index - 1))
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold disabled:opacity-40 dark:border-white/10"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm font-semibold disabled:opacity-40 border-slate-800"
                       >
                         <ChevronLeft className="h-4 w-4" />
                         Previous
@@ -1548,7 +1552,7 @@ export default function OfflinePracticePage() {
                               Math.min(totalQuestions - 1, index + 1),
                             )
                           }
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500"
                         >
                           Next question
                           <ChevronRight className="h-4 w-4" />
@@ -1565,41 +1569,41 @@ export default function OfflinePracticePage() {
                       )}
                     </div>
 
-                    <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-4 text-center text-xs text-slate-400 text-slate-400">
                       Correct answers and explanations stay hidden until you
                       submit.
                     </p>
                   </Card>
 
                   <aside className="space-y-5">
-                    <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                    <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900">
                       <h3 className="font-bold">Test progress</h3>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-500/10">
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="rounded-xl bg-blue-500/10 p-3 dark:bg-blue-500/100/10">
+                          <p className="text-xs text-slate-400 text-slate-400">
                             Answered
                           </p>
-                          <p className="mt-1 text-2xl font-bold text-blue-600">
+                          <p className="mt-1 text-2xl font-bold text-blue-300">
                             {timedAnsweredCount}
                           </p>
                         </div>
-                        <div className="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10">
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="rounded-xl bg-amber-500/10 p-3 dark:bg-amber-500/100/10">
+                          <p className="text-xs text-slate-400 text-slate-400">
                             Remaining
                           </p>
-                          <p className="mt-1 text-2xl font-bold text-amber-600">
+                          <p className="mt-1 text-2xl font-bold text-amber-300">
                             {totalQuestions - timedAnsweredCount}
                           </p>
                         </div>
                       </div>
 
-                      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-3 text-xs text-slate-400 text-slate-400">
                         One minute is allowed per question.
                       </p>
                     </Card>
 
-                    <Card className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                    <Card className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900">
                       <h3 className="mb-4 font-bold">Question navigation</h3>
                       <div className="grid grid-cols-5 gap-2">
                         {selectedPractice.questions.map((_, index) => {
@@ -1614,10 +1618,10 @@ export default function OfflinePracticePage() {
                               aria-label={`Go to question ${index + 1}`}
                               className={`flex aspect-square items-center justify-center rounded-lg border text-sm font-semibold ${
                                 isCurrent
-                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  ? "border-blue-600 bg-indigo-600 text-white"
                                   : isAnswered
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                    : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300"
+                                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300 dark:border-emerald-500/20 dark:bg-emerald-500/100/10 text-emerald-300"
+                                    : "border-slate-800 text-slate-300 border-slate-800 text-slate-300"
                               }`}
                             >
                               {index + 1}
@@ -1626,7 +1630,7 @@ export default function OfflinePracticePage() {
                         })}
                       </div>
 
-                      <div className="mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="mt-4 space-y-2 text-xs text-slate-400 text-slate-400">
                         <p>Blue: current question</p>
                         <p>Green: answered</p>
                         <p>Grey: not answered</p>
@@ -1636,7 +1640,7 @@ export default function OfflinePracticePage() {
                     <button
                       type="button"
                       onClick={() => setConfirmFinish(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/20 dark:text-red-300 dark:hover:bg-red-500/10"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/25 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/100/10 dark:border-red-500/20 text-red-300 dark:hover:bg-red-500/100/100/10"
                     >
                       Submit test
                     </button>
@@ -1648,9 +1652,9 @@ export default function OfflinePracticePage() {
             {/* TIMED RESULTS */}
             {practiceMode === "timed" && timedFinished && (
               <>
-                <Card className="mb-7 overflow-hidden border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03]">
-                  <div className="bg-blue-600 p-6 text-white sm:p-9">
-                    <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+                <Card className="mb-7 overflow-hidden border-slate-800 bg-slate-900 border-slate-800 bg-slate-900">
+                  <div className="bg-indigo-600 p-6 text-white sm:p-9">
+                    <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900/15">
                       <Trophy className="h-8 w-8" />
                     </div>
 
@@ -1675,11 +1679,11 @@ export default function OfflinePracticePage() {
                           </span>
                         </p>
                       </div>
-                      <div className="rounded-xl bg-white/15 px-4 py-3">
+                      <div className="rounded-xl bg-slate-900/15 px-4 py-3">
                         <p className="text-xs text-blue-100">Percentage</p>
                         <p className="text-2xl font-bold">{timedPercentage}%</p>
                       </div>
-                      <div className="rounded-xl bg-white/15 px-4 py-3">
+                      <div className="rounded-xl bg-slate-900/15 px-4 py-3">
                         <p className="text-xs text-blue-100">Time used</p>
                         <p className="text-2xl font-bold">
                           {formatTime(timedDuration - timeLeft)}
@@ -1689,39 +1693,39 @@ export default function OfflinePracticePage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4 sm:p-7">
-                    <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-500/10">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl bg-emerald-500/10 p-4 dark:bg-emerald-500/100/10">
+                      <p className="text-sm text-slate-400 text-slate-400">
                         Correct
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-emerald-600">
+                      <p className="mt-1 text-2xl font-bold text-emerald-300">
                         {timedScore}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-red-50 p-4 dark:bg-red-500/10">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl bg-red-500/10 p-4 dark:bg-red-500/100/10">
+                      <p className="text-sm text-slate-400 text-slate-400">
                         Incorrect
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-red-600">
+                      <p className="mt-1 text-2xl font-bold text-red-300">
                         {totalQuestions - timedScore}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-blue-50 p-4 dark:bg-blue-500/10">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl bg-blue-500/10 p-4 dark:bg-blue-500/100/10">
+                      <p className="text-sm text-slate-400 text-slate-400">
                         Answered
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-blue-600">
+                      <p className="mt-1 text-2xl font-bold text-blue-300">
                         {timedAnsweredCount}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-slate-100 p-4 dark:bg-white/10">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl bg-slate-800 p-4 bg-slate-800">
+                      <p className="text-sm text-slate-400 text-slate-400">
                         Result
                       </p>
                       <p
                         className={`mt-1 text-xl font-bold ${
                           timedPercentage >= 50
-                            ? "text-emerald-600"
-                            : "text-amber-600"
+                            ? "text-emerald-300"
+                            : "text-amber-300"
                         }`}
                       >
                         {timedPercentage >= 50
@@ -1750,7 +1754,7 @@ export default function OfflinePracticePage() {
                     <h2 className="text-2xl font-bold">
                       Answers and explanations
                     </h2>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-2 text-sm text-slate-400 text-slate-400">
                       Review your answers and the correct answers after the
                       test.
                     </p>
@@ -1759,7 +1763,7 @@ export default function OfflinePracticePage() {
                   <button
                     type="button"
                     onClick={() => startTimedPractice(selectedPractice)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm font-semibold hover:bg-slate-800 border-slate-800 hover:bg-slate-800"
                   >
                     <RotateCcw className="h-4 w-4" />
                     Try again
@@ -1775,17 +1779,17 @@ export default function OfflinePracticePage() {
                     return (
                       <Card
                         key={`${selectedPractice.id}-result-${index}`}
-                        className="border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03] sm:p-7"
+                        className="border-slate-800 bg-slate-900 p-5 border-slate-800 bg-slate-900 sm:p-7"
                       >
                         <div className="mb-4 flex items-center justify-between gap-3">
-                          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold dark:bg-white/10">
+                          <span className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold bg-slate-800">
                             Question {index + 1}
                           </span>
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               correct
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+                                ? "bg-emerald-500/10 text-emerald-300 dark:bg-emerald-500/100/10 text-emerald-300"
+                                : "bg-red-500/10 text-red-300 dark:bg-red-500/100/10 text-red-300"
                             }`}
                           >
                             {correct ? "Correct" : "Incorrect"}
@@ -1804,10 +1808,10 @@ export default function OfflinePracticePage() {
                                 key={`${index}-${option.label}-${optionIndex}`}
                                 className={`flex items-start gap-3 rounded-xl border p-3 ${
                                   isCorrect
-                                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10"
+                                    ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/100/10"
                                     : isSelected
-                                      ? "border-red-400 bg-red-50 dark:bg-red-500/10"
-                                      : "border-slate-200 dark:border-white/10"
+                                      ? "border-red-400 bg-red-500/10 dark:bg-red-500/100/10"
+                                      : "border-slate-800 border-slate-800"
                                 }`}
                               >
                                 <span className="font-bold">{option.label}</span>
@@ -1815,14 +1819,14 @@ export default function OfflinePracticePage() {
                                   {option.value}
                                 </span>
                                 {isCorrect && (
-                                  <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-emerald-600" />
+                                  <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-emerald-300" />
                                 )}
                               </div>
                             );
                           })}
                         </div>
 
-                        <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-white/[0.04]">
+                        <div className="mt-4 rounded-xl bg-slate-950/60 p-4 bg-slate-950/60">
                           <p className="text-sm">
                             Your answer:{" "}
                             <strong>{selected || "Not answered"}</strong>
@@ -1843,7 +1847,7 @@ export default function OfflinePracticePage() {
                 <button
                   type="button"
                   onClick={closePractice}
-                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500"
                 >
                   Back to downloaded sets
                   <ArrowRight className="h-4 w-4" />
@@ -1864,9 +1868,9 @@ export default function OfflinePracticePage() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="finish-title"
-                className="w-full max-w-md border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-slate-900"
+                className="w-full max-w-md border-slate-800 bg-slate-900 p-6 border-slate-800 dark:bg-slate-900"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/100/15 text-amber-300 dark:bg-amber-500/100/10 text-amber-300">
                   <Clock3 className="h-6 w-6" />
                 </div>
 
@@ -1874,7 +1878,7 @@ export default function OfflinePracticePage() {
                   Submit timed practice?
                 </h2>
 
-                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-3 text-sm leading-6 text-slate-400 text-slate-400">
                   You have answered {timedAnsweredCount} of {totalQuestions}{" "}
                   questions. Unanswered questions will count as incorrect.
                   Your score and explanations will be shown after submission.
@@ -1884,7 +1888,7 @@ export default function OfflinePracticePage() {
                   <button
                     type="button"
                     onClick={() => setConfirmFinish(false)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold dark:border-white/10"
+                    className="rounded-xl border border-slate-800 px-4 py-3 text-sm font-semibold border-slate-800"
                   >
                     Continue test
                   </button>
@@ -1892,7 +1896,7 @@ export default function OfflinePracticePage() {
                   <button
                     type="button"
                     onClick={() => finishTimedPractice(false)}
-                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                    className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500"
                   >
                     Confirm submission
                   </button>
@@ -1908,20 +1912,20 @@ export default function OfflinePracticePage() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="new-questions-title"
-              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+              className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/100/15 text-blue-300 dark:bg-indigo-500/10 dark:text-indigo-300">
                 <Download className="h-6 w-6" />
               </div>
 
               <h2
                 id="new-questions-title"
-                className="text-xl font-bold text-slate-900 dark:text-white"
+                className="text-xl font-bold text-white text-white"
               >
                 Practise 100% new questions?
               </h2>
 
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <p className="mt-3 text-sm leading-6 text-slate-300 text-slate-300">
                 Would you like to practise with fresh questions you
                 haven't used before for the selected subject and exam?
               </p>
@@ -1930,7 +1934,7 @@ export default function OfflinePracticePage() {
                 <button
                   type="button"
                   onClick={() => setShowNewQuestionsConfirm(false)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   No, stay here
                 </button>
@@ -1941,7 +1945,7 @@ export default function OfflinePracticePage() {
                     setShowNewQuestionsConfirm(false);
                     window.location.href = "/student/practice/offline2";
                   }}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
                 >
                   Yes, show new questions
                 </button>

@@ -25,8 +25,8 @@ import {
   Zap,
 } from "lucide-react";
 
-import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions/types";
-import { getQuestionBanks } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions";
+import type { QuestionBankItem } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions/types";
+import { getQuestionBanks } from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions";
 
 /* =========================================================
    TYPES AND CONFIGURATION

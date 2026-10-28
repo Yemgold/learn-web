@@ -9,7 +9,7 @@
 import {
   getQuestionBanks,
   type QuestionDifficulty,
-} from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/questions";
+} from "@/app/admin/(admin)/secondary/solveandwin/competitions/createquestion/jamb/questions";
 
 import type { EduLudoGameQuestion} from "./question-bank/adapter";
 import type { EduLudoLevel,EduLudoSubject } from "./components/eduLudoTypes"; 

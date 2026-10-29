@@ -1,18 +1,20 @@
 
 
 
-
 "use client";
 
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   ArrowRight,
   BadgeCheck,
   Gift,
   Sparkles,
 } from "lucide-react";
+
+import { axiosInstance as api } from "@/lib/api/axios";
 
 type RewardId =
   | "laptop"
@@ -31,18 +33,13 @@ type Reward = {
 };
 
 export type CBTPracticeRewardCardProps = {
-  /** Destination for the student's CBT wallet. */
   walletHref?: string;
-  /**
-   * Connect this to your backend claim endpoint. It should resolve only after
-   * the claim succeeds. The component navigates to the wallet afterwards.
-   */
-  onClaim?: (details: { reward: RewardId; points: number }) => Promise<void> | void;
-  /** Optional extra Tailwind classes for the outer card. */
   className?: string;
 };
 
 const CBT_REWARD_POINTS = 50_000;
+
+const CLAIM_ENDPOINT = "/practice-wallet/claim-welcome-token";
 
 const REWARDS: Reward[] = [
   {
@@ -91,34 +88,71 @@ const REWARDS: Reward[] = [
 
 export default function CBTPracticeRewardCard({
   walletHref = "/student/practice/cbt-wallet",
-  onClaim,
   className = "",
 }: CBTPracticeRewardCardProps) {
   const router = useRouter();
-  const [selectedReward, setSelectedReward] = useState<RewardId | null>(null);
+
+  const [selectedReward, setSelectedReward] =
+    useState<RewardId | null>(null);
+
   const [isClaiming, setIsClaiming] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleClaim = async () => {
     if (!selectedReward || isClaiming) return;
 
-    if (!onClaim) {
-      setError("CBT points claiming is not connected yet. Please try again later.");
-      return;
-    }
-
     setError("");
+    setSuccessMessage("");
     setIsClaiming(true);
 
     try {
-      await onClaim({ reward: selectedReward, points: CBT_REWARD_POINTS });
-      router.push(walletHref);
-    } catch (claimError) {
-      setError(
-        claimError instanceof Error
-          ? claimError.message
-          : "We couldn't process your claim. Please try again.",
+      /*
+       * The authenticated backend identifies the student
+       * and processes the welcome-token claim.
+       *
+       * The selected reward is a display preference here.
+       * The endpoint contract supplied does not establish
+       * that it accepts a reward field in the request body.
+       */
+      const response = await api.post(CLAIM_ENDPOINT);
+
+      const result = response.data;
+
+      if (result?.success === false) {
+        throw new Error(
+          result?.message || "Your CBT points claim was unsuccessful.",
+        );
+      }
+
+      setSuccessMessage(
+        result?.message || "Your welcome-token claim was successful!",
       );
+
+      // Navigate only after the claim request succeeds.
+      router.push(walletHref);
+      router.refresh();
+    } catch (claimError: unknown) {
+      let message =
+        "We couldn't process your claim. Please try again.";
+
+      if (axios.isAxiosError(claimError)) {
+        const responseData = claimError.response?.data;
+
+        if (typeof responseData?.message === "string") {
+          message = responseData.message;
+        } else if (typeof responseData?.error === "string") {
+          message = responseData.error;
+        } else if (claimError.response?.status === 401) {
+          message = "Your session may have expired. Please log in again.";
+        } else if (claimError.response?.status === 409) {
+          message = "You may have already claimed your welcome token.";
+        }
+      } else if (claimError instanceof Error) {
+        message = claimError.message;
+      }
+
+      setError(message);
     } finally {
       setIsClaiming(false);
     }
@@ -129,49 +163,65 @@ export default function CBTPracticeRewardCard({
       aria-labelledby="cbt-reward-title"
       className={`relative isolate overflow-hidden rounded-3xl border border-emerald-400/20 bg-slate-950 text-white shadow-xl ${className}`}
     >
+      {/* Decorative background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-400/15 blur-3xl"
       />
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl"
       />
 
       <div className="relative p-5 sm:p-7">
+        {/* Heading */}
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/20">
             <Gift className="h-6 w-6" aria-hidden="true" />
           </div>
+
           <div className="min-w-0 flex-1">
             <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               CBT PRACTICE REWARDS
             </div>
-            <h2 id="cbt-reward-title" className="text-xl font-bold tracking-tight sm:text-2xl">
+
+            <h2
+              id="cbt-reward-title"
+              className="text-xl font-bold tracking-tight sm:text-2xl"
+            >
               Choose your dream reward
             </h2>
+
             <p className="mt-1 text-sm leading-6 text-slate-300">
               Set a target that motivates you to practise and improve every day.
             </p>
           </div>
         </div>
 
+        {/* Welcome-token points */}
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Your CBT points reward
+            Your CBT Welcome Token
           </p>
+
           <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
             <span className="text-3xl font-black tracking-tight text-emerald-300 sm:text-4xl">
-              50,000
+              {CBT_REWARD_POINTS.toLocaleString("en-NG")}
             </span>
-            <span className="pb-1 text-sm font-semibold text-slate-300">CBT points</span>
+
+            <span className="pb-1 text-sm font-semibold text-slate-300">
+              CBT points
+            </span>
           </div>
+
           <p className="mt-1 text-xs text-slate-400">
             Select one reward below to set it as your target.
           </p>
         </div>
 
+        {/* Reward selection */}
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {REWARDS.map((reward) => {
             const isSelected = selectedReward === reward.id;
@@ -183,6 +233,7 @@ export default function CBTPracticeRewardCard({
                 onClick={() => {
                   setSelectedReward(reward.id);
                   setError("");
+                  setSuccessMessage("");
                 }}
                 aria-pressed={isSelected}
                 className={`group min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
@@ -199,14 +250,22 @@ export default function CBTPracticeRewardCard({
                     sizes="(max-width: 639px) 45vw, (max-width: 1023px) 28vw, 16vw"
                     className="object-contain p-1 transition duration-300 group-hover:scale-105"
                   />
+
                   {isSelected && (
                     <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow">
-                      <BadgeCheck className="h-4 w-4" aria-label="Selected" />
+                      <BadgeCheck
+                        className="h-4 w-4"
+                        aria-label="Selected"
+                      />
                     </span>
                   )}
                 </div>
+
                 <div className="p-3">
-                  <span className="block text-sm font-bold text-white">{reward.name}</span>
+                  <span className="block text-sm font-bold text-white">
+                    {reward.name}
+                  </span>
+
                   <span className="mt-1 block text-xs leading-5 text-slate-400">
                     {reward.description}
                   </span>
@@ -216,6 +275,7 @@ export default function CBTPracticeRewardCard({
           })}
         </div>
 
+        {/* Error */}
         {error && (
           <p
             role="alert"
@@ -225,16 +285,33 @@ export default function CBTPracticeRewardCard({
           </p>
         )}
 
+        {/* Success */}
+        {successMessage && (
+          <p
+            role="status"
+            className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200"
+          >
+            {successMessage}
+          </p>
+        )}
+
+        {/* Claim button */}
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-  type="button"
-  onClick={handleClaim}
-  disabled={!selectedReward || isClaiming}
-  className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-400/40 transition-all duration-300 hover:scale-[1.02] hover:bg-emerald-300 hover:shadow-emerald-400/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 animate-pulse disabled:cursor-not-allowed disabled:opacity-45 disabled:animate-none"
->
-  {isClaiming ? "Processing claim..." : "Claim 50,000 CBT Points"}
-  {!isClaiming && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-</button>
+            type="button"
+            onClick={handleClaim}
+            disabled={!selectedReward || isClaiming}
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-400/40 transition-all duration-300 hover:scale-[1.02] hover:bg-emerald-300 hover:shadow-emerald-400/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 animate-pulse disabled:cursor-not-allowed disabled:opacity-45 disabled:animate-none"
+          >
+            {isClaiming
+              ? "Processing claim..."
+              : "Claim 50,000 CBT Points"}
+
+            {!isClaiming && (
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+
           <p className="text-center text-xs leading-5 text-slate-400 sm:max-w-48 sm:text-left">
             {selectedReward
               ? `${REWARDS.find((reward) => reward.id === selectedReward)?.name} selected as your target.`
@@ -245,3 +322,6 @@ export default function CBTPracticeRewardCard({
     </section>
   );
 }
+
+
+

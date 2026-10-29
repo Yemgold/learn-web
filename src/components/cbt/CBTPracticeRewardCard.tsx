@@ -227,14 +227,14 @@ export default function CBTPracticeRewardCard({
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            type="button"
-            onClick={handleClaim}
-            disabled={!selectedReward || isClaiming}
-            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {isClaiming ? "Processing claim..." : "Claim 50,000 CBT Points"}
-            {!isClaiming && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-          </button>
+  type="button"
+  onClick={handleClaim}
+  disabled={!selectedReward || isClaiming}
+  className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-400/40 transition-all duration-300 hover:scale-[1.02] hover:bg-emerald-300 hover:shadow-emerald-400/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 animate-pulse disabled:cursor-not-allowed disabled:opacity-45 disabled:animate-none"
+>
+  {isClaiming ? "Processing claim..." : "Claim 50,000 CBT Points"}
+  {!isClaiming && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+</button>
           <p className="text-center text-xs leading-5 text-slate-400 sm:max-w-48 sm:text-left">
             {selectedReward
               ? `${REWARDS.find((reward) => reward.id === selectedReward)?.name} selected as your target.`

@@ -408,7 +408,7 @@ className={`           relative
               text-emerald-300
             "
           >
-            30-Day Free Access
+            3-Day Free Access
           </span>
         </div>
 

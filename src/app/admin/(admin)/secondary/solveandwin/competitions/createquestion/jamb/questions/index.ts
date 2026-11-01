@@ -38,6 +38,11 @@ import jambEconomicsEasyQuestions from "./mathematics/easy/jamb";
 import jambEconomicsMediumQuestions from "./mathematics/medium/jamb";
 import jambEconomicsHardQuestions from "./mathematics/hard/jamb";
 
+
+import jambEnglishEasyQuestions from "./mathematics/easy/jamb";
+import jambEnglishMediumQuestions from "./mathematics/medium/jamb";
+import jambEnglishHardQuestions from "./mathematics/hard/jamb";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -110,6 +115,14 @@ const difficultyQuestionBank: DifficultyBankMap = {
       easy: jambAccountingEasyQuestions,
       medium: jambAccountingMediumQuestions,
       hard: jambAccountingHardQuestions,
+    },
+  },
+
+    english: {
+    jamb: {
+      easy: jambEnglishEasyQuestions,
+      medium: jambEnglishMediumQuestions,
+      hard: jambEnglishHardQuestions,
     },
   },
 };

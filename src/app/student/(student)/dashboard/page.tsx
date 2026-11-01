@@ -19,7 +19,7 @@ import { getAllQuizzes } from "@/lib/api/quizCompetition";
 import { getAllNotCompletedContests } from "@/lib/api/solveAndWin";
 
 import UpcomingQuiz from "@/components/dashboard/UpcomingQuiz";
-import UpcomingAndWin from "@/components/dashboard/UpcomingAndWin";
+
 
 import WhatsAppCommunityCard from "@/components/dashboard/WhatsAppCommunityCard";
 import CBTPracticeRewardCard from "@/components/cbt/CBTPracticeRewardCard";
@@ -599,14 +599,21 @@ export default function StudentDashboardPage() {
       icon: "play",
     },
 
-
-   {
-  title: "Learnfi Books Shop",
-  description:
-    "Inspire growth and learning",
-  href: "/student/books",
+    {
+  title: "School & Study Centre ",
+  description: "Access with your study's PIN",
+  href: "/student/school-centres/access",
   icon: "book",
 },
+
+
+//    {
+//   title: "Learnfi Books Shop",
+//   description:
+//     "Inspire growth and learning",
+//   href: "/student/books",
+//   icon: "book",
+// },
 
 
   ];

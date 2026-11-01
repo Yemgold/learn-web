@@ -11,7 +11,10 @@ import {
   Book,
   Users,
   UserRound,
+  BookOpen,
   FileQuestion,
+  Building2,
+  GraduationCap,
   ClipboardList,
   CreditCard,
   BarChart3,
@@ -108,38 +111,46 @@ export const adminNavigation: AdminNavSection[] = [
 },
 
 {
-  title: "Competition — Tertiary Plan",
+  title: "School & Study Centres",
   items: [
     {
-      label: "Solve & Win Competitions",
-      href: "/admin/tertiary/solveandwin",
-      icon: Trophy,
+      label: "Overview",
+      href: "/admin/school-centres",
+      icon: LayoutDashboard,
+      exact: true,
     },
     {
-      label: "National Competitions",
-      href: "/admin/tertiary/nationalcompetitions",
-      icon: Trophy,
+      label: "Institutions",
+      href: "/admin/school-centres/institutions",
+      icon: Building2,
+    },
+    {
+      label: "Students",
+      href: "/admin/school-centres/students",
+      icon: Users,
+    },
+    {
+      label: "Questions",
+      href: "/admin/school-centres/questions",
+      icon: BookOpen,
+    },
+    {
+      label: "Classes",
+      href: "/admin/school-centres/classes",
+      icon: GraduationCap,
+    },
+    {
+      label: "Assignments",
+      href: "/admin/school-centres/assignments",
+      icon: ClipboardList,
+    },
+    {
+      label: "Results",
+      href: "/admin/school-centres/results",
+      icon: BarChart3,
     },
   ],
 },
-
-{
-  title: "Competition — Professional Plan",
-  items: [
-    {
-      label: "Solve & Win Competitions",
-      href: "/admin/professional/solveandwin",
-      icon: Trophy,
-    },
-    {
-      label: "National Competitions",
-      href: "/admin/professional/nationalcompetitions",
-      icon: Trophy,
-    },
-  ],
-},
-
-
 
 
   {

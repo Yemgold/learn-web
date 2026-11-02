@@ -1,0 +1,3369 @@
+{
+  "year": "2001",
+  "examType": "waec",
+  "subject": "English",
+  "section": "objective",
+  "type": "mcq",
+  "questions": [
+    {
+      "id": "eng-2001-1",
+      "imageId": "img-eng-2001-1",
+      "question": "The word 'meticulous' is closest in meaning to ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The word 'meticulous' is closest in meaning to ______.",
+          "segments": [
+            {
+              "text": "The word 'meticulous' is closest in meaning to ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "careless"
+        },
+        {
+          "label": "B",
+          "value": "thorough"
+        },
+        {
+          "label": "C",
+          "value": "impatient"
+        },
+        {
+          "label": "D",
+          "value": "ordinary"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Meticulous means very careful and attentive to detail; thorough is the closest option.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-2",
+      "imageId": "img-eng-2001-2",
+      "question": "A person who studies ancient objects and remains is an ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "A person who studies ancient objects and remains is an ______.",
+          "segments": [
+            {
+              "text": "A person who studies ancient objects and remains is an ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "architect"
+        },
+        {
+          "label": "B",
+          "value": "archaeologist"
+        },
+        {
+          "label": "C",
+          "value": "astronomer"
+        },
+        {
+          "label": "D",
+          "value": "agronomist"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "An archaeologist studies past human life through objects and physical remains.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-3",
+      "imageId": "img-eng-2001-3",
+      "question": "Choose the word that is opposite in meaning to 'scarce'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the word that is opposite in meaning to 'scarce'.",
+          "segments": [
+            {
+              "text": "Choose the word that is opposite in meaning to 'scarce'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "rare"
+        },
+        {
+          "label": "B",
+          "value": "limited"
+        },
+        {
+          "label": "C",
+          "value": "abundant"
+        },
+        {
+          "label": "D",
+          "value": "insufficient"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "Scarce means not enough or difficult to find; abundant means plentiful.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-4",
+      "imageId": "img-eng-2001-4",
+      "question": "A person who cannot read or write is described as ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "A person who cannot read or write is described as ______.",
+          "segments": [
+            {
+              "text": "A person who cannot read or write is described as ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "illiterate"
+        },
+        {
+          "label": "B",
+          "value": "ineligible"
+        },
+        {
+          "label": "C",
+          "value": "illegible"
+        },
+        {
+          "label": "D",
+          "value": "invisible"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "Illiterate describes a person who cannot read or write.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-5",
+      "imageId": "img-eng-2001-5",
+      "question": "Choose the word most nearly opposite in meaning to 'hostile'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the word most nearly opposite in meaning to 'hostile'.",
+          "segments": [
+            {
+              "text": "Choose the word most nearly opposite in meaning to 'hostile'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "unfriendly"
+        },
+        {
+          "label": "B",
+          "value": "aggressive"
+        },
+        {
+          "label": "C",
+          "value": "welcoming"
+        },
+        {
+          "label": "D",
+          "value": "violent"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "Hostile means unfriendly; welcoming expresses friendliness.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-6",
+      "imageId": "img-eng-2001-6",
+      "question": "The word 'reluctant' in the sentence means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The word 'reluctant' in the sentence means ______.",
+          "segments": [
+            {
+              "text": "The word 'reluctant' in the sentence means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "eager"
+        },
+        {
+          "label": "B",
+          "value": "unwilling"
+        },
+        {
+          "label": "C",
+          "value": "prepared"
+        },
+        {
+          "label": "D",
+          "value": "confident"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Reluctant means unwilling or hesitant to do something.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-7",
+      "imageId": "img-eng-2001-7",
+      "question": "A person who speaks many languages is a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "A person who speaks many languages is a ______.",
+          "segments": [
+            {
+              "text": "A person who speaks many languages is a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "linguist"
+        },
+        {
+          "label": "B",
+          "value": "polyglot"
+        },
+        {
+          "label": "C",
+          "value": "translator"
+        },
+        {
+          "label": "D",
+          "value": "novelist"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A polyglot is someone who knows or uses several languages.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-8",
+      "imageId": "img-eng-2001-8",
+      "question": "Choose the word that best completes the relationship: surgeon is to hospital as teacher is to ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the word that best completes the relationship: surgeon is to hospital as teacher is to ______.",
+          "segments": [
+            {
+              "text": "Choose the word that best completes the relationship: surgeon is to hospital as teacher is to ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "courtroom"
+        },
+        {
+          "label": "B",
+          "value": "classroom"
+        },
+        {
+          "label": "C",
+          "value": "laboratory"
+        },
+        {
+          "label": "D",
+          "value": "market"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A surgeon commonly works in a hospital, while a teacher commonly works in a classroom.",
+      "instruction": "Choose the correct answer",
+      "topic": "Vocabulary and word relationships",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-9",
+      "imageId": "img-eng-2001-9",
+      "question": "In the sentence, 'The chairman gave a brief reply', brief means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence, 'The chairman gave a brief reply', brief means ______.",
+          "segments": [
+            {
+              "text": "In the sentence, 'The chairman gave a brief reply', brief means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "lengthy"
+        },
+        {
+          "label": "B",
+          "value": "short"
+        },
+        {
+          "label": "C",
+          "value": "unclear"
+        },
+        {
+          "label": "D",
+          "value": "rude"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Brief means short in duration or length.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-10",
+      "imageId": "img-eng-2001-10",
+      "question": "In the sentence, 'The witness gave a credible account', credible means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence, 'The witness gave a credible account', credible means ______.",
+          "segments": [
+            {
+              "text": "In the sentence, 'The witness gave a credible account', credible means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "believable"
+        },
+        {
+          "label": "B",
+          "value": "confusing"
+        },
+        {
+          "label": "C",
+          "value": "unusual"
+        },
+        {
+          "label": "D",
+          "value": "incomplete"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "Credible means capable of being believed or trusted.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-11",
+      "imageId": "img-eng-2001-11",
+      "question": "Choose the word opposite in meaning to the underlined word: The instructions were **ambiguous**. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the word opposite in meaning to the underlined word: The instructions were **ambiguous**.",
+          "segments": [
+            {
+              "text": "Choose the word opposite in meaning to the underlined word: The instructions were **ambiguous**. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "clear"
+        },
+        {
+          "label": "B",
+          "value": "lengthy"
+        },
+        {
+          "label": "C",
+          "value": "detailed"
+        },
+        {
+          "label": "D",
+          "value": "formal"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "Ambiguous means having more than one possible meaning; clear is its opposite in this context.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-12",
+      "imageId": "img-eng-2001-12",
+      "question": "In the sentence, 'The manager rebuked the careless worker', rebuked means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence, 'The manager rebuked the careless worker', rebuked means ______.",
+          "segments": [
+            {
+              "text": "In the sentence, 'The manager rebuked the careless worker', rebuked means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "praised"
+        },
+        {
+          "label": "B",
+          "value": "corrected"
+        },
+        {
+          "label": "C",
+          "value": "scolded"
+        },
+        {
+          "label": "D",
+          "value": "promoted"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "To rebuke someone is to express strong disapproval or scold them.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-13",
+      "imageId": "img-eng-2001-13",
+      "question": "Choose the word nearest in meaning to 'diligent'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the word nearest in meaning to 'diligent'.",
+          "segments": [
+            {
+              "text": "Choose the word nearest in meaning to 'diligent'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "hardworking"
+        },
+        {
+          "label": "B",
+          "value": "stubborn"
+        },
+        {
+          "label": "C",
+          "value": "fearful"
+        },
+        {
+          "label": "D",
+          "value": "wealthy"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "Diligent means showing steady and careful effort; hardworking is closest.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-14",
+      "imageId": "img-eng-2001-14",
+      "question": "In the sentence, 'The old bridge is fragile', fragile means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence, 'The old bridge is fragile', fragile means ______.",
+          "segments": [
+            {
+              "text": "In the sentence, 'The old bridge is fragile', fragile means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "strong"
+        },
+        {
+          "label": "B",
+          "value": "delicate"
+        },
+        {
+          "label": "C",
+          "value": "wide"
+        },
+        {
+          "label": "D",
+          "value": "ancient"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Fragile means easily broken or damaged; delicate is closest.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-15",
+      "imageId": "img-eng-2001-15",
+      "question": "Choose the opposite of 'expand' as used in: 'The company plans to expand its operations'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the opposite of 'expand' as used in: 'The company plans to expand its operations'.",
+          "segments": [
+            {
+              "text": "Choose the opposite of 'expand' as used in: 'The company plans to expand its operations'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "extend"
+        },
+        {
+          "label": "B",
+          "value": "increase"
+        },
+        {
+          "label": "C",
+          "value": "contract"
+        },
+        {
+          "label": "D",
+          "value": "develop"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "To expand is to become larger; to contract is to become smaller.",
+      "instruction": "Choose the correct answer",
+      "topic": "Synonyms and antonyms in context",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-16",
+      "imageId": "img-eng-2001-16",
+      "question": "When Ada said the examination was 'a piece of cake', she meant it was ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "When Ada said the examination was 'a piece of cake', she meant it was ______.",
+          "segments": [
+            {
+              "text": "When Ada said the examination was 'a piece of cake', she meant it was ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "very difficult"
+        },
+        {
+          "label": "B",
+          "value": "very easy"
+        },
+        {
+          "label": "C",
+          "value": "unexpected"
+        },
+        {
+          "label": "D",
+          "value": "expensive"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A piece of cake is an idiom meaning something very easy to do.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-17",
+      "imageId": "img-eng-2001-17",
+      "question": "The expression 'to spill the beans' means to ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The expression 'to spill the beans' means to ______.",
+          "segments": [
+            {
+              "text": "The expression 'to spill the beans' means to ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "waste food"
+        },
+        {
+          "label": "B",
+          "value": "reveal a secret"
+        },
+        {
+          "label": "C",
+          "value": "make a mess"
+        },
+        {
+          "label": "D",
+          "value": "tell a lie"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "To spill the beans means to disclose secret information.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-18",
+      "imageId": "img-eng-2001-18",
+      "question": "Choose the correct collocation: The committee will ______ a decision tomorrow. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct collocation: The committee will ______ a decision tomorrow.",
+          "segments": [
+            {
+              "text": "Choose the correct collocation: The committee will ______ a decision tomorrow. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "do"
+        },
+        {
+          "label": "B",
+          "value": "make"
+        },
+        {
+          "label": "C",
+          "value": "put"
+        },
+        {
+          "label": "D",
+          "value": "take"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The standard collocation is 'make a decision'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-19",
+      "imageId": "img-eng-2001-19",
+      "question": "If someone 'burns the midnight oil', the person ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "If someone 'burns the midnight oil', the person ______.",
+          "segments": [
+            {
+              "text": "If someone 'burns the midnight oil', the person ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "wastes electricity"
+        },
+        {
+          "label": "B",
+          "value": "works late into the night"
+        },
+        {
+          "label": "C",
+          "value": "starts a fire"
+        },
+        {
+          "label": "D",
+          "value": "sleeps late"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The idiom means to work or study late at night.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-20",
+      "imageId": "img-eng-2001-20",
+      "question": "The phrase 'at the eleventh hour' means ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The phrase 'at the eleventh hour' means ______.",
+          "segments": [
+            {
+              "text": "The phrase 'at the eleventh hour' means ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "very early"
+        },
+        {
+          "label": "B",
+          "value": "at the last possible moment"
+        },
+        {
+          "label": "C",
+          "value": "after eleven days"
+        },
+        {
+          "label": "D",
+          "value": "every hour"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "It refers to the final moment before a deadline or event.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-21",
+      "imageId": "img-eng-2001-21",
+      "question": "Choose the correct expression: The suspect was finally brought ______ justice. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct expression: The suspect was finally brought ______ justice.",
+          "segments": [
+            {
+              "text": "Choose the correct expression: The suspect was finally brought ______ justice. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "at"
+        },
+        {
+          "label": "B",
+          "value": "to"
+        },
+        {
+          "label": "C",
+          "value": "on"
+        },
+        {
+          "label": "D",
+          "value": "by"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The fixed expression is 'brought to justice'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-22",
+      "imageId": "img-eng-2001-22",
+      "question": "In 'The wind whispered through the trees', the figure of speech is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'The wind whispered through the trees', the figure of speech is ______.",
+          "segments": [
+            {
+              "text": "In 'The wind whispered through the trees', the figure of speech is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "hyperbole"
+        },
+        {
+          "label": "B",
+          "value": "personification"
+        },
+        {
+          "label": "C",
+          "value": "irony"
+        },
+        {
+          "label": "D",
+          "value": "euphemism"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Personification gives a human action, whispering, to the wind.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-23",
+      "imageId": "img-eng-2001-23",
+      "question": "Choose the correct collocation: The students paid ______ to the speaker. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct collocation: The students paid ______ to the speaker.",
+          "segments": [
+            {
+              "text": "Choose the correct collocation: The students paid ______ to the speaker. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "attention"
+        },
+        {
+          "label": "B",
+          "value": "notice"
+        },
+        {
+          "label": "C",
+          "value": "interest"
+        },
+        {
+          "label": "D",
+          "value": "carefulness"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "The standard expression is 'pay attention'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Idioms, collocations and figurative usage",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-24",
+      "imageId": "img-eng-2001-24",
+      "question": "Neither the principal nor the teachers ______ present at the meeting. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Neither the principal nor the teachers ______ present at the meeting.",
+          "segments": [
+            {
+              "text": "Neither the principal nor the teachers ______ present at the meeting. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "was"
+        },
+        {
+          "label": "B",
+          "value": "is"
+        },
+        {
+          "label": "C",
+          "value": "were"
+        },
+        {
+          "label": "D",
+          "value": "has been"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "With 'neither...nor', the verb agrees with the nearer subject; 'teachers' is plural.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-25",
+      "imageId": "img-eng-2001-25",
+      "question": "Each of the candidates ______ submitted an application. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Each of the candidates ______ submitted an application.",
+          "segments": [
+            {
+              "text": "Each of the candidates ______ submitted an application. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "have"
+        },
+        {
+          "label": "B",
+          "value": "has"
+        },
+        {
+          "label": "C",
+          "value": "are"
+        },
+        {
+          "label": "D",
+          "value": "were"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Each' is singular and takes the singular verb 'has'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-26",
+      "imageId": "img-eng-2001-26",
+      "question": "By the time we arrived, the film ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "By the time we arrived, the film ______.",
+          "segments": [
+            {
+              "text": "By the time we arrived, the film ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "starts"
+        },
+        {
+          "label": "B",
+          "value": "has started"
+        },
+        {
+          "label": "C",
+          "value": "had started"
+        },
+        {
+          "label": "D",
+          "value": "will start"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The past perfect marks an action completed before another past action.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-27",
+      "imageId": "img-eng-2001-27",
+      "question": "If she ______ harder, she would have passed the test. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "If she ______ harder, she would have passed the test.",
+          "segments": [
+            {
+              "text": "If she ______ harder, she would have passed the test. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "studies"
+        },
+        {
+          "label": "B",
+          "value": "studied"
+        },
+        {
+          "label": "C",
+          "value": "had studied"
+        },
+        {
+          "label": "D",
+          "value": "has studied"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The third conditional uses 'if + past perfect' with 'would have + past participle'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-28",
+      "imageId": "img-eng-2001-28",
+      "question": "The news ______ encouraging this morning. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The news ______ encouraging this morning.",
+          "segments": [
+            {
+              "text": "The news ______ encouraging this morning. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "are"
+        },
+        {
+          "label": "B",
+          "value": "were"
+        },
+        {
+          "label": "C",
+          "value": "is"
+        },
+        {
+          "label": "D",
+          "value": "have been"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "'News' is an uncountable singular noun and takes 'is'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-29",
+      "imageId": "img-eng-2001-29",
+      "question": "When I called him, he ______ dinner. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "When I called him, he ______ dinner.",
+          "segments": [
+            {
+              "text": "When I called him, he ______ dinner. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "has"
+        },
+        {
+          "label": "B",
+          "value": "was having"
+        },
+        {
+          "label": "C",
+          "value": "will have"
+        },
+        {
+          "label": "D",
+          "value": "is having"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The past continuous describes an action in progress when another past action occurred.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-30",
+      "imageId": "img-eng-2001-30",
+      "question": "Ten kilometres ______ a long distance to walk in this heat. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Ten kilometres ______ a long distance to walk in this heat.",
+          "segments": [
+            {
+              "text": "Ten kilometres ______ a long distance to walk in this heat. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "are"
+        },
+        {
+          "label": "B",
+          "value": "were"
+        },
+        {
+          "label": "C",
+          "value": "is"
+        },
+        {
+          "label": "D",
+          "value": "have"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "A distance considered as one unit takes a singular verb.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-31",
+      "imageId": "img-eng-2001-31",
+      "question": "The players, together with their coach, ______ arriving now. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The players, together with their coach, ______ arriving now.",
+          "segments": [
+            {
+              "text": "The players, together with their coach, ______ arriving now. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "is"
+        },
+        {
+          "label": "B",
+          "value": "was"
+        },
+        {
+          "label": "C",
+          "value": "are"
+        },
+        {
+          "label": "D",
+          "value": "has"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The subject is 'players'; the phrase 'together with their coach' does not change the plural agreement.",
+      "instruction": "Choose the correct answer",
+      "topic": "Concord, tenses and sequence of tenses",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-32",
+      "imageId": "img-eng-2001-32",
+      "question": "In the sentence 'She spoke softly', the word 'softly' is an ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence 'She spoke softly', the word 'softly' is an ______.",
+          "segments": [
+            {
+              "text": "In the sentence 'She spoke softly', the word 'softly' is an ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "adjective"
+        },
+        {
+          "label": "B",
+          "value": "adverb"
+        },
+        {
+          "label": "C",
+          "value": "noun"
+        },
+        {
+          "label": "D",
+          "value": "pronoun"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Softly' modifies the verb 'spoke' and is an adverb.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-33",
+      "imageId": "img-eng-2001-33",
+      "question": "Identify the part of speech of 'honesty' in: 'Honesty is the best policy'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Identify the part of speech of 'honesty' in: 'Honesty is the best policy'.",
+          "segments": [
+            {
+              "text": "Identify the part of speech of 'honesty' in: 'Honesty is the best policy'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "verb"
+        },
+        {
+          "label": "B",
+          "value": "adjective"
+        },
+        {
+          "label": "C",
+          "value": "noun"
+        },
+        {
+          "label": "D",
+          "value": "adverb"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "'Honesty' names a quality and functions as a noun.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-34",
+      "imageId": "img-eng-2001-34",
+      "question": "Which word is a conjunction? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Which word is a conjunction?",
+          "segments": [
+            {
+              "text": "Which word is a conjunction? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "although"
+        },
+        {
+          "label": "B",
+          "value": "quickly"
+        },
+        {
+          "label": "C",
+          "value": "beautiful"
+        },
+        {
+          "label": "D",
+          "value": "beneath"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "'Although' joins clauses and is a subordinating conjunction.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-35",
+      "imageId": "img-eng-2001-35",
+      "question": "In 'Those books are mine', 'Those' functions as a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'Those books are mine', 'Those' functions as a ______.",
+          "segments": [
+            {
+              "text": "In 'Those books are mine', 'Those' functions as a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "determiner"
+        },
+        {
+          "label": "B",
+          "value": "verb"
+        },
+        {
+          "label": "C",
+          "value": "adverb"
+        },
+        {
+          "label": "D",
+          "value": "preposition"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "'Those' identifies which books are being referred to and functions as a demonstrative determiner.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-36",
+      "imageId": "img-eng-2001-36",
+      "question": "Choose the adjective in: 'The diligent nurse arrived early'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the adjective in: 'The diligent nurse arrived early'.",
+          "segments": [
+            {
+              "text": "Choose the adjective in: 'The diligent nurse arrived early'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "nurse"
+        },
+        {
+          "label": "B",
+          "value": "arrived"
+        },
+        {
+          "label": "C",
+          "value": "diligent"
+        },
+        {
+          "label": "D",
+          "value": "early"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "'Diligent' describes the noun 'nurse'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-37",
+      "imageId": "img-eng-2001-37",
+      "question": "In 'They elected her captain', the word 'captain' is a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'They elected her captain', the word 'captain' is a ______.",
+          "segments": [
+            {
+              "text": "In 'They elected her captain', the word 'captain' is a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "direct object"
+        },
+        {
+          "label": "B",
+          "value": "object complement"
+        },
+        {
+          "label": "C",
+          "value": "conjunction"
+        },
+        {
+          "label": "D",
+          "value": "possessive pronoun"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Captain' identifies the role assigned to 'her' and is an object complement.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-38",
+      "imageId": "img-eng-2001-38",
+      "question": "Which of the following is an interjection? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Which of the following is an interjection?",
+          "segments": [
+            {
+              "text": "Which of the following is an interjection? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "Alas!"
+        },
+        {
+          "label": "B",
+          "value": "Unless"
+        },
+        {
+          "label": "C",
+          "value": "Across"
+        },
+        {
+          "label": "D",
+          "value": "Whose"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "'Alas!' is an interjection expressing sorrow or regret.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-39",
+      "imageId": "img-eng-2001-39",
+      "question": "In the sentence 'The dog barked loudly', the word 'barked' is a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In the sentence 'The dog barked loudly', the word 'barked' is a ______.",
+          "segments": [
+            {
+              "text": "In the sentence 'The dog barked loudly', the word 'barked' is a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "noun"
+        },
+        {
+          "label": "B",
+          "value": "verb"
+        },
+        {
+          "label": "C",
+          "value": "adjective"
+        },
+        {
+          "label": "D",
+          "value": "preposition"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Barked' expresses the action performed by the dog.",
+      "instruction": "Choose the correct answer",
+      "topic": "Parts of speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-40",
+      "imageId": "img-eng-2001-40",
+      "question": "In 'Because it was raining, we stayed indoors', the opening clause is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'Because it was raining, we stayed indoors', the opening clause is ______.",
+          "segments": [
+            {
+              "text": "In 'Because it was raining, we stayed indoors', the opening clause is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "independent"
+        },
+        {
+          "label": "B",
+          "value": "adverbial subordinate"
+        },
+        {
+          "label": "C",
+          "value": "noun"
+        },
+        {
+          "label": "D",
+          "value": "relative"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The clause gives the reason for staying indoors, so it is an adverbial subordinate clause.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-41",
+      "imageId": "img-eng-2001-41",
+      "question": "Identify the phrase in 'The man in the blue shirt is my uncle'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Identify the phrase in 'The man in the blue shirt is my uncle'.",
+          "segments": [
+            {
+              "text": "Identify the phrase in 'The man in the blue shirt is my uncle'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The man"
+        },
+        {
+          "label": "B",
+          "value": "in the blue shirt"
+        },
+        {
+          "label": "C",
+          "value": "is my uncle"
+        },
+        {
+          "label": "D",
+          "value": "my uncle is"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'In the blue shirt' is a prepositional phrase describing the man.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-42",
+      "imageId": "img-eng-2001-42",
+      "question": "A sentence containing one independent clause and at least one subordinate clause is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "A sentence containing one independent clause and at least one subordinate clause is ______.",
+          "segments": [
+            {
+              "text": "A sentence containing one independent clause and at least one subordinate clause is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "simple"
+        },
+        {
+          "label": "B",
+          "value": "compound"
+        },
+        {
+          "label": "C",
+          "value": "complex"
+        },
+        {
+          "label": "D",
+          "value": "fragmented"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "A complex sentence has one main clause and one or more subordinate clauses.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-43",
+      "imageId": "img-eng-2001-43",
+      "question": "In 'The girl who won the prize is my sister', the clause 'who won the prize' is a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'The girl who won the prize is my sister', the clause 'who won the prize' is a ______.",
+          "segments": [
+            {
+              "text": "In 'The girl who won the prize is my sister', the clause 'who won the prize' is a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "noun clause"
+        },
+        {
+          "label": "B",
+          "value": "relative clause"
+        },
+        {
+          "label": "C",
+          "value": "adverbial clause"
+        },
+        {
+          "label": "D",
+          "value": "main clause"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "It identifies 'the girl' and begins with the relative pronoun 'who'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-44",
+      "imageId": "img-eng-2001-44",
+      "question": "Choose the sentence with the pattern subject–verb–object. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the sentence with the pattern subject–verb–object.",
+          "segments": [
+            {
+              "text": "Choose the sentence with the pattern subject–verb–object. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The baby slept."
+        },
+        {
+          "label": "B",
+          "value": "Ngozi bought a pen."
+        },
+        {
+          "label": "C",
+          "value": "The sky is blue."
+        },
+        {
+          "label": "D",
+          "value": "The guests arrived."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Ngozi' is the subject, 'bought' the verb and 'a pen' the object.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-45",
+      "imageId": "img-eng-2001-45",
+      "question": "In 'To finish the work on time is difficult', 'To finish the work on time' functions as a ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'To finish the work on time is difficult', 'To finish the work on time' functions as a ______.",
+          "segments": [
+            {
+              "text": "In 'To finish the work on time is difficult', 'To finish the work on time' functions as a ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "adjective phrase"
+        },
+        {
+          "label": "B",
+          "value": "noun phrase"
+        },
+        {
+          "label": "C",
+          "value": "prepositional phrase"
+        },
+        {
+          "label": "D",
+          "value": "main verb"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The infinitive phrase acts as the subject of the sentence, a noun function.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-46",
+      "imageId": "img-eng-2001-46",
+      "question": "Which sentence is compound? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Which sentence is compound?",
+          "segments": [
+            {
+              "text": "Which sentence is compound? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "Although he was tired, he continued."
+        },
+        {
+          "label": "B",
+          "value": "He was tired, but he continued."
+        },
+        {
+          "label": "C",
+          "value": "He continued because he was tired."
+        },
+        {
+          "label": "D",
+          "value": "Tired from work, he continued."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A compound sentence joins two independent clauses with a coordinating conjunction.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-47",
+      "imageId": "img-eng-2001-47",
+      "question": "In 'The book on the table belongs to me', 'on the table' modifies ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "In 'The book on the table belongs to me', 'on the table' modifies ______.",
+          "segments": [
+            {
+              "text": "In 'The book on the table belongs to me', 'on the table' modifies ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "belongs"
+        },
+        {
+          "label": "B",
+          "value": "book"
+        },
+        {
+          "label": "C",
+          "value": "me"
+        },
+        {
+          "label": "D",
+          "value": "the"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The prepositional phrase describes the location of the book.",
+      "instruction": "Choose the correct answer",
+      "topic": "Clauses, phrases and sentence patterns",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-48",
+      "imageId": "img-eng-2001-48",
+      "question": "She has lived in Kano ______ 2018. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "She has lived in Kano ______ 2018.",
+          "segments": [
+            {
+              "text": "She has lived in Kano ______ 2018. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "for"
+        },
+        {
+          "label": "B",
+          "value": "since"
+        },
+        {
+          "label": "C",
+          "value": "during"
+        },
+        {
+          "label": "D",
+          "value": "by"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Since' is used with a point in time when an action began.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-49",
+      "imageId": "img-eng-2001-49",
+      "question": "The teacher shared the sweets ______ the five pupils. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The teacher shared the sweets ______ the five pupils.",
+          "segments": [
+            {
+              "text": "The teacher shared the sweets ______ the five pupils. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "between"
+        },
+        {
+          "label": "B",
+          "value": "among"
+        },
+        {
+          "label": "C",
+          "value": "beside"
+        },
+        {
+          "label": "D",
+          "value": "across"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Among' is used for distribution involving more than two people or things.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-50",
+      "imageId": "img-eng-2001-50",
+      "question": "The woman ______ car was stolen reported to the police. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The woman ______ car was stolen reported to the police.",
+          "segments": [
+            {
+              "text": "The woman ______ car was stolen reported to the police. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "who"
+        },
+        {
+          "label": "B",
+          "value": "whom"
+        },
+        {
+          "label": "C",
+          "value": "whose"
+        },
+        {
+          "label": "D",
+          "value": "which"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "'Whose' is the possessive relative pronoun showing ownership.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-51",
+      "imageId": "img-eng-2001-51",
+      "question": "There are ______ oranges left in the basket than we expected. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "There are ______ oranges left in the basket than we expected.",
+          "segments": [
+            {
+              "text": "There are ______ oranges left in the basket than we expected. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "less"
+        },
+        {
+          "label": "B",
+          "value": "fewer"
+        },
+        {
+          "label": "C",
+          "value": "little"
+        },
+        {
+          "label": "D",
+          "value": "much"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Fewer' is used with countable plural nouns such as oranges.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-52",
+      "imageId": "img-eng-2001-52",
+      "question": "The award was presented to Musa and ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The award was presented to Musa and ______.",
+          "segments": [
+            {
+              "text": "The award was presented to Musa and ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "I"
+        },
+        {
+          "label": "B",
+          "value": "me"
+        },
+        {
+          "label": "C",
+          "value": "my"
+        },
+        {
+          "label": "D",
+          "value": "mine"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The pronoun is the object of the preposition 'to', so the objective form 'me' is required.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-53",
+      "imageId": "img-eng-2001-53",
+      "question": "I prefer tea ______ coffee. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "I prefer tea ______ coffee.",
+          "segments": [
+            {
+              "text": "I prefer tea ______ coffee. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "than"
+        },
+        {
+          "label": "B",
+          "value": "from"
+        },
+        {
+          "label": "C",
+          "value": "to"
+        },
+        {
+          "label": "D",
+          "value": "over than"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The standard construction is 'prefer X to Y'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-54",
+      "imageId": "img-eng-2001-54",
+      "question": "There isn't ______ milk in the refrigerator. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "There isn't ______ milk in the refrigerator.",
+          "segments": [
+            {
+              "text": "There isn't ______ milk in the refrigerator. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "many"
+        },
+        {
+          "label": "B",
+          "value": "few"
+        },
+        {
+          "label": "C",
+          "value": "much"
+        },
+        {
+          "label": "D",
+          "value": "several"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "'Milk' is uncountable, so 'much' is appropriate.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-55",
+      "imageId": "img-eng-2001-55",
+      "question": "The students congratulated ______ after the competition. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The students congratulated ______ after the competition.",
+          "segments": [
+            {
+              "text": "The students congratulated ______ after the competition. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "themselves"
+        },
+        {
+          "label": "B",
+          "value": "theirselves"
+        },
+        {
+          "label": "C",
+          "value": "themself"
+        },
+        {
+          "label": "D",
+          "value": "each other self"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "'Themselves' is the correct reflexive pronoun for the plural subject 'students'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Prepositions, pronouns and determiners",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-56",
+      "imageId": "img-eng-2001-56",
+      "question": "Change to passive: 'The mechanic repaired the bus'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Change to passive: 'The mechanic repaired the bus'.",
+          "segments": [
+            {
+              "text": "Change to passive: 'The mechanic repaired the bus'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The bus repaired the mechanic."
+        },
+        {
+          "label": "B",
+          "value": "The bus was repaired by the mechanic."
+        },
+        {
+          "label": "C",
+          "value": "The bus is repaired by the mechanic."
+        },
+        {
+          "label": "D",
+          "value": "The mechanic was repaired by the bus."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The simple past active verb 'repaired' becomes 'was repaired' in the passive.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-57",
+      "imageId": "img-eng-2001-57",
+      "question": "Choose the correct passive form of: 'They are painting the hall'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct passive form of: 'They are painting the hall'.",
+          "segments": [
+            {
+              "text": "Choose the correct passive form of: 'They are painting the hall'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The hall is painted by them."
+        },
+        {
+          "label": "B",
+          "value": "The hall was being painted by them."
+        },
+        {
+          "label": "C",
+          "value": "The hall is being painted by them."
+        },
+        {
+          "label": "D",
+          "value": "The hall has painted by them."
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The present continuous passive is formed with 'is being' plus the past participle.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-58",
+      "imageId": "img-eng-2001-58",
+      "question": "The report ______ by the secretary yesterday. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The report ______ by the secretary yesterday.",
+          "segments": [
+            {
+              "text": "The report ______ by the secretary yesterday. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "prepared"
+        },
+        {
+          "label": "B",
+          "value": "was prepared"
+        },
+        {
+          "label": "C",
+          "value": "is preparing"
+        },
+        {
+          "label": "D",
+          "value": "has prepare"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The passive simple past form is 'was prepared'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-59",
+      "imageId": "img-eng-2001-59",
+      "question": "Choose the active form of: 'The prizes were distributed by the head teacher'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the active form of: 'The prizes were distributed by the head teacher'.",
+          "segments": [
+            {
+              "text": "Choose the active form of: 'The prizes were distributed by the head teacher'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The prizes distributed the head teacher."
+        },
+        {
+          "label": "B",
+          "value": "The head teacher distributed the prizes."
+        },
+        {
+          "label": "C",
+          "value": "The head teacher was distributed the prizes."
+        },
+        {
+          "label": "D",
+          "value": "The prizes had distributed the head teacher."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The agent becomes the subject and performs the action in the active sentence.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-60",
+      "imageId": "img-eng-2001-60",
+      "question": "The missing documents have ______ found. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The missing documents have ______ found.",
+          "segments": [
+            {
+              "text": "The missing documents have ______ found. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "being"
+        },
+        {
+          "label": "B",
+          "value": "been"
+        },
+        {
+          "label": "C",
+          "value": "be"
+        },
+        {
+          "label": "D",
+          "value": "was"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The present perfect passive is formed with 'have been' plus the past participle.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-61",
+      "imageId": "img-eng-2001-61",
+      "question": "Choose the correct passive form: 'Someone has stolen my bicycle'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct passive form: 'Someone has stolen my bicycle'.",
+          "segments": [
+            {
+              "text": "Choose the correct passive form: 'Someone has stolen my bicycle'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "My bicycle has stolen."
+        },
+        {
+          "label": "B",
+          "value": "My bicycle has been stolen."
+        },
+        {
+          "label": "C",
+          "value": "My bicycle was stealing."
+        },
+        {
+          "label": "D",
+          "value": "My bicycle is stole."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The present perfect passive is 'has been' plus the past participle.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-62",
+      "imageId": "img-eng-2001-62",
+      "question": "Which sentence is in the passive voice? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Which sentence is in the passive voice?",
+          "segments": [
+            {
+              "text": "Which sentence is in the passive voice? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The committee approved the plan."
+        },
+        {
+          "label": "B",
+          "value": "The plan was approved by the committee."
+        },
+        {
+          "label": "C",
+          "value": "The committee is approving the plan."
+        },
+        {
+          "label": "D",
+          "value": "The committee will approve the plan."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The subject 'the plan' receives the action, and the verb phrase is passive.",
+      "instruction": "Choose the correct answer",
+      "topic": "Active and passive voice",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-63",
+      "imageId": "img-eng-2001-63",
+      "question": "Choose the correct indirect form: He said, 'I am tired'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct indirect form: He said, 'I am tired'.",
+          "segments": [
+            {
+              "text": "Choose the correct indirect form: He said, 'I am tired'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "He said that I am tired."
+        },
+        {
+          "label": "B",
+          "value": "He said that he was tired."
+        },
+        {
+          "label": "C",
+          "value": "He says that he was tired."
+        },
+        {
+          "label": "D",
+          "value": "He said that he is tiring."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "In reported speech with a past reporting verb, 'am' usually changes to 'was' and 'I' to 'he'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-64",
+      "imageId": "img-eng-2001-64",
+      "question": "Mariam said, 'I will return tomorrow'. The correct indirect form is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Mariam said, 'I will return tomorrow'. The correct indirect form is ______.",
+          "segments": [
+            {
+              "text": "Mariam said, 'I will return tomorrow'. The correct indirect form is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "Mariam said that she will return tomorrow."
+        },
+        {
+          "label": "B",
+          "value": "Mariam said that she would return the following day."
+        },
+        {
+          "label": "C",
+          "value": "Mariam says she would return tomorrow."
+        },
+        {
+          "label": "D",
+          "value": "Mariam said that I would return the next day."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Will' changes to 'would' and 'tomorrow' changes to 'the following day' in reported speech.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-65",
+      "imageId": "img-eng-2001-65",
+      "question": "The teacher asked, 'Have you completed the assignment?' The correct indirect form is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The teacher asked, 'Have you completed the assignment?' The correct indirect form is ______.",
+          "segments": [
+            {
+              "text": "The teacher asked, 'Have you completed the assignment?' The correct indirect form is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The teacher asked have we completed the assignment."
+        },
+        {
+          "label": "B",
+          "value": "The teacher asked whether we had completed the assignment."
+        },
+        {
+          "label": "C",
+          "value": "The teacher asked that had we completed the assignment."
+        },
+        {
+          "label": "D",
+          "value": "The teacher said whether we complete the assignment."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A reported yes/no question uses 'whether/if' and statement word order; the present perfect backshifts to past perfect.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-66",
+      "imageId": "img-eng-2001-66",
+      "question": "He said to me, 'Do not touch the switch'. Choose the correct indirect form. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "He said to me, 'Do not touch the switch'. Choose the correct indirect form.",
+          "segments": [
+            {
+              "text": "He said to me, 'Do not touch the switch'. Choose the correct indirect form. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "He told me do not touch the switch."
+        },
+        {
+          "label": "B",
+          "value": "He warned me not to touch the switch."
+        },
+        {
+          "label": "C",
+          "value": "He said me not touching the switch."
+        },
+        {
+          "label": "D",
+          "value": "He asked that I did not touched the switch."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A negative command is commonly reported with 'told/warned + object + not to + verb'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-67",
+      "imageId": "img-eng-2001-67",
+      "question": "'Where do you live?' the officer asked her. The correct indirect form is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "'Where do you live?' the officer asked her. The correct indirect form is ______.",
+          "segments": [
+            {
+              "text": "'Where do you live?' the officer asked her. The correct indirect form is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The officer asked her where did she live."
+        },
+        {
+          "label": "B",
+          "value": "The officer asked her where she lived."
+        },
+        {
+          "label": "C",
+          "value": "The officer asked where does she lives."
+        },
+        {
+          "label": "D",
+          "value": "The officer said her where she lived."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "Reported questions use statement word order and the tense usually shifts back.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-68",
+      "imageId": "img-eng-2001-68",
+      "question": "Choose the correct reported form: Bola said, 'I have finished my work'. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correct reported form: Bola said, 'I have finished my work'.",
+          "segments": [
+            {
+              "text": "Choose the correct reported form: Bola said, 'I have finished my work'. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "Bola said that she had finished her work."
+        },
+        {
+          "label": "B",
+          "value": "Bola said that I have finished my work."
+        },
+        {
+          "label": "C",
+          "value": "Bola says she had finish her work."
+        },
+        {
+          "label": "D",
+          "value": "Bola said that she has finishing her work."
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "The present perfect changes to past perfect in reported speech after a past reporting verb.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-69",
+      "imageId": "img-eng-2001-69",
+      "question": "The visitor said, 'May I come in?' The correct indirect form is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The visitor said, 'May I come in?' The correct indirect form is ______.",
+          "segments": [
+            {
+              "text": "The visitor said, 'May I come in?' The correct indirect form is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The visitor asked if he might come in."
+        },
+        {
+          "label": "B",
+          "value": "The visitor said may he came in."
+        },
+        {
+          "label": "C",
+          "value": "The visitor asked that may I come in."
+        },
+        {
+          "label": "D",
+          "value": "The visitor told to come in."
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "A request for permission is reported with 'asked if' and 'might' can replace 'may'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-70",
+      "imageId": "img-eng-2001-70",
+      "question": "'Please help me,' the old woman said to the boy. Choose the correct indirect form. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "'Please help me,' the old woman said to the boy. Choose the correct indirect form.",
+          "segments": [
+            {
+              "text": "'Please help me,' the old woman said to the boy. Choose the correct indirect form. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "The old woman ordered the boy helping her."
+        },
+        {
+          "label": "B",
+          "value": "The old woman begged the boy to help her."
+        },
+        {
+          "label": "C",
+          "value": "The old woman said the boy please help me."
+        },
+        {
+          "label": "D",
+          "value": "The old woman asked that the boy helped me."
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "A polite request can be reported with 'begged/asked + object + to-infinitive'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Direct and indirect speech",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-71",
+      "imageId": "img-eng-2001-71",
+      "question": "You have completed the form, ______? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "You have completed the form, ______?",
+          "segments": [
+            {
+              "text": "You have completed the form, ______? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "haven't you"
+        },
+        {
+          "label": "B",
+          "value": "don't you"
+        },
+        {
+          "label": "C",
+          "value": "didn't you"
+        },
+        {
+          "label": "D",
+          "value": "aren't you"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "The auxiliary 'have' is repeated in the negative tag because the statement is positive.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-72",
+      "imageId": "img-eng-2001-72",
+      "question": "Let's leave now, ______? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Let's leave now, ______?",
+          "segments": [
+            {
+              "text": "Let's leave now, ______? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "will we"
+        },
+        {
+          "label": "B",
+          "value": "shall we"
+        },
+        {
+          "label": "C",
+          "value": "do we"
+        },
+        {
+          "label": "D",
+          "value": "aren't we"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The usual question tag after 'Let's' is 'shall we?'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-73",
+      "imageId": "img-eng-2001-73",
+      "question": "Nobody called during the night, ______? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Nobody called during the night, ______?",
+          "segments": [
+            {
+              "text": "Nobody called during the night, ______? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "did they"
+        },
+        {
+          "label": "B",
+          "value": "didn't they"
+        },
+        {
+          "label": "C",
+          "value": "was he"
+        },
+        {
+          "label": "D",
+          "value": "wasn't it"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "A negative word such as 'nobody' takes a positive tag; the pronoun is commonly 'they'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-74",
+      "imageId": "img-eng-2001-74",
+      "question": "If it rains tomorrow, the match ______ postponed. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "If it rains tomorrow, the match ______ postponed.",
+          "segments": [
+            {
+              "text": "If it rains tomorrow, the match ______ postponed. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "would be"
+        },
+        {
+          "label": "B",
+          "value": "will be"
+        },
+        {
+          "label": "C",
+          "value": "would have been"
+        },
+        {
+          "label": "D",
+          "value": "had been"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The first conditional uses present simple in the if-clause and 'will' plus base verb in the main clause.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-75",
+      "imageId": "img-eng-2001-75",
+      "question": "If I were you, I ______ the offer. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "If I were you, I ______ the offer.",
+          "segments": [
+            {
+              "text": "If I were you, I ______ the offer. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "accept"
+        },
+        {
+          "label": "B",
+          "value": "will accept"
+        },
+        {
+          "label": "C",
+          "value": "would accept"
+        },
+        {
+          "label": "D",
+          "value": "had accepted"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The second conditional uses 'if + past form' and 'would + base verb' for an unreal present situation.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-76",
+      "imageId": "img-eng-2001-76",
+      "question": "She rarely visits us, ______? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "She rarely visits us, ______?",
+          "segments": [
+            {
+              "text": "She rarely visits us, ______? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "does she"
+        },
+        {
+          "label": "B",
+          "value": "doesn't she"
+        },
+        {
+          "label": "C",
+          "value": "is she"
+        },
+        {
+          "label": "D",
+          "value": "isn't she"
+        }
+      ],
+      "correctAnswers": [
+        "A"
+      ],
+      "explanation": "'Rarely' has a negative meaning, so the tag is positive; the main verb takes 'does'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-77",
+      "imageId": "img-eng-2001-77",
+      "question": "If they had left earlier, they ______ the train. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "If they had left earlier, they ______ the train.",
+          "segments": [
+            {
+              "text": "If they had left earlier, they ______ the train. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "would catch"
+        },
+        {
+          "label": "B",
+          "value": "will catch"
+        },
+        {
+          "label": "C",
+          "value": "would have caught"
+        },
+        {
+          "label": "D",
+          "value": "caught"
+        }
+      ],
+      "correctAnswers": [
+        "C"
+      ],
+      "explanation": "The third conditional uses 'would have' plus the past participle.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "medium"
+    },
+    {
+      "id": "eng-2001-78",
+      "imageId": "img-eng-2001-78",
+      "question": "I am late, ______? (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "I am late, ______?",
+          "segments": [
+            {
+              "text": "I am late, ______? (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "am I"
+        },
+        {
+          "label": "B",
+          "value": "aren't I"
+        },
+        {
+          "label": "C",
+          "value": "isn't I"
+        },
+        {
+          "label": "D",
+          "value": "don't I"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "The conventional question tag for 'I am' is 'aren't I?'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Question tags and conditional sentences",
+      "difficulty": "hard"
+    },
+    {
+      "id": "eng-2001-79",
+      "imageId": "img-eng-2001-79",
+      "question": "Choose the correctly spelt word. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "Choose the correctly spelt word.",
+          "segments": [
+            {
+              "text": "Choose the correctly spelt word. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "accomodation"
+        },
+        {
+          "label": "B",
+          "value": "accommodation"
+        },
+        {
+          "label": "C",
+          "value": "acommodation"
+        },
+        {
+          "label": "D",
+          "value": "accommmodation"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Accommodation' has double c and double m.",
+      "instruction": "Choose the correct answer",
+      "topic": "Word formation, punctuation and common errors",
+      "difficulty": "easy"
+    },
+    {
+      "id": "eng-2001-80",
+      "imageId": "img-eng-2001-80",
+      "question": "The noun form of 'decide' is ______. (during the school debate, 2001).",
+      "content": [
+        {
+          "type": "text",
+          "order": 1,
+          "text": "The noun form of 'decide' is ______.",
+          "segments": [
+            {
+              "text": "The noun form of 'decide' is ______. (during the school debate, 2001)."
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "label": "A",
+          "value": "decisive"
+        },
+        {
+          "label": "B",
+          "value": "decision"
+        },
+        {
+          "label": "C",
+          "value": "deciding"
+        },
+        {
+          "label": "D",
+          "value": "decided"
+        }
+      ],
+      "correctAnswers": [
+        "B"
+      ],
+      "explanation": "'Decision' is the noun formed from the verb 'decide'.",
+      "instruction": "Choose the correct answer",
+      "topic": "Word formation, punctuation and common errors",
+      "difficulty": "medium"
+    }
+  ]
+}

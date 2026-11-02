@@ -191,7 +191,7 @@ export default function CBTPracticeRewardCard({
               id="cbt-reward-title"
               className="text-xl font-bold tracking-tight sm:text-2xl"
             >
-              Choose your dream reward
+              Choose your study target reward
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-300">

@@ -29,19 +29,19 @@ import jambMathematicsMediumQuestions from "./mathematics/medium/jamb";
 import jambMathematicsHardQuestions from "./mathematics/hard/jamb";
 
 
-import jambAccountingEasyQuestions from "./mathematics/easy/jamb";
-import jambAccountingMediumQuestions from "./mathematics/medium/jamb";
-import jambAccountingHardQuestions from "./mathematics/hard/jamb";
+import jambAccountingEasyQuestions from "./accounting/easy/jamb";
+import jambAccountingMediumQuestions from "./accounting/medium/jamb";
+import jambAccountingHardQuestions from "./accounting/hard/jamb";
 
 
-import jambEconomicsEasyQuestions from "./mathematics/easy/jamb";
-import jambEconomicsMediumQuestions from "./mathematics/medium/jamb";
-import jambEconomicsHardQuestions from "./mathematics/hard/jamb";
+import jambEconomicsEasyQuestions from "./economics/easy/jamb";
+import jambEconomicsMediumQuestions from "./economics/medium/jamb";
+import jambEconomicsHardQuestions from "./economics/hard/jamb";
 
 
-import jambEnglishEasyQuestions from "./mathematics/easy/jamb";
-import jambEnglishMediumQuestions from "./mathematics/medium/jamb";
-import jambEnglishHardQuestions from "./mathematics/hard/jamb";
+import jambEnglishEasyQuestions from "./english/easy/jamb";
+import jambEnglishMediumQuestions from "./english/easy/jamb";
+import jambEnglishHardQuestions from "./english/hard/jamb";
 
 // ============================================================
 // TYPES

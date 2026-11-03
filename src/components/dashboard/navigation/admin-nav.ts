@@ -51,11 +51,11 @@ export const adminNavigation: AdminNavSection[] = [
   },
 
   {
-  title: "Create Pin",
+  title: "Create Schools",
   items: [
     {
-      label: "Secondary Access Pin",
-      href: "/admin/access-pin",
+      label: "Manage Schools",
+      href: "/admin/schools",
       icon: Book,
       exact: true,
     },

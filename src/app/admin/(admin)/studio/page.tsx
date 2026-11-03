@@ -20,6 +20,7 @@ import InspectorPanel from "@/components/studio/InspectorPanel";
 import TransportControls from "@/components/studio/TransportControls";
 import StudioStatusbar from "@/components/studio/StudioStatusbar";
 import AIBackgroundRemover from "@/components/studio/AIBackgroundRemover";
+import LectureRecordingStudio from "@/components/studio/LectureRecordingStudio";
 
 import { useStudioState } from "@/hooks/studio/useStudioState";
 import { useTimeline } from "@/hooks/studio/useTimeline";
@@ -1002,6 +1003,11 @@ studio.showSuccess(
         isSaving={isSaving}
         isExporting={isExporting}
       />
+
+
+      <div className="px-3 pt-3">
+  <LectureRecordingStudio />
+</div>
 
       {studio.notice && (
         <div

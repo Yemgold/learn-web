@@ -110,48 +110,6 @@ export const adminNavigation: AdminNavSection[] = [
   ],
 },
 
-{
-  title: "School & Study Centres",
-  items: [
-    {
-      label: "Overview",
-      href: "/admin/school-centres",
-      icon: LayoutDashboard,
-      exact: true,
-    },
-    {
-      label: "Institutions",
-      href: "/admin/school-centres/institutions",
-      icon: Building2,
-    },
-    {
-      label: "Students",
-      href: "/admin/school-centres/students",
-      icon: Users,
-    },
-    {
-      label: "Questions",
-      href: "/admin/school-centres/questions",
-      icon: BookOpen,
-    },
-    {
-      label: "Classes",
-      href: "/admin/school-centres/classes",
-      icon: GraduationCap,
-    },
-    {
-      label: "Assignments",
-      href: "/admin/school-centres/assignments",
-      icon: ClipboardList,
-    },
-    {
-      label: "Results",
-      href: "/admin/school-centres/results",
-      icon: BarChart3,
-    },
-  ],
-},
-
 
   {
     title: "Finance",

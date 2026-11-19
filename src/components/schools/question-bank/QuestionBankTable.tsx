@@ -16,7 +16,6 @@ import QuestionStatusBadge from "./QuestionStatusBadge";
 
 import type {
   QuestionDifficulty,
-  QuestionTableProps,
   SchoolQuestion,
 } from "@/types/schools/question-bank.types";
 

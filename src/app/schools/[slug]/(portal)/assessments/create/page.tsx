@@ -2695,17 +2695,16 @@ export default function CreateAssessmentPage() {
 
         if (cancelled) return;
 
-        setAssignedClasses(
-          Array.isArray(response)
-            ? response.filter(
-                (item) =>
-                  item &&
-                  item._id &&
-                  item.className &&
-                  item.isActive !== false
-              )
-            : []
-        );
+       setAssignedClasses(
+  Array.isArray(response)
+    ? response.filter(
+        (item) =>
+          item &&
+          item._id &&
+          item.className
+      )
+    : []
+);
       } catch (err) {
         if (cancelled) return;
 

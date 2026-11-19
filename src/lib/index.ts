@@ -6,3 +6,4 @@
 
 export * from "./api";
 export * from "./auth";
+export * as api from "./api";

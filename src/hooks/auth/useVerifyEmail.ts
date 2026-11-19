@@ -20,14 +20,20 @@ interface VerifyEmailResponse {
 async function verifyEmail(
   token: string
 ): Promise<VerifyEmailResponse> {
-  const { data } =
-    await api.get<VerifyEmailResponse>(
-      `/auth/verify-email/${token}`
-    );
+  const response = await api.apiClient.get<{
+    success?: boolean;
+    message?: string;
+  }>(`/auth/verify-email/${token}`);
 
-  return data;
+  if (!response) {
+    throw new Error("Email verification returned an empty response.");
+  }
+
+  return {
+    success: response.success ?? true,
+    message: response.message ?? "Email verified successfully.",
+  };
 }
-
 export function useVerifyEmail() {
   return useMutation<
     VerifyEmailResponse,

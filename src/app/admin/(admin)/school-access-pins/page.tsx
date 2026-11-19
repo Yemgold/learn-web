@@ -616,19 +616,19 @@ export default function SchoolAccessPinsPage() {
                 </Button>
               </div>
             </div>
-          ) : filteredPins.length === 0 ? (
-            <div className="p-8">
-              <EmptyState
-  icon={KeyRound}
-  title="No access PINs found"
-  description={
-    pins.length === 0
-      ? "There are no access PIN records available yet."
-      : "Try changing your search or filter settings."
-  }
-/>
-            </div>
-          ) : (
+   ) : filteredPins.length === 0 ? (
+  <div className="p-8">
+    <EmptyState
+      icon={<KeyRound size={32} />}
+      title="No access PINs found"
+      description={
+        pins.length === 0
+          ? "There are no access PIN records available yet."
+          : "Try changing your search or filter settings."
+      }
+    />
+  </div>
+) : (
             <>
               {/* Desktop table */}
               <div className="hidden overflow-x-auto md:block">

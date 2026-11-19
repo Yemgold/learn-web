@@ -21,13 +21,16 @@ interface ForgotPasswordResponse {
 async function forgotPassword(
   payload: ForgotPasswordPayload
 ): Promise<ForgotPasswordResponse> {
-  const { data } =
-    await api.post<ForgotPasswordResponse>(
-      "/api/v1/auth/forgot-password",
-      payload
-    );
+  const response = await api.apiClient.post<ForgotPasswordResponse>(
+    "/auth/forgot-password",
+    payload
+  );
 
-  return data;
+  if (!response) {
+    throw new Error("Forgot password request returned an empty response.");
+  }
+
+  return response;
 }
 
 export function useForgotPassword() {

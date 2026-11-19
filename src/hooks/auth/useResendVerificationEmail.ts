@@ -20,13 +20,19 @@ interface ResendVerificationResponse {
 async function resendVerificationEmail(
   payload: ResendVerificationPayload
 ): Promise<ResendVerificationResponse> {
-  const { data } =
-    await api.post<ResendVerificationResponse>(
-      "/api/v1/auth/resend-email-verification",
+  const response =
+    await api.apiClient.post<ResendVerificationResponse>(
+      "/auth/resend-email-verification",
       payload
     );
 
-  return data;
+  if (!response) {
+    throw new Error(
+      "Resend verification email returned an empty response."
+    );
+  }
+
+  return response;
 }
 
 export function useResendVerificationEmail() {

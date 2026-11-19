@@ -12,6 +12,7 @@ import type { FormEvent, ReactNode } from "react";
 
 import {
   Check,
+  CreditCard,
   CheckCircle2,
   CircleDollarSign,
   Clock,
@@ -494,7 +495,7 @@ export default function SchoolSubscriptionPlansPage() {
   };
 
   /* ---------------------------------------------
-     Toggle plan status
+     Toggle
   --------------------------------------------- */
 
   const handleToggleStatus = async () => {
@@ -702,14 +703,16 @@ export default function SchoolSubscriptionPlansPage() {
       ) : filteredPlans.length === 0 ? (
         <Card>
           <CardContent className="p-8">
+            
             <EmptyState
-              title="No subscription plans found"
-              description={
-                plans.length === 0
-                  ? "Create your first school subscription plan to get started."
-                  : "Try changing your search or filter."
-              }
-            />
+  icon={<CreditCard size={32} />}
+  title="No subscription plans found"
+  description={
+    plans.length === 0
+      ? "No subscription plans have been created yet."
+      : "Try changing your search or filter settings."
+  }
+/>
 
             {plans.length === 0 && (
               <div className="mt-4 flex justify-center">

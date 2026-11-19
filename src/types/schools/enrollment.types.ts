@@ -103,9 +103,11 @@ export interface SummaryCardProps {
 }
 
 export interface EmptyStateProps {
-  icon: ReactNode;
+  icon: React.ReactNode;
   title: string;
   description: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export interface EnrollmentFormFieldProps {

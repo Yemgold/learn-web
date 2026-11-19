@@ -239,6 +239,7 @@ export function buildLoginRequest(
 
 export const loginUser = async (
   data: LoginRequest,
+  schoolSubdomain?: string,
 ): Promise<LoginResponse> => {
   try {
     /* ========================================================
@@ -246,22 +247,17 @@ export const loginUser = async (
        ======================================================== */
 
     const payload: LoginRequest = {
-      email:
-        data.email
-          .trim()
-          .toLowerCase(),
+      email: data.email.trim().toLowerCase(),
 
-      password:
-        data.password,
+      password: data.password,
 
-      deviceId:
-        data.deviceId ||
-        getDeviceId(),
+      deviceId: data.deviceId || getDeviceId(),
 
-      deviceName:
-        data.deviceName ||
-        getDeviceName(),
+      deviceName: data.deviceName || getDeviceName(),
     };
+
+    const normalizedSubdomain =
+      schoolSubdomain?.trim().toLowerCase();
 
     /* ========================================================
        LOGIN REQUEST LOG
@@ -272,32 +268,34 @@ export const loginUser = async (
     );
 
     console.log({
-      email:
-        payload.email,
+      email: payload.email,
 
-      password:
-        payload.password
-          ? "[PROVIDED]"
-          : "[MISSING]",
+      password: payload.password
+        ? "[PROVIDED]"
+        : "[MISSING]",
 
-      deviceId:
-        payload.deviceId,
+      deviceId: payload.deviceId,
 
-      deviceName:
-        payload.deviceName,
+      deviceName: payload.deviceName,
+
+      schoolSubdomain: normalizedSubdomain || null,
     });
-
-
 
     /* ========================================================
        API REQUEST
        ======================================================== */
 
-    const response =
-      await api.post<LoginResponse>(
-        "/auth/login",
-        payload,
-      );
+    const response = await api.post<LoginResponse>(
+      "/auth/login",
+      payload,
+      normalizedSubdomain
+        ? {
+            headers: {
+              "x-school-subdomain": normalizedSubdomain,
+            },
+          }
+        : undefined,
+    );
 
     /* ========================================================
        LOGIN SUCCESS
@@ -307,43 +305,28 @@ export const loginUser = async (
       "========== LOGIN SUCCESS ==========",
     );
 
-    const loginData =
-      response.data.data;
+    const loginData = response.data.data;
 
     console.log({
-      success:
-        response.data.success,
+      success: response.data.success,
 
-      message:
-        response.data.message,
+      message: response.data.message,
 
-      user:
-        loginData?.user,
+      user: loginData?.user,
 
-      session:
-        loginData?.session,
+      session: loginData?.session,
 
-      hasAccessToken:
-        Boolean(
-          loginData?.accessToken,
-        ),
+      hasAccessToken: Boolean(loginData?.accessToken),
 
-      hasRefreshToken:
-        Boolean(
-          loginData?.refreshToken,
-        ),
+      hasRefreshToken: Boolean(loginData?.refreshToken),
     });
 
     /* ========================================================
        STORE ACCESS TOKEN
        ======================================================== */
 
-    if (
-      loginData?.accessToken
-    ) {
-      setAccessToken(
-        loginData.accessToken,
-      );
+    if (loginData?.accessToken) {
+      setAccessToken(loginData.accessToken);
 
       console.log(
         "✅ ACCESS TOKEN STORED:",
@@ -359,12 +342,8 @@ export const loginUser = async (
        STORE REFRESH TOKEN
        ======================================================== */
 
-    if (
-      loginData?.refreshToken
-    ) {
-      setRefreshToken(
-        loginData.refreshToken,
-      );
+    if (loginData?.refreshToken) {
+      setRefreshToken(loginData.refreshToken);
 
       console.log(
         "✅ REFRESH TOKEN STORED:",
@@ -390,34 +369,30 @@ export const loginUser = async (
       "========== LOGIN ERROR ==========",
     );
 
-    console.error(
-      "RAW ERROR:",
-      error,
-    );
+    console.error("RAW ERROR:", error);
 
     if (
       typeof error === "object" &&
       error !== null &&
       "response" in error
     ) {
-      const axiosError =
-        error as {
-          response?: {
-            status?: number;
-            data?: unknown;
-          };
-
-          config?: {
-            url?: string;
-            baseURL?: string;
-            method?: string;
-            data?: unknown;
-          };
-
-          code?: string;
-
-          message?: string;
+      const axiosError = error as {
+        response?: {
+          status?: number;
+          data?: unknown;
         };
+
+        config?: {
+          url?: string;
+          baseURL?: string;
+          method?: string;
+          data?: unknown;
+        };
+
+        code?: string;
+
+        message?: string;
+      };
 
       console.error(
         "Status:",
@@ -461,35 +436,27 @@ export const loginUser = async (
         axiosError.message,
       );
 
-      const requestData =
-        axiosError.config?.data;
+      const requestData = axiosError.config?.data;
 
       if (requestData) {
         try {
           const parsed =
-            typeof requestData ===
-            "string"
-              ? JSON.parse(
-                  requestData,
-                )
+            typeof requestData === "string"
+              ? JSON.parse(requestData)
               : requestData;
 
           console.error(
             "Request payload:",
             {
-              email:
-                parsed?.email,
+              email: parsed?.email,
 
-              password:
-                parsed?.password
-                  ? "[PROVIDED]"
-                  : "[MISSING]",
+              password: parsed?.password
+                ? "[PROVIDED]"
+                : "[MISSING]",
 
-              deviceId:
-                parsed?.deviceId,
+              deviceId: parsed?.deviceId,
 
-              deviceName:
-                parsed?.deviceName,
+              deviceName: parsed?.deviceName,
             },
           );
         } catch {
@@ -498,9 +465,7 @@ export const loginUser = async (
           );
         }
       }
-    } else if (
-      error instanceof Error
-    ) {
+    } else if (error instanceof Error) {
       console.error(
         "Non-Axios error:",
         error.message,

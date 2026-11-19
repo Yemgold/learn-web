@@ -1,9 +1,6 @@
 
 
 
-
-
-
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
@@ -23,6 +20,7 @@ import { useAuthStore } from "@/stores/auth.store";
 type LoginData = {
   email: string;
   password: string;
+  schoolSubdomain?: string;
 };
 
 /* ============================================================
@@ -32,66 +30,43 @@ type LoginData = {
 function mapBackendUserToFrontendUser(
   backendUser: any,
   session: any,
+  schoolContext: any,
 ) {
   return {
-    /*
-     * IDs
-     */
     id: backendUser._id,
     _id: backendUser._id,
 
-    /*
-     * BASIC INFORMATION
-     */
     firstName: backendUser.firstName,
     lastName: backendUser.lastName,
     email: backendUser.email,
 
-    /*
-     * ROLE
-     */
     role: backendUser.role,
 
-    /*
-     * AUTH STATUS
-     */
     verified: backendUser.isVerified,
     active: session?.isActive ?? true,
 
-    /*
-     * CONTACT
-     */
     phoneNumber: backendUser.phoneNumber,
 
-    /*
-     * REFERRAL
-     */
     referralCode: backendUser.referralCode,
     referredBy: backendUser.referredBy,
     referralChain: backendUser.referralChain,
 
-    /*
-     * PAYMENT / PLANS
-     */
     isVerified: backendUser.isVerified,
     hasPaid: backendUser.hasPaid,
     plans: backendUser.plans,
 
-    /*
-     * WALLET
-     */
     userWallet: backendUser.userWallet,
 
-    /*
-     * DEVICE
-     */
     device: backendUser.device,
 
-    /*
-     * DATES
-     */
     createdAt: backendUser.createdAt,
     updatedAt: backendUser.updatedAt,
+
+    // Preserve the school membership context returned by the backend.
+    schoolContext:
+      backendUser.schoolContext ??
+      schoolContext ??
+      undefined,
   };
 }
 
@@ -104,20 +79,16 @@ function handleAuthSuccess(response: any) {
     "========== AUTH MUTATION SUCCESS ==========",
   );
 
-  console.log(
-    "Raw authentication response:",
-    response,
-  );
-
-  /* ============================================================
-     VALIDATE RESPONSE
-     ============================================================ */
+  /*
+   * Do not log the complete response here.
+   * It contains authentication tokens.
+   */
 
   const authData = response?.data;
 
   if (!authData) {
     console.error(
-      "❌ Authentication succeeded but response.data is missing.",
+      "Authentication succeeded but response.data is missing.",
     );
 
     return response;
@@ -128,75 +99,69 @@ function handleAuthSuccess(response: any) {
   const accessToken = authData.accessToken;
   const refreshToken = authData.refreshToken;
 
-  /* ============================================================
-     VALIDATE USER
-     ============================================================ */
-
   if (!backendUser) {
     console.error(
-      "❌ Authentication succeeded but user data is missing.",
+      "Authentication succeeded but user data is missing.",
     );
 
     return response;
   }
-
-  /* ============================================================
-     VALIDATE ACCESS TOKEN
-     ============================================================ */
 
   if (!accessToken) {
     console.error(
-      "❌ Authentication succeeded but access token is missing.",
+      "Authentication succeeded but access token is missing.",
     );
 
     return response;
   }
-
-  /* ============================================================
-     VALIDATE REFRESH TOKEN
-     ============================================================ */
 
   if (!refreshToken) {
     console.error(
-      "❌ Authentication succeeded but refresh token is missing.",
+      "Authentication succeeded but refresh token is missing.",
     );
 
     return response;
   }
 
-  /* ============================================================
-     MAP BACKEND USER
-     ============================================================ */
+  /*
+   * Some authentication responses may place schoolContext
+   * inside user, while others may place it alongside user.
+   */
+
+  const schoolContext =
+    backendUser.schoolContext ??
+    authData.schoolContext ??
+    undefined;
 
   const user = mapBackendUserToFrontendUser(
     backendUser,
     session,
+    schoolContext,
   );
 
   console.log(
     "========== MAPPED FRONTEND USER ==========",
   );
 
-  console.log(user);
+  console.log({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
 
-  /* ============================================================
-     UPDATE ZUSTAND AUTH STATE
-     ============================================================ */
+    hasSchoolContext: Boolean(user.schoolContext),
 
-  /*
-   * IMPORTANT:
-   *
-   * useAuthStore.login() is responsible for:
-   *
-   * 1. Saving access token
-   * 2. Saving refresh token
-   * 3. Saving user
-   * 4. Updating Zustand
-   * 5. Setting isAuthenticated = true
-   * 6. Setting isHydrated = true
-   *
-   * Do NOT call setAccessToken() separately here.
-   */
+    schoolName:
+      user.schoolContext?.schoolName ?? null,
+
+    schoolSubdomain:
+      user.schoolContext?.subDomain ?? null,
+
+    schoolMembershipId:
+      user.schoolContext?.userSchoolMembership?._id ?? null,
+
+    schoolId:
+      user.schoolContext?.userSchoolMembership?.schoolId ?? null,
+  });
 
   useAuthStore.getState().login({
     user,
@@ -204,12 +169,7 @@ function handleAuthSuccess(response: any) {
     refreshToken,
   });
 
-  /* ============================================================
-     VERIFY AUTH STATE
-     ============================================================ */
-
-  const currentAuth =
-    useAuthStore.getState();
+  const currentAuth = useAuthStore.getState();
 
   console.log(
     "========== AUTH STORE UPDATED ==========",
@@ -224,8 +184,17 @@ function handleAuthSuccess(response: any) {
       null,
 
     role:
-      currentAuth.user?.role ??
-      null,
+      currentAuth.user?.role ?? null,
+
+    hasSchoolContext:
+      Boolean(currentAuth.user?.schoolContext),
+
+    schoolId:
+      currentAuth.user?.schoolContext
+        ?.userSchoolMembership?.schoolId ?? null,
+
+    schoolSubdomain:
+      currentAuth.user?.schoolContext?.subDomain ?? null,
 
     isAuthenticated:
       currentAuth.isAuthenticated,
@@ -244,11 +213,6 @@ function handleAuthSuccess(response: any) {
     "==========================================",
   );
 
-  /*
-   * Return the original response so React Query
-   * consumers still receive the normal API response.
-   */
-
   return response;
 }
 
@@ -264,36 +228,20 @@ function logAuthError(
     `========== ${title} ==========`,
   );
 
-  console.error(
-    "Raw error:",
-    error,
-  );
-
-  console.error(
-    "Status:",
-    error?.response?.status,
-  );
+  console.error("Status:", error?.response?.status);
 
   console.error(
     "Backend response:",
     error?.response?.data,
   );
 
-  console.error(
-    "Request URL:",
-    error?.config?.url,
-  );
+  console.error("Request URL:", error?.config?.url);
 
-  console.error(
-    "Base URL:",
-    error?.config?.baseURL,
-  );
+  console.error("Base URL:", error?.config?.baseURL);
 
   console.error(
     "Full URL:",
-    `${error?.config?.baseURL ?? ""}${
-      error?.config?.url ?? ""
-    }`,
+    `${error?.config?.baseURL ?? ""}${error?.config?.url ?? ""}`,
   );
 
   console.error(
@@ -301,15 +249,9 @@ function logAuthError(
     error?.config?.method?.toUpperCase(),
   );
 
-  console.error(
-    "Error code:",
-    error?.code,
-  );
+  console.error("Error code:", error?.code);
 
-  console.error(
-    "Error message:",
-    error?.message,
-  );
+  console.error("Error message:", error?.message);
 
   console.error(
     "==========================================",
@@ -322,60 +264,40 @@ function logAuthError(
 
 export function useLogin() {
   /* ============================================================
-     NORMAL LOGIN
+     NORMAL LOGIN + SCHOOL LOGIN
      ============================================================ */
 
   const loginMutation = useMutation({
-    mutationFn: async (
-      data: LoginData,
-    ) => {
+    mutationFn: async (data: LoginData) => {
       console.log(
         "========== LOGIN MUTATION START ==========",
       );
 
       console.log({
-        email:
-          data.email
-            .trim()
-            .toLowerCase(),
-
-        hasPassword:
-          Boolean(data.password),
+        email: data.email.trim().toLowerCase(),
+        hasPassword: Boolean(data.password),
+        schoolSubdomain: data.schoolSubdomain || null,
       });
 
-      /*
-       * Build the complete backend payload.
-       *
-       * This adds:
-       *
-       * deviceId
-       * deviceName
-       */
-
-      const payload =
-        buildLoginRequest(
-          data.email,
-          data.password,
-        );
+      const payload = buildLoginRequest(
+        data.email,
+        data.password,
+      );
 
       console.log(
         "Login payload prepared:",
         {
           email: payload.email,
-          hasPassword:
-            Boolean(payload.password),
+          hasPassword: Boolean(payload.password),
           deviceId: payload.deviceId,
-          deviceName:
-            payload.deviceName,
+          deviceName: payload.deviceName,
         },
       );
 
-      /*
-       * Call backend login.
-       */
-
-      const response =
-        await loginUser(payload);
+      const response = await loginUser(
+        payload,
+        data.schoolSubdomain,
+      );
 
       console.log(
         "========== LOGIN MUTATION API SUCCESS ==========",
@@ -384,25 +306,11 @@ export function useLogin() {
       return response;
     },
 
-    /* ========================================================
-       SUCCESS
-       ======================================================== */
-
-    onSuccess: (
-      response,
-    ) => {
-      handleAuthSuccess(
-        response,
-      );
+    onSuccess: (response) => {
+      handleAuthSuccess(response);
     },
 
-    /* ========================================================
-       ERROR
-       ======================================================== */
-
-    onError: (
-      error: any,
-    ) => {
+    onError: (error: any) => {
       logAuthError(
         "LOGIN MUTATION ERROR",
         error,
@@ -414,134 +322,64 @@ export function useLogin() {
      FORCE SWITCH
      ============================================================ */
 
-  const forceSwitchMutation =
-    useMutation({
-      mutationFn: async (
-        data: LoginData,
-      ) => {
-        console.log(
-          "========== FORCE SWITCH MUTATION START ==========",
-        );
+  const forceSwitchMutation = useMutation({
+    mutationFn: async (data: LoginData) => {
+      console.log(
+        "========== FORCE SWITCH MUTATION START ==========",
+      );
 
-        console.log({
-          email:
-            data.email
-              .trim()
-              .toLowerCase(),
+      console.log({
+        email: data.email.trim().toLowerCase(),
+        hasPassword: Boolean(data.password),
+        schoolSubdomain: data.schoolSubdomain || null,
+      });
 
-          hasPassword:
-            Boolean(data.password),
-        });
+      const payload = buildLoginRequest(
+        data.email,
+        data.password,
+      );
 
-        /*
-         * Build the same device-aware login payload.
-         */
+      console.log(
+        "Force switch payload prepared:",
+        {
+          email: payload.email,
+          hasPassword: Boolean(payload.password),
+          deviceId: payload.deviceId,
+          deviceName: payload.deviceName,
+        },
+      );
 
-        const payload =
-          buildLoginRequest(
-            data.email,
-            data.password,
-          );
+      const response = await forceSwitch(payload);
 
-        console.log(
-          "Force switch payload prepared:",
-          {
-            email: payload.email,
+      console.log(
+        "========== FORCE SWITCH API SUCCESS ==========",
+      );
 
-            hasPassword:
-              Boolean(
-                payload.password,
-              ),
+      return response;
+    },
 
-            deviceId:
-              payload.deviceId,
+    onSuccess: (response) => {
+      console.log(
+        "========== FORCE SWITCH AUTH SUCCESS ==========",
+      );
 
-            deviceName:
-              payload.deviceName,
-          },
-        );
+      handleAuthSuccess(response);
+    },
 
-        /*
-         * Call backend force-switch.
-         */
-
-        const response =
-          await forceSwitch(
-            payload,
-          );
-
-        console.log(
-          "========== FORCE SWITCH API SUCCESS ==========",
-        );
-
-        return response;
-      },
-
-      /* ======================================================
-         SUCCESS
-         ====================================================== */
-
-      onSuccess: (
-        response,
-      ) => {
-        console.log(
-          "========== FORCE SWITCH AUTH SUCCESS ==========",
-        );
-
-        /*
-         * Use exactly the same authentication
-         * state handler as normal login.
-         *
-         * This guarantees that force-switch also
-         * stores:
-         *
-         * accessToken
-         * refreshToken
-         * user
-         */
-
-        handleAuthSuccess(
-          response,
-        );
-      },
-
-      /* ======================================================
-         ERROR
-         ====================================================== */
-
-      onError: (
-        error: any,
-      ) => {
-        logAuthError(
-          "FORCE SWITCH MUTATION ERROR",
-          error,
-        );
-      },
-    });
+    onError: (error: any) => {
+      logAuthError(
+        "FORCE SWITCH MUTATION ERROR",
+        error,
+      );
+    },
+  });
 
   /* ============================================================
      RETURN
      ============================================================ */
 
   return {
-    /*
-     * Normal login mutation
-     *
-     * isPending
-     * isSuccess
-     * isError
-     * error
-     * mutate
-     * mutateAsync
-     * etc.
-     */
-
     ...loginMutation,
-
-    /*
-     * Force-switch mutation
-     */
-
     forceSwitchMutation,
   };
 }

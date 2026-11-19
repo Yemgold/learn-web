@@ -1,422 +1,614 @@
-// GET    /api/v1/schools
-// POST   /api/v1/schools
-// PATCH  /api/v1/schools/:schoolId
-// PATCH  /api/v1/schools/:schoolId/status
+
 
 
 
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  School,
   Plus,
   Search,
-  RefreshCw,
-  Pencil,
-  Trash2,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
+  School as SchoolIcon,
   CheckCircle2,
-  XCircle,
-  Loader2,
-  X,
+  Clock3,
+  MoreVertical,
+  Eye,
+  Pencil,
+  RefreshCw,
   Building2,
-  ExternalLink,
   AlertCircle,
-  Palette,
+  X,
 } from "lucide-react";
 
-interface SchoolRecord {
+import Button from "@/components/schools/ui/Button";
+import Card from "@/components/schools/ui/Card";
+import Input from "@/components/schools/ui/Input";
+import StatsCard from "@/components/schools/shared/StatsCard";
+import StatusBadge from "@/components/schools/shared/StatusBadge";
+import Pagination from "@/components/schools/shared/Pagination";
+import EmptyState from "@/components/schools/shared/EmptyState";
+import LoadingState from "@/components/schools/shared/LoadingState";
+
+import {
+  getSchools,
+  type School,
+  type GetSchoolsParams,
+} from "@/lib/schools/management/services/school.service";
+
+/* =========================================================
+   TYPES
+========================================================= */
+
+type SchoolStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "SUSPENDED"
+  | "PENDING";
+
+type SchoolAccessMode =
+  | "STUDENT_PIN"
+  | "SCHOOL_SUBSCRIPTION";
+
+interface SchoolItem {
   id: string;
   name: string;
-  slug: string;
-  subdomain: string;
-  logo?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  email: string;
+  email?: string;
   phone?: string;
   address?: string;
-  isActive: boolean;
+  slug?: string;
+  status: SchoolStatus;
+  accessMode: SchoolAccessMode;
   createdAt?: string;
+  studentCount?: number;
 }
 
-interface SchoolForm {
-  name: string;
-  slug: string;
-  email: string;
-  phone: string;
-  address: string;
-  logo: string;
-  primaryColor: string;
-  secondaryColor: string;
+interface SchoolPagination {
+  schools: unknown[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
 }
 
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://myandyemi-qanda-backend.onrender.com/api/v1"
-).replace(/\/$/, "");
+const PAGE_SIZE = 10;
 
-const EMPTY_FORM: SchoolForm = {
-  name: "",
-  slug: "",
-  email: "",
-  phone: "",
-  address: "",
-  logo: "",
-  primaryColor: "#2563eb",
-  secondaryColor: "#ffffff",
-};
+const STATUS_OPTIONS = [
+  { label: "All statuses", value: "ALL" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Inactive", value: "INACTIVE" },
+  { label: "Suspended", value: "SUSPENDED" },
+  { label: "Pending", value: "PENDING" },
+];
 
-function createSlug(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+/* =========================================================
+   RESPONSE HELPERS
+========================================================= */
 
-function getErrorMessage(data: any, fallback: string) {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return (
-    data?.message ||
-    data?.error ||
-    data?.errors?.[0]?.message ||
-    fallback
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
   );
 }
 
-export default function SchoolsManagementPage() {
-  const [schools, setSchools] = useState<SchoolRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingSchool, setEditingSchool] =
-    useState<SchoolRecord | null>(null);
+function getString(
+  ...values: unknown[]
+): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
 
-  const [form, setForm] = useState<SchoolForm>(EMPTY_FORM);
-  const [message, setMessage] = useState("");
+    if (typeof value === "number") {
+      return String(value);
+    }
+  }
+
+  return undefined;
+}
+
+function getNumber(
+  value: unknown,
+  fallback: number
+): number {
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : fallback;
+}
+
+function normalizeStatus(
+  value: unknown,
+  isActive?: unknown
+): SchoolStatus {
+  const status = String(value ?? "").toUpperCase();
+
+  if (
+    status === "ACTIVE" ||
+    status === "INACTIVE" ||
+    status === "SUSPENDED" ||
+    status === "PENDING"
+  ) {
+    return status;
+  }
+
+  if (isActive === true) return "ACTIVE";
+  if (isActive === false) return "INACTIVE";
+
+  return "PENDING";
+}
+
+function normalizeAccessMode(value: unknown): SchoolAccessMode {
+  return value === "STUDENT_PIN"
+    ? "STUDENT_PIN"
+    : "SCHOOL_SUBSCRIPTION";
+}
+
+function normalizeSchool(value: unknown): SchoolItem | null {
+  if (!isRecord(value)) return null;
+
+  const id = getString(
+    value.id,
+    value._id,
+    value.schoolId
+  );
+
+  const name = getString(
+    value.schoolName,
+    value.name
+  );
+
+  if (!id || !name) return null;
+
+  return {
+    id,
+    name,
+    email: getString(
+      value.schoolEmail,
+      value.email
+    ),
+    phone: getString(
+      value.schoolPhone,
+      value.phone
+    ),
+    address: getString(value.address),
+    slug: getString(
+      value.subDomain,
+      value.subdomain,
+      value.slug
+    ),
+    status: normalizeStatus(
+      value.status,
+      value.isActive
+    ),
+    accessMode: normalizeAccessMode(value.accessMode),
+    createdAt: getString(value.createdAt),
+    studentCount: getNumber(value.studentCount, 0),
+  };
+}
+
+/**
+ * Supports common backend response formats:
+ *
+ * { success, data: [...] }
+ * { success, data: { schools: [...] } }
+ * { success, data: { data: { schools: [...] } } }
+ * { success, data: { schools: [...], totalCount, totalPages } }
+ */
+
+
+
+function extractSchoolPagination(
+  response: unknown,
+  requestedPage: number
+): SchoolPagination {
+  let current: unknown = response;
+
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!isRecord(current)) break;
+
+    // Your backend's actual response property is schoolObj.
+    const schools =
+      current.schoolObj ??
+      current.schools;
+
+    if (Array.isArray(schools)) {
+      const totalCount = getNumber(
+        current.totalCount ?? current.total,
+        schools.length
+      );
+
+      return {
+        schools,
+        totalCount,
+        totalPages: Math.max(
+          1,
+          getNumber(
+            current.totalPages,
+            Math.ceil(totalCount / PAGE_SIZE) || 1
+          )
+        ),
+        currentPage: getNumber(
+          current.currentPage ?? current.page,
+          requestedPage
+        ),
+      };
+    }
+
+    // Handle APIs returning data directly as an array.
+    if (Array.isArray(current.data)) {
+      const totalCount = getNumber(
+        current.totalCount ?? current.total,
+        current.data.length
+      );
+
+      return {
+        schools: current.data,
+        totalCount,
+        totalPages: Math.max(
+          1,
+          getNumber(
+            current.totalPages,
+            Math.ceil(totalCount / PAGE_SIZE) || 1
+          )
+        ),
+        currentPage: getNumber(
+          current.currentPage ?? current.page,
+          requestedPage
+        ),
+      };
+    }
+
+    current = current.data;
+  }
+
+  if (Array.isArray(current)) {
+    return {
+      schools: current,
+      totalCount: current.length,
+      totalPages: Math.max(
+        1,
+        Math.ceil(current.length / PAGE_SIZE)
+      ),
+      currentPage: requestedPage,
+    };
+  }
+
+  return {
+    schools: [],
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: requestedPage,
+  };
+}
+
+
+/* =========================================================
+   DISPLAY HELPERS
+========================================================= */
+
+function getSchoolInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatDate(date?: string) {
+  if (!date) return "—";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "—";
+  }
+
+  return parsedDate.toLocaleDateString("en-NG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getAccessModeLabel(mode: SchoolAccessMode) {
+  return mode === "STUDENT_PIN"
+    ? "Student PIN"
+    : "School Subscription";
+}
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+export default function SchoolsPage() {
+  const router = useRouter();
+
+  const [schools, setSchools] = useState<SchoolItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const getHeaders = useCallback(() => {
-    const token =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem("accessToken")
-        : null;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  }, []);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const request = useCallback(
-    async (endpoint: string, options: RequestInit = {}) => {
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          ...getHeaders(),
-          ...(options.headers || {}),
-        },
-        credentials: "include",
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(data, `Request failed (${response.status})`)
-        );
-      }
-
-      return data;
-    },
-    [getHeaders]
-  );
+  /* =========================================================
+     LOAD SCHOOLS
+  ========================================================= */
 
   const loadSchools = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
     try {
-      const result = await request("/schools");
+      setIsLoading(true);
+      setError("");
 
-      const records =
-        Array.isArray(result)
-          ? result
-          : Array.isArray(result?.data)
-            ? result.data
-            : Array.isArray(result?.data?.schools)
-              ? result.data.schools
-              : Array.isArray(result?.schools)
-                ? result.schools
-                : [];
+      const params: GetSchoolsParams = {
+        page: currentPage,
+        limit: PAGE_SIZE,
+      };
 
-      const normalized: SchoolRecord[] = records.map((school: any) => ({
-        id: String(school.id ?? school._id ?? ""),
-        name: school.name ?? school.schoolName ?? "Unnamed School",
-        slug: school.slug ?? school.subdomain ?? "",
-        subdomain: school.subdomain ?? school.slug ?? "",
-        logo: school.logo ?? school.logoUrl ?? "",
-        primaryColor: school.primaryColor ?? "#2563eb",
-        secondaryColor: school.secondaryColor ?? "#ffffff",
-        email: school.email ?? "",
-        phone: school.phone ?? "",
-        address: school.address ?? "",
-        isActive: school.isActive ?? school.status === "active",
-        createdAt: school.createdAt,
-      }));
+      const response = await getSchools(params);
 
-      setSchools(normalized);
-    } catch (err) {
-      setError(
+      const pagination = extractSchoolPagination(
+        response,
+        currentPage
+      );
+
+      const normalizedSchools = pagination.schools
+        .map(normalizeSchool)
+        .filter((school): school is SchoolItem => school !== null);
+
+      setSchools(normalizedSchools);
+      setTotalCount(pagination.totalCount);
+      setTotalPages(pagination.totalPages);
+    } catch (err: unknown) {
+      const message =
         err instanceof Error
           ? err.message
-          : "Unable to load schools."
-      );
+          : "Unable to load schools. Please try again.";
+
+      setError(message);
+      setSchools([]);
+      setTotalCount(0);
+      setTotalPages(1);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [request]);
+  }, [currentPage]);
 
   useEffect(() => {
-    loadSchools();
+    void loadSchools();
   }, [loadSchools]);
 
+  /* =========================================================
+     FILTERS
+  ========================================================= */
+
   const filteredSchools = useMemo(() => {
-    const query = search.toLowerCase().trim();
+    return schools.filter((school) => {
+      const searchValue = search.trim().toLowerCase();
 
-    if (!query) return schools;
+      const matchesSearch =
+        !searchValue ||
+        school.name.toLowerCase().includes(searchValue) ||
+        school.email?.toLowerCase().includes(searchValue) ||
+        school.phone?.toLowerCase().includes(searchValue) ||
+        school.address?.toLowerCase().includes(searchValue) ||
+        school.slug?.toLowerCase().includes(searchValue);
 
-    return schools.filter((school) =>
-      [
-        school.name,
-        school.slug,
-        school.subdomain,
-        school.email,
-        school.phone,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [schools, search]);
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        school.status === statusFilter;
 
-  const activeCount = schools.filter((school) => school.isActive).length;
-  const inactiveCount = schools.length - activeCount;
-
-  function updateForm<K extends keyof SchoolForm>(
-    key: K,
-    value: SchoolForm[K]
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
-  }
-
-  function openCreateForm() {
-    setEditingSchool(null);
-    setForm(EMPTY_FORM);
-    setShowForm(true);
-    setMessage("");
-    setError("");
-  }
-
-  function openEditForm(school: SchoolRecord) {
-    setEditingSchool(school);
-
-    setForm({
-      name: school.name,
-      slug: school.slug || school.subdomain,
-      email: school.email,
-      phone: school.phone || "",
-      address: school.address || "",
-      logo: school.logo || "",
-      primaryColor: school.primaryColor || "#2563eb",
-      secondaryColor: school.secondaryColor || "#ffffff",
+      return matchesSearch && matchesStatus;
     });
+  }, [schools, search, statusFilter]);
 
-    setShowForm(true);
-    setMessage("");
-    setError("");
-  }
+  /* =========================================================
+     STATISTICS
+  ========================================================= */
 
-  function closeForm() {
-    setShowForm(false);
-    setEditingSchool(null);
-    setForm(EMPTY_FORM);
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setError("");
-    setMessage("");
-
-    const slug = createSlug(form.slug || form.name);
-
-    if (!form.name.trim()) {
-      setError("Please enter the school name.");
-      return;
-    }
-
-    if (!slug) {
-      setError("Please enter a valid school subdomain.");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      setError("Please enter the school's email address.");
-      return;
-    }
-
-    const payload = {
-      name: form.name.trim(),
-      slug,
-      subdomain: slug,
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      logo: form.logo.trim(),
-      primaryColor: form.primaryColor,
-      secondaryColor: form.secondaryColor,
+  const statistics = useMemo(() => {
+    return {
+      total: totalCount,
+      active: schools.filter(
+        (school) => school.status === "ACTIVE"
+      ).length,
+      pending: schools.filter(
+        (school) => school.status === "PENDING"
+      ).length,
+      suspended: schools.filter(
+        (school) => school.status === "SUSPENDED"
+      ).length,
     };
+  }, [schools, totalCount]);
 
-    setSaving(true);
+  /* =========================================================
+     HANDLERS
+  ========================================================= */
 
-    try {
-      if (editingSchool) {
-        await request(`/schools/${encodeURIComponent(editingSchool.id)}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        });
+  const handleViewSchool = (schoolId: string) => {
+    router.push(`/admin/schools/${encodeURIComponent(schoolId)}`);
+  };
 
-        setMessage("School updated successfully.");
-      } else {
-        await request("/schools", {
-          method: "POST",
-          body: JSON.stringify({
-            ...payload,
-            isActive: true,
-          }),
-        });
+  const handleEditSchool = (schoolId: string) => {
+    router.push(
+      `/admin/schools/${encodeURIComponent(schoolId)}/edit`
+    );
+  };
 
-        setMessage("School registered successfully.");
-      }
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
 
-      closeForm();
-      await loadSchools();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to save school."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
+    setCurrentPage(page);
+    setOpenMenuId(null);
+  };
 
-  async function toggleSchoolStatus(school: SchoolRecord) {
-    const action = school.isActive ? "deactivate" : "activate";
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("ALL");
+  };
 
-    if (
-      !window.confirm(
-        `Are you sure you want to ${action} ${school.name}?`
-      )
-    ) {
-      return;
-    }
-
-    setStatusUpdating(school.id);
-    setError("");
-    setMessage("");
-
-    try {
-      await request(
-        `/schools/${encodeURIComponent(school.id)}/status`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            isActive: !school.isActive,
-          }),
-        }
-      );
-
-      setMessage(`${school.name} has been ${action}d.`);
-      await loadSchools();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to update school status."
-      );
-    } finally {
-      setStatusUpdating(null);
-    }
-  }
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-blue-600 dark:text-blue-400">
-              <Building2 size={19} />
-              <span className="text-xs font-bold uppercase tracking-widest">
-                Learnyfi Administration
-              </span>
-            </div>
-
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-              School Management
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Register schools and manage their individual Learnyfi portals.
-            </p>
+    <div className="space-y-6 pb-10">
+      {/* Page heading */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+            <Building2 size={16} />
+            <span>Platform Administration</span>
+            <span>/</span>
+            <span className="text-gray-900">Schools</span>
           </div>
 
-          <button
-            onClick={openCreateForm}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
-          >
-            <Plus size={19} />
-            Register New School
-          </button>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            Schools
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Manage registered schools across the Learnyfi platform.
+          </p>
         </div>
 
-        {/* Notifications */}
-        {message && (
-          <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
-            <CheckCircle2 size={19} />
-            {message}
-            <button
-              onClick={() => setMessage("")}
-              className="ml-auto"
-              aria-label="Dismiss message"
-            >
-              <X size={17} />
-            </button>
-          </div>
-        )}
+        <Link href="/admin/schools/create">
+          <Button leftIcon={<Plus size={18} />}>
+            Create School
+          </Button>
+        </Link>
+      </div>
 
+      {/* Statistics */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatsCard
+          title="Total Schools"
+          value={statistics.total.toLocaleString()}
+          description="Registered schools"
+          icon={<SchoolIcon size={22} />}
+          iconClassName="bg-blue-50 text-blue-600"
+        />
+
+        <StatsCard
+          title="Active Schools"
+          value={statistics.active.toLocaleString()}
+          description="Active on current page"
+          icon={<CheckCircle2 size={22} />}
+          iconClassName="bg-green-50 text-green-600"
+        />
+
+        <StatsCard
+          title="Pending Schools"
+          value={statistics.pending.toLocaleString()}
+          description="Awaiting activation"
+          icon={<Clock3 size={22} />}
+          iconClassName="bg-yellow-50 text-yellow-600"
+        />
+
+        <StatsCard
+          title="Suspended Schools"
+          value={statistics.suspended.toLocaleString()}
+          description="Suspended on current page"
+          icon={<AlertCircle size={22} />}
+          iconClassName="bg-red-50 text-red-600"
+        />
+      </div>
+
+      {/* School listing */}
+      <Card padding="none">
+        <div className="border-b border-gray-100 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                All Schools
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                View and manage schools registered on the platform.
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<RefreshCw size={15} />}
+              onClick={loadSchools}
+              isLoading={isLoading}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 md:flex-row">
+            <div className="w-full md:flex-1">
+              <Input
+                placeholder="Search by school name, email or phone..."
+                value={search}
+                onChange={setSearch}
+                leftIcon={<Search size={17} />}
+                fullWidth
+              />
+            </div>
+
+            <div className="relative w-full md:w-52">
+              <select
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(search || statusFilter !== "ALL") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<X size={15} />}
+                onClick={clearFilters}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Error state */}
         {error && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-            <AlertCircle size={19} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
+          <div className="m-5 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="flex items-start gap-2">
+              <AlertCircle
+                size={18}
+                className="mt-0.5 shrink-0"
+              />
+              <span>{error}</span>
+            </div>
+
             <button
+              type="button"
               onClick={() => setError("")}
-              className="ml-auto"
               aria-label="Dismiss error"
             >
               <X size={17} />
@@ -424,578 +616,284 @@ export default function SchoolsManagementPage() {
           </div>
         )}
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Total Schools
-                </p>
-                <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
-                  {schools.length}
-                </p>
-              </div>
-              <div className="rounded-xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                <School size={25} />
-              </div>
-            </div>
+        {/* Loading state */}
+        {isLoading ? (
+          <div className="p-5">
+            <LoadingState
+              variant="table"
+              rows={6}
+              columns={5}
+            />
           </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Active Schools
-                </p>
-                <p className="mt-2 text-3xl font-bold text-green-600">
-                  {activeCount}
-                </p>
-              </div>
-              <div className="rounded-xl bg-green-50 p-3 text-green-600 dark:bg-green-950/50">
-                <CheckCircle2 size={25} />
-              </div>
-            </div>
+        ) : error ? (
+          <div className="p-8 text-center">
+            <Button
+              variant="outline"
+              leftIcon={<RefreshCw size={16} />}
+              onClick={loadSchools}
+            >
+              Try again
+            </Button>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Inactive Schools
-                </p>
-                <p className="mt-2 text-3xl font-bold text-orange-500">
-                  {inactiveCount}
-                </p>
-              </div>
-              <div className="rounded-xl bg-orange-50 p-3 text-orange-600 dark:bg-orange-950/50">
-                <XCircle size={25} />
-              </div>
-            </div>
+        ) : filteredSchools.length === 0 ? (
+          <div className="p-8">
+            <EmptyState
+              icon={<SchoolIcon size={34} />}
+              title={
+                search || statusFilter !== "ALL"
+                  ? "No matching schools"
+                  : "No schools registered yet"
+              }
+              description={
+                search || statusFilter !== "ALL"
+                  ? "Try changing your search or filters."
+                  : "Create your first school to get started."
+              }
+              actionLabel={
+                search || statusFilter !== "ALL"
+                  ? "Clear filters"
+                  : "Create School"
+              }
+              onAction={() => {
+                if (search || statusFilter !== "ALL") {
+                  clearFilters();
+                } else {
+                  router.push("/admin/schools/create");
+                }
+              }}
+            />
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[850px] text-left">
+                <thead className="bg-gray-50">
+                  <tr className="border-y border-gray-100">
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      School
+                    </th>
 
-        {/* School list */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-4 border-b border-slate-200 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900 dark:text-white">
-                Registered Schools
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Manage your schools and their portals.
-              </p>
-            </div>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Contact
+                    </th>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative">
-                <Search
-                  size={17}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search schools..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950 sm:w-64"
-                />
-              </div>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Access Mode
+                    </th>
 
-              <button
-                onClick={loadSchools}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <RefreshCw
-                  size={16}
-                  className={loading ? "animate-spin" : ""}
-                />
-                Refresh
-              </button>
-            </div>
-          </div>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Status
+                    </th>
 
-          {loading ? (
-            <div className="flex min-h-64 flex-col items-center justify-center gap-3">
-              <Loader2 className="animate-spin text-blue-600" size={30} />
-              <p className="text-sm text-slate-500">
-                Loading registered schools...
-              </p>
-            </div>
-          ) : filteredSchools.length === 0 ? (
-            <div className="flex min-h-72 flex-col items-center justify-center px-5 text-center">
-              <div className="rounded-2xl bg-slate-100 p-5 text-slate-400 dark:bg-slate-800">
-                <School size={35} />
-              </div>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Date Created
+                    </th>
 
-              <h3 className="mt-4 font-semibold text-slate-800 dark:text-white">
-                {search ? "No schools found" : "No schools registered yet"}
-              </h3>
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
 
-              <p className="mt-2 max-w-sm text-sm text-slate-500">
-                {search
-                  ? "Try another search term."
-                  : "Register your first school to create its own Learnyfi portal."}
-              </p>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredSchools.map((school) => (
+                    <tr
+                      key={school.id}
+                      className="transition hover:bg-gray-50/70"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700">
+                            {getSchoolInitials(school.name)}
+                          </div>
 
-              {!search && (
-                <button
-                  onClick={openCreateForm}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  <Plus size={18} />
-                  Register First School
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden overflow-x-auto md:block">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-950/60">
-                    <tr>
-                      <th className="px-5 py-4 font-semibold">School</th>
-                      <th className="px-5 py-4 font-semibold">Portal</th>
-                      <th className="px-5 py-4 font-semibold">Contact</th>
-                      <th className="px-5 py-4 font-semibold">Status</th>
-                      <th className="px-5 py-4 text-right font-semibold">Actions</th>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-gray-900">
+                              {school.name}
+                            </p>
+
+                            <p className="mt-1 text-xs text-gray-500">
+                              {school.slug || school.id}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <p className="text-sm text-gray-700">
+                          {school.email || "No email"}
+                        </p>
+
+                        <p className="mt-1 text-xs text-gray-500">
+                          {school.phone || "No phone"}
+                        </p>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-gray-700">
+                          {getAccessModeLabel(school.accessMode)}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <StatusBadge status={school.status} />
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-gray-600">
+                        {formatDate(school.createdAt)}
+                      </td>
+
+                      <td className="px-5 py-4 text-right">
+                        <div className="relative inline-flex">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenMenuId(
+                                openMenuId === school.id
+                                  ? null
+                                  : school.id
+                              )
+                            }
+                            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                            aria-label={`Actions for ${school.name}`}
+                            aria-expanded={openMenuId === school.id}
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openMenuId === school.id && (
+                            <>
+                              <button
+                                type="button"
+                                aria-label="Close actions menu"
+                                className="fixed inset-0 z-10 cursor-default"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+
+                              <div className="absolute right-0 top-10 z-20 w-44 rounded-lg border border-gray-100 bg-white p-1.5 text-left shadow-xl">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleViewSchool(school.id);
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Eye size={16} />
+                                  View details
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleEditSchool(school.id);
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Pencil size={16} />
+                                  Edit school
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredSchools.map((school) => (
-                      <tr
-                        key={school.id}
-                        className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                              style={{
-                                backgroundColor: school.primaryColor || "#2563eb",
-                              }}
-                            >
-                              {school.logo ? (
-                                <img
-                                  src={school.logo}
-                                  alt={school.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <School className="text-white" size={22} />
-                              )}
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-slate-900 dark:text-white">
-                                {school.name}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                {school.id}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <a
-                            href={`https://${school.subdomain}.learnyfi.com.ng`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                          >
-                            {school.subdomain}.learnyfi.com.ng
-                            <ExternalLink size={13} />
-                          </a>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <p className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                            <Mail size={14} />
-                            {school.email || "No email"}
-                          </p>
-                          <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                            <Phone size={13} />
-                            {school.phone || "No phone"}
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                              school.isActive
-                                ? "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                                : "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400"
-                            }`}
-                          >
-                            {school.isActive ? (
-                              <CheckCircle2 size={13} />
-                            ) : (
-                              <XCircle size={13} />
-                            )}
-                            {school.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openEditForm(school)}
-                              title="Edit school"
-                              className="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40"
-                            >
-                              <Pencil size={16} />
-                            </button>
-
-                            <button
-                              onClick={() => toggleSchoolStatus(school)}
-                              disabled={statusUpdating === school.id}
-                              title={school.isActive ? "Deactivate school" : "Activate school"}
-                              className={`rounded-lg border p-2 transition disabled:opacity-50 ${
-                                school.isActive
-                                  ? "border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-900"
-                                  : "border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900"
-                              }`}
-                            >
-                              {statusUpdating === school.id ? (
-                                <Loader2 size={16} className="animate-spin" />
-                              ) : school.isActive ? (
-                                <XCircle size={16} />
-                              ) : (
-                                <CheckCircle2 size={16} />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="space-y-3 p-4 md:hidden">
-                {filteredSchools.map((school) => (
-                  <div
-                    key={school.id}
-                    className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                        style={{
-                          backgroundColor: school.primaryColor || "#2563eb",
-                        }}
-                      >
-                        {school.logo ? (
-                          <img
-                            src={school.logo}
-                            alt={school.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <School className="text-white" size={23} />
-                        )}
+            {/* Mobile cards */}
+            <div className="space-y-3 p-4 md:hidden">
+              {filteredSchools.map((school) => (
+                <div
+                  key={school.id}
+                  className="rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700">
+                        {getSchoolInitials(school.name)}
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-gray-900">
                           {school.name}
                         </h3>
 
-                        <span
-                          className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            school.isActive
-                              ? "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                              : "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400"
-                          }`}
-                        >
-                          {school.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-                      <p className="flex items-center gap-2 break-all">
-                        <Globe size={15} className="shrink-0" />
-                        {school.subdomain}.learnyfi.com.ng
-                      </p>
-                      <p className="flex items-center gap-2 break-all">
-                        <Mail size={15} className="shrink-0" />
-                        {school.email || "No email"}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <Phone size={15} className="shrink-0" />
-                        {school.phone || "No phone"}
-                      </p>
-                      {school.address && (
-                        <p className="flex items-center gap-2">
-                          <MapPin size={15} className="shrink-0" />
-                          {school.address}
+                        <p className="mt-1 truncate text-xs text-gray-500">
+                          {school.email || "No email"}
                         </p>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-                      <button
-                        onClick={() => openEditForm(school)}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium dark:border-slate-700"
-                      >
-                        <Pencil size={15} />
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => toggleSchoolStatus(school)}
-                        disabled={statusUpdating === school.id}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium disabled:opacity-50 dark:border-slate-700"
-                      >
-                        {statusUpdating === school.id ? (
-                          <Loader2 size={15} className="animate-spin" />
-                        ) : school.isActive ? (
-                          <XCircle size={15} />
-                        ) : (
-                          <CheckCircle2 size={15} />
-                        )}
-                        {school.isActive ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Registration / Edit modal */}
-        {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6">
-            <div className="my-auto w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-7">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {editingSchool ? "Edit School" : "Register New School"}
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Enter the school's information and portal details.
-                  </p>
-                </div>
-
-                <button
-                  onClick={closeForm}
-                  disabled={saving}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-7">
-                {error && (
-                  <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                    {error}
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    School Name *
-                  </label>
-                  <input
-                    required
-                    value={form.name}
-                    onChange={(event) => {
-                      const name = event.target.value;
-                      setForm((previous) => ({
-                        ...previous,
-                        name,
-                        ...(editingSchool
-                          ? {}
-                          : { slug: createSlug(name) }),
-                      }));
-                    }}
-                    placeholder="e.g. De Rock International School"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    School Subdomain *
-                  </label>
-
-                  <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950">
-                    <input
-                      required
-                      value={form.slug}
-                      onChange={(event) =>
-                        updateForm("slug", createSlug(event.target.value))
-                      }
-                      placeholder="derock"
-                      className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none"
-                    />
-                    <span className="flex items-center border-l border-slate-200 bg-slate-100 px-3 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800 sm:px-4">
-                      .learnyfi.com.ng
-                    </span>
-                  </div>
-
-                  <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                    Portal: https://{form.slug || "school"}.learnyfi.com.ng
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Use letters, numbers and hyphens only. The subdomain must be unique.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      School Email *
-                    </label>
-                    <input
-                      required
-                      type="email"
-                      value={form.email}
-                      onChange={(event) =>
-                        updateForm("email", event.target.value)
-                      }
-                      placeholder="school@example.com"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      Phone Number
-                    </label>
-                    <input
-                      value={form.phone}
-                      onChange={(event) =>
-                        updateForm("phone", event.target.value)
-                      }
-                      placeholder="08012345678"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    School Address
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={form.address}
-                    onChange={(event) =>
-                      updateForm("address", event.target.value)
-                    }
-                    placeholder="Enter the school's address"
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    School Logo URL
-                  </label>
-                  <input
-                    value={form.logo}
-                    onChange={(event) =>
-                      updateForm("logo", event.target.value)
-                    }
-                    placeholder="https://example.com/logo.png"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Enter a publicly accessible image URL. File upload can be added when your backend supports it.
-                  </p>
-                </div>
-
-                <div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <Palette size={17} className="text-blue-600" />
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      School Branding
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="mb-2 block text-xs text-slate-500">
-                        Primary Colour
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 dark:border-slate-700">
-                        <input
-                          type="color"
-                          value={form.primaryColor}
-                          onChange={(event) =>
-                            updateForm("primaryColor", event.target.value)
-                          }
-                          className="h-9 w-10 cursor-pointer rounded"
-                        />
-                        <span className="text-xs text-slate-600 dark:text-slate-300">
-                          {form.primaryColor}
-                        </span>
                       </div>
                     </div>
 
+                    <StatusBadge status={school.status} />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
                     <div>
-                      <label className="mb-2 block text-xs text-slate-500">
-                        Secondary Colour
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 dark:border-slate-700">
-                        <input
-                          type="color"
-                          value={form.secondaryColor}
-                          onChange={(event) =>
-                            updateForm("secondaryColor", event.target.value)
-                          }
-                          className="h-9 w-10 cursor-pointer rounded"
-                        />
-                        <span className="text-xs text-slate-600 dark:text-slate-300">
-                          {form.secondaryColor}
-                        </span>
-                      </div>
+                      <p className="text-xs text-gray-500">
+                        Access mode
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-gray-800">
+                        {getAccessModeLabel(school.accessMode)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Date created
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-gray-800">
+                        {formatDate(school.createdAt)}
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 dark:border-slate-800 sm:flex-row sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={closeForm}
-                    disabled={saving}
-                    className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                  >
-                    Cancel
-                  </button>
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      fullWidth
+                      leftIcon={<Eye size={15} />}
+                      onClick={() => handleViewSchool(school.id)}
+                    >
+                      View
+                    </Button>
 
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 size={17} className="animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={17} />
-                        {editingSchool ? "Save Changes" : "Register School"}
-                      </>
-                    )}
-                  </button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      fullWidth
+                      leftIcon={<Pencil size={15} />}
+                      onClick={() => handleEditSchool(school.id)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 </div>
-              </form>
+              ))}
             </div>
-          </div>
-        )}
 
-      </div>
+            {/* Pagination */}
+            <div className="border-t border-gray-100 p-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalCount}
+                pageSize={PAGE_SIZE}
+                onPageChange={handlePageChange}
+                showItemCount
+              />
+            </div>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

@@ -20,7 +20,7 @@ const inter = Inter({
 
 const siteName = "Learnyfi Educational Platform";
 
-const siteUrl = "https://learn-web-pink.vercel.app";
+const siteUrl = "https://learnyfi.com.ng";
 
 const siteDescription =
   "Learn new skills, practise with interactive questions, prepare for exams, take courses, and compete with other learners on Learnyfi Educational Platform.";

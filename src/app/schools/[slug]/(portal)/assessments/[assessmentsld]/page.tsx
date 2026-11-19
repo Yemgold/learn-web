@@ -2,9 +2,6 @@
 
 
 
-
-
-
 "use client";
 
 import {
@@ -51,7 +48,6 @@ import {
   getAssessmentById,
   getAssessmentsByClassAndSubject,
   getAssessmentsBySession,
-  type Assessment,
 } from "@/lib/schools/portal/services/assessment.service";
 
 /* =========================================================
@@ -64,20 +60,6 @@ type UserRole =
   | "ADMINISTRATOR"
   | "TEACHER"
   | "STUDENT";
-
-interface AssessmentRecord extends Partial<Assessment> {
-  _id: string;
-  __assignmentPairs?: string[];
-}
-
-interface TeacherPermission {
-  classId: string;
-  subjectId: string;
-}
-
-interface TeachingAssignmentRecord {
-  [key: string]: unknown;
-}
 
 interface SubjectRecord {
   _id?: string;
@@ -95,6 +77,68 @@ interface ClassRecord {
   name?: string;
   subjects?: SubjectRecord[];
   subjectIds?: unknown[];
+}
+
+interface AssessmentRecord {
+  _id: string;
+
+  assessmentName?: string;
+  title?: string;
+
+  description?: string;
+
+  status?: string;
+  assessmentStatus?: string;
+  publicationStatus?: string;
+
+  isPublished?: boolean;
+  isCompleted?: boolean;
+  isActive?: boolean;
+
+  classId?: unknown;
+  classIds?: unknown[];
+  className?: string;
+  class?: ClassRecord | null;
+
+  subjectId?: unknown;
+  subjectName?: string;
+  subject?: SubjectRecord | null;
+
+  academicSessionId?: unknown;
+
+  teacherMembershipId?: unknown;
+
+  assessmentType?: string;
+  type?: string;
+
+  durationMinutes?: number;
+  duration?: number;
+
+  totalMarks?: number;
+  passMark?: number;
+
+  questions?: unknown[];
+
+  startsAt?: string;
+  startDate?: string;
+  endsAt?: string;
+  endDate?: string;
+
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+
+  __assignmentPairs?: string[];
+
+  [key: string]: unknown;
+}
+
+interface TeacherPermission {
+  classId: string;
+  subjectId: string;
+}
+
+interface TeachingAssignmentRecord {
   [key: string]: unknown;
 }
 
@@ -152,13 +196,19 @@ function getErrorMessage(error: unknown): string {
       return backendMessage.map(String).join(", ");
     }
 
-    if (typeof backendMessage === "string" && backendMessage.trim()) {
+    if (
+      typeof backendMessage === "string" &&
+      backendMessage.trim()
+    ) {
       return backendMessage;
     }
 
     const backendError = response?.data?.error;
 
-    if (typeof backendError === "string" && backendError.trim()) {
+    if (
+      typeof backendError === "string" &&
+      backendError.trim()
+    ) {
       return backendError;
     }
 
@@ -170,7 +220,10 @@ function getErrorMessage(error: unknown): string {
       return "The requested assessment could not be found.";
     }
 
-    if (record.message && typeof record.message === "string") {
+    if (
+      typeof record.message === "string" &&
+      record.message.trim()
+    ) {
       return record.message;
     }
   }
@@ -270,7 +323,9 @@ function getSessionName(session: AcademicSession): string {
   );
 }
 
-function getAssessmentName(assessment: AssessmentRecord): string {
+function getAssessmentName(
+  assessment: AssessmentRecord,
+): string {
   return (
     assessment.assessmentName ||
     assessment.title ||
@@ -675,15 +730,6 @@ export default function AssessmentDetailsPage() {
 
   /* =====================================================
      LOAD ASSESSMENT CONTEXT
-
-     Admin:
-     - Search school assessments by session.
-
-     Teacher:
-     - Search only assigned class/subject combinations.
-
-     Once the assessment is located, request its full
-     details using the backend get-by-ID endpoint.
   ===================================================== */
 
   const loadAssessment = useCallback(async () => {
@@ -712,6 +758,8 @@ export default function AssessmentDetailsPage() {
     setWarning("");
     setNotFound(false);
     setAssessment(null);
+    setClassName("");
+    setSubjectName("");
 
     try {
       /* ---------------------------------------------
@@ -776,16 +824,19 @@ export default function AssessmentDetailsPage() {
             );
 
             if (found) {
-              matchingAssessment = found as AssessmentRecord;
+              const normalized = {
+                ...found,
+                _id: getId(found._id),
+              } as AssessmentRecord;
+
+              matchingAssessment = normalized;
 
               matchingContext = {
                 academicSessionId: sessionId,
                 classId:
                   requestedClassId ||
-                  getClassId(found as AssessmentRecord) ||
-                  getAssessmentClassIds(
-                    found as AssessmentRecord,
-                  )[0] ||
+                  getClassId(normalized) ||
+                  getAssessmentClassIds(normalized)[0] ||
                   "",
               };
 
@@ -828,33 +879,34 @@ export default function AssessmentDetailsPage() {
           : sessionIdsToSearch;
 
         for (const sessionId of sessionSearchList) {
-          const results = await Promise.allSettled(
-            permissions
-              .filter((permission) =>
-                requestedClassId
-                  ? permission.classId === requestedClassId
-                  : true,
-              )
-              .filter((permission) =>
-                requestedSubjectId
-                  ? permission.subjectId === requestedSubjectId
-                  : true,
-              )
-              .map(async (permission) => {
-                const response =
-                  await getAssessmentsByClassAndSubject(
-                    sessionId,
-                    permission.classId,
-                    permission.subjectId,
-                    schoolSubdomain,
-                  );
+          const eligiblePermissions = permissions
+            .filter((permission) =>
+              requestedClassId
+                ? permission.classId === requestedClassId
+                : true,
+            )
+            .filter((permission) =>
+              requestedSubjectId
+                ? permission.subjectId === requestedSubjectId
+                : true,
+            );
 
-                return {
-                  response,
-                  permission,
+          const results = await Promise.allSettled(
+            eligiblePermissions.map(async (permission) => {
+              const response =
+                await getAssessmentsByClassAndSubject(
                   sessionId,
-                };
-              }),
+                  permission.classId,
+                  permission.subjectId,
+                  schoolSubdomain,
+                );
+
+              return {
+                response,
+                permission,
+                sessionId,
+              };
+            }),
           );
 
           const records: AssessmentRecord[] = [];
@@ -967,7 +1019,8 @@ export default function AssessmentDetailsPage() {
 
         if (
           nestedAssessment &&
-          typeof nestedAssessment === "object"
+          typeof nestedAssessment === "object" &&
+          !Array.isArray(nestedAssessment)
         ) {
           detailRecord =
             nestedAssessment as Record<string, unknown>;
@@ -993,6 +1046,7 @@ export default function AssessmentDetailsPage() {
       } as AssessmentRecord;
 
       setAssessment(finalAssessment);
+
       setSelectedSessionId(
         matchingContext.academicSessionId,
       );
@@ -1008,21 +1062,17 @@ export default function AssessmentDetailsPage() {
       --------------------------------------------- */
 
       setClassName(
-        String(
-          finalAssessment.className ||
-          finalAssessment.class?.className ||
-          finalAssessment.class?.name ||
-          "",
-        ),
+        finalAssessment.className ||
+        finalAssessment.class?.className ||
+        finalAssessment.class?.name ||
+        "",
       );
 
       setSubjectName(
-        String(
-          finalAssessment.subjectName ||
-          finalAssessment.subject?.subjectName ||
-          finalAssessment.subject?.name ||
-          "",
-        ),
+        finalAssessment.subjectName ||
+        finalAssessment.subject?.subjectName ||
+        finalAssessment.subject?.name ||
+        "",
       );
     } catch (requestError) {
       setError(getErrorMessage(requestError));
@@ -1049,7 +1099,7 @@ export default function AssessmentDetailsPage() {
   useEffect(() => {
     if (!isHydrated) return;
 
-    loadAssessment();
+    void loadAssessment();
   }, [isHydrated, loadAssessment]);
 
   /* =====================================================
@@ -1108,6 +1158,18 @@ export default function AssessmentDetailsPage() {
     typeof assessment?.description === "string"
       ? assessment.description
       : "";
+
+  const displayedClass =
+    className ||
+    assessment?.className ||
+    (assessment ? getClassId(assessment) : "") ||
+    "Not specified";
+
+  const displayedSubject =
+    subjectName ||
+    assessment?.subjectName ||
+    (assessment ? getSubjectId(assessment) : "") ||
+    "Not specified";
 
   /* =====================================================
      RENDER: HYDRATION
@@ -1310,7 +1372,8 @@ export default function AssessmentDetailsPage() {
           </h3>
 
           <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
-            {description || "No description provided for this assessment."}
+            {description ||
+              "No description provided for this assessment."}
           </p>
         </div>
       </div>
@@ -1383,10 +1446,7 @@ export default function AssessmentDetailsPage() {
                 size={17}
                 className="text-indigo-500"
               />
-              {className ||
-                assessment?.className ||
-                getClassId(assessment || {}) ||
-                "Not specified"}
+              {displayedClass}
             </p>
           </div>
 
@@ -1400,10 +1460,7 @@ export default function AssessmentDetailsPage() {
                 size={17}
                 className="text-indigo-500"
               />
-              {subjectName ||
-                assessment?.subjectName ||
-                getSubjectId(assessment || {}) ||
-                "Not specified"}
+              {displayedSubject}
             </p>
           </div>
 
@@ -1417,7 +1474,7 @@ export default function AssessmentDetailsPage() {
                 size={17}
                 className="text-indigo-500"
               />
-              {String(assessmentType).replaceAll("_", " ")}
+              {assessmentType.replaceAll("_", " ")}
             </p>
           </div>
 
@@ -1537,9 +1594,7 @@ export default function AssessmentDetailsPage() {
             </p>
 
             <p className="mt-2 text-sm font-semibold text-slate-800">
-              {formatDate(
-                assessment?.createdAt,
-              )}
+              {formatDate(assessment?.createdAt)}
             </p>
           </div>
 
@@ -1549,9 +1604,7 @@ export default function AssessmentDetailsPage() {
             </p>
 
             <p className="mt-2 text-sm font-semibold text-slate-800">
-              {formatDate(
-                assessment?.updatedAt,
-              )}
+              {formatDate(assessment?.updatedAt)}
             </p>
           </div>
 
@@ -1561,9 +1614,7 @@ export default function AssessmentDetailsPage() {
             </p>
 
             <p className="mt-2 text-sm font-semibold text-slate-800">
-              {formatDate(
-                assessment?.publishedAt,
-              )}
+              {formatDate(assessment?.publishedAt)}
             </p>
           </div>
         </div>

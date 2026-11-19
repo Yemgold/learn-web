@@ -1,6 +1,7 @@
 
 import { apiClient } from "@/lib/api";
 
+
 export type SchoolSubdomain = string;
 
 /* -------------------------------------------------------------------------- */
@@ -424,9 +425,9 @@ export const getSchoolClasses = async (
       config
     );
 
-    console.log("[SCHOOL CLASSES RESPONSE]", response.data);
+    console.log("[SCHOOL CLASSES RESPONSE]", response);
 
-    return extractClasses(response.data);
+    return extractClasses(response);
   } catch (error) {
     console.error("[SCHOOL CLASSES ERROR]", error);
     throw error;
@@ -450,7 +451,8 @@ export const getSchoolClassById = async (
     getSchoolConfig(schoolSubdomain)
   );
 
-  return extractClass(response.data);
+ return extractClass(response);
+
 };
 
 /* -------------------------------------------------------------------------- */
@@ -474,8 +476,7 @@ export const createSchoolClass = async (
     toApiPayload(payload),
     getSchoolConfig(schoolSubdomain)
   );
-
-  return extractClass(response.data);
+return extractClass(response);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -496,8 +497,7 @@ export const updateSchoolClass = async (
     toApiPayload(payload),
     getSchoolConfig(schoolSubdomain)
   );
-
-  return extractClass(response.data);
+return extractClass(response);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -519,7 +519,7 @@ export const updateSchoolClassStatus = async (
     getSchoolConfig(schoolSubdomain)
   );
 
-  return extractClass(response.data);
+return extractClass(response);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -570,8 +570,7 @@ export const addSubjectsToClass = async (
     { subjects },
     getSchoolConfig(schoolSubdomain)
   );
-
-  return extractClass(response.data);
+return extractClass(response);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -606,6 +605,6 @@ export const removeSubjectsFromClass = async (
     getSchoolConfig(schoolSubdomain)
   );
 
-  return extractClass(response.data);
+return extractClass(response);
 };
 

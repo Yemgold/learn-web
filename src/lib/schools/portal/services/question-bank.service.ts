@@ -88,6 +88,10 @@ const QUESTION_BANK_ENDPOINTS = {
   ) =>
     `/school/question-bank/get-questions-by-subjectId-classId-quantity/${academicSessionId}/${subjectId}/${classId}/${quantity}`,
 
+updateQuestion: (questionId: string) =>
+  `/school/question-bank/update-question/${encodeURIComponent(questionId)}`,
+
+
   updateQuestionStatus: (questionId: string) =>
     `/school/question-bank/update-question-status/${questionId}`,
 };

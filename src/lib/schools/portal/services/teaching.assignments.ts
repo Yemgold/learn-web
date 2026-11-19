@@ -85,14 +85,40 @@ const getSchoolRequestConfig = (schoolSubdomain: string) => {
   };
 };
 
-const unwrapResponse = <T>(response: {
-  data: {
-    data?: T;
-    [key: string]: unknown;
-  };
-}): T => {
-  const result = response.data;
-  return (result?.data ?? result) as T;
+const isRecord = (
+  value: unknown
+): value is Record<string, unknown> => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+};
+
+const unwrapResponse = <T>(response: unknown): T => {
+  let result = response;
+
+  // Unwrap Axios response if present.
+  if (isRecord(result) && "data" in result) {
+    result = result.data;
+  }
+
+  // Unwrap backend response envelope.
+  if (isRecord(result)) {
+    if (result.success === false) {
+      throw new Error(
+        typeof result.message === "string"
+          ? result.message
+          : "Teaching assignment request failed."
+      );
+    }
+
+    if ("data" in result && result.data !== undefined) {
+      result = result.data;
+    }
+  }
+
+  return result as T;
 };
 
 const validateRequiredIds = (

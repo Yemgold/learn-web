@@ -45,6 +45,11 @@ export interface SchoolMember {
 
   createdAt?: string;
   updatedAt?: string;
+
+  teachingAssignment?: {
+    class: string;
+    subject: string;
+  }[];
 }
 
 export interface SchoolTeacher extends SchoolMember {
@@ -54,11 +59,6 @@ export interface SchoolTeacher extends SchoolMember {
   specialization?: string;
   subjects?: string[];
   classes?: string[];
-
-  teachingAssignment?: {
-  class: string;
-  subject: string;
-}[];
 }
 
 export interface SchoolAdministrator extends SchoolMember {
@@ -125,11 +125,6 @@ export interface SchoolTeacherList {
   totalCount: number;
   currentPage: number;
   totalPages: number;
-
-  teachingAssignment?: {
-  class: string;
-  subject: string;
-}[];
 }
 
 export interface SchoolMembershipList {
@@ -555,7 +550,7 @@ export const getSchoolMembers = async (
       getSchoolRequestConfig(schoolSubdomain)
     );
 
-    console.log("SCHOOL MEMBERS RESPONSE:", response.data);
+    
 
     return extractMembers(response);
   } catch (error: unknown) {

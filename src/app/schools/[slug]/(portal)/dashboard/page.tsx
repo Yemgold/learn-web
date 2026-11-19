@@ -538,7 +538,7 @@ export default function SchoolDashboardPage() {
 
 console.log("[DASHBOARD DEBUG] Axios response:", response);
 
-console.log("[DASHBOARD DEBUG] Response status:", response.status);
+
 
 console.log("[DASHBOARD DEBUG] Response data:", response.data);
 
@@ -547,7 +547,11 @@ console.log("[DASHBOARD DEBUG] Response data:", response.data);
         response.data,
       );
 
-      const normalized = normalizeSchoolDashboardResponse(
+ if (!response.data) {
+  throw new Error("School dashboard returned an empty response.");
+}
+
+const normalized = normalizeSchoolDashboardResponse(
   response.data,
 );
 

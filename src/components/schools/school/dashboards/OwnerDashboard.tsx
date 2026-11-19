@@ -32,7 +32,7 @@ function asRecord(value: unknown): DataRecord {
     : {};
 }
 
-function formatLabel(value: string) {
+function formatLabel(value: string): string {
   return value
     .replace(/([A-Z])/g, " $1")
     .replace(/[_-]/g, " ")
@@ -52,13 +52,32 @@ function formatValue(value: unknown): string {
     return value.toLocaleString();
   }
 
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return `${value.length} items`;
+  }
+
   if (typeof value === "object") {
-    return Array.isArray(value)
-      ? `${value.length} items`
-      : "Available";
+    return "Available";
   }
 
   return String(value);
+}
+
+function getNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
 }
 
 /* ============================================================
@@ -140,6 +159,16 @@ function SchoolInformation({
     },
   ];
 
+  const ownerName = [
+    owner.firstName,
+    owner.lastName,
+  ]
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    )
+    .join(" ");
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -166,7 +195,9 @@ function SchoolInformation({
                   : "bg-gray-100 text-gray-600"
               }`}
             >
-              {school.isActive === true ? "Active School" : "Inactive / Unknown"}
+              {school.isActive === true
+                ? "Active School"
+                : "Inactive / Unknown"}
             </span>
 
             {typeof school.accessMode === "string" && (
@@ -185,10 +216,9 @@ function SchoolInformation({
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {information.map((item) => {
-          if (
-            typeof item.value !== "string" ||
-            !item.value.trim()
-          ) {
+          const value = formatValue(item.value);
+
+          if (value === "—") {
             return null;
           }
 
@@ -209,7 +239,7 @@ function SchoolInformation({
                 </p>
 
                 <p className="mt-1 break-words text-sm font-semibold text-gray-800">
-                  {item.value}
+                  {value}
                 </p>
               </div>
             </div>
@@ -217,34 +247,36 @@ function SchoolInformation({
         })}
       </div>
 
-      {(owner.firstName || owner.lastName || owner.email) && (
+           {(
+        ownerName ||
+        (typeof owner.email === "string" && owner.email.trim().length > 0) ||
+        (typeof owner.phoneNumber === "string" &&
+          owner.phoneNumber.trim().length > 0)
+      ) ? (
         <div className="mt-5 border-t border-gray-100 pt-5">
           <p className="text-sm font-semibold text-gray-800">
             School Owner
           </p>
 
           <p className="mt-2 text-sm text-gray-700">
-            {[owner.firstName, owner.lastName]
-              .filter(
-                (value): value is string =>
-                  typeof value === "string" && value.trim().length > 0
-              )
-              .join(" ") || "—"}
+            {ownerName || "—"}
           </p>
 
-          {typeof owner.email === "string" && (
-            <p className="mt-1 text-sm text-gray-500">
-              {owner.email}
-            </p>
-          )}
+          {typeof owner.email === "string" &&
+            owner.email.trim().length > 0 && (
+              <p className="mt-1 text-sm text-gray-500">
+                {owner.email}
+              </p>
+            )}
 
-          {typeof owner.phoneNumber === "string" && (
-            <p className="mt-1 text-sm text-gray-500">
-              {owner.phoneNumber}
-            </p>
-          )}
+          {typeof owner.phoneNumber === "string" &&
+            owner.phoneNumber.trim().length > 0 && (
+              <p className="mt-1 text-sm text-gray-500">
+                {owner.phoneNumber}
+              </p>
+            )}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -260,7 +292,7 @@ function DataSection({
   title: string;
   items: unknown;
 }) {
-  const records = Array.isArray(items) ? items : [];
+  const records: unknown[] = Array.isArray(items) ? items : [];
 
   if (records.length === 0) {
     return null;
@@ -276,25 +308,30 @@ function DataSection({
         {records.slice(0, 5).map((item, index) => {
           const record = asRecord(item);
 
+          const entries = Object.entries(record)
+            .filter(
+              ([key, value]) =>
+                ![
+                  "_id",
+                  "id",
+                  "__v",
+                  "password",
+                ].includes(key) &&
+                (
+                  typeof value === "string" ||
+                  typeof value === "number" ||
+                  typeof value === "boolean"
+                )
+            )
+            .slice(0, 3);
+
           return (
             <div
               key={String(record._id ?? record.id ?? index)}
               className="rounded-xl bg-gray-50 p-3"
             >
-              {Object.entries(record)
-                .filter(
-                  ([key, value]) =>
-                    ![
-                      "_id",
-                      "id",
-                      "__v",
-                      "password",
-                    ].includes(key) &&
-                    (typeof value === "string" ||
-                      typeof value === "number")
-                )
-                .slice(0, 3)
-                .map(([key, value]) => (
+              {entries.length > 0 ? (
+                entries.map(([key, value]) => (
                   <p
                     key={key}
                     className="text-sm text-gray-700"
@@ -304,7 +341,12 @@ function DataSection({
                     </span>{" "}
                     {formatValue(value)}
                   </p>
-                ))}
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No additional information available.
+                </p>
+              )}
             </div>
           );
         })}
@@ -326,11 +368,11 @@ export default function OwnerDashboard({
     dashboard.stats
   ) as SchoolDashboardStats;
 
-  const totalStudents = stats.totalStudents ?? 0;
-  const totalTeachers = stats.totalTeachers ?? 0;
-  const totalAdministrators = stats.totalAdministrators ?? 0;
-  const activeStudents = stats.activeStudents ?? 0;
-  const inactiveStudents = stats.inactiveStudents ?? 0;
+  const totalStudents = getNumber(stats.totalStudents);
+  const totalTeachers = getNumber(stats.totalTeachers);
+  const totalAdministrators = getNumber(stats.totalAdministrators);
+  const activeStudents = getNumber(stats.activeStudents);
+  const inactiveStudents = getNumber(stats.inactiveStudents);
 
   const statCards = [
     {
@@ -372,10 +414,7 @@ export default function OwnerDashboard({
 
   return (
     <div className="space-y-6">
-
-      {/* ======================================================
-          WELCOME HEADER
-      ====================================================== */}
+      {/* WELCOME HEADER */}
 
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
@@ -403,9 +442,7 @@ export default function OwnerDashboard({
         </div>
       </div>
 
-      {/* ======================================================
-          STATISTICS
-      ====================================================== */}
+      {/* STATISTICS */}
 
       <section>
         <div className="mb-4">
@@ -431,16 +468,11 @@ export default function OwnerDashboard({
         </div>
       </section>
 
-      {/* ======================================================
-          SCHOOL INFORMATION
-      ====================================================== */}
+      {/* SCHOOL INFORMATION */}
 
       <SchoolInformation school={school} />
 
-      {/* ======================================================
-          RECENT ACTIVITIES
-          Display only when backend supplies records.
-      ====================================================== */}
+      {/* RECENT ACTIVITIES */}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <DataSection
@@ -456,7 +488,6 @@ export default function OwnerDashboard({
           items={dashboard.recentAssignments}
         />
       </div>
-
     </div>
   );
 }

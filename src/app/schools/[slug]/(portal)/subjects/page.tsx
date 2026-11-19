@@ -1,6 +1,7 @@
 
 
 
+
 "use client";
 
 import {
@@ -58,15 +59,26 @@ interface SubjectForm {
   subjectCode: string;
 }
 
-const PAGE_SIZE = 10;
+type SubjectRecord = SchoolSubject & {
+  subjectName: string;
+  subjectCode: string;
+};
 
-
-type ApiSubject = SchoolSubject & {
+type ApiSubject = {
+  _id?: string;
+  id?: string;
   subjectName?: string;
   subjectCode?: string;
   name?: string;
   code?: string;
+  description?: string;
+  isActive?: boolean;
+  classCount?: number;
+  teacherCount?: number;
+  [key: string]: unknown;
 };
+
+const PAGE_SIZE = 10;
 
 /* =====================================================
    HELPERS
@@ -74,6 +86,22 @@ type ApiSubject = SchoolSubject & {
 
 function getSubjectId(subject: SchoolSubject): string {
   return subject._id ?? subject.id ?? "";
+}
+
+function getSubjectName(subject: SubjectRecord): string {
+  return subject.subjectName || "Unnamed subject";
+}
+
+function getSubjectCode(subject: SubjectRecord): string {
+  return subject.subjectCode || "";
+}
+
+function normalizeSubject(subject: ApiSubject): SubjectRecord {
+  return {
+    ...subject,
+    subjectName: subject.subjectName ?? subject.name ?? "",
+    subjectCode: subject.subjectCode ?? subject.code ?? "",
+  } as SubjectRecord;
 }
 
 function isNotFoundError(error: unknown): boolean {
@@ -109,7 +137,11 @@ function isNotFoundError(error: unknown): boolean {
     /^404\b/.test(err.message || "") ||
     /subjects? not found/i.test(err.message || "") ||
     (typeof backendMessage === "string" &&
-      /subjects? not found/i.test(backendMessage))
+      /subjects? not found/i.test(backendMessage)) ||
+    (Array.isArray(backendMessage) &&
+      backendMessage.some((message) =>
+        /subjects? not found/i.test(message)
+      ))
   );
 }
 
@@ -119,6 +151,31 @@ function getFriendlyError(
 ): string {
   if (isNotFoundError(error)) {
     return "";
+  }
+
+  if (error && typeof error === "object") {
+    const err = error as {
+      message?: string;
+      response?: {
+        data?: {
+          message?: string | string[];
+        };
+      };
+    };
+
+    const backendMessage = err.response?.data?.message;
+
+    if (typeof backendMessage === "string") {
+      return backendMessage;
+    }
+
+    if (Array.isArray(backendMessage)) {
+      return backendMessage.join(", ");
+    }
+
+    if (err.message) {
+      return err.message;
+    }
   }
 
   return fallback;
@@ -139,7 +196,7 @@ export default function SchoolSubjectsPage() {
      STATE
   ===================================================== */
 
-  const [subjects, setSubjects] = useState<SchoolSubject[]>([]);
+  const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -167,75 +224,80 @@ export default function SchoolSubjectsPage() {
      FETCH SUBJECTS
   ===================================================== */
 
-const fetchSubjects = useCallback(async () => {
-  if (!slug) {
-    setSubjects([]);
-    setError(
-      "Unable to identify your school. Please access the correct school portal."
-    );
-    setLoading(false);
-    return;
-  }
+  const fetchSubjects = useCallback(async () => {
+    if (!slug) {
+      setSubjects([]);
+      setError(
+        "Unable to identify your school. Please access the correct school portal."
+      );
+      setLoading(false);
+      return;
+    }
 
-  try {
-    setLoading(true);
-    setError("");
+    try {
+      setLoading(true);
+      setError("");
 
-    const result = await getSchoolSubjects(slug);
+      const result = await getSchoolSubjects(slug);
 
-    const response = result as {
-      subjectsObj?: unknown;
-      subjects?: unknown;
-      data?: {
+      const response = result as {
         subjectsObj?: unknown;
         subjects?: unknown;
         data?: {
           subjectsObj?: unknown;
           subjects?: unknown;
+          data?: {
+            subjectsObj?: unknown;
+            subjects?: unknown;
+          };
         };
       };
-    };
 
-    // Support both wrapped and unwrapped API responses.
-    const rawSubjects = [
-      response?.data?.subjectsObj,
-      response?.data?.data?.subjectsObj,
-      response?.subjectsObj,
-      response?.subjects,
-      response?.data?.subjects,
-      response?.data?.data?.subjects,
-    ].find(Array.isArray) as ApiSubject[] | undefined;
+      const possibleLists = [
+        response?.data?.subjectsObj,
+        response?.data?.data?.subjectsObj,
+        response?.subjectsObj,
+        response?.subjects,
+        response?.data?.subjects,
+        response?.data?.data?.subjects,
+      ];
 
-    const normalizedSubjects: SchoolSubject[] = (
-      rawSubjects ?? []
-    ).map((subject) => ({
-      ...subject,
-      name: subject.subjectName ?? subject.name ?? "",
-      code: subject.subjectCode ?? subject.code ?? "",
-    })) as SchoolSubject[];
+      const rawSubjects = possibleLists.find(
+        (item) => Array.isArray(item)
+      ) as ApiSubject[] | undefined;
 
-    setSubjects(normalizedSubjects);
-    setCurrentPage(1);
-  } catch (err: unknown) {
-    if (isNotFoundError(err)) {
-      setSubjects([]);
-      setError("");
-      setCurrentPage(1);
-      return;
-    }
-
-    setSubjects([]);
-
-    setError(
-      getFriendlyError(
-        err,
-        "We couldn't load your school's subjects. Please try again."
+      const normalizedSubjects: SubjectRecord[] = (
+        rawSubjects ?? []
       )
-    );
-  } finally {
-    setLoading(false);
-  }
-}, [slug]);
+        .filter(
+          (subject) =>
+            subject &&
+            typeof subject === "object"
+        )
+        .map(normalizeSubject);
+
+      setSubjects(normalizedSubjects);
+      setCurrentPage(1);
+    } catch (err: unknown) {
+      if (isNotFoundError(err)) {
+        setSubjects([]);
+        setError("");
+        setCurrentPage(1);
+        return;
+      }
+
+      setSubjects([]);
+
+      setError(
+        getFriendlyError(
+          err,
+          "We couldn't load your school's subjects. Please try again."
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
 
   /* =====================================================
      INITIAL FETCH
@@ -271,8 +333,10 @@ const fetchSubjects = useCallback(async () => {
       const searchValue = search.toLowerCase().trim();
 
       const matchesSearch =
-        subject.name.toLowerCase().includes(searchValue) ||
-        (subject.code ?? "")
+        getSubjectName(subject)
+          .toLowerCase()
+          .includes(searchValue) ||
+        getSubjectCode(subject)
           .toLowerCase()
           .includes(searchValue) ||
         (subject.description ?? "")
@@ -371,11 +435,10 @@ const fetchSubjects = useCallback(async () => {
       setError("");
       setSuccess("");
 
-      // Exact property names expected by the backend.
       const payload = {
         subjectName,
         subjectCode,
-      } as unknown as CreateSchoolSubjectPayload;
+      } as CreateSchoolSubjectPayload;
 
       await createSchoolSubject(payload, slug);
 
@@ -406,7 +469,7 @@ const fetchSubjects = useCallback(async () => {
   ===================================================== */
 
   const handleToggleStatus = async (
-    subject: SchoolSubject
+    subject: SubjectRecord
   ) => {
     const subjectId = getSubjectId(subject);
 
@@ -425,11 +488,12 @@ const fetchSubjects = useCallback(async () => {
     }
 
     const nextStatus = !subject.isActive;
+    const subjectName = getSubjectName(subject);
 
     const confirmed = window.confirm(
       nextStatus
-        ? `Activate ${subject.name}?`
-        : `Deactivate ${subject.name}?`
+        ? `Activate ${subjectName}?`
+        : `Deactivate ${subjectName}?`
     );
 
     if (!confirmed) return;
@@ -621,8 +685,6 @@ const fetchSubjects = useCallback(async () => {
               className="space-y-4"
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* SUBJECT NAME */}
-
                 <div>
                   <label
                     htmlFor="subjectName"
@@ -637,10 +699,12 @@ const fetchSubjects = useCallback(async () => {
                     required
                     maxLength={100}
                     value={form.subjectName}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      handleFormChange("subjectName", value);
-                    }}
+                    onChange={(event) =>
+                      handleFormChange(
+                        "subjectName",
+                        event.target.value
+                      )
+                    }
                     placeholder="e.g. Mathematics"
                     className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
@@ -649,8 +713,6 @@ const fetchSubjects = useCallback(async () => {
                     Maximum 100 characters.
                   </p>
                 </div>
-
-                {/* SUBJECT CODE */}
 
                 <div>
                   <label
@@ -666,10 +728,12 @@ const fetchSubjects = useCallback(async () => {
                     required
                     maxLength={30}
                     value={form.subjectCode}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      handleFormChange("subjectCode", value);
-                    }}
+                    onChange={(event) =>
+                      handleFormChange(
+                        "subjectCode",
+                        event.target.value
+                      )
+                    }
                     placeholder="e.g. MTH 101"
                     className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
@@ -679,8 +743,6 @@ const fetchSubjects = useCallback(async () => {
                   </p>
                 </div>
               </div>
-
-              {/* FORM ACTIONS */}
 
               <div className="flex flex-wrap justify-end gap-2">
                 <Button
@@ -721,8 +783,6 @@ const fetchSubjects = useCallback(async () => {
               </p>
             </div>
 
-            {/* SEARCH AND FILTER */}
-
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative">
                 <Search
@@ -733,10 +793,9 @@ const fetchSubjects = useCallback(async () => {
                 <input
                   type="search"
                   value={search}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSearch(value);
-                  }}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
                   placeholder="Search subjects..."
                   className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 sm:w-64"
                 />
@@ -744,10 +803,11 @@ const fetchSubjects = useCallback(async () => {
 
               <select
                 value={statusFilter}
-                onChange={(event) => {
-                  const value = event.target.value as StatusFilter;
-                  setStatusFilter(value);
-                }}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as StatusFilter
+                  )
+                }
                 className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Statuses</option>
@@ -762,8 +822,6 @@ const fetchSubjects = useCallback(async () => {
           {loading ? (
             <LoadingState message="Loading subjects..." />
           ) : filteredSubjects.length === 0 ? (
-            /* EMPTY STATE */
-
             <div className="py-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-500">
                 <BookOpen size={28} />
@@ -835,7 +893,7 @@ const fetchSubjects = useCallback(async () => {
 
                       return (
                         <tr
-                          key={subjectId || subject.name}
+                          key={subjectId || getSubjectName(subject)}
                           className="transition hover:bg-gray-50"
                         >
                           <td className="px-4 py-4">
@@ -846,7 +904,7 @@ const fetchSubjects = useCallback(async () => {
 
                               <div>
                                 <p className="font-medium text-gray-900">
-                                  {subject.name}
+                                  {getSubjectName(subject)}
                                 </p>
 
                                 {subject.description && (
@@ -859,7 +917,7 @@ const fetchSubjects = useCallback(async () => {
                           </td>
 
                           <td className="px-4 py-4 text-sm text-gray-600">
-                            {subject.code || "—"}
+                            {getSubjectCode(subject) || "—"}
                           </td>
 
                           <td className="px-4 py-4 text-sm text-gray-600">
@@ -916,7 +974,7 @@ const fetchSubjects = useCallback(async () => {
 
                   return (
                     <div
-                      key={subjectId || subject.name}
+                      key={subjectId || getSubjectName(subject)}
                       className="rounded-xl border border-gray-200 p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -927,11 +985,11 @@ const fetchSubjects = useCallback(async () => {
 
                           <div>
                             <h3 className="font-semibold text-gray-900">
-                              {subject.name}
+                              {getSubjectName(subject)}
                             </h3>
 
                             <p className="text-sm text-gray-500">
-                              Code: {subject.code || "—"}
+                              Code: {getSubjectCode(subject) || "—"}
                             </p>
                           </div>
                         </div>

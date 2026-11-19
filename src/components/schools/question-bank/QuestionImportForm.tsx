@@ -147,8 +147,8 @@ export default function QuestionImportForm({
         );
       }
 
-      const questionDifficulty =
-        question.difficulty ?? difficulty || "MEDIUM";
+    const questionDifficulty =
+  question.difficulty ?? (difficulty || "MEDIUM");
 
       if (
         !["EASY", "MEDIUM", "HARD"].includes(

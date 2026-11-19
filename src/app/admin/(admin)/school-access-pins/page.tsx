@@ -36,10 +36,7 @@ import LoadingState from "@/components/schools/shared/LoadingState";
 import Pagination from "@/components/schools/shared/Pagination";
 
 import { getSchools } from "@/lib/schools/management/services/school.service";
-// import {
-//   getSchoolAccessPins,
-//   revokeSchoolAccessPin,
-// } from "@/lib/schools/services/access-pin.service";
+
 
 import { getSchoolAccessPins, revokeSchoolAccessPin, } from "@/lib/schools/management/services/access.service"; 
 
@@ -622,13 +619,14 @@ export default function SchoolAccessPinsPage() {
           ) : filteredPins.length === 0 ? (
             <div className="p-8">
               <EmptyState
-                title="No access PINs found"
-                description={
-                  pins.length === 0
-                    ? "There are no access PIN records available yet."
-                    : "Try changing your search or filter settings."
-                }
-              />
+  icon={KeyRound}
+  title="No access PINs found"
+  description={
+    pins.length === 0
+      ? "There are no access PIN records available yet."
+      : "Try changing your search or filter settings."
+  }
+/>
             </div>
           ) : (
             <>

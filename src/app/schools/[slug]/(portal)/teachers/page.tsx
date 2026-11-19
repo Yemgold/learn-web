@@ -1,4 +1,7 @@
 
+
+
+
 "use client";
 
 import {
@@ -118,15 +121,21 @@ const getErrorMessage = (error: unknown): string => {
       error as {
         response?: {
           data?: {
-            message?: string;
+            message?: string | string[];
             error?: string;
           };
         };
       }
     ).response;
 
+    const message = response?.data?.message;
+
+    if (Array.isArray(message)) {
+      return message.join(", ");
+    }
+
     return (
-      response?.data?.message ||
+      message ||
       response?.data?.error ||
       "Something went wrong. Please try again."
     );
@@ -151,43 +160,57 @@ const createEmptyTeacherForm = (): TeacherFormState => ({
 });
 
 function getId(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (typeof value === "string") {
+    return value;
+  }
 
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
 
-    if (typeof record._id === "string") return record._id;
-    if (typeof record.id === "string") return record.id;
+    if (typeof record._id === "string") {
+      return record._id;
+    }
+
+    if (typeof record.id === "string") {
+      return record.id;
+    }
   }
 
   return "";
 }
 
+/**
+ * Safely checks whether a value is a plain record.
+ */
+function isRecord(
+  value: unknown
+): value is Record<string, unknown> {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  );
+}
 
-
+/**
+ * Extracts arrays from different API response structures.
+ */
 function getRecordArray(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) {
-    return value.filter(
-      (item): item is Record<string, unknown> =>
-        Boolean(item) &&
-        typeof item === "object" &&
-        !Array.isArray(item)
-    );
+    return value.filter(isRecord);
   }
 
-  if (!value || typeof value !== "object") {
+  if (!isRecord(value)) {
     return [];
   }
 
-  const record = value as Record<string, unknown>;
-
-  // getSchoolClasses() returns SchoolClassList:
-  // { classes, totalCount, currentPage, totalPages }
   const possibleKeys = [
     "classes",
     "classesObj",
     "schoolClassesObj",
     "schoolClasses",
+    "subjects",
+    "subjectsObj",
     "results",
     "items",
     "docs",
@@ -195,9 +218,11 @@ function getRecordArray(value: unknown): Record<string, unknown>[] {
   ];
 
   for (const key of possibleKeys) {
-    if (record[key] === undefined) continue;
+    if (value[key] === undefined) {
+      continue;
+    }
 
-    const result = getRecordArray(record[key]);
+    const result = getRecordArray(value[key]);
 
     if (result.length > 0) {
       return result;
@@ -207,116 +232,161 @@ function getRecordArray(value: unknown): Record<string, unknown>[] {
   return [];
 }
 
+/* =========================================================
+   NORMALIZE CLASSES
+
+   Important:
+   - Never return null from the map operation.
+   - classCode is optional, so omit it when unavailable.
+   - The returned objects are explicitly ClassOption[].
+========================================================= */
+
 function normalizeClasses(value: unknown): ClassOption[] {
-  return getRecordArray(value)
-    .map((item) => {
-      const id = getId(
-        item._id || item.id || item.classId
-      );
+  return getRecordArray(value).flatMap((item): ClassOption[] => {
+    const id = getId(
+      item._id || item.id || item.classId
+    );
 
-      if (!id) return null;
+    if (!id) {
+      return [];
+    }
 
-      const rawSubjects = Array.isArray(item.subjects)
-        ? item.subjects
-        : [];
+    const className =
+      typeof item.className === "string"
+        ? item.className
+        : typeof item.name === "string"
+          ? item.name
+          : "Unnamed class";
 
-      return {
-        _id: id,
+    const rawClassCode =
+      typeof item.classCode === "string"
+        ? item.classCode
+        : typeof item.arm === "string"
+          ? item.arm
+          : undefined;
 
-        className:
-          typeof item.className === "string"
-            ? item.className
-            : typeof item.name === "string"
-              ? item.name
-              : "Unnamed class",
+    const rawSubjects = Array.isArray(item.subjects)
+      ? item.subjects
+      : [];
 
-        classCode:
-          typeof item.classCode === "string"
-            ? item.classCode
-            : typeof item.arm === "string"
-              ? item.arm
-              : undefined,
+    const subjectIds = rawSubjects
+      .map((subject): string => {
+        if (typeof subject === "string") {
+          return subject;
+        }
 
-        subjects: rawSubjects
-          .map((subject) => {
-            if (typeof subject === "string") {
-              return subject;
-            }
+        if (isRecord(subject)) {
+          return getId(
+            subject._id ||
+              subject.id ||
+              subject.subjectId
+          );
+        }
 
-            if (subject && typeof subject === "object") {
-              const record = subject as Record<string, unknown>;
-              return getId(record._id || record.id || record.subjectId);
-            }
+        return "";
+      })
+      .filter((subjectId) => subjectId.length > 0);
 
-            return "";
-          })
-          .filter(Boolean),
-      } satisfies ClassOption;
-    })
-    .filter((item): item is ClassOption => item !== null);
+    const normalizedClass: ClassOption = {
+      _id: id,
+      className,
+      subjects: subjectIds,
+
+      ...(rawClassCode
+        ? { classCode: rawClassCode }
+        : {}),
+    };
+
+    return [normalizedClass];
+  });
 }
 
+/* =========================================================
+   NORMALIZE SUBJECTS
 
+   Important:
+   - Never return null from the map operation.
+   - subjectCode is optional, so omit it when unavailable.
+   - The returned objects are explicitly SubjectOption[].
+========================================================= */
 
 function normalizeSubjects(value: unknown): SubjectOption[] {
-  if (!value || typeof value !== "object") return [];
+  let data: unknown = value;
 
-  const response = value as Record<string, unknown>;
+  if (isRecord(data) && data.data !== undefined) {
+    data = data.data;
+  }
 
-  // Unwrap Axios response if necessary
-  let data: unknown = response.data ?? value;
+  if (isRecord(data) && data.data !== undefined) {
+    data = data.data;
+  }
 
-  if (data && typeof data === "object") {
-    const record = data as Record<string, unknown>;
+  if (!isRecord(data) && !Array.isArray(data)) {
+    return [];
+  }
 
-    // Handle backend envelope: { success, data: { subjectsObj: [] } }
-    if (record.data && typeof record.data === "object") {
-      data = record.data;
+  let rawSubjects: unknown[] = [];
+
+  if (Array.isArray(data)) {
+    rawSubjects = data;
+  } else if (isRecord(data)) {
+    if (Array.isArray(data.subjectsObj)) {
+      rawSubjects = data.subjectsObj;
+    } else if (Array.isArray(data.subjects)) {
+      rawSubjects = data.subjects;
+    } else if (Array.isArray(data.items)) {
+      rawSubjects = data.items;
+    } else if (Array.isArray(data.results)) {
+      rawSubjects = data.results;
     }
   }
 
-  if (!data || typeof data !== "object") return [];
+  return rawSubjects.flatMap((subject): SubjectOption[] => {
+    if (!isRecord(subject)) {
+      return [];
+    }
 
-  const record = data as Record<string, unknown>;
+    const id = getId(
+      subject._id ||
+        subject.id ||
+        subject.subjectId
+    );
 
-  const rawSubjects = Array.isArray(record.subjectsObj)
-    ? record.subjectsObj
-    : Array.isArray(record.subjects)
-      ? record.subjects
-      : Array.isArray(record.items)
-        ? record.items
-        : [];
+    if (!id) {
+      return [];
+    }
 
-  return rawSubjects
-    .filter(
-      (item): item is Record<string, unknown> =>
-        Boolean(item) &&
-        typeof item === "object" &&
-        !Array.isArray(item)
-    )
-    .map((item) => {
-      const id = getId(item._id || item.id || item.subjectId);
+    const subjectName =
+      typeof subject.subjectName === "string"
+        ? subject.subjectName
+        : typeof subject.name === "string"
+          ? subject.name
+          : "Unknown subject";
 
-      if (!id) return null;
+    const rawSubjectCode =
+      typeof subject.subjectCode === "string"
+        ? subject.subjectCode
+        : typeof subject.code === "string"
+          ? subject.code
+          : undefined;
 
-      return {
-        _id: id,
-        subjectName:
-          typeof item.subjectName === "string"
-            ? item.subjectName
-            : typeof item.name === "string"
-              ? item.name
-              : "Unknown subject",
-        subjectCode:
-          typeof item.subjectCode === "string"
-            ? item.subjectCode
-            : typeof item.code === "string"
-              ? item.code
-              : undefined,
-      };
-    })
-    .filter((item): item is SubjectOption => item !== null);
+    const normalizedSubject: SubjectOption = {
+      _id: id,
+      subjectName,
+
+      ...(rawSubjectCode
+        ? { subjectCode: rawSubjectCode }
+        : {}),
+    };
+
+    return [normalizedSubject];
+  });
 }
+
+/* =========================================================
+   ACADEMIC SESSION HELPERS
+========================================================= */
+
 function getSessionId(session: AcademicSession): string {
   const record = session as AcademicSession & {
     id?: string;
@@ -414,7 +484,6 @@ export default function SchoolTeachersPage() {
 
   /* =======================================================
      ASSIGN CLASSES MODAL STATE
-     Used for teachers with no assignments.
   ======================================================= */
 
   const [showAssignmentModal, setShowAssignmentModal] =
@@ -429,7 +498,6 @@ export default function SchoolTeachersPage() {
 
   /* =======================================================
      MANAGE CLASSES MODAL STATE
-     Used for teachers who already have assignments.
   ======================================================= */
 
   const [manageTeacher, setManageTeacher] =
@@ -454,6 +522,7 @@ export default function SchoolTeachersPage() {
     useState(false);
 
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+
   const [assignmentSubmitting, setAssignmentSubmitting] =
     useState(false);
 
@@ -462,7 +531,9 @@ export default function SchoolTeachersPage() {
   ======================================================= */
 
   const manageTeacherOption = useMemo<ManageTeacherOption | null>(() => {
-    if (!manageTeacher) return null;
+    if (!manageTeacher) {
+      return null;
+    }
 
     return {
       _id: getTeacherMembershipId(manageTeacher),
@@ -477,14 +548,15 @@ export default function SchoolTeachersPage() {
     return classes.map((item) => ({
       _id: item._id,
       className: item.className,
-      classCode: item.classCode,
 
-      // The Manage modal uses class subject IDs to filter
-      // the subjects available for that class.
+      // The Manage modal may require a string.
+      // Use an empty string when the class has no code.
+      classCode: item.classCode ?? "",
+
       subjects: Array.isArray(item.subjects)
         ? item.subjects
             .map((subject) => getId(subject))
-            .filter(Boolean)
+            .filter((subjectId) => subjectId.length > 0)
         : [],
     }));
   }, [classes]);
@@ -493,7 +565,9 @@ export default function SchoolTeachersPage() {
     return subjects.map((item) => ({
       _id: item._id,
       subjectName: item.subjectName,
-      subjectCode: item.subjectCode,
+
+      // Use an empty string when no subject code exists.
+      subjectCode: item.subjectCode ?? "",
     }));
   }, [subjects]);
 
@@ -502,14 +576,18 @@ export default function SchoolTeachersPage() {
   ======================================================= */
 
   const fetchTeachers = useCallback(async () => {
-    if (!isHydrated) return;
+    if (!isHydrated) {
+      return;
+    }
 
     if (!schoolId) {
       setTeachers([]);
       setLoading(false);
+
       setError(
         "Your account does not have an active school membership. Please sign in again or contact your school administrator."
       );
+
       return;
     }
 
@@ -606,7 +684,6 @@ export default function SchoolTeachersPage() {
 
   /* =======================================================
      OPEN ASSIGN CLASSES MODAL
-     For teachers without existing assignments.
   ======================================================= */
 
   const openAssignmentModal = async (teacher: SchoolTeacher) => {
@@ -660,7 +737,6 @@ export default function SchoolTeachersPage() {
 
   /* =======================================================
      OPEN MANAGE CLASSES MODAL
-     For teachers who already have assignments.
   ======================================================= */
 
   const openManageClassesModal = async (teacher: SchoolTeacher) => {
@@ -716,7 +792,9 @@ export default function SchoolTeachersPage() {
   ======================================================= */
 
   const closeAssignmentModal = () => {
-    if (assignmentSubmitting) return;
+    if (assignmentSubmitting) {
+      return;
+    }
 
     setShowAssignmentModal(false);
     setAssignmentTeacher(null);
@@ -729,7 +807,9 @@ export default function SchoolTeachersPage() {
   ======================================================= */
 
   const closeManageModal = () => {
-    if (assignmentSubmitting) return;
+    if (assignmentSubmitting) {
+      return;
+    }
 
     setShowManageModal(false);
     setManageTeacher(null);
@@ -747,10 +827,9 @@ export default function SchoolTeachersPage() {
       throw new Error("School subdomain is unavailable.");
     }
 
-    const teacherMembershipId =
-      assignmentTeacher
-        ? getTeacherMembershipId(assignmentTeacher)
-        : "";
+    const teacherMembershipId = assignmentTeacher
+      ? getTeacherMembershipId(assignmentTeacher)
+      : "";
 
     if (!teacherMembershipId) {
       throw new Error("Teacher membership ID is missing.");
@@ -882,8 +961,6 @@ export default function SchoolTeachersPage() {
         `New class and subject assignments added successfully for ${teacherName}.`
       );
 
-      // Refresh membership data so the new assignments
-      // are reflected when the teacher list is loaded again.
       await fetchTeachers();
 
       setShowManageModal(false);
@@ -1050,7 +1127,7 @@ export default function SchoolTeachersPage() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        phoneNumber: form.phoneNumber.trim() || undefined,
+       phoneNumber: form.phoneNumber.trim(),
         password: form.password,
         confirmPassword: form.confirmPassword,
       };
@@ -1100,7 +1177,9 @@ export default function SchoolTeachersPage() {
         : `Deactivate ${getTeacherName(teacher)}?`
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       setActionId(teacherMembershipId);
@@ -1141,7 +1220,6 @@ export default function SchoolTeachersPage() {
 
   return (
     <div className="space-y-6 pb-10">
-
       {/* PAGE HEADING */}
 
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -1188,19 +1266,22 @@ export default function SchoolTeachersPage() {
 
       {/* ALERTS */}
 
-      {error && !showForm && !showAssignmentModal && !showManageModal && (
-        <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          <span>{error}</span>
+      {error &&
+        !showForm &&
+        !showAssignmentModal &&
+        !showManageModal && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <span>{error}</span>
 
-          <button
-            type="button"
-            onClick={() => setError("")}
-            aria-label="Dismiss error"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => setError("")}
+              aria-label="Dismiss error"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
       {success && (
         <div className="flex items-start justify-between gap-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
@@ -1304,7 +1385,10 @@ export default function SchoolTeachersPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="firstName"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
                     First Name *
                   </label>
 
@@ -1321,7 +1405,10 @@ export default function SchoolTeachersPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="lastName"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
                     Last Name *
                   </label>
 
@@ -1338,7 +1425,10 @@ export default function SchoolTeachersPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="email"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
                     Email Address *
                   </label>
 
@@ -1356,7 +1446,10 @@ export default function SchoolTeachersPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="phoneNumber" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="phoneNumber"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
                     Phone Number
                   </label>
 
@@ -1375,7 +1468,10 @@ export default function SchoolTeachersPage() {
                 {!editingTeacher && (
                   <>
                     <div>
-                      <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="password"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
+                      >
                         Temporary Password *
                       </label>
 
@@ -1394,7 +1490,10 @@ export default function SchoolTeachersPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="confirmPassword"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
+                      >
                         Confirm Temporary Password *
                       </label>
 
@@ -1415,7 +1514,10 @@ export default function SchoolTeachersPage() {
                 )}
 
                 <div>
-                  <label htmlFor="role" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="role"
+                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                  >
                     School Role
                   </label>
 
@@ -1630,6 +1732,7 @@ export default function SchoolTeachersPage() {
                                 }
                               >
                                 <BookOpen size={15} />
+
                                 {hasAssignments
                                   ? "Manage Classes"
                                   : "Assign Classes"}
@@ -1734,6 +1837,7 @@ export default function SchoolTeachersPage() {
                           }`}
                         >
                           <BookOpen size={15} />
+
                           {hasAssignments
                             ? "Manage Classes"
                             : "Assign Classes"}
@@ -1811,8 +1915,7 @@ export default function SchoolTeachersPage() {
         </CardContent>
       </Card>
 
-      {/* ASSIGN CLASSES MODAL
-          Only opens when the teacher has no assignments. */}
+      {/* ASSIGN CLASSES MODAL */}
 
       {assignmentTeacher && (
         <TeachersUpdateModal
@@ -1840,24 +1943,22 @@ export default function SchoolTeachersPage() {
         />
       )}
 
-     {/* MANAGE CLASSES MODAL
-    Opens when the teacher already has assignments. */}
+      {/* MANAGE CLASSES MODAL */}
 
-<ManageTeacherClassesModal
-  open={showManageModal}
-  teacher={manageTeacherOption}
-  classes={manageClassOptions ?? []}
-  subjects={manageSubjectOptions ?? []}
-  academicSessions={academicSessions ?? []}
-  academicSessionId={academicSessionId ?? ""}
-  academicSessionsLoading={academicSessionsLoading}
-  loading={assignmentLoading}
-  submitting={assignmentSubmitting}
-  onAcademicSessionChange={setAcademicSessionId}
-  onClose={closeManageModal}
-  onAddAssignments={handleAddManagedAssignments}
-/>
+      <ManageTeacherClassesModal
+        open={showManageModal}
+        teacher={manageTeacherOption}
+        classes={manageClassOptions}
+        subjects={manageSubjectOptions}
+        academicSessions={academicSessions}
+        academicSessionId={academicSessionId}
+        academicSessionsLoading={academicSessionsLoading}
+        loading={assignmentLoading}
+        submitting={assignmentSubmitting}
+        onAcademicSessionChange={setAcademicSessionId}
+        onClose={closeManageModal}
+        onAddAssignments={handleAddManagedAssignments}
+      />
     </div>
   );
 }
-

@@ -9,17 +9,35 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { useQuestionBank } from "@/hooks/schools/useQuestionBank";
 
+/* =========================================================
+   TYPES AND HELPERS
+========================================================= */
+
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
 }
 
-function getText(value: unknown, fallback = "Not provided"): string {
-  if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" || typeof value === "boolean") {
+function getText(
+  value: unknown,
+  fallback = "Not provided"
+): string {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return String(value);
   }
+
   return fallback;
 }
 
@@ -46,6 +64,7 @@ function DetailItem({
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </p>
+
       <p className="mt-1 break-words text-sm font-semibold text-gray-900">
         {getText(value)}
       </p>
@@ -53,8 +72,16 @@ function DetailItem({
   );
 }
 
+/* =========================================================
+   PAGE
+========================================================= */
+
 export default function QuestionDetailsPage() {
-  const params = useParams<{ slug: string; questionId: string }>();
+  const params = useParams<{
+    slug: string;
+    questionId: string;
+  }>();
+
   const searchParams = useSearchParams();
 
   const slug = params.slug;
@@ -62,16 +89,26 @@ export default function QuestionDetailsPage() {
 
   const academicSessionId =
     searchParams.get("academicSessionId") || "";
+
   const classId = searchParams.get("classId") || "";
   const subjectId = searchParams.get("subjectId") || "";
 
   const user = useAuthStore((state) => state.user);
-  const schoolSubdomain = user?.schoolContext?.subDomain || slug;
 
-  const { selectedQuestion, fetchQuestionById } = useQuestionBank(slug);
+  const schoolSubdomain =
+    user?.schoolContext?.subDomain || slug;
+
+  const {
+    selectedQuestion,
+    fetchQuestionById,
+  } = useQuestionBank(slug);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* =========================================================
+     LOAD QUESTION
+  ========================================================= */
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +123,7 @@ export default function QuestionDetailsPage() {
         setError(
           "Question details cannot be loaded because one or more required IDs are missing from the URL."
         );
+
         setLoading(false);
         return;
       }
@@ -115,7 +153,7 @@ export default function QuestionDetailsPage() {
       }
     }
 
-    loadQuestion();
+    void loadQuestion();
 
     return () => {
       cancelled = true;
@@ -128,6 +166,10 @@ export default function QuestionDetailsPage() {
     fetchQuestionById,
   ]);
 
+  /* =========================================================
+     NORMALIZE QUESTION DATA
+  ========================================================= */
+
   const question = useMemo(
     () =>
       isRecord(selectedQuestion)
@@ -136,14 +178,21 @@ export default function QuestionDetailsPage() {
     [selectedQuestion]
   );
 
-  const answerKey = isRecord(question?.answerKey)
+  const answerKey: UnknownRecord = isRecord(
+    question?.answerKey
+  )
     ? question.answerKey
     : {};
 
   const options = getArray(question?.options);
-  const questionImages = getArray(question?.questionImages);
 
-  const correctOptionKeys = getArray(answerKey.correctOptionKeys)
+  const questionImages = getArray(
+    question?.questionImages
+  );
+
+  const correctOptionKeys = getArray(
+    answerKey.correctOptionKeys
+  )
     .map((item) => getText(item, ""))
     .filter(Boolean);
 
@@ -152,20 +201,66 @@ export default function QuestionDetailsPage() {
     ""
   );
 
-  const acceptedAnswers = getArray(answerKey.acceptedAnswers)
+  const acceptedAnswers = getArray(
+    answerKey.acceptedAnswers
+  )
     .map((item) => getText(item, ""))
     .filter(Boolean);
+
+  // Convert unknown answer-key values into strings
+  // before rendering them in React.
+  const modelAnswer = getText(
+    answerKey.modelAnswer,
+    ""
+  );
+
+  const markingGuide = getText(
+    answerKey.markingGuide,
+    ""
+  );
+
+  const explanation = getText(
+    question?.explanation,
+    ""
+  );
+
+  const topic = getText(
+    question?.topic,
+    "Not provided"
+  );
+
+  const questionStatus = formatLabel(
+    question?.status
+  );
+
+  const questionType = formatLabel(
+    question?.questionType
+  );
+
+  const difficulty = formatLabel(
+    question?.difficulty
+  );
+
+  const questionRecordId = getText(
+    question?._id || question?.id,
+    questionId
+  );
 
   const backUrl =
     `/schools/${slug}/question-bank?academicSessionId=${encodeURIComponent(
       academicSessionId
     )}`;
 
+  /* =========================================================
+     LOADING STATE
+  ========================================================= */
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+
           <p className="mt-3 text-sm text-gray-500">
             Loading question details...
           </p>
@@ -173,6 +268,10 @@ export default function QuestionDetailsPage() {
       </div>
     );
   }
+
+  /* =========================================================
+     ERROR STATE
+  ========================================================= */
 
   if (error || !question) {
     return (
@@ -188,17 +287,24 @@ export default function QuestionDetailsPage() {
           <h2 className="text-lg font-semibold text-red-800">
             Unable to load question
           </h2>
+
           <p className="mt-2 text-sm text-red-700">
-            {error || "The requested question could not be found."}
+            {error ||
+              "The requested question could not be found."}
           </p>
         </div>
       </div>
     );
   }
 
+  /* =========================================================
+     MAIN PAGE
+  ========================================================= */
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6">
-      {/* Header */}
+      {/* HEADER */}
+
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <Link
@@ -218,19 +324,20 @@ export default function QuestionDetailsPage() {
         </div>
 
         <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
-          {formatLabel(question.status)}
+          {questionStatus}
         </span>
       </div>
 
-      {/* Question information */}
+      {/* QUESTION INFORMATION */}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
-            {formatLabel(question.questionType)}
+            {questionType}
           </span>
 
           <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-            {formatLabel(question.difficulty)}
+            {difficulty}
           </span>
         </div>
 
@@ -263,7 +370,8 @@ export default function QuestionDetailsPage() {
         )}
       </section>
 
-      {/* Options */}
+      {/* ANSWER OPTIONS */}
+
       {options.length > 0 && (
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -272,11 +380,27 @@ export default function QuestionDetailsPage() {
 
           <div className="mt-4 space-y-3">
             {options.map((option, index) => {
-              const item = isRecord(option) ? option : {};
-              const optionKey = getText(item.key, "");
+              const item: UnknownRecord = isRecord(
+                option
+              )
+                ? option
+                : {};
+
+              const optionKey = getText(
+                item.key,
+                ""
+              );
+
               const isCorrect =
                 optionKey === correctOptionKey ||
                 correctOptionKeys.includes(optionKey);
+
+              const optionText = getText(
+                item.text
+              );
+
+              const optionImageUrl =
+                getText(item.imageUrl, "");
 
               return (
                 <div
@@ -294,17 +418,16 @@ export default function QuestionDetailsPage() {
 
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-800">
-                        {getText(item.text)}
+                        {optionText}
                       </p>
 
-                      {typeof item.imageUrl === "string" &&
-                        item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt={`Option ${optionKey} image`}
-                            className="mt-3 max-h-48 rounded-lg object-contain"
-                          />
-                        )}
+                      {optionImageUrl && (
+                        <img
+                          src={optionImageUrl}
+                          alt={`Option ${optionKey} image`}
+                          className="mt-3 max-h-48 rounded-lg object-contain"
+                        />
+                      )}
                     </div>
 
                     {isCorrect && (
@@ -320,7 +443,8 @@ export default function QuestionDetailsPage() {
         </section>
       )}
 
-      {/* Answer key */}
+      {/* ANSWER KEY */}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900">
           Answer Key
@@ -341,10 +465,15 @@ export default function QuestionDetailsPage() {
             />
           )}
 
-          {typeof answerKey.correctBoolean === "boolean" && (
+          {typeof answerKey.correctBoolean ===
+            "boolean" && (
             <DetailItem
               label="Correct Answer"
-              value={answerKey.correctBoolean ? "True" : "False"}
+              value={
+                answerKey.correctBoolean
+                  ? "True"
+                  : "False"
+              }
             />
           )}
 
@@ -353,42 +482,50 @@ export default function QuestionDetailsPage() {
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Accepted Answers
               </p>
+
               <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-gray-800">
-                {acceptedAnswers.map((answer, index) => (
-                  <li key={`${answer}-${index}`}>{answer}</li>
-                ))}
+                {acceptedAnswers.map(
+                  (answer, index) => (
+                    <li key={`${answer}-${index}`}>
+                      {answer}
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           )}
 
-          {answerKey.modelAnswer && (
+          {modelAnswer && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Model Answer
               </p>
+
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">
-                {getText(answerKey.modelAnswer)}
+                {modelAnswer}
               </p>
             </div>
           )}
 
-          {answerKey.markingGuide && (
+          {markingGuide && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Marking Guide
               </p>
+
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">
-                {getText(answerKey.markingGuide)}
+                {markingGuide}
               </p>
             </div>
           )}
 
           {!correctOptionKey &&
             correctOptionKeys.length === 0 &&
-            typeof answerKey.correctBoolean !== "boolean" &&
+            typeof answerKey.correctBoolean !==
+              "boolean" &&
             acceptedAnswers.length === 0 &&
-            !answerKey.modelAnswer &&
-            !answerKey.markingGuide && (
+            !modelAnswer &&
+            !markingGuide && (
               <p className="text-sm text-gray-500">
                 No answer key information is available.
               </p>
@@ -396,7 +533,8 @@ export default function QuestionDetailsPage() {
         </div>
       </section>
 
-      {/* Additional details */}
+      {/* ADDITIONAL INFORMATION */}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900">
           Additional Information
@@ -405,27 +543,27 @@ export default function QuestionDetailsPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <DetailItem
             label="Question Type"
-            value={formatLabel(question.questionType)}
+            value={questionType}
           />
 
           <DetailItem
             label="Difficulty"
-            value={formatLabel(question.difficulty)}
+            value={difficulty}
           />
 
           <DetailItem
             label="Topic"
-            value={question.topic}
+            value={topic}
           />
 
           <DetailItem
             label="Status"
-            value={formatLabel(question.status)}
+            value={questionStatus}
           />
 
           <DetailItem
             label="Question ID"
-            value={question._id || question.id || questionId}
+            value={questionRecordId}
           />
 
           <DetailItem
@@ -434,17 +572,20 @@ export default function QuestionDetailsPage() {
           />
         </div>
 
-        {question.explanation && (
+        {explanation && (
           <div className="mt-5 border-t border-gray-100 pt-5">
             <h3 className="text-sm font-semibold text-gray-900">
               Explanation
             </h3>
+
             <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
-              {getText(question.explanation)}
+              {explanation}
             </p>
           </div>
         )}
       </section>
+
+      {/* FOOTER */}
 
       <div className="flex justify-end">
         <Link

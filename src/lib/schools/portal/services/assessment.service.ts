@@ -2,8 +2,6 @@
 
 
 
-
-
 import { apiClient } from "@/lib/api";
 
 /* =========================================
@@ -196,6 +194,7 @@ export const getAssessmentById = async (
     throw new Error(
       "Academic session, class and assessment IDs are required.",
     );
+
   }
 
   return apiClient.get(

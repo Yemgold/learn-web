@@ -2,7 +2,6 @@
 
 
 
-
 "use client";
 
 import {
@@ -36,6 +35,7 @@ import {
   updateAcademicSessionStatus,
   type AcademicSession,
   type AcademicPeriodType,
+  type AcademicSessionStatus,
 } from "@/lib/schools/portal/services/academicsessions";
 
 /* =========================================================
@@ -66,7 +66,7 @@ function getSessionId(session: AcademicSession): string {
       session.id ||
       session.academicSessionId ||
       ""
-  );
+  ).trim();
 }
 
 function getSessionName(session: AcademicSession): string {
@@ -80,12 +80,58 @@ function getSessionName(session: AcademicSession): string {
   );
 }
 
-function getSessionActive(session: AcademicSession): boolean {
-  if (typeof session.isActive === "boolean") {
-    return session.isActive;
+function getSessionStatus(
+  session: AcademicSession
+): AcademicSessionStatus {
+  const status = String(session.status || "")
+    .trim()
+    .toUpperCase();
+
+  if (
+    status === "UPCOMING" ||
+    status === "ACTIVE" ||
+    status === "COMPLETED"
+  ) {
+    return status;
   }
 
-  return String(session.status || "").toLowerCase() === "active";
+  // Backward compatibility if an older backend response
+  // still returns only isActive.
+  if (session.isActive === true) {
+    return "ACTIVE";
+  }
+
+  return "UPCOMING";
+}
+
+function getSessionActive(session: AcademicSession): boolean {
+  return getSessionStatus(session) === "ACTIVE";
+}
+
+function getStatusLabel(status: AcademicSessionStatus): string {
+  switch (status) {
+    case "ACTIVE":
+      return "Active";
+
+    case "COMPLETED":
+      return "Completed";
+
+    default:
+      return "Upcoming";
+  }
+}
+
+function getStatusClass(status: AcademicSessionStatus): string {
+  switch (status) {
+    case "ACTIVE":
+      return "bg-green-50 text-green-700";
+
+    case "COMPLETED":
+      return "bg-blue-50 text-blue-700";
+
+    default:
+      return "bg-amber-50 text-amber-700";
+  }
 }
 
 function getPeriodType(session: AcademicSession): AcademicPeriodType {
@@ -119,8 +165,12 @@ function getFriendlyError(
   }
 
   const message =
-    "message" in error && typeof error.message === "string"
-      ? error.message
+    "message" in error
+      ? Array.isArray(error.message)
+        ? error.message.join(", ")
+        : typeof error.message === "string"
+          ? error.message
+          : ""
       : "";
 
   return message || fallback;
@@ -209,11 +259,28 @@ export default function AcademicSessionsPage() {
   ========================================================= */
 
   const activeSessions = useMemo(
-    () => sessions.filter(getSessionActive).length,
+    () =>
+      sessions.filter(
+        (session) => getSessionStatus(session) === "ACTIVE"
+      ).length,
     [sessions]
   );
 
-  const inactiveSessions = sessions.length - activeSessions;
+  const upcomingSessions = useMemo(
+    () =>
+      sessions.filter(
+        (session) => getSessionStatus(session) === "UPCOMING"
+      ).length,
+    [sessions]
+  );
+
+  const completedSessions = useMemo(
+    () =>
+      sessions.filter(
+        (session) => getSessionStatus(session) === "COMPLETED"
+      ).length,
+    [sessions]
+  );
 
   /* =========================================================
      SEARCH
@@ -236,6 +303,9 @@ export default function AcademicSessionsPage() {
           .toLowerCase()
           .includes(search) ||
         String(session.periodType || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(session.status || "")
           .toLowerCase()
           .includes(search)
       );
@@ -320,16 +390,12 @@ export default function AcademicSessionsPage() {
     }
 
     if (!form.startDate || !form.endDate) {
-      setError(
-        "Please provide both the start date and end date."
-      );
+      setError("Please provide both the start date and end date.");
       return;
     }
 
     if (form.endDate < form.startDate) {
-      setError(
-        "The end date cannot be earlier than the start date."
-      );
+      setError("The end date cannot be earlier than the start date.");
       return;
     }
 
@@ -368,18 +434,14 @@ export default function AcademicSessionsPage() {
           schoolSubdomain
         );
 
-        setSuccess(
-          "Academic session updated successfully."
-        );
+        setSuccess("Academic session updated successfully.");
       } else {
         await createAcademicSession(
           payload,
           schoolSubdomain
         );
 
-        setSuccess(
-          "Academic session created successfully."
-        );
+        setSuccess("Academic session created successfully.");
       }
 
       setShowForm(false);
@@ -420,23 +482,38 @@ export default function AcademicSessionsPage() {
       return;
     }
 
-    const nextStatus = !getSessionActive(session);
+    const currentStatus = getSessionStatus(session);
+
+    // A completed session should not be accidentally reopened
+    // through the activate/deactivate toggle.
+    if (currentStatus === "COMPLETED") {
+      setError(
+        "This academic session is already completed and cannot be changed using the status toggle."
+      );
+      return;
+    }
+
+    const nextStatus: AcademicSessionStatus =
+      currentStatus === "ACTIVE" ? "UPCOMING" : "ACTIVE";
 
     setError("");
     setSuccess("");
     setUpdatingStatusId(sessionId);
 
     try {
+      // IMPORTANT:
+      // The backend expects { status: "ACTIVE" }
+      // or { status: "UPCOMING" }, NOT { isActive: true/false }.
       await updateAcademicSessionStatus(
         sessionId,
-        { isActive: nextStatus },
+        { status: nextStatus },
         schoolSubdomain
       );
 
       setSuccess(
-        nextStatus
+        nextStatus === "ACTIVE"
           ? "Academic session activated successfully."
-          : "Academic session deactivated successfully."
+          : "Academic session moved to upcoming successfully."
       );
 
       await fetchSessions();
@@ -570,7 +647,7 @@ export default function AcademicSessionsPage() {
           STATISTICS
       ===================================================== */}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
@@ -608,20 +685,38 @@ export default function AcademicSessionsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-1">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">
-                Inactive Sessions
+                Upcoming Sessions
               </p>
 
-              <p className="mt-2 text-2xl font-bold text-gray-600">
-                {loading ? "—" : inactiveSessions}
+              <p className="mt-2 text-2xl font-bold text-amber-600">
+                {loading ? "—" : upcomingSessions}
               </p>
             </div>
 
-            <div className="rounded-lg bg-gray-100 p-3 text-gray-600">
+            <div className="rounded-lg bg-amber-50 p-3 text-amber-600">
               <CalendarDays size={22} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">
+                Completed Sessions
+              </p>
+
+              <p className="mt-2 text-2xl font-bold text-blue-600">
+                {loading ? "—" : completedSessions}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
+              <GraduationCap size={22} />
             </div>
           </div>
         </div>
@@ -793,7 +888,9 @@ export default function AcademicSessionsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredSessions.map((session, index) => {
                     const sessionId = getSessionId(session);
-                    const isActive = getSessionActive(session);
+                    const status = getSessionStatus(session);
+                    const isActive = status === "ACTIVE";
+                    const isCompleted = status === "COMPLETED";
                     const isUpdating =
                       updatingStatusId === sessionId;
 
@@ -841,13 +938,9 @@ export default function AcademicSessionsPage() {
 
                         <td className="px-5 py-4">
                           <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                              isActive
-                                ? "bg-green-50 text-green-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(status)}`}
                           >
-                            {isActive ? "Active" : "Inactive"}
+                            {getStatusLabel(status)}
                           </span>
                         </td>
 
@@ -869,13 +962,17 @@ export default function AcademicSessionsPage() {
                               onClick={() =>
                                 void handleToggleStatus(session)
                               }
-                              disabled={isUpdating}
-                              title={
-                                isActive
-                                  ? "Deactivate academic session"
-                                  : "Activate academic session"
+                              disabled={
+                                isUpdating || isCompleted
                               }
-                              className={`rounded-lg border p-2 transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              title={
+                                isCompleted
+                                  ? "Completed sessions cannot be toggled"
+                                  : isActive
+                                    ? "Move session to upcoming"
+                                    : "Activate academic session"
+                              }
+                              className={`rounded-lg border p-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${
                                 isActive
                                   ? "border-red-200 text-red-600 hover:bg-red-50"
                                   : "border-green-200 text-green-600 hover:bg-green-50"
@@ -1065,8 +1162,6 @@ export default function AcademicSessionsPage() {
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50"
                 />
               </div>
-
-              {/* FORM ERROR */}
 
               {/* FORM ACTIONS */}
 

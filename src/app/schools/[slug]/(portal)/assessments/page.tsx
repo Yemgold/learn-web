@@ -71,9 +71,10 @@ type AssessmentRecord = {
   endDate?: string;
   startsAt?: string;
   endsAt?: string;
-  classId?: string | { _id?: string };
-  classIds?: Array<string | { _id?: string }>;
-  subjectId?: string | { _id?: string };
+  academicSessionId?: string | { _id?: string; id?: string };
+  classId?: string | { _id?: string; id?: string };
+  classIds?: Array<string | { _id?: string; id?: string }>;
+  subjectId?: string | { _id?: string; id?: string };
   [key: string]: unknown;
 };
 
@@ -140,6 +141,58 @@ function getId(value: unknown): string {
   }
 
   return "";
+}
+
+/**
+ * Builds the assessment details URL using real IDs.
+ *
+ * Priority:
+ * 1. Academic session ID from the assessment record.
+ * 2. Currently selected academic session ID.
+ * 3. First class ID from assessment.classIds.
+ * 4. assessment.classId if classIds is unavailable.
+ *
+ * Returns an empty string if a required ID is missing.
+ */
+function getAssessmentDetailsUrl(
+  assessment: AssessmentRecord,
+  schoolUrl: string,
+  fallbackSessionId: string,
+): string {
+  const assessmentId = getId(assessment._id);
+
+  const sessionId =
+    getId(assessment.academicSessionId) ||
+    fallbackSessionId.trim();
+
+  const classIds: string[] = [];
+
+  if (Array.isArray(assessment.classIds)) {
+    for (const item of assessment.classIds) {
+      const id = getId(item);
+
+      if (id && !classIds.includes(id)) {
+        classIds.push(id);
+      }
+    }
+  }
+
+  const classId =
+    classIds[0] ||
+    getId(assessment.classId);
+
+  if (!assessmentId || !sessionId || !classId) {
+    return "";
+  }
+
+  const query = new URLSearchParams({
+    academicSessionId: sessionId,
+    classId,
+  });
+
+  return `${schoolUrl}/assessments/${encodeURIComponent(
+    assessmentId,
+  )}?${query.toString()}`;
 }
 
 /**
@@ -305,7 +358,6 @@ function unwrapApiResponse(response: unknown): unknown {
             ? current.statusCode
             : undefined;
 
-      // Treat a backend 404 for missing assessments as empty.
       if (
         status === 404 &&
         /assessment(s)? not found|no assessment(s)? found/i.test(
@@ -931,15 +983,6 @@ export default function AssessmentsPage() {
           return;
         }
 
-        /* ===============================================
-           FETCH ASSESSMENTS FOR EACH ASSIGNED PAIR
-
-           404 = no assessments for that pair.
-           This is a normal empty result.
-
-           403 and other errors remain genuine failures.
-        =============================================== */
-
         const results = await Promise.allSettled(
           permissions.map(async (permission) => {
             try {
@@ -961,13 +1004,10 @@ export default function AssessmentsPage() {
               })) as TeacherAssessment[];
 
             } catch (requestError) {
-              // A 404 saying assessments were not found
-              // simply means this pair has no assessments yet.
               if (isNoAssessmentsFound(requestError)) {
                 return [];
               }
 
-              // Preserve genuine backend errors.
               throw requestError;
             }
           }),
@@ -1008,10 +1048,6 @@ export default function AssessmentsPage() {
         );
 
         setTeacherAssessments(filteredAssessments);
-
-        /* ===============================================
-           SHOW ONLY REAL ERRORS
-        =============================================== */
 
         if (failedResults.length > 0) {
           console.error(
@@ -1594,58 +1630,75 @@ export default function AssessmentsPage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-100">
-                  {visibleAssessments.map((assessment) => (
-                    <tr
-                      key={assessment._id}
-                      className="transition hover:bg-gray-50"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-                            <FileText size={19} />
+                  {visibleAssessments.map((assessment) => {
+                    const detailsUrl = getAssessmentDetailsUrl(
+                      assessment,
+                      schoolUrl,
+                      selectedSessionId,
+                    );
+
+                    return (
+                      <tr
+                        key={assessment._id}
+                        className="transition hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+                              <FileText size={19} />
+                            </div>
+
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {getAssessmentName(assessment)}
+                              </p>
+
+                              <p className="mt-1 line-clamp-1 text-xs text-gray-500">
+                                {assessment.description || "No description"}
+                              </p>
+                            </div>
                           </div>
+                        </td>
 
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {getAssessmentName(assessment)}
-                            </p>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {assessment.assessmentType || "General"}
+                        </td>
 
-                            <p className="mt-1 line-clamp-1 text-xs text-gray-500">
-                              {assessment.description || "No description"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {assessment.totalMarks ?? "—"}
+                        </td>
 
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {assessment.assessmentType || "General"}
-                      </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {getDuration(assessment)}
+                        </td>
 
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {assessment.totalMarks ?? "—"}
-                      </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge
+                            status={getAssessmentStatus(assessment)}
+                          />
+                        </td>
 
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {getDuration(assessment)}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <StatusBadge
-                          status={getAssessmentStatus(assessment)}
-                        />
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          href={`${schoolUrl}/assessments/${assessment._id}`}
-                          className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          View
-                          <ArrowRight size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="px-6 py-4 text-right">
+                          {detailsUrl ? (
+                            <Link
+                              href={detailsUrl}
+                              className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                            >
+                              View
+                              <ArrowRight size={15} />
+                            </Link>
+                          ) : (
+                            <span
+                              className="text-xs text-gray-400"
+                              title="The assessment is missing its class ID or academic session ID."
+                            >
+                              Details unavailable
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1653,84 +1706,98 @@ export default function AssessmentsPage() {
             {/* MOBILE CARDS */}
 
             <div className="divide-y divide-gray-100 md:hidden">
-              {visibleAssessments.map((assessment) => (
-                <div
-                  key={assessment._id}
-                  className="space-y-4 p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-                        <FileText size={19} />
+              {visibleAssessments.map((assessment) => {
+                const detailsUrl = getAssessmentDetailsUrl(
+                  assessment,
+                  schoolUrl,
+                  selectedSessionId,
+                );
+
+                return (
+                  <div
+                    key={assessment._id}
+                    className="space-y-4 p-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+                          <FileText size={19} />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-gray-900">
+                            {getAssessmentName(assessment)}
+                          </h3>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            {assessment.assessmentType || "General"}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900">
-                          {getAssessmentName(assessment)}
-                        </h3>
+                      <StatusBadge
+                        status={getAssessmentStatus(assessment)}
+                      />
+                    </div>
 
-                        <p className="mt-1 text-xs text-gray-500">
-                          {assessment.assessmentType || "General"}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Total Marks
+                        </p>
+
+                        <p className="mt-1 font-semibold text-gray-800">
+                          {assessment.totalMarks ?? "—"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Duration
+                        </p>
+
+                        <p className="mt-1 font-semibold text-gray-800">
+                          {getDuration(assessment)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Start Date
+                        </p>
+
+                        <p className="mt-1 font-semibold text-gray-800">
+                          {formatDate(getStartDate(assessment))}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          End Date
+                        </p>
+
+                        <p className="mt-1 font-semibold text-gray-800">
+                          {formatDate(getEndDate(assessment))}
                         </p>
                       </div>
                     </div>
 
-                    <StatusBadge
-                      status={getAssessmentStatus(assessment)}
-                    />
+                    {detailsUrl ? (
+                      <Link
+                        href={detailsUrl}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+                      >
+                        View Assessment
+                        <ArrowRight size={16} />
+                      </Link>
+                    ) : (
+                      <p className="rounded-xl bg-gray-50 px-4 py-3 text-center text-xs text-gray-500">
+                        Assessment details cannot be opened because its class ID or academic session ID is missing.
+                      </p>
+                    )}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        Total Marks
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-800">
-                        {assessment.totalMarks ?? "—"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        Duration
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-800">
-                        {getDuration(assessment)}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        Start Date
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-800">
-                        {formatDate(getStartDate(assessment))}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        End Date
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-800">
-                        {formatDate(getEndDate(assessment))}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`${schoolUrl}/assessments/${assessment._id}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-                  >
-                    View Assessment
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
@@ -1749,7 +1816,3 @@ export default function AssessmentsPage() {
     </main>
   );
 }
-
-
-
-

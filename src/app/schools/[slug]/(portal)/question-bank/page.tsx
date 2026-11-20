@@ -1,6 +1,1300 @@
 
 
 
+// "use client";
+
+// import {
+//   useCallback,
+//   useEffect,
+//   useMemo,
+//   useState,
+// } from "react";
+
+// import { useParams } from "next/navigation";
+
+// import {
+//   BookOpen,
+//   FileQuestion,
+//   CheckCircle2,
+//   XCircle,
+//   BarChart3,
+//   RefreshCw,
+//   ShieldAlert,
+//   GraduationCap,
+// } from "lucide-react";
+
+// import { useAuthStore } from "@/stores/auth.store";
+
+// import {
+//   getSchoolSubjects,
+// } from "@/lib/schools/portal/services/subject.service";
+
+// import {
+//   getSchoolClasses,
+// } from "@/lib/schools/portal/services/class.service";
+
+// import {
+//   getAllMyTeachingAssignments,
+// } from "@/lib/schools/portal/services/teaching.assignments";
+
+// import {
+//   getQuestionsByQuantity,
+// } from "@/lib/schools/portal/services/question-bank.service";
+
+// import {
+//   getAcademicSessions,
+// } from "@/lib/schools/portal/services/academicsessions";
+
+// import {
+//   extractAcademicSessions,
+// } from "@/lib/schools/utils/enrollment.utils";
+
+// /* =========================================================
+//    TYPES
+// ========================================================= */
+
+// type SchoolRole =
+//   | "OWNER"
+//   | "ADMIN"
+//   | "ADMINISTRATOR"
+//   | "TEACHER"
+//   | string;
+
+// interface SubjectOption {
+//   _id: string;
+//   subjectName: string;
+//   subjectCode?: string;
+// }
+
+// interface ClassOption {
+//   _id: string;
+//   className: string;
+//   subjects: string[];
+// }
+
+// interface AcademicSessionOption {
+//   _id: string;
+//   label: string;
+// }
+
+// interface QuestionRecord {
+//   _id?: string;
+//   id?: string;
+//   subjectId?: unknown;
+//   isActive?: boolean;
+//   questionText?: string;
+//   [key: string]: unknown;
+// }
+
+// interface QuestionTask {
+//   academicSessionId: string;
+//   classId: string;
+//   subjectId: string;
+// }
+
+// interface SubjectStatistic {
+//   subjectId: string;
+//   subjectName: string;
+//   total: number;
+//   active: number;
+//   inactive: number;
+// }
+
+// interface QuestionStatistics {
+//   total: number;
+//   active: number;
+//   inactive: number;
+//   bySubject: SubjectStatistic[];
+// }
+
+// const QUESTION_QUANTITY = 100;
+// const REQUEST_CONCURRENCY = 5;
+
+// /* =========================================================
+//    HELPERS
+// ========================================================= */
+
+// function getRecord(value: unknown): Record<string, unknown> {
+//   if (value && typeof value === "object") {
+//     return value as Record<string, unknown>;
+//   }
+
+//   return {};
+// }
+
+// function getText(value: unknown, fallback = ""): string {
+//   return typeof value === "string" ? value : fallback;
+// }
+
+// function getId(value: unknown): string {
+//   if (typeof value === "string") {
+//     return value;
+//   }
+
+//   if (!value || typeof value !== "object") {
+//     return "";
+//   }
+
+//   const record = getRecord(value);
+
+//   return (
+//     getText(record._id) ||
+//     getText(record.id) ||
+//     getText(record.subjectId) ||
+//     getText(record.classId) ||
+//     getText(record.academicSessionId)
+//   );
+// }
+
+// function normalizeSubject(value: unknown): SubjectOption | null {
+//   const record = getRecord(value);
+
+//   const id =
+//     getId(record._id) ||
+//     getId(record.id) ||
+//     getId(record.subjectId);
+
+//   if (!id) return null;
+
+//   return {
+//     _id: id,
+//     subjectName:
+//       getText(record.subjectName) ||
+//       getText(record.name) ||
+//       "Unnamed subject",
+//     subjectCode: getText(record.subjectCode),
+//   };
+// }
+
+// function normalizeClass(value: unknown): ClassOption | null {
+//   const record = getRecord(value);
+
+//   const id =
+//     getId(record._id) ||
+//     getId(record.id) ||
+//     getId(record.classId);
+
+//   if (!id) return null;
+
+//   const rawSubjects = Array.isArray(record.subjects)
+//     ? record.subjects
+//     : [];
+
+//   const subjects = rawSubjects
+//     .map((item) => getId(item))
+//     .filter(Boolean);
+
+//   return {
+//     _id: id,
+//     className:
+//       getText(record.className) ||
+//       getText(record.name) ||
+//       getText(record.class) ||
+//       "Unnamed class",
+//     subjects: [...new Set(subjects)],
+//   };
+// }
+
+// function normalizeAcademicSession(
+//   value: unknown,
+// ): AcademicSessionOption | null {
+//   const record = getRecord(value);
+
+//   const id =
+//     getId(record._id) ||
+//     getId(record.id) ||
+//     getId(record.academicSessionId);
+
+//   if (!id) return null;
+
+//   const label =
+//     getText(record.sessionName) ||
+//     getText(record.academicSessionName) ||
+//     getText(record.name) ||
+//     getText(record.title) ||
+//     getText(record.academicYear) ||
+//     getText(record.year) ||
+//     "Unnamed academic session";
+
+//   return {
+//     _id: id,
+//     label,
+//   };
+// }
+
+// /**
+//  * Extract question arrays from the existing endpoint response.
+//  *
+//  * The supplied backend response uses:
+//  * response.data.questions
+//  */
+// function extractQuestions(response: unknown): QuestionRecord[] {
+//   if (Array.isArray(response)) {
+//     return response as QuestionRecord[];
+//   }
+
+//   const root = getRecord(response);
+//   const data = getRecord(root.data);
+
+//   const candidates = [
+//     root.questions,
+//     root.questionsObj,
+//     root.questionBankObj,
+//     root.questionBank,
+//     root.items,
+
+//     data.questions,
+//     data.questionsObj,
+//     data.questionBankObj,
+//     data.questionBank,
+//     data.items,
+//     data.data,
+//   ];
+
+//   for (const candidate of candidates) {
+//     if (Array.isArray(candidate)) {
+//       return candidate as QuestionRecord[];
+//     }
+//   }
+
+//   return [];
+// }
+
+// /**
+//  * Extract the teaching assignments returned by the
+//  * existing teaching-assignment endpoint.
+//  */
+// function extractAssignments(response: unknown): unknown[] {
+//   if (Array.isArray(response)) {
+//     return response;
+//   }
+
+//   const root = getRecord(response);
+//   const data = getRecord(root.data);
+
+//   const candidates = [
+//     root.teachingAssignments,
+//     root.assignments,
+//     root.classes,
+//     root.classesObj,
+
+//     data.teachingAssignments,
+//     data.assignments,
+//     data.classes,
+//     data.classesObj,
+//   ];
+
+//   for (const candidate of candidates) {
+//     if (Array.isArray(candidate)) {
+//       return candidate;
+//     }
+//   }
+
+//   return [];
+// }
+
+// function getAssignmentClass(
+//   assignment: unknown,
+// ): ClassOption | null {
+//   const record = getRecord(assignment);
+
+//   const nestedClass =
+//     record.class ||
+//     record.schoolClass ||
+//     record.classObj ||
+//     record.assignedClass;
+
+//   return normalizeClass(nestedClass || assignment);
+// }
+
+// function getAssignmentSubjectIds(
+//   assignment: unknown,
+// ): string[] {
+//   const record = getRecord(assignment);
+
+//   const nestedClass = getRecord(
+//     record.class ||
+//       record.schoolClass ||
+//       record.classObj ||
+//       record.assignedClass,
+//   );
+
+//   const rawSubjects = [
+//     ...(Array.isArray(record.subjects) ? record.subjects : []),
+//     ...(Array.isArray(nestedClass.subjects)
+//       ? nestedClass.subjects
+//       : []),
+//   ];
+
+//   if (record.subject) {
+//     rawSubjects.push(record.subject);
+//   }
+
+//   if (record.subjectId) {
+//     rawSubjects.push(record.subjectId);
+//   }
+
+//   if (nestedClass.subject) {
+//     rawSubjects.push(nestedClass.subject);
+//   }
+
+//   if (nestedClass.subjectId) {
+//     rawSubjects.push(nestedClass.subjectId);
+//   }
+
+//   return [
+//     ...new Set(
+//       rawSubjects
+//         .map((subject) => getId(subject))
+//         .filter(Boolean),
+//     ),
+//   ];
+// }
+
+// function getQuestionId(question: QuestionRecord): string {
+//   return (
+//     getText(question._id) ||
+//     getText(question.id)
+//   );
+// }
+
+// function getQuestionSubjectId(
+//   question: QuestionRecord,
+//   fallbackSubjectId: string,
+// ): string {
+//   return (
+//     getId(question.subjectId) ||
+//     fallbackSubjectId
+//   );
+// }
+
+// /* =========================================================
+//    PAGE
+// ========================================================= */
+
+// export default function QuestionBankPage() {
+//   const params = useParams();
+
+//   const slug = String(params.slug ?? "");
+
+//   const user = useAuthStore((state) => state.user);
+//   const isHydrated = useAuthStore((state) => state.isHydrated);
+
+//   const schoolSubdomain = (
+//     user?.schoolContext?.subDomain || slug
+//   )
+//     .trim()
+//     .toLowerCase();
+
+//   const role = (
+//     user?.schoolContext?.userSchoolMembership?.role || ""
+//   ).toUpperCase() as SchoolRole;
+
+//   const isAdministrator =
+//     role === "OWNER" ||
+//     role === "ADMIN" ||
+//     role === "ADMINISTRATOR";
+
+//   const isTeacher = role === "TEACHER";
+//   const hasAccess = isAdministrator || isTeacher;
+
+//   /* =======================================================
+//      STATE
+//   ======================================================= */
+
+//   const [statistics, setStatistics] =
+//     useState<QuestionStatistics>({
+//       total: 0,
+//       active: 0,
+//       inactive: 0,
+//       bySubject: [],
+//     });
+
+//   const [academicSessions, setAcademicSessions] =
+//     useState<AcademicSessionOption[]>([]);
+
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [hasLoaded, setHasLoaded] = useState(false);
+
+//   const [error, setError] = useState("");
+//   const [warning, setWarning] = useState("");
+
+//   const [totalRequests, setTotalRequests] = useState(0);
+//   const [completedRequests, setCompletedRequests] = useState(0);
+
+//   /* =======================================================
+//      LOAD STATISTICS
+//   ======================================================= */
+
+//   const loadStatistics = useCallback(async () => {
+//     if (
+//       !isHydrated ||
+//       !schoolSubdomain ||
+//       !hasAccess
+//     ) {
+//       return;
+//     }
+
+//     setIsLoading(true);
+//     setHasLoaded(false);
+//     setError("");
+//     setWarning("");
+
+//     setStatistics({
+//       total: 0,
+//       active: 0,
+//       inactive: 0,
+//       bySubject: [],
+//     });
+
+//     setCompletedRequests(0);
+//     setTotalRequests(0);
+
+//     try {
+//       /* -----------------------------------------------
+//          1. LOAD ALL ACADEMIC SESSIONS
+//       ----------------------------------------------- */
+
+//       const sessionsResponse =
+//         await getAcademicSessions(schoolSubdomain);
+
+//       const extractedSessions =
+//         extractAcademicSessions(sessionsResponse);
+
+//       const sessions = (
+//         Array.isArray(extractedSessions)
+//           ? extractedSessions
+//           : []
+//       )
+//         .map((item: unknown) =>
+//           normalizeAcademicSession(item),
+//         )
+//         .filter(
+//           (
+//             item: AcademicSessionOption | null,
+//           ): item is AcademicSessionOption =>
+//             Boolean(item),
+//         );
+
+//       setAcademicSessions(sessions);
+
+//       if (sessions.length === 0) {
+//         setStatistics({
+//           total: 0,
+//           active: 0,
+//           inactive: 0,
+//           bySubject: [],
+//         });
+
+//         setHasLoaded(true);
+//         return;
+//       }
+
+//       /* -----------------------------------------------
+//          2. LOAD SCHOOL SUBJECTS AND CLASSES
+
+//          Teachers also load the school's subject list
+//          to resolve subject names. Their question scope
+//          still comes exclusively from their assignments.
+//       ----------------------------------------------- */
+
+//       const [subjectResult, classResult] =
+//         await Promise.all([
+//           getSchoolSubjects(schoolSubdomain),
+//           isAdministrator
+//             ? getSchoolClasses(schoolSubdomain)
+//             : Promise.resolve({ classes: [] }),
+//         ]);
+
+//       const allSubjects = (
+//         subjectResult.subjects || []
+//       )
+//         .filter((subject) => subject.isActive !== false)
+//         .map((subject) => normalizeSubject(subject))
+//         .filter(
+//           (subject): subject is SubjectOption =>
+//             Boolean(subject),
+//         );
+
+//       const subjectMap = new Map<string, SubjectOption>();
+
+//       for (const subject of allSubjects) {
+//         subjectMap.set(subject._id, subject);
+//       }
+
+//       /* -----------------------------------------------
+//          3. BUILD QUESTION REQUEST COMBINATIONS
+//       ----------------------------------------------- */
+
+//       const tasks: QuestionTask[] = [];
+
+//       const taskKeys = new Set<string>();
+
+//       const addTask = (
+//         academicSessionId: string,
+//         classId: string,
+//         subjectId: string,
+//       ) => {
+//         if (!academicSessionId || !classId || !subjectId) {
+//           return;
+//         }
+
+//         const key = [
+//           academicSessionId,
+//           classId,
+//           subjectId,
+//         ].join(":");
+
+//         if (taskKeys.has(key)) return;
+
+//         taskKeys.add(key);
+
+//         tasks.push({
+//           academicSessionId,
+//           classId,
+//           subjectId,
+//         });
+//       };
+
+//       /* -----------------------------------------------
+//          ADMINISTRATOR SCOPE
+
+//          All active school classes and subjects
+//          across all academic sessions.
+//       ----------------------------------------------- */
+
+//       if (isAdministrator) {
+//         const allClasses = (
+//           classResult.classes || []
+//         )
+//           .filter((schoolClass) => schoolClass.isActive !== false)
+//           .map((schoolClass) => normalizeClass(schoolClass))
+//           .filter(
+//             (schoolClass): schoolClass is ClassOption =>
+//               Boolean(schoolClass),
+//           );
+
+//         for (const session of sessions) {
+//           for (const schoolClass of allClasses) {
+//             const classSubjectIds =
+//               schoolClass.subjects.length > 0
+//                 ? schoolClass.subjects
+//                 : allSubjects.map((subject) => subject._id);
+
+//             for (const subjectId of classSubjectIds) {
+//               addTask(
+//                 session._id,
+//                 schoolClass._id,
+//                 subjectId,
+//               );
+//             }
+//           }
+//         }
+//       }
+
+//       /* -----------------------------------------------
+//          TEACHER SCOPE
+
+//          Only assigned classes and subjects, across
+//          every academic session.
+//       ----------------------------------------------- */
+
+//       if (isTeacher) {
+//         for (const session of sessions) {
+//           const assignmentResponse =
+//             await getAllMyTeachingAssignments(
+//               session._id,
+//               schoolSubdomain,
+//             );
+
+//           const assignments =
+//             extractAssignments(assignmentResponse);
+
+//           for (const assignment of assignments) {
+//             const assignedClass =
+//               getAssignmentClass(assignment);
+
+//             if (!assignedClass) continue;
+
+//             const subjectIds =
+//               getAssignmentSubjectIds(assignment);
+
+//             for (const subjectId of subjectIds) {
+//               addTask(
+//                 session._id,
+//                 assignedClass._id,
+//                 subjectId,
+//               );
+
+//               if (!subjectMap.has(subjectId)) {
+//                 const rawAssignment = getRecord(assignment);
+
+//                 const rawSubjects = [
+//                   ...(Array.isArray(rawAssignment.subjects)
+//                     ? rawAssignment.subjects
+//                     : []),
+//                   rawAssignment.subject,
+//                 ].filter(Boolean);
+
+//                 const matchingSubject = rawSubjects.find(
+//                   (item) => getId(item) === subjectId,
+//                 );
+
+//                 const normalizedSubject =
+//                   normalizeSubject(matchingSubject);
+
+//                 if (normalizedSubject) {
+//                   subjectMap.set(
+//                     normalizedSubject._id,
+//                     normalizedSubject,
+//                   );
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+
+//       setTotalRequests(tasks.length);
+
+//       if (tasks.length === 0) {
+//         setStatistics({
+//           total: 0,
+//           active: 0,
+//           inactive: 0,
+//           bySubject: [],
+//         });
+
+//         setHasLoaded(true);
+//         return;
+//       }
+
+//       /* -----------------------------------------------
+//          4. FETCH QUESTIONS
+
+//          Existing endpoint:
+//          getQuestionsByQuantity(
+//            academicSessionId,
+//            subjectId,
+//            classId,
+//            quantity,
+//            schoolSubdomain
+//          )
+
+//          We request up to 10,000 per combination.
+//       ----------------------------------------------- */
+
+//       const uniqueQuestions = new Map<
+//         string,
+//         {
+//           question: QuestionRecord;
+//           subjectId: string;
+//         }
+//       >();
+
+//       let failedRequests = 0;
+//       let possiblyLimitedRequests = 0;
+
+//       let nextTaskIndex = 0;
+
+//       const worker = async () => {
+//         while (true) {
+//           const currentIndex = nextTaskIndex++;
+
+//           if (currentIndex >= tasks.length) {
+//             return;
+//           }
+
+//           const task = tasks[currentIndex];
+
+//           try {
+//             const response = await getQuestionsByQuantity(
+//               task.academicSessionId,
+//               task.subjectId,
+//               task.classId,
+//               QUESTION_QUANTITY,
+//               schoolSubdomain,
+//             );
+
+//             const questions = extractQuestions(response);
+
+//             const root = getRecord(response);
+//             const data = getRecord(root.data);
+
+//             const fetchedCount =
+//               typeof data.totalNoOfQuestionsFetched === "number"
+//                 ? data.totalNoOfQuestionsFetched
+//                 : questions.length;
+
+//             if (fetchedCount >= QUESTION_QUANTITY) {
+//               possiblyLimitedRequests += 1;
+//             }
+
+//             for (const question of questions) {
+//               const questionId = getQuestionId(question);
+
+//               const subjectId = getQuestionSubjectId(
+//                 question,
+//                 task.subjectId,
+//               );
+
+//               const uniqueKey =
+//                 questionId ||
+//                 `${subjectId}:${getText(question.questionText)}`;
+
+//               if (!uniqueQuestions.has(uniqueKey)) {
+//                 uniqueQuestions.set(uniqueKey, {
+//                   question,
+//                   subjectId,
+//                 });
+//               }
+//             }
+//           } catch (requestError) {
+//             failedRequests += 1;
+
+//             console.error(
+//               "Question statistics request failed:",
+//               {
+//                 task,
+//                 error: requestError,
+//               },
+//             );
+//           } finally {
+//             setCompletedRequests((current) => current + 1);
+//           }
+//         }
+//       };
+
+//       const workerCount = Math.min(
+//         REQUEST_CONCURRENCY,
+//         tasks.length,
+//       );
+
+//       await Promise.all(
+//         Array.from(
+//           { length: workerCount },
+//           () => worker(),
+//         ),
+//       );
+
+//       /* -----------------------------------------------
+//          5. CALCULATE STATISTICS
+//       ----------------------------------------------- */
+
+//       const subjectStatistics = new Map<
+//         string,
+//         SubjectStatistic
+//       >();
+
+//       let total = 0;
+//       let active = 0;
+//       let inactive = 0;
+
+//       for (const {
+//         question,
+//         subjectId,
+//       } of uniqueQuestions.values()) {
+//         total += 1;
+
+//         const isQuestionActive =
+//           question.isActive === true;
+
+//         const isQuestionInactive =
+//           question.isActive === false;
+
+//         if (isQuestionActive) {
+//           active += 1;
+//         }
+
+//         if (isQuestionInactive) {
+//           inactive += 1;
+//         }
+
+//         const subject =
+//           subjectMap.get(subjectId);
+
+//         const subjectName =
+//           subject?.subjectName || "Unknown subject";
+
+//         const existing =
+//           subjectStatistics.get(subjectId) || {
+//             subjectId,
+//             subjectName,
+//             total: 0,
+//             active: 0,
+//             inactive: 0,
+//           };
+
+//         existing.total += 1;
+
+//         if (isQuestionActive) {
+//           existing.active += 1;
+//         }
+
+//         if (isQuestionInactive) {
+//           existing.inactive += 1;
+//         }
+
+//         subjectStatistics.set(
+//           subjectId,
+//           existing,
+//         );
+//       }
+
+//       const bySubject = Array.from(
+//         subjectStatistics.values(),
+//       ).sort((a, b) => b.total - a.total);
+
+//       setStatistics({
+//         total,
+//         active,
+//         inactive,
+//         bySubject,
+//       });
+
+//       /* -----------------------------------------------
+//          6. WARN ABOUT PARTIAL RESULTS
+//       ----------------------------------------------- */
+
+//       const warnings: string[] = [];
+
+//       if (failedRequests > 0) {
+//         warnings.push(
+//           `${failedRequests} of ${tasks.length} class/subject/session requests failed. The displayed statistics may be incomplete.`,
+//         );
+//       }
+
+//       if (possiblyLimitedRequests > 0) {
+//         warnings.push(
+//           `${possiblyLimitedRequests} requests returned the full requested quantity of ${QUESTION_QUANTITY.toLocaleString()}. Some combinations may contain more questions than were retrieved.`,
+//         );
+//       }
+
+//       if (warnings.length > 0) {
+//         setWarning(warnings.join(" "));
+//       }
+//     } catch (loadError) {
+//       console.error(
+//         "Question Bank statistics loading error:",
+//         loadError,
+//       );
+
+//       const record = getRecord(loadError);
+//       const response = getRecord(record.response);
+//       const responseData = getRecord(response.data);
+
+//       setError(
+//         getText(responseData.message) ||
+//           getText(record.message) ||
+//           "Unable to load Question Bank statistics. Please refresh and try again.",
+//       );
+//     } finally {
+//       setIsLoading(false);
+//       setHasLoaded(true);
+//     }
+//   }, [
+//     isHydrated,
+//     schoolSubdomain,
+//     hasAccess,
+//     isAdministrator,
+//     isTeacher,
+//   ]);
+
+//   /* =======================================================
+//      INITIAL LOAD
+//   ======================================================= */
+
+//   useEffect(() => {
+//     if (!isHydrated || !hasAccess) return;
+
+//     void loadStatistics();
+//   }, [
+//     isHydrated,
+//     hasAccess,
+//     loadStatistics,
+//   ]);
+
+//   /* =======================================================
+//      SUBJECT BAR WIDTHS
+//   ======================================================= */
+
+//   const maxSubjectCount = useMemo(() => {
+//     return Math.max(
+//       1,
+//       ...statistics.bySubject.map(
+//         (subject) => subject.total,
+//       ),
+//     );
+//   }, [statistics.bySubject]);
+
+//   /* =======================================================
+//      ACCESS CHECK
+//   ======================================================= */
+
+//   if (!isHydrated) {
+//     return (
+//       <div className="flex min-h-[300px] items-center justify-center">
+//         <RefreshCw className="h-7 w-7 animate-spin text-indigo-600" />
+//       </div>
+//     );
+//   }
+
+//   if (!hasAccess) {
+//     return (
+//       <div className="mx-auto max-w-xl p-6">
+//         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+//           <ShieldAlert className="mx-auto h-10 w-10 text-red-500" />
+
+//           <h1 className="mt-3 text-xl font-bold text-gray-900">
+//             Access Restricted
+//           </h1>
+
+//           <p className="mt-2 text-sm text-gray-600">
+//             Your school membership role does not have permission
+//             to access Question Bank statistics.
+//           </p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* =======================================================
+//      RENDER
+//   ======================================================= */
+
+//   return (
+//     <div className="space-y-6 p-4 md:p-6">
+
+//       {/* HEADER */}
+
+//       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+//         <div>
+//           <div className="flex items-center gap-2">
+//             <BookOpen className="h-6 w-6 text-indigo-600" />
+
+//             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+//               Question Bank Statistics
+//             </h1>
+//           </div>
+
+//           <p className="mt-1 text-sm text-gray-500">
+//             Overview of questions available across your school.
+//           </p>
+
+//           <p className="mt-2 text-xs font-medium text-indigo-600">
+//             {isTeacher
+//               ? "Statistics for your assigned classes and subjects"
+//               : "School-wide statistics"}
+//           </p>
+//         </div>
+
+//         <button
+//           type="button"
+//           onClick={() => void loadStatistics()}
+//           disabled={isLoading}
+//           className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+//         >
+//           <RefreshCw
+//             className={`h-4 w-4 ${
+//               isLoading ? "animate-spin" : ""
+//             }`}
+//           />
+
+//           {isLoading ? "Refreshing..." : "Refresh Statistics"}
+//         </button>
+//       </div>
+
+//       {/* ERRORS */}
+
+//       {error && (
+//         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+//           {error}
+//         </div>
+//       )}
+
+//       {warning && (
+//         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+//           {warning}
+//         </div>
+//       )}
+
+//       {/* LOADING */}
+
+//       {isLoading && (
+//         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+//           <div className="flex items-center gap-3">
+//             <RefreshCw className="h-5 w-5 animate-spin text-indigo-600" />
+
+//             <div className="flex-1">
+//               <p className="text-sm font-semibold text-indigo-900">
+//                 Calculating Question Bank statistics
+//               </p>
+
+//               <p className="mt-1 text-xs text-indigo-700">
+//                 Retrieving questions across academic sessions,
+//                 classes and subjects...
+//               </p>
+
+//               <div className="mt-3 h-2 overflow-hidden rounded-full bg-indigo-100">
+//                 <div
+//                   className="h-full rounded-full bg-indigo-600 transition-all"
+//                   style={{
+//                     width: `${
+//                       totalRequests > 0
+//                         ? Math.min(
+//                             100,
+//                             (completedRequests / totalRequests) * 100,
+//                           )
+//                         : 0
+//                     }%`,
+//                   }}
+//                 />
+//               </div>
+
+//               <p className="mt-1 text-xs text-indigo-700">
+//                 {completedRequests.toLocaleString()} of{" "}
+//                 {totalRequests.toLocaleString()} requests completed
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* STATISTICS CARDS */}
+
+//       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+
+//         <StatCard
+//           label="Total Questions"
+//           value={statistics.total}
+//           description="Unique questions retrieved"
+//           icon={<FileQuestion className="h-5 w-5" />}
+//           color="indigo"
+//         />
+
+//         <StatCard
+//           label="Active Questions"
+//           value={statistics.active}
+//           description="Questions marked as active"
+//           icon={<CheckCircle2 className="h-5 w-5" />}
+//           color="green"
+//         />
+
+//         <StatCard
+//           label="Inactive Questions"
+//           value={statistics.inactive}
+//           description="Questions marked as inactive"
+//           icon={<XCircle className="h-5 w-5" />}
+//           color="red"
+//         />
+
+//       </div>
+
+//       {/* NUMBER OF QUESTIONS BY SUBJECT */}
+
+//       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+
+//         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+//           <div>
+//             <div className="flex items-center gap-2">
+//               <BarChart3 className="h-5 w-5 text-indigo-600" />
+
+//               <h2 className="text-lg font-semibold text-gray-900">
+//                 Number of Questions by Subject
+//               </h2>
+//             </div>
+
+//             <p className="mt-1 text-sm text-gray-500">
+//               Distribution of unique questions across subjects.
+//             </p>
+//           </div>
+
+//           <div className="flex items-center gap-2 text-sm text-gray-500">
+//             <GraduationCap className="h-4 w-4" />
+
+//             {statistics.bySubject.length} subject
+//             {statistics.bySubject.length === 1 ? "" : "s"}
+//           </div>
+//         </div>
+
+//         <div className="mt-6">
+
+//           {isLoading && statistics.bySubject.length === 0 ? (
+//             <div className="py-12 text-center">
+//               <RefreshCw className="mx-auto h-7 w-7 animate-spin text-indigo-600" />
+
+//               <p className="mt-3 text-sm text-gray-500">
+//                 Loading subject statistics...
+//               </p>
+//             </div>
+//           ) : statistics.bySubject.length === 0 ? (
+//             <div className="py-12 text-center">
+//               <BookOpen className="mx-auto h-10 w-10 text-gray-300" />
+
+//               <h3 className="mt-3 font-semibold text-gray-800">
+//                 No subject statistics available
+//               </h3>
+
+//               <p className="mt-1 text-sm text-gray-500">
+//                 No questions were returned for the available
+//                 classes and subjects.
+//               </p>
+//             </div>
+//           ) : (
+//             <div className="space-y-5">
+//               {statistics.bySubject.map((subject) => {
+//                 const percentage =
+//                   statistics.total > 0
+//                     ? (subject.total / statistics.total) * 100
+//                     : 0;
+
+//                 const barWidth =
+//                   (subject.total / maxSubjectCount) * 100;
+
+//                 return (
+//                   <div key={subject.subjectId}>
+//                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+//                       <div>
+//                         <p className="text-sm font-semibold text-gray-800">
+//                           {subject.subjectName}
+//                         </p>
+
+//                         <p className="mt-0.5 text-xs text-gray-500">
+//                           {subject.active.toLocaleString()} active
+//                           {" · "}
+//                           {subject.inactive.toLocaleString()} inactive
+//                         </p>
+//                       </div>
+
+//                       <div className="text-right">
+//                         <p className="text-sm font-bold tabular-nums text-gray-900">
+//                           {subject.total.toLocaleString()}
+//                         </p>
+
+//                         <p className="text-xs text-gray-500">
+//                           {percentage.toFixed(1)}%
+//                         </p>
+//                       </div>
+//                     </div>
+
+//                     <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+//                       <div
+//                         className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+//                         style={{
+//                           width: `${barWidth}%`,
+//                         }}
+//                       />
+//                     </div>
+//                   </div>
+//                 );
+//               })}
+//             </div>
+//           )}
+
+//         </div>
+//       </section>
+
+//       {/* SUMMARY */}
+
+//       {!isLoading && hasLoaded && !error && (
+//         <div className="rounded-xl border border-gray-200 bg-white p-4">
+//           <div className="flex items-start gap-3">
+//             <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
+
+//             <div>
+//               <p className="text-sm font-semibold text-gray-800">
+//                 Statistics calculation completed
+//               </p>
+
+//               <p className="mt-1 text-xs leading-5 text-gray-500">
+//                 {isTeacher
+//                   ? "These figures are calculated from questions retrieved for your assigned classes and subjects across the available academic sessions."
+//                   : "These figures are calculated from questions retrieved across the school's active classes, subjects and available academic sessions."}
+//               </p>
+
+//               <p className="mt-2 text-xs text-gray-400">
+//                 {academicSessions.length.toLocaleString()} academic
+//                 session
+//                 {academicSessions.length === 1 ? "" : "s"} checked
+//                 {" · "}
+//                 {totalRequests.toLocaleString()} request
+//                 {totalRequests === 1 ? "" : "s"} processed
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//     </div>
+//   );
+// }
+
+// /* =========================================================
+//    STAT CARD
+// ========================================================= */
+
+// function StatCard({
+//   label,
+//   value,
+//   description,
+//   icon,
+//   color,
+// }: {
+//   label: string;
+//   value: number;
+//   description: string;
+//   icon: React.ReactNode;
+//   color: "indigo" | "green" | "red";
+// }) {
+//   const styles = {
+//     indigo: {
+//       icon: "bg-indigo-50 text-indigo-600",
+//       value: "text-indigo-700",
+//     },
+//     green: {
+//       icon: "bg-green-50 text-green-600",
+//       value: "text-green-700",
+//     },
+//     red: {
+//       icon: "bg-red-50 text-red-600",
+//       value: "text-red-700",
+//     },
+//   };
+
+//   return (
+//     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+//       <div className="flex items-center justify-between gap-3">
+//         <p className="text-sm font-medium text-gray-500">
+//           {label}
+//         </p>
+
+//         <span
+//           className={`rounded-lg p-2 ${styles[color].icon}`}
+//         >
+//           {icon}
+//         </span>
+//       </div>
+
+//       <p
+//         className={`mt-4 text-3xl font-bold tabular-nums ${styles[color].value}`}
+//       >
+//         {value.toLocaleString()}
+//       </p>
+
+//       <p className="mt-1 text-xs text-gray-500">
+//         {description}
+//       </p>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
 "use client";
 
 import {
@@ -1887,7 +3181,6 @@ function StatusBadge({
     </span>
   );
 }
-
 
 
 

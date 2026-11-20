@@ -182,7 +182,7 @@ export const DEFAULT_SCHOOL_NAVIGATION: SchoolNavigationGroup[] = [
         label: "Question Bank",
         href: "/question-bank",
         icon: BookOpen,
-        allowedRoles: ["OWNER", "ADMIN","TEACHER"],
+        allowedRoles: ["TEACHER"],
       },
       {
         label: "Assessments",
@@ -190,9 +190,16 @@ export const DEFAULT_SCHOOL_NAVIGATION: SchoolNavigationGroup[] = [
         icon: FileText,
         allowedRoles: ["OWNER", "ADMIN", "TEACHER"],
       },
+
+      {
+        label: "My Class Assessment",
+        href: "/my-class-assessments",
+        icon: ClipboardList,
+        allowedRoles: ["STUDENT"],
+      },
       {
         label: "Assessment History",
-        href: "/assessment-history",
+        href: "/assessments-history",
         icon: ClipboardList,
         allowedRoles: ["STUDENT"],
       },

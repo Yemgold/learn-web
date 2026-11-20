@@ -8,6 +8,13 @@ import { apiClient } from "@/lib/api";
    TYPES
 ========================================================= */
 
+export type AcademicSessionStatus =
+  | "UPCOMING"
+  | "ACTIVE"
+  | "COMPLETED";
+
+export type AcademicPeriodType = "TERM" | "SEMESTER";
+
 export interface AcademicSession {
   _id?: string;
   id?: string;
@@ -20,13 +27,13 @@ export interface AcademicSession {
   title?: string;
 
   sectionName?: string | null;
-  periodType?: "TERM" | "SEMESTER";
+  periodType?: AcademicPeriodType;
 
   startDate?: string;
   endDate?: string;
 
   isActive?: boolean;
-  status?: string;
+  status?: AcademicSessionStatus | string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -41,8 +48,6 @@ export interface AcademicSessionList {
   currentPage?: number;
 }
 
-export type AcademicPeriodType = "TERM" | "SEMESTER";
-
 export interface CreateAcademicSessionPayload {
   sessionName: string;
   startDate: string;
@@ -53,8 +58,7 @@ export interface CreateAcademicSessionPayload {
 export type UpdateAcademicSessionPayload = Record<string, unknown>;
 
 export interface UpdateAcademicSessionStatusPayload {
-  isActive?: boolean;
-  status?: string;
+  status: AcademicSessionStatus;
 }
 
 /* =========================================================
@@ -73,13 +77,17 @@ const MESSAGES = {
   invalidSessionId: "A valid academic session ID is required.",
   invalidSubdomain: "School subdomain is required.",
 
+  invalidStatus:
+    "Academic session status must be UPCOMING, ACTIVE, or COMPLETED.",
+
   endpoint:
     "The academic sessions endpoint could not be reached. Please verify the backend route and try again.",
 
   unauthorized: "Your session has expired. Please sign in again.",
   forbidden: "You don't have permission to access academic sessions.",
   server: "Our server is temporarily unavailable. Please try again later.",
-  network: "Unable to connect to the server. Please check your internet connection.",
+  network:
+    "Unable to connect to the server. Please check your internet connection.",
 } as const;
 
 /* =========================================================
@@ -118,6 +126,27 @@ function getEmptySessionList(): AcademicSessionList {
 }
 
 /* =========================================================
+   BACKEND MESSAGE HELPER
+========================================================= */
+
+function getBackendMessage(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (Array.isArray(value)) {
+    const messages = value.filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0
+    );
+
+    return messages.length > 0 ? messages.join(" ") : undefined;
+  }
+
+  return undefined;
+}
+
+/* =========================================================
    RESPONSE HELPERS
 ========================================================= */
 
@@ -145,16 +174,20 @@ function unwrapResponse(response: unknown): unknown {
 
     if (current.success === false) {
       const message =
-        typeof current.message === "string"
-          ? current.message
-          : MESSAGES.fetchSessions;
+        getBackendMessage(current.message) ||
+        MESSAGES.fetchSessions;
 
       const backendStatus =
-        typeof current.status === "number"
-          ? current.status
-          : axiosStatus;
+        typeof current.statusCode === "number"
+          ? current.statusCode
+          : typeof current.status === "number"
+            ? current.status
+            : axiosStatus;
 
-      throw new AcademicSessionServiceError(message, backendStatus);
+      throw new AcademicSessionServiceError(
+        message,
+        backendStatus
+      );
     }
 
     if ("data" in current && current.data !== undefined) {
@@ -181,7 +214,6 @@ function extractSessionsFromData(data: unknown): AcademicSession[] {
     return [];
   }
 
-  // IMPORTANT:
   // The backend's actual response property is sessionObj.
   const possibleArrays = [
     data.sessionObj,
@@ -294,20 +326,20 @@ function getErrorDetails(error: unknown): ServiceErrorDetails {
       ? response.data
       : undefined;
 
-  return {
-    status:
-      typeof error.status === "number"
-        ? error.status
-        : typeof response?.status === "number"
-          ? response.status
-          : undefined,
+  const status =
+    typeof error.status === "number"
+      ? error.status
+      : typeof response?.status === "number"
+        ? response.status
+        : undefined;
 
-    message:
-      typeof responseData?.message === "string"
-        ? responseData.message
-        : typeof error.message === "string"
-          ? error.message
-          : undefined,
+  const message =
+    getBackendMessage(responseData?.message) ||
+    getBackendMessage(error.message);
+
+  return {
+    status,
+    message,
   };
 }
 
@@ -349,8 +381,13 @@ function handleServiceError(
 ): Error {
   const { status, message } = getErrorDetails(error);
 
-  if (status === 401) return new Error(MESSAGES.unauthorized);
-  if (status === 403) return new Error(MESSAGES.forbidden);
+  if (status === 401) {
+    return new Error(MESSAGES.unauthorized);
+  }
+
+  if (status === 403) {
+    return new Error(MESSAGES.forbidden);
+  }
 
   if (status === 404) {
     if (
@@ -360,17 +397,23 @@ function handleServiceError(
       return new Error(MESSAGES.endpoint);
     }
 
-    return new Error(fallbackMessage);
+    return new Error(message || fallbackMessage);
   }
 
   if (status === 409) {
     return new Error(
-      "An academic session with these details already exists."
+      message ||
+        "An academic session with these details already exists."
     );
   }
 
   if (status && status >= 500) {
     return new Error(MESSAGES.server);
+  }
+
+  // Preserve backend validation errors, including HTTP 400.
+  if (status && status >= 400 && status < 500) {
+    return new Error(message || fallbackMessage);
   }
 
   if (!status) {
@@ -382,7 +425,9 @@ function handleServiceError(
       error instanceof Error &&
       (
         error.message === MESSAGES.invalidSessionId ||
-        error.message === MESSAGES.invalidSubdomain
+        error.message === MESSAGES.invalidSubdomain ||
+        error.message === MESSAGES.invalidStatus ||
+        error.message === MESSAGES.fetchSession
       )
     ) {
       return error;
@@ -422,6 +467,24 @@ function validateSessionId(sessionId: string): string {
   }
 
   return encodeURIComponent(id);
+}
+
+function validateSessionStatus(
+  status: string
+): AcademicSessionStatus {
+  const normalized = String(status || "")
+    .trim()
+    .toUpperCase();
+
+  if (
+    normalized !== "UPCOMING" &&
+    normalized !== "ACTIVE" &&
+    normalized !== "COMPLETED"
+  ) {
+    throw new Error(MESSAGES.invalidStatus);
+  }
+
+  return normalized;
 }
 
 /* =========================================================
@@ -574,9 +637,11 @@ export async function updateAcademicSessionStatus(
     const id = validateSessionId(sessionId);
     const config = getSchoolConfig(schoolSubdomain);
 
+    const status = validateSessionStatus(payload.status);
+
     const response = await apiClient.patch(
       `${BASE_URL}/update-academic-session-status/${id}/status`,
-      payload,
+      { status },
       config
     );
 
@@ -586,7 +651,8 @@ export async function updateAcademicSessionStatus(
       error instanceof Error &&
       (
         error.message === MESSAGES.invalidSessionId ||
-        error.message === MESSAGES.invalidSubdomain
+        error.message === MESSAGES.invalidSubdomain ||
+        error.message === MESSAGES.invalidStatus
       )
     ) {
       throw error;
@@ -606,7 +672,7 @@ export async function activateAcademicSession(
 ): Promise<AcademicSession | null> {
   return updateAcademicSessionStatus(
     sessionId,
-    { isActive: true },
+    { status: "ACTIVE" },
     schoolSubdomain
   );
 }
@@ -615,13 +681,32 @@ export async function activateAcademicSession(
    DEACTIVATE ACADEMIC SESSION
 ========================================================= */
 
+// The backend has no INACTIVE status.
+// UPCOMING is used to move a session out of ACTIVE status.
+// Use COMPLETED instead when the session has actually ended.
+
 export async function deactivateAcademicSession(
   sessionId: string,
   schoolSubdomain: string
 ): Promise<AcademicSession | null> {
   return updateAcademicSessionStatus(
     sessionId,
-    { isActive: false },
+    { status: "UPCOMING" },
+    schoolSubdomain
+  );
+}
+
+/* =========================================================
+   COMPLETE ACADEMIC SESSION
+========================================================= */
+
+export async function completeAcademicSession(
+  sessionId: string,
+  schoolSubdomain: string
+): Promise<AcademicSession | null> {
+  return updateAcademicSessionStatus(
+    sessionId,
+    { status: "COMPLETED" },
     schoolSubdomain
   );
 }

@@ -800,3 +800,29 @@ export const getAcademicSessionEnrollments =
 
 export const getEnrollmentById =
   getStudentEnrollmentById;
+
+
+
+/* -------------------------------------------------------------------------- */
+/* GET ACTIVE ENROLLMENT OF A STUDENT IN A SESSION                            */
+/* -------------------------------------------------------------------------- */
+
+export const getActiveStudentEnrollmentInSession = async (
+  academicSessionId: string,
+  schoolMembershipId: string,
+  schoolSubdomain: SchoolSubdomain
+): Promise<StudentEnrollment> => {
+  try {
+    const sessionId = validateSessionId(academicSessionId);
+    const membershipId = validateEnrollmentId(schoolMembershipId);
+
+    const response = await apiClient.get<unknown>(
+      `/school/academic-sessions/${sessionId}/enrollments/get-active-enrollment-of-a-student-in-a-session/${membershipId}`,
+      getSchoolRequestConfig(schoolSubdomain)
+    );
+
+    return extractEnrollment(response);
+  } catch (error: unknown) {
+    throwFriendlyError(error, MESSAGES.single);
+  }
+};

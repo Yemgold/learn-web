@@ -310,7 +310,7 @@ export function useStudentsAssessments(
           schoolSubdomain
         );
 
-        setAttempt(result);
+        setAttempt(result as StudentAssessmentAttempt);
         setAnswers(
           Array.isArray(result.answers) ? result.answers : []
         );

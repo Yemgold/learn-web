@@ -184,7 +184,7 @@ export function useStudentsAssessments(
         const result = await getStudentAssessments({
           academicSessionId: activeFilters.academicSessionId,
           classId: activeFilters.classId,
-          subjectId: activeFilters.subjectId,
+          subjectId: activeFilters.subjectId ?? "",
           schoolSubdomain,
         });
 
